@@ -1,7 +1,28 @@
-import { Search } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 export const Header = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between h-14">
@@ -24,6 +45,14 @@ export const Header = () => {
           <button className="p-2 hover:bg-gray-100 rounded-full">
             <Search className="h-5 w-5 md:hidden" />
           </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-gray-600"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>
