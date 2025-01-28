@@ -24,8 +24,7 @@ export const FriendsList = () => {
         .from('friendships')
         .select(`
           *,
-          profiles!friendships_friend_id_fkey(id, username, avatar_url),
-          profiles!friendships_user_id_fkey(id, username, avatar_url)
+          friend:profiles!friendships_friend_id_fkey(id, username, avatar_url)
         `)
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
         .eq('status', 'accepted');
@@ -37,8 +36,7 @@ export const FriendsList = () => {
         .from('friendships')
         .select(`
           *,
-          profiles!friendships_friend_id_fkey(id, username, avatar_url),
-          profiles!friendships_user_id_fkey(id, username, avatar_url)
+          friend:profiles!friendships_friend_id_fkey(id, username, avatar_url)
         `)
         .eq('friend_id', user.id)
         .eq('status', 'pending');
@@ -100,12 +98,12 @@ export const FriendsList = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={request.profiles.avatar_url} />
+                    <AvatarImage src={request.friend.avatar_url} />
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">{request.profiles.username}</span>
+                  <span className="font-medium">{request.friend.username}</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -136,20 +134,21 @@ export const FriendsList = () => {
           <p className="text-muted-foreground">Vous n'avez pas encore d'amis</p>
         ) : (
           friends.map((friendship) => {
-            const friend = friendship.user_id === currentUser?.id 
-              ? friendship.profiles 
-              : friendship.profiles;
+            // Si l'utilisateur courant est l'user_id, on affiche le friend_id et vice versa
+            const friendProfile = friendship.user_id === currentUser?.id 
+              ? friendship.friend
+              : friendship.friend;
 
             return (
               <Card key={friendship.id} className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={friend.avatar_url} />
+                    <AvatarImage src={friendProfile.avatar_url} />
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">{friend.username}</span>
+                  <span className="font-medium">{friendProfile.username}</span>
                 </div>
               </Card>
             );
