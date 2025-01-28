@@ -8,10 +8,19 @@ import {
   ShoppingBag,
   Users,
   User,
-  Shield
+  Shield,
+  Newspaper,
+  Sparkles,
+  Compass
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function MainSidebar() {
   const navigate = useNavigate();
@@ -40,16 +49,51 @@ export default function MainSidebar() {
   return (
     <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
       <ScrollArea className="h-full px-4 py-6">
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/",
-          })}
-          onClick={() => navigate("/")}
-        >
-          <Home className="h-4 w-4" />
-          Accueil
-        </Button>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="home" className="border-none">
+            <AccordionTrigger className="py-2">
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                Accueil
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-col gap-1 pl-6">
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/feed",
+                  })}
+                  onClick={() => navigate("/feed")}
+                >
+                  <Newspaper className="h-4 w-4" />
+                  Fil d'actualité
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/suggestions",
+                  })}
+                  onClick={() => navigate("/suggestions")}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Suggestions
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/explore",
+                  })}
+                  onClick={() => navigate("/explore")}
+                >
+                  <Compass className="h-4 w-4" />
+                  Découvrir
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
         <Button
           variant="ghost"
           className={cn("w-full justify-start gap-2", {
