@@ -23,7 +23,8 @@ import {
   Image,
   Upload,
   Tag,
-  ShoppingBag
+  ShoppingBag,
+  User
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,7 +42,7 @@ const MainSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal", "profile"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -118,30 +119,15 @@ const MainSidebar = () => {
       ]
     },
     {
-      id: "marketplace",
-      label: "Vide-Dressing",
-      icon: Store,
+      id: "profile",
+      label: "Mon Profil",
+      icon: User,
       subItems: [
-        { id: "marketplace", label: "Articles en vente", path: "/marketplace", icon: Store },
-        { id: "add-item", label: "Ajouter un article", path: "/add-item", icon: Plus },
-        { id: "sales-history", label: "Historique des ventes", path: "/sales-history", icon: History },
+        { id: "marketplace", label: "Vide-Dressing", path: "/marketplace", icon: Store },
+        { id: "sales", label: "Mes Ventes", path: "/sales-history", icon: History },
         { id: "purchases", label: "Mes Achats", path: "/purchases", icon: ShoppingCart },
-      ]
-    },
-    {
-      id: "achievements",
-      label: "Récompenses",
-      icon: Trophy,
-      subItems: [
         { id: "badges", label: "Mes Badges", path: "/badges", icon: Trophy },
-      ]
-    },
-    {
-      id: "settings",
-      label: "Paramètres",
-      icon: Settings,
-      subItems: [
-        { id: "profile", label: "Mon Profil", path: "/profile", icon: Settings },
+        { id: "settings", label: "Paramètres", path: "/profile", icon: Settings },
         { id: "privacy", label: "Mode privé", path: "/privacy", icon: EyeOff },
       ]
     }
