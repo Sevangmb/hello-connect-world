@@ -3,10 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ClothesFilters = {
   category?: string;
+  subcategory?: string;
   search?: string;
-  sortBy?: "created_at" | "name";
+  sortBy?: "created_at" | "name" | "price" | "purchase_date";
   sortOrder?: "asc" | "desc";
   source?: "mine" | "friends";
+  showArchived?: boolean;
+  needsAlteration?: boolean;
 };
 
 export const useClothes = (filters: ClothesFilters = {}) => {
@@ -23,10 +26,12 @@ export const useClothes = (filters: ClothesFilters = {}) => {
         .select("*");
 
       if (filters.category) {
-        // Première lettre en majuscule, le reste en minuscule
         const formattedCategory = filters.category.charAt(0).toUpperCase() + filters.category.slice(1).toLowerCase();
-        console.log("Searching for category:", formattedCategory);
         query = query.eq("category", formattedCategory);
+      }
+
+      if (filters.subcategory) {
+        query = query.eq("subcategory", filters.subcategory);
       }
 
       if (filters.search) {
@@ -36,7 +41,6 @@ export const useClothes = (filters: ClothesFilters = {}) => {
       if (filters.source === "mine") {
         query = query.eq("user_id", user.id);
       } else if (filters.source === "friends") {
-        // Get friends' clothes
         const { data: friendships } = await supabase
           .from("friendships")
           .select("friend_id, user_id")
@@ -49,6 +53,17 @@ export const useClothes = (filters: ClothesFilters = {}) => {
           );
           query = query.in("user_id", friendIds);
         }
+      }
+
+      if (filters.showArchived !== undefined) {
+        query = query.eq("archived", filters.showArchived);
+      } else {
+        // Par défaut, on ne montre pas les vêtements archivés
+        query = query.eq("archived", false);
+      }
+
+      if (filters.needsAlteration !== undefined) {
+        query = query.eq("needs_alteration", filters.needsAlteration);
       }
 
       if (filters.sortBy) {

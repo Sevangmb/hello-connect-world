@@ -11,10 +11,11 @@ export const ClothesList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<ClothesFilters>({
-    source: "mine" // On ajoute le filtre pour n'afficher que mes vêtements
+    source: "mine"
   });
   const { data: clothes, isLoading } = useClothes(filters);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
     try {
@@ -44,6 +45,70 @@ export const ClothesList = () => {
     }
   };
 
+  const handleArchive = async (id: string, archived: boolean) => {
+    try {
+      setUpdatingId(id);
+      const { error } = await supabase
+        .from("clothes")
+        .update({ 
+          archived,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: archived ? "Vêtement archivé" : "Vêtement désarchivé",
+        description: `Le vêtement a été ${archived ? "archivé" : "désarchivé"} avec succès`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["clothes"] });
+    } catch (error: any) {
+      console.error("Error updating clothes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Impossible de ${archived ? "archiver" : "désarchiver"} le vêtement`,
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleAlterationToggle = async (id: string, needsAlteration: boolean) => {
+    try {
+      setUpdatingId(id);
+      const { error } = await supabase
+        .from("clothes")
+        .update({ 
+          needs_alteration: needsAlteration,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: needsAlteration ? "Vêtement à retoucher" : "Vêtement retouché",
+        description: needsAlteration 
+          ? "Le vêtement a été marqué comme à retoucher"
+          : "Le vêtement a été marqué comme retouché",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["clothes"] });
+    } catch (error: any) {
+      console.error("Error updating clothes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de retouche",
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ClothesFiltersComponent filters={filters} onFiltersChange={setFilters} />
@@ -63,7 +128,10 @@ export const ClothesList = () => {
               key={cloth.id}
               cloth={cloth}
               onDelete={handleDelete}
+              onArchive={handleArchive}
+              onAlterationToggle={handleAlterationToggle}
               isDeleting={deletingId === cloth.id}
+              isUpdating={updatingId === cloth.id}
             />
           ))}
         </div>

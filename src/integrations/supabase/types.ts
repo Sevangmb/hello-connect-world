@@ -173,32 +173,62 @@ export type Database = {
       }
       clothes: {
         Row: {
+          archived: boolean | null
+          brand: string | null
           category: string
+          color: string | null
           created_at: string
           description: string | null
           id: string
           image_url: string | null
+          material: string | null
           name: string
+          needs_alteration: boolean | null
+          price: number | null
+          purchase_date: string | null
+          size: string | null
+          style: string | null
+          subcategory: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          archived?: boolean | null
+          brand?: string | null
           category: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          material?: string | null
           name: string
+          needs_alteration?: boolean | null
+          price?: number | null
+          purchase_date?: string | null
+          size?: string | null
+          style?: string | null
+          subcategory?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          archived?: boolean | null
+          brand?: string | null
           category?: string
+          color?: string | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          material?: string | null
           name?: string
+          needs_alteration?: boolean | null
+          price?: number | null
+          purchase_date?: string | null
+          size?: string | null
+          style?: string | null
+          subcategory?: string | null
           updated_at?: string
           user_id?: string
         }
