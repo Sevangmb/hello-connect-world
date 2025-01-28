@@ -98,16 +98,6 @@ export const CreateOutfit = () => {
     }
   };
 
-  const isLoading = topsLoading || bottomsLoading || shoesLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
-  }
-
   const ClothingSection = ({ 
     title, 
     items, 
@@ -145,7 +135,7 @@ export const CreateOutfit = () => {
         <Carousel className="w-full">
           <CarouselContent>
             {items.map((item) => (
-              <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
+              <CarouselItem key={item.id}>
                 <div
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedId === item.id
@@ -158,10 +148,10 @@ export const CreateOutfit = () => {
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-full h-32 object-cover rounded-md mb-2"
+                      className="w-full h-48 object-cover rounded-md mb-2"
                     />
                   )}
-                  <p className="font-medium">{item.name}</p>
+                  <p className="font-medium text-center">{item.name}</p>
                 </div>
               </CarouselItem>
             ))}
@@ -176,6 +166,16 @@ export const CreateOutfit = () => {
       )}
     </div>
   );
+
+  const isLoading = topsLoading || bottomsLoading || shoesLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
