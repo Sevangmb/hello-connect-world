@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Shirt, Pants, Shoe } from "lucide-react";
 
 export const OutfitsList = () => {
   const { data: outfits, isLoading } = useQuery({
@@ -38,47 +39,92 @@ export const OutfitsList = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Mes tenues</h2>
-      <ScrollArea className="h-[300px]">
-        <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Mes tenues ({outfits?.length || 0})</h2>
+      <ScrollArea className="h-[500px] pr-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {outfits?.map((outfit) => (
-            <Card key={outfit.id} className="p-4">
-              <h3 className="font-semibold">{outfit.name}</h3>
-              {outfit.description && (
-                <p className="text-sm text-gray-500">{outfit.description}</p>
-              )}
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                {outfit.top && (
-                  <div>
-                    <p className="text-sm font-medium">Haut</p>
-                    <img
-                      src={outfit.top.image_url || ""}
-                      alt={outfit.top.name}
-                      className="mt-1 h-24 w-24 object-cover rounded-md"
-                    />
-                  </div>
+            <Card key={outfit.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <h3 className="text-xl font-semibold">{outfit.name}</h3>
+                {outfit.description && (
+                  <p className="text-sm text-muted-foreground">{outfit.description}</p>
                 )}
-                {outfit.bottom && (
-                  <div>
-                    <p className="text-sm font-medium">Bas</p>
-                    <img
-                      src={outfit.bottom.image_url || ""}
-                      alt={outfit.bottom.name}
-                      className="mt-1 h-24 w-24 object-cover rounded-md"
-                    />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Shirt className="h-5 w-5 text-blue-500" />
+                    <div>
+                      <p className="font-medium">Haut</p>
+                      {outfit.top ? (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={outfit.top.image_url || ""}
+                            alt={outfit.top.name}
+                            className="h-16 w-16 object-cover rounded-md"
+                          />
+                          <div>
+                            <p className="text-sm font-medium">{outfit.top.name}</p>
+                            {outfit.top.description && (
+                              <p className="text-xs text-muted-foreground">{outfit.top.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucun haut sélectionné</p>
+                      )}
+                    </div>
                   </div>
-                )}
-                {outfit.shoes && (
-                  <div>
-                    <p className="text-sm font-medium">Chaussures</p>
-                    <img
-                      src={outfit.shoes.image_url || ""}
-                      alt={outfit.shoes.name}
-                      className="mt-1 h-24 w-24 object-cover rounded-md"
-                    />
+
+                  <div className="flex items-center gap-4">
+                    <Pants className="h-5 w-5 text-indigo-500" />
+                    <div>
+                      <p className="font-medium">Bas</p>
+                      {outfit.bottom ? (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={outfit.bottom.image_url || ""}
+                            alt={outfit.bottom.name}
+                            className="h-16 w-16 object-cover rounded-md"
+                          />
+                          <div>
+                            <p className="text-sm font-medium">{outfit.bottom.name}</p>
+                            {outfit.bottom.description && (
+                              <p className="text-xs text-muted-foreground">{outfit.bottom.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucun bas sélectionné</p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex items-center gap-4">
+                    <Shoe className="h-5 w-5 text-purple-500" />
+                    <div>
+                      <p className="font-medium">Chaussures</p>
+                      {outfit.shoes ? (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={outfit.shoes.image_url || ""}
+                            alt={outfit.shoes.name}
+                            className="h-16 w-16 object-cover rounded-md"
+                          />
+                          <div>
+                            <p className="text-sm font-medium">{outfit.shoes.name}</p>
+                            {outfit.shoes.description && (
+                              <p className="text-xs text-muted-foreground">{outfit.shoes.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Aucunes chaussures sélectionnées</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
