@@ -37,9 +37,9 @@ export const PersonalSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/wardrobe",
+              "bg-gray-100": location.pathname === "/clothes",
             })}
-            onClick={() => navigate("/wardrobe")}
+            onClick={() => navigate("/clothes")}
           >
             <Shirt className="h-4 w-4" />
             Ma Garde-Robe
