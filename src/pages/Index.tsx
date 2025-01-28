@@ -36,6 +36,8 @@ const Index = () => {
     name: string;
   } | null>(null);
 
+  const [activeTab, setActiveTab] = useState<"posts" | "friends" | "messages" | "clothes" | "profile">("posts");
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -43,68 +45,85 @@ const Index = () => {
 
       <main className="pt-20 pb-8 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto space-y-8">
-          <ProfileForm />
-          <AddClothesForm />
-          <ClothesList />
-
-          <Tabs defaultValue="friends" className="w-full">
+          <Tabs value={activeTab} onValueChange={(value: any) => setActiveTab(value)}>
             <TabsList className="w-full">
+              <TabsTrigger value="posts" className="flex-1">
+                Publications
+              </TabsTrigger>
               <TabsTrigger value="friends" className="flex-1">
                 Amis
               </TabsTrigger>
               <TabsTrigger value="messages" className="flex-1">
                 Messages
               </TabsTrigger>
-              <TabsTrigger value="groups" className="flex-1">
-                Groupes
+              <TabsTrigger value="clothes" className="flex-1">
+                Vêtements
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="flex-1">
+                Profil
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="posts">
+              <div className="space-y-8">
+                <CreatePost />
+                {SAMPLE_POSTS.map((post) => (
+                  <Post key={post.id} {...post} />
+                ))}
+              </div>
+            </TabsContent>
 
             <TabsContent value="friends">
               <div className="space-y-8">
                 <AddFriend />
-                <FriendsList onChatSelect={(friend) => 
+                <FriendsList onChatSelect={(friend) => {
                   setSelectedChat({
                     type: "private",
                     id: friend.id,
                     name: friend.username || "Utilisateur",
-                  })
-                } />
+                  });
+                  setActiveTab("messages");
+                }} />
               </div>
             </TabsContent>
 
             <TabsContent value="messages">
-              {selectedChat && (
-                selectedChat.type === "private" ? (
-                  <PrivateChat
-                    recipientId={selectedChat.id}
-                    recipientName={selectedChat.name}
-                  />
+              <div className="space-y-8">
+                {selectedChat ? (
+                  selectedChat.type === "private" ? (
+                    <PrivateChat
+                      recipientId={selectedChat.id}
+                      recipientName={selectedChat.name}
+                    />
+                  ) : (
+                    <GroupChat
+                      groupId={selectedChat.id}
+                      groupName={selectedChat.name}
+                    />
+                  )
                 ) : (
-                  <GroupChat
-                    groupId={selectedChat.id}
-                    groupName={selectedChat.name}
-                  />
-                )
-              )}
+                  <GroupsList onChatSelect={(group) => {
+                    setSelectedChat({
+                      type: "group",
+                      id: group.id,
+                      name: group.name,
+                    });
+                  }} />
+                )}
+              </div>
             </TabsContent>
 
-            <TabsContent value="groups">
-              <GroupsList onChatSelect={(group) =>
-                setSelectedChat({
-                  type: "group",
-                  id: group.id,
-                  name: group.name,
-                })
-              } />
+            <TabsContent value="clothes">
+              <div className="space-y-8">
+                <AddClothesForm />
+                <ClothesList />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="profile">
+              <ProfileForm />
             </TabsContent>
           </Tabs>
-
-          <CreatePost />
-
-          {SAMPLE_POSTS.map((post) => (
-            <Post key={post.id} {...post} />
-          ))}
         </div>
       </main>
     </div>
