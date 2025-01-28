@@ -1,12 +1,10 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { 
-  User, 
-  ShoppingBag, 
+  Shirt,
   Camera,
   Heart,
   Settings,
-  Shirt,
   Store,
   History,
   ShoppingCart,
@@ -28,7 +26,7 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSidebarProps) => {
-  const [openMenus, setOpenMenus] = useState<string[]>(["profile", "wardrobe", "marketplace"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["wardrobe", "marketplace"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -44,8 +42,8 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
       label: "Garde-Robe",
       icon: Shirt,
       subItems: [
-        { id: "wardrobe", label: "Ma Garde-Robe", icon: ShoppingBag },
-        { id: "outfits", label: "Mes Tenues", icon: Shirt },
+        { id: "wardrobe", label: "Ma Garde-Robe", icon: Shirt },
+        { id: "outfits", label: "Mes Tenues", icon: Camera },
         { id: "looks", label: "Mes Looks", icon: Camera },
         { id: "favorites", label: "Mes Favoris", icon: Heart },
       ]
@@ -55,7 +53,7 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
       label: "Vide-Dressing",
       icon: Store,
       subItems: [
-        { id: "marketplace", label: "Articles en vente", icon: ShoppingBag },
+        { id: "marketplace", label: "Articles en vente", icon: Store },
         { id: "add-item", label: "Ajouter un article", icon: Plus },
         { id: "sales-history", label: "Historique des ventes", icon: History },
         { id: "purchases", label: "Mes Achats", icon: ShoppingCart },
@@ -74,7 +72,7 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
       label: "Paramètres",
       icon: Settings,
       subItems: [
-        { id: "info", label: "Informations", icon: User },
+        { id: "info", label: "Informations", icon: Settings },
         { id: "privacy", label: "Mode privé", icon: EyeOff },
       ]
     },

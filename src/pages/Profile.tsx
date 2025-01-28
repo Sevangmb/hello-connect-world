@@ -32,12 +32,11 @@ const Profile = () => {
       <Header />
       <Sidebar />
       
-      {/* Layout principal */}
       <div className="md:pl-64">
         <div className="max-w-7xl mx-auto">
           <div className="px-4 py-6">
             <div className="flex gap-6">
-              {/* Sidebar du profil avec sous-menus */}
+              {/* Menu latéral unique */}
               <div className="hidden lg:block w-64 flex-shrink-0">
                 <ProfileSidebar 
                   activeSection={activeSection} 
