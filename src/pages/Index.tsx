@@ -1,7 +1,5 @@
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
-import { CreatePost } from "@/components/CreatePost";
-import { Post } from "@/components/Post";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 import { ClothesList } from "@/components/clothes/ClothesList";
@@ -13,97 +11,14 @@ import { CreateOutfit } from "@/components/outfits/CreateOutfit";
 import { OutfitsList } from "@/components/outfits/OutfitsList";
 import { CreateChallenge } from "@/components/challenges/CreateChallenge";
 import { ChallengesList } from "@/components/challenges/ChallengesList";
+import { PostsList } from "@/components/posts/PostsList";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "messages" | "clothes" | "outfits" | "challenges" | "profile"
   >("posts");
-
-  const { data: posts, isLoading: postsLoading } = useQuery({
-    queryKey: ["posts"],
-    queryFn: async () => {
-      console.log("Fetching posts...");
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
-
-      // Fetch posts with author information
-      const { data: posts, error: postsError } = await supabase
-        .from("posts")
-        .select(`
-          id,
-          content,
-          created_at,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url
-          )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (postsError) throw postsError;
-
-      // For each post, fetch likes count, liked status, and comments
-      const enrichedPosts = await Promise.all(posts.map(async (post) => {
-        // Get likes count
-        const { count: likesCount } = await supabase
-          .from("outfit_likes")
-          .select("*", { count: "exact" })
-          .eq("outfit_id", post.id);
-
-        // Check if current user liked the post
-        const { data: likedByUser } = await supabase
-          .from("outfit_likes")
-          .select("id")
-          .eq("outfit_id", post.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        // Get comments
-        const { data: comments } = await supabase
-          .from("outfit_comments")
-          .select(`
-            id,
-            content,
-            created_at,
-            profiles:user_id (
-              username,
-              avatar_url
-            )
-          `)
-          .eq("outfit_id", post.id)
-          .order("created_at", { ascending: true });
-
-        return {
-          id: post.id,
-          author: {
-            id: post.profiles.id,
-            username: post.profiles.username,
-            avatar_url: post.profiles.avatar_url,
-          },
-          content: post.content,
-          created_at: post.created_at,
-          likes: likesCount || 0,
-          liked: !!likedByUser,
-          comments: comments?.map(comment => ({
-            id: comment.id,
-            content: comment.content,
-            created_at: comment.created_at,
-            author: {
-              username: comment.profiles.username,
-              avatar_url: comment.profiles.avatar_url,
-            }
-          })) || [],
-        };
-      }));
-
-      return enrichedPosts;
-    },
-  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -138,18 +53,7 @@ const Index = () => {
             </TabsList>
 
             <TabsContent value="posts">
-              <div className="space-y-8">
-                <CreatePost />
-                {postsLoading ? (
-                  <p className="text-center text-muted-foreground">Chargement des publications...</p>
-                ) : !posts?.length ? (
-                  <p className="text-center text-muted-foreground">Aucune publication pour le moment</p>
-                ) : (
-                  posts.map((post) => (
-                    <Post key={post.id} {...post} />
-                  ))
-                )}
-              </div>
+              <PostsList />
             </TabsContent>
 
             <TabsContent value="friends">
