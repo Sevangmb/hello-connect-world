@@ -77,6 +77,15 @@ export const CreateOutfit = () => {
       return;
     }
 
+    if (!selectedTop && !selectedBottom && !selectedShoes) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner au moins un vêtement pour votre tenue",
+      });
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -131,6 +140,7 @@ export const CreateOutfit = () => {
   };
 
   const handleSelectItem = (id: string) => {
+    console.log("Selecting item:", { section: activeSection, id });
     switch (activeSection) {
       case "tops":
         setSelectedTop(id);
@@ -272,7 +282,10 @@ export const CreateOutfit = () => {
           title="Hauts"
           items={tops || []}
           selectedId={selectedTop}
-          onSelect={setSelectedTop}
+          onSelect={(id) => {
+            console.log("Selecting top:", id);
+            setSelectedTop(id);
+          }}
           source={topSource}
           onSourceChange={setTopSource}
           section="tops"
@@ -281,7 +294,10 @@ export const CreateOutfit = () => {
           title="Bas"
           items={bottoms || []}
           selectedId={selectedBottom}
-          onSelect={setSelectedBottom}
+          onSelect={(id) => {
+            console.log("Selecting bottom:", id);
+            setSelectedBottom(id);
+          }}
           source={bottomSource}
           onSourceChange={setBottomSource}
           section="bottoms"
@@ -290,7 +306,10 @@ export const CreateOutfit = () => {
           title="Chaussures"
           items={shoes || []}
           selectedId={selectedShoes}
-          onSelect={setSelectedShoes}
+          onSelect={(id) => {
+            console.log("Selecting shoes:", id);
+            setSelectedShoes(id);
+          }}
           source={shoesSource}
           onSourceChange={setShoesSource}
           section="shoes"
