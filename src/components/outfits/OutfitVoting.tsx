@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface OutfitVotingProps {
   outfitId: string;
@@ -31,6 +31,11 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           .eq("user_id", user.id)
           .maybeSingle(),
       ]);
+
+      // Mettre à jour le state local avec la note existante
+      if (userRating?.rating) {
+        setRating(userRating.rating);
+      }
 
       return {
         likes: likes?.length || 0,
@@ -77,6 +82,8 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           outfit_id: outfitId,
           user_id: user.id,
           rating: value,
+        }, {
+          onConflict: 'user_id,outfit_id',
         });
 
       if (error) throw error;
