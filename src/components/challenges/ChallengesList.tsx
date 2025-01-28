@@ -19,13 +19,13 @@ export const ChallengesList = () => {
         .select(`
           *,
           profiles!challenges_creator_id_profiles_fkey(username),
-          participants:challenge_participants!inner(
+          participants:challenge_participants(
             id,
             user_id,
             outfit_id,
             comment,
             outfits(name),
-            profiles!challenge_participants_user_id_fkey(username)
+            profiles:profiles!inner(username)
           ),
           votes:challenge_votes(count)
         `)
