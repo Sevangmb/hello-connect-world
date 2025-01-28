@@ -14,18 +14,14 @@ const TrendingOutfits = () => {
     queryFn: async () => {
       console.log("Fetching trending outfits...");
       
-      // Première requête pour obtenir le nombre de likes par tenue avec SQL
+      // Première requête pour obtenir le nombre de likes par tenue
       const { data: likesCount, error: likesError } = await supabase
         .from('outfit_likes')
         .select('outfit_id, count', {
-          count: 'exact',
-          head: false
+          count: 'exact'
         })
-        .query(`
-          SELECT outfit_id, COUNT(*) as count 
-          FROM outfit_likes 
-          GROUP BY outfit_id
-        `);
+        .select('outfit_id')
+        .select('count(*)', { count: 'exact', head: false });
 
       if (likesError) {
         console.error("Error fetching likes count:", likesError);
