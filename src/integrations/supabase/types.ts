@@ -9,6 +9,143 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      badges: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      challenge_participants: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          outfit_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          outfit_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          outfit_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_participants_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_participants_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_votes: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          participant_id: string
+          voter_id: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          participant_id: string
+          voter_id: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          participant_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_votes_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          end_date: string
+          id: string
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          end_date: string
+          id?: string
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clothes: {
         Row: {
           category: string
@@ -420,6 +557,45 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          challenge_id: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          challenge_id?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          challenge_id?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_follows: {
         Row: {

@@ -5,7 +5,8 @@ import {
   Settings, 
   LogOut,
   Shirt,
-  UserCircle
+  UserCircle,
+  Trophy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -35,6 +36,12 @@ const menuItems = [
     label: "Vêtements", 
     path: "/clothes",
     description: "Gérer votre garde-robe"
+  },
+  { 
+    icon: Trophy, 
+    label: "Défis", 
+    path: "/challenges",
+    description: "Participer aux défis"
   },
   { 
     icon: UserCircle, 

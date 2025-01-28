@@ -12,6 +12,8 @@ import { PrivateChat } from "@/components/messages/PrivateChat";
 import { GroupChat } from "@/components/messages/GroupChat";
 import { CreateOutfit } from "@/components/outfits/CreateOutfit";
 import { OutfitsList } from "@/components/outfits/OutfitsList";
+import { CreateChallenge } from "@/components/challenges/CreateChallenge";
+import { ChallengesList } from "@/components/challenges/ChallengesList";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -39,7 +41,7 @@ const Index = () => {
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    "posts" | "friends" | "messages" | "clothes" | "outfits" | "profile"
+    "posts" | "friends" | "messages" | "clothes" | "outfits" | "challenges" | "profile"
   >("posts");
 
   return (
@@ -65,6 +67,9 @@ const Index = () => {
               </TabsTrigger>
               <TabsTrigger value="outfits" className="flex-1">
                 Tenues
+              </TabsTrigger>
+              <TabsTrigger value="challenges" className="flex-1">
+                Défis
               </TabsTrigger>
               <TabsTrigger value="profile" className="flex-1">
                 Profil
@@ -131,6 +136,13 @@ const Index = () => {
               <div className="space-y-8">
                 <OutfitsList />
                 <CreateOutfit />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="challenges">
+              <div className="space-y-8">
+                <CreateChallenge />
+                <ChallengesList />
               </div>
             </TabsContent>
 
