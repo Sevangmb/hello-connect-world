@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SearchFriends } from "./SearchFriends";
 
 interface FriendsListProps {
   onChatSelect?: (friend: { id: string; username: string }) => void;
@@ -93,6 +94,8 @@ export const FriendsList = ({ onChatSelect }: FriendsListProps) => {
 
   return (
     <div className="space-y-6">
+      <SearchFriends onSelect={(friend) => onChatSelect?.(friend)} />
+
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Demandes d'ami en attente</h2>
         {pendingRequests.length === 0 ? (
@@ -144,7 +147,11 @@ export const FriendsList = ({ onChatSelect }: FriendsListProps) => {
               : friendship.user_profile;
 
             return (
-              <Card key={friendship.id} className="p-4" onClick={() => onChatSelect?.(friendProfile)}>
+              <Card 
+                key={friendship.id} 
+                className="p-4 cursor-pointer hover:bg-gray-50" 
+                onClick={() => onChatSelect?.(friendProfile)}
+              >
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={friendProfile.avatar_url} />

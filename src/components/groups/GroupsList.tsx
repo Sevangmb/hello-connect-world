@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateGroupDialog } from "./CreateGroupDialog";
+import { SearchGroups } from "./SearchGroups";
 
 interface GroupsListProps {
   onChatSelect?: (group: { id: string; name: string }) => void;
@@ -57,12 +58,18 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
         </Button>
       </div>
 
+      <SearchGroups onSelect={(group) => onChatSelect?.(group)} />
+
       {groups.length === 0 ? (
         <p className="text-muted-foreground">Aucun groupe trouvé</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Card key={group.id} className="p-4">
+            <Card 
+              key={group.id} 
+              className="p-4 cursor-pointer hover:bg-gray-50"
+              onClick={() => onChatSelect?.(group)}
+            >
               <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
               {group.description && (
                 <p className="text-muted-foreground mb-4">{group.description}</p>
