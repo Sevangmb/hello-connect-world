@@ -1,127 +1,37 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
-import Explore from "./pages/Explore";
-import Personal from "./pages/Personal";
-import Community from "./pages/Community";
-import Profile from "./pages/Profile";
-import Feed from "./pages/Feed";
-import Suggestions from "./pages/Suggestions";
-import Challenges from "./pages/Challenges";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Auth from "@/pages/Auth";
+import Feed from "@/pages/Feed";
+import Clothes from "@/pages/Clothes";
+import Personal from "@/pages/Personal";
+import Profile from "@/pages/Profile";
+import Messages from "@/pages/Messages";
+import Explore from "@/pages/Explore";
+import Community from "@/pages/Community";
+import Challenges from "@/pages/Challenges";
+import Friends from "@/pages/Friends";
+import Suggestions from "@/pages/Suggestions";
+import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
-
-const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(!!session);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (session === null) {
-    return null; // Loading state
-  }
-
-  return session ? <>{children}</> : <Navigate to="/auth" />;
-};
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Routes principales */}
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Index />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/suggestions"
-            element={
-              <PrivateRoute>
-                <Suggestions />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/feed"
-            element={
-              <PrivateRoute>
-                <Feed />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/challenges"
-            element={
-              <PrivateRoute>
-                <Challenges />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/explore"
-            element={
-              <PrivateRoute>
-                <Explore />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/personal"
-            element={
-              <PrivateRoute>
-                <Personal />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/community"
-            element={
-              <PrivateRoute>
-                <Community />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            }
-          />
-
-          {/* Routes d'authentification et 404 */}
-          <Route path="/auth" element={<Auth />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Feed />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/clothes" element={<Clothes />} />
+        <Route path="/wardrobe" element={<Navigate to="/clothes" replace />} />
+        <Route path="/personal" element={<Personal />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/challenges" element={<Challenges />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/suggestions" element={<Suggestions />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
+  );
+}
 
 export default App;
