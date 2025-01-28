@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,9 +21,23 @@ export const CreateOutfit = () => {
   const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const { data: tops, isLoading: topsLoading } = useClothes({ category: "haut" });
-  const { data: bottoms, isLoading: bottomsLoading } = useClothes({ category: "bas" });
-  const { data: shoes, isLoading: shoesLoading } = useClothes({ category: "chaussures" });
+  // Ajout des états pour le type de vêtements à afficher
+  const [topSource, setTopSource] = useState<"mine" | "friends">("mine");
+  const [bottomSource, setBottomSource] = useState<"mine" | "friends">("mine");
+  const [shoesSource, setShoesSource] = useState<"mine" | "friends">("mine");
+
+  const { data: tops, isLoading: topsLoading } = useClothes({ 
+    category: "haut",
+    source: topSource 
+  });
+  const { data: bottoms, isLoading: bottomsLoading } = useClothes({ 
+    category: "bas",
+    source: bottomSource 
+  });
+  const { data: shoes, isLoading: shoesLoading } = useClothes({ 
+    category: "chaussures",
+    source: shoesSource 
+  });
 
   const handleSave = async () => {
     if (!name) {
@@ -37,7 +52,6 @@ export const CreateOutfit = () => {
     try {
       setIsSaving(true);
 
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -95,15 +109,35 @@ export const CreateOutfit = () => {
     title, 
     items, 
     selectedId, 
-    onSelect 
+    onSelect,
+    source,
+    onSourceChange,
   }: { 
     title: string;
     items: any[];
     selectedId: string | null;
     onSelect: (id: string) => void;
+    source: "mine" | "friends";
+    onSourceChange: (value: "mine" | "friends") => void;
   }) => (
-    <div className="space-y-2">
-      <h3 className="font-medium text-lg">{title}</h3>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium text-lg">{title}</h3>
+        <RadioGroup 
+          value={source} 
+          onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="mine" id={`mine-${title}`} />
+            <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="friends" id={`friends-${title}`} />
+            <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
+          </div>
+        </RadioGroup>
+      </div>
       <ScrollArea className="h-[300px] border rounded-lg p-4">
         <div className="space-y-2">
           {items?.map((item) => (
@@ -161,18 +195,24 @@ export const CreateOutfit = () => {
           items={tops || []}
           selectedId={selectedTop}
           onSelect={setSelectedTop}
+          source={topSource}
+          onSourceChange={setTopSource}
         />
         <ClothingSection
           title="Bas"
           items={bottoms || []}
           selectedId={selectedBottom}
           onSelect={setSelectedBottom}
+          source={bottomSource}
+          onSourceChange={setBottomSource}
         />
         <ClothingSection
           title="Chaussures"
           items={shoes || []}
           selectedId={selectedShoes}
           onSelect={setSelectedShoes}
+          source={shoesSource}
+          onSourceChange={setShoesSource}
         />
       </div>
 

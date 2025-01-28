@@ -6,6 +6,7 @@ export type ClothesFilters = {
   search?: string;
   sortBy?: "created_at" | "name";
   sortOrder?: "asc" | "desc";
+  source?: "mine" | "friends";
 };
 
 export const useClothes = (filters: ClothesFilters = {}) => {
@@ -14,9 +15,12 @@ export const useClothes = (filters: ClothesFilters = {}) => {
     queryFn: async () => {
       console.log("Fetching clothes with filters:", filters);
       
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       let query = supabase
         .from("clothes")
-        .select("*");
+        .select("*, profiles:user_id(username)");
 
       if (filters.category) {
         query = query.eq("category", filters.category);
@@ -24,6 +28,24 @@ export const useClothes = (filters: ClothesFilters = {}) => {
 
       if (filters.search) {
         query = query.ilike("name", `%${filters.search}%`);
+      }
+
+      if (filters.source === "mine") {
+        query = query.eq("user_id", user.id);
+      } else if (filters.source === "friends") {
+        // Get friends' clothes
+        const { data: friendships } = await supabase
+          .from("friendships")
+          .select("friend_id, user_id")
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+          .eq("status", "accepted");
+
+        if (friendships) {
+          const friendIds = friendships.map(f => 
+            f.user_id === user.id ? f.friend_id : f.user_id
+          );
+          query = query.in("user_id", friendIds);
+        }
       }
 
       if (filters.sortBy) {
