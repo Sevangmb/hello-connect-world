@@ -38,6 +38,23 @@ export const ChallengesList = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Utilisateur non connecté");
 
+      // Check if user is already participating
+      const { data: existingParticipation } = await supabase
+        .from("challenge_participants")
+        .select()
+        .eq("challenge_id", challengeId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingParticipation) {
+        toast({
+          variant: "default",
+          title: "Déjà inscrit",
+          description: "Vous participez déjà à ce défi",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("challenge_participants")
         .insert({ challenge_id: challengeId, user_id: user.id });
