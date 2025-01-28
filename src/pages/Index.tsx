@@ -5,6 +5,9 @@ import { Post } from "@/components/Post";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 import { ClothesList } from "@/components/clothes/ClothesList";
+import { FriendsList } from "@/components/friends/FriendsList";
+import { AddFriend } from "@/components/friends/AddFriend";
+import { GroupsList } from "@/components/groups/GroupsList";
 
 const SAMPLE_POSTS = [
   {
@@ -33,6 +36,14 @@ const Index = () => {
           <ProfileForm />
           <AddClothesForm />
           <ClothesList />
+          
+          <div className="space-y-8">
+            <AddFriend />
+            <FriendsList />
+          </div>
+          
+          <GroupsList />
+          
           <CreatePost />
           
           {SAMPLE_POSTS.map((post) => (
