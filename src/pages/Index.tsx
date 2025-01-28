@@ -1,5 +1,6 @@
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
+import { BottomNav } from "@/components/navigation/BottomNav";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 import { ClothesList } from "@/components/clothes/ClothesList";
@@ -21,7 +22,7 @@ const Index = () => {
   >("posts");
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
       <Sidebar />
 
@@ -94,6 +95,8 @@ const Index = () => {
           </Tabs>
         </div>
       </main>
+
+      <BottomNav />
     </div>
   );
 };
