@@ -60,6 +60,14 @@ export const CreateOutfit = () => {
   });
 
   const handleSave = async () => {
+    console.log("Saving outfit with values:", {
+      name,
+      description,
+      top_id: selectedTop,
+      bottom_id: selectedBottom,
+      shoes_id: selectedShoes
+    });
+
     if (!name) {
       toast({
         variant: "destructive",
@@ -87,13 +95,17 @@ export const CreateOutfit = () => {
         user_id: user.id,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error inserting outfit:", error);
+        throw error;
+      }
 
       toast({
         title: "Tenue enregistrée",
         description: "Votre tenue a été enregistrée avec succès",
       });
 
+      // Reset form
       setName("");
       setDescription("");
       setSelectedTop(null);
