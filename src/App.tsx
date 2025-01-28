@@ -1,40 +1,96 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "@/pages/Index";
-import Auth from "@/pages/Auth";
-import Messages from "@/pages/Messages";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Profile/Settings";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminUsers from "@/pages/admin/AdminUsers";
-import AdminShops from "@/pages/admin/AdminShops";
-import AdminContent from "@/pages/admin/AdminContent";
-import AdminStats from "@/pages/admin/AdminStats";
-import AdminSettings from "@/pages/admin/AdminSettings";
-import AdminHelp from "@/pages/admin/AdminHelp";
-import { PrivateRoute } from "@/components/auth/PrivateRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
+import { Routes, Route } from "react-router-dom";
+import { PrivateRoute } from "./components/auth/PrivateRoute";
+import { AdminRoute } from "./components/auth/AdminRoute";
+import Feed from "./pages/Feed";
+import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Profile/Settings";
+import Personal from "./pages/Personal";
+import Explore from "./pages/Explore";
+import Community from "./pages/Community";
+import Groups from "./pages/Groups";
+import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/profile/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="shops" element={<AdminShops />} />
-          <Route path="content" element={<AdminContent />} />
-          <Route path="stats" element={<AdminStats />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="help" element={<AdminHelp />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <Feed />
+          </PrivateRoute>
+        }
+      />
+      
+      <Route
+        path="/profile"
+        element={
+          <PrivateRoute>
+            <Profile />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/profile/settings"
+        element={
+          <PrivateRoute>
+            <Settings />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/personal"
+        element={
+          <PrivateRoute>
+            <Personal />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/explore"
+        element={
+          <PrivateRoute>
+            <Explore />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/community"
+        element={
+          <PrivateRoute>
+            <Community />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/groups"
+        element={
+          <PrivateRoute>
+            <Groups />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <Admin />
+          </AdminRoute>
+        }
+      />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
