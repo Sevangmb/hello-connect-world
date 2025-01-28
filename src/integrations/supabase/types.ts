@@ -599,6 +599,13 @@ export type Database = {
             referencedRelation: "outfits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "posts_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       private_messages: {
