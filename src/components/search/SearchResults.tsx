@@ -13,7 +13,7 @@ export const SearchResults = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // Fetch clothes with correct join to profiles using the new foreign key name
+      // Fetch clothes with all required fields
       const { data: clothes } = await supabase
         .from("clothes")
         .select(`
@@ -21,9 +21,19 @@ export const SearchResults = () => {
           name,
           description,
           category,
+          subcategory,
+          brand,
+          size,
+          color,
+          material,
+          style,
+          price,
+          purchase_date,
           image_url,
           created_at,
           user_id,
+          archived,
+          needs_alteration,
           profiles!clothes_user_id_profiles_fkey(username, avatar_url)
         `)
         .limit(10);
@@ -35,7 +45,19 @@ export const SearchResults = () => {
         .limit(10);
 
       return {
-        clothes: clothes || [],
+        clothes: clothes?.map(cloth => ({
+          ...cloth,
+          archived: cloth.archived || false,
+          needs_alteration: cloth.needs_alteration || false,
+          subcategory: cloth.subcategory || '',
+          brand: cloth.brand || '',
+          size: cloth.size || '',
+          color: cloth.color || '',
+          material: cloth.material || '',
+          style: cloth.style || '',
+          price: cloth.price || 0,
+          purchase_date: cloth.purchase_date || '',
+        })) || [],
         users: users || [],
       };
     },
