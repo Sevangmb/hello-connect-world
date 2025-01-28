@@ -13,7 +13,7 @@ export const SearchResults = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // Fetch clothes with correct join to profiles
+      // Fetch clothes with correct join to profiles using the new foreign key name
       const { data: clothes } = await supabase
         .from("clothes")
         .select(`
@@ -24,7 +24,7 @@ export const SearchResults = () => {
           image_url,
           created_at,
           user_id,
-          profiles!clothes_user_id_fkey(username, avatar_url)
+          profiles!clothes_user_id_profiles_fkey(username, avatar_url)
         `)
         .limit(10);
 
