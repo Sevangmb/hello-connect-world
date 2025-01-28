@@ -13,8 +13,15 @@ export const Header = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+      
       navigate("/auth");
     } catch (error: any) {
+      console.error("Erreur de déconnexion:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -49,7 +56,8 @@ export const Header = () => {
             variant="ghost"
             size="icon"
             onClick={handleLogout}
-            className="text-gray-600"
+            className="text-gray-600 hover:bg-gray-100"
+            title="Se déconnecter"
           >
             <LogOut className="h-5 w-5" />
           </Button>
