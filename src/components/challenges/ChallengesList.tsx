@@ -18,14 +18,14 @@ export const ChallengesList = () => {
         .from("challenges")
         .select(`
           *,
-          profiles!challenges_creator_id_profiles_fkey(username),
+          profiles!challenges_creator_id_fkey(username),
           participants:challenge_participants(
             id,
             user_id,
             outfit_id,
             comment,
             outfits(name),
-            user:profiles!challenge_participants_user_id_fkey(username)
+            profiles!challenge_participants_user_id_fkey(username)
           ),
           votes:challenge_votes(count)
         `)
@@ -236,7 +236,7 @@ export const ChallengesList = () => {
                 {challenge.participants.map((participant) => (
                   <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
                     <div>
-                      <p className="font-medium">{participant.user?.username}</p>
+                      <p className="font-medium">{participant.profiles?.username}</p>
                       {participant.outfits && (
                         <p className="text-sm text-gray-600">Tenue: {participant.outfits.name}</p>
                       )}
