@@ -5,16 +5,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Home,
   Search,
-  User,
-  MessageSquare,
+  ShoppingBag,
   Users,
-  Trophy,
-  Shirt,
-  Store,
-  MapPin,
-  Filter,
-  List,
-  Cog,
+  User,
   Shield
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -65,27 +58,17 @@ export default function MainSidebar() {
           onClick={() => navigate("/search")}
         >
           <Search className="h-4 w-4" />
-          Recherche
+          Explorer
         </Button>
         <Button
           variant="ghost"
           className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/profile",
+            "bg-gray-100": location.pathname === "/personal",
           })}
-          onClick={() => navigate("/profile")}
+          onClick={() => navigate("/personal")}
         >
-          <User className="h-4 w-4" />
-          Profil
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/messages",
-          })}
-          onClick={() => navigate("/messages")}
-        >
-          <MessageSquare className="h-4 w-4" />
-          Messages
+          <ShoppingBag className="h-4 w-4" />
+          Mon Univers
         </Button>
         <Button
           variant="ghost"
@@ -100,72 +83,12 @@ export default function MainSidebar() {
         <Button
           variant="ghost"
           className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/challenges",
+            "bg-gray-100": location.pathname === "/profile",
           })}
-          onClick={() => navigate("/challenges")}
+          onClick={() => navigate("/profile")}
         >
-          <Trophy className="h-4 w-4" />
-          Défis
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/clothes",
-          })}
-          onClick={() => navigate("/clothes")}
-        >
-          <Shirt className="h-4 w-4" />
-          Vêtements
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/marketplace",
-          })}
-          onClick={() => navigate("/marketplace")}
-        >
-          <Store className="h-4 w-4" />
-          Marketplace
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/locations",
-          })}
-          onClick={() => navigate("/locations")}
-        >
-          <MapPin className="h-4 w-4" />
-          Lieux
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/filters",
-          })}
-          onClick={() => navigate("/filters")}
-        >
-          <Filter className="h-4 w-4" />
-          Filtres
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/list",
-          })}
-          onClick={() => navigate("/list")}
-        >
-          <List className="h-4 w-4" />
-          Liste
-        </Button>
-        <Button
-          variant="ghost"
-          className={cn("w-full justify-start gap-2", {
-            "bg-gray-100": location.pathname === "/settings",
-          })}
-          onClick={() => navigate("/settings")}
-        >
-          <Cog className="h-4 w-4" />
-          Paramètres
+          <User className="h-4 w-4" />
+          Profil
         </Button>
         {isAdmin && (
           <Button
