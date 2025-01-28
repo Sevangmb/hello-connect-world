@@ -12,6 +12,7 @@ import TrendingOutfits from "@/pages/TrendingOutfits";
 import Challenges from "@/pages/Challenges";
 import Challenge from "@/pages/Challenge";
 import Friends from "@/pages/Friends";
+import FindFriends from "@/pages/FindFriends";
 import Groups from "@/pages/Groups";
 import Messages from "@/pages/Messages";
 import Notifications from "@/pages/Notifications";
@@ -47,6 +48,7 @@ function App() {
         
         {/* Routes sociales */}
         <Route path="/friends" element={<Friends />} />
+        <Route path="/find-friends" element={<FindFriends />} />
         <Route path="/groups" element={<Groups />} />
         <Route path="/group/:id" element={<Groups />} />
         <Route path="/messages" element={<Messages />} />
