@@ -55,7 +55,7 @@ export const SearchResults = () => {
           brand: cloth.brand || '',
           size: cloth.size || '',
           color: cloth.color || '',
-          material: material.material || '',
+          material: cloth.material || '',
           style: cloth.style || '',
           price: cloth.price || 0,
           purchase_date: cloth.purchase_date || '',
