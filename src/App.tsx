@@ -19,6 +19,9 @@ import Notifications from "@/pages/Notifications";
 import Hashtags from "@/pages/Hashtags";
 import Suggestions from "@/pages/Suggestions";
 import Auth from "@/pages/Auth";
+import { Admin } from "@/layouts/Admin";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -62,6 +65,18 @@ function App() {
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/notifications" element={<Notifications />} />
+
+        {/* Routes d'administration */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+        </Route>
       </Routes>
       <Toaster />
     </>
