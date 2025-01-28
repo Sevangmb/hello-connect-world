@@ -30,18 +30,19 @@ import {
   Hash,
   MapPin,
   Filter,
-  List
+  List,
+  Shield
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useState } from "react";
 import { Button } from "./ui/button";
 
 const MainSidebar = () => {
@@ -49,6 +50,26 @@ const MainSidebar = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal", "profile"]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    checkAdminStatus();
+  }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: adminData } = await supabase
+        .from('admin_users')
+        .select('role')
+        .single();
+      
+      setIsAdmin(!!adminData);
+      console.log("Admin status checked:", !!adminData);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+    }
+  };
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -161,6 +182,20 @@ const MainSidebar = () => {
       ]
     }
   ];
+
+  // Add admin section if user is admin
+  if (isAdmin) {
+    menuItems.push({
+      id: "admin",
+      label: "Administration",
+      icon: Shield,
+      subItems: [
+        { id: "dashboard", label: "Tableau de bord", path: "/admin", icon: Shield },
+        { id: "users", label: "Utilisateurs", path: "/admin/users", icon: Users },
+        { id: "content", label: "Contenu", path: "/admin/content", icon: Settings },
+      ]
+    });
+  }
 
   return (
     <aside className="hidden md:flex flex-col fixed left-0 top-24 h-[calc(100vh-6rem)] w-64 bg-white border-r">
