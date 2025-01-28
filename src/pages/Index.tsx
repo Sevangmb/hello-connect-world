@@ -10,6 +10,7 @@ import { AddFriend } from "@/components/friends/AddFriend";
 import { GroupsList } from "@/components/groups/GroupsList";
 import { PrivateChat } from "@/components/messages/PrivateChat";
 import { GroupChat } from "@/components/messages/GroupChat";
+import { CreateOutfit } from "@/components/outfits/CreateOutfit";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -36,7 +37,9 @@ const Index = () => {
     name: string;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"posts" | "friends" | "messages" | "clothes" | "profile">("posts");
+  const [activeTab, setActiveTab] = useState<
+    "posts" | "friends" | "messages" | "clothes" | "outfits" | "profile"
+  >("posts");
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -58,6 +61,9 @@ const Index = () => {
               </TabsTrigger>
               <TabsTrigger value="clothes" className="flex-1">
                 Vêtements
+              </TabsTrigger>
+              <TabsTrigger value="outfits" className="flex-1">
+                Tenues
               </TabsTrigger>
               <TabsTrigger value="profile" className="flex-1">
                 Profil
@@ -117,6 +123,12 @@ const Index = () => {
               <div className="space-y-8">
                 <AddClothesForm />
                 <ClothesList />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="outfits">
+              <div className="space-y-8">
+                <CreateOutfit />
               </div>
             </TabsContent>
 

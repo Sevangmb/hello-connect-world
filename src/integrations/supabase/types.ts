@@ -192,6 +192,64 @@ export type Database = {
         }
         Relationships: []
       }
+      outfits: {
+        Row: {
+          bottom_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          shoes_id: string | null
+          top_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bottom_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          shoes_id?: string | null
+          top_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bottom_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          shoes_id?: string | null
+          top_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfits_bottom_id_fkey"
+            columns: ["bottom_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfits_shoes_id_fkey"
+            columns: ["shoes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfits_top_id_fkey"
+            columns: ["top_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_messages: {
         Row: {
           content: string
