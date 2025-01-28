@@ -19,7 +19,7 @@ const MENU_ITEMS = [
     label: "Accueil",
     icon: Home,
     path: "/",
-    description: "Météo, suggestions et fil d'actualité"
+    description: "Météo et suggestions"
   },
   {
     label: "Explorer",
@@ -35,10 +35,10 @@ const MENU_ITEMS = [
     isMain: true
   },
   {
-    label: "Communauté",
+    label: "Social",
     icon: Users,
-    path: "/community",
-    description: "Messages et groupes"
+    path: "/friends",
+    description: "Amis et groupes"
   },
   {
     label: "Profil",
