@@ -27,14 +27,14 @@ export const ClothesFiltersComponent = ({ filters, onFiltersChange }: ClothesFil
           className="flex-1"
         />
         <Select
-          value={filters.category || ""}
-          onValueChange={(value) => onFiltersChange({ ...filters, category: value || undefined })}
+          value={filters.category || "all"}
+          onValueChange={(value) => onFiltersChange({ ...filters, category: value === "all" ? undefined : value })}
         >
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Toutes les catégories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Toutes les catégories</SelectItem>
+            <SelectItem value="all">Toutes les catégories</SelectItem>
             {CATEGORIES.map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
