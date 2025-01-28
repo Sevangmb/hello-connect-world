@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Shirt, PantsSquare, Footprints } from "lucide-react";
+import { Shirt, PenSquare, Footprints } from "lucide-react";
 
 export const OutfitsList = () => {
   const { data: outfits, isLoading } = useQuery({
@@ -77,7 +77,7 @@ export const OutfitsList = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <PantsSquare className="h-5 w-5 text-indigo-500" />
+                    <PenSquare className="h-5 w-5 text-indigo-500" />
                     <div>
                       <p className="font-medium">Bas</p>
                       {outfit.bottom ? (
