@@ -192,6 +192,105 @@ export type Database = {
         }
         Relationships: []
       }
+      outfit_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          outfit_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          outfit_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          outfit_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_comments_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outfit_likes: {
+        Row: {
+          created_at: string
+          id: string
+          outfit_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          outfit_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          outfit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_likes_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outfit_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          outfit_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          outfit_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          outfit_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_ratings_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outfits: {
         Row: {
           bottom_id: string | null
@@ -319,6 +418,27 @@ export type Database = {
           updated_at?: string
           username?: string | null
           visibility?: string
+        }
+        Relationships: []
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
         }
         Relationships: []
       }

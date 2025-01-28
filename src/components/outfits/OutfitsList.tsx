@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Shirt, PenSquare, Footprints } from "lucide-react";
+import { OutfitInteractions } from "./OutfitInteractions";
 
 export const OutfitsList = () => {
   const { data: outfits, isLoading } = useQuery({
@@ -123,6 +124,8 @@ export const OutfitsList = () => {
                       )}
                     </div>
                   </div>
+
+                  <OutfitInteractions outfitId={outfit.id} />
                 </div>
               </CardContent>
             </Card>
