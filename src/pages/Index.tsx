@@ -11,6 +11,7 @@ import { GroupsList } from "@/components/groups/GroupsList";
 import { PrivateChat } from "@/components/messages/PrivateChat";
 import { GroupChat } from "@/components/messages/GroupChat";
 import { CreateOutfit } from "@/components/outfits/CreateOutfit";
+import { OutfitsList } from "@/components/outfits/OutfitsList";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -128,6 +129,7 @@ const Index = () => {
 
             <TabsContent value="outfits">
               <div className="space-y-8">
+                <OutfitsList />
                 <CreateOutfit />
               </div>
             </TabsContent>
