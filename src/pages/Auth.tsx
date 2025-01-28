@@ -61,7 +61,7 @@ const Auth = () => {
         
         toast({
           title: "Compte créé avec succès",
-          description: "Veuillez vérifier votre email pour confirmer votre compte",
+          description: "Vous pouvez maintenant vous connecter",
         });
         
         setIsSignUp(false);
@@ -72,14 +72,26 @@ const Auth = () => {
         });
         
         if (error) {
+          console.error("Auth error:", error);
+          
           if (error.message === "Email not confirmed") {
             toast({
               variant: "destructive",
               title: "Email non confirmé",
-              description: "Veuillez vérifier votre boîte mail et confirmer votre email avant de vous connecter",
+              description: "Veuillez vérifier votre boîte mail et confirmer votre email avant de vous connecter. Si vous ne trouvez pas l'email, vérifiez vos spams.",
             });
             return;
           }
+          
+          if (error.message.includes("Invalid login credentials")) {
+            toast({
+              variant: "destructive",
+              title: "Erreur de connexion",
+              description: "Email ou mot de passe incorrect",
+            });
+            return;
+          }
+          
           throw error;
         }
         
@@ -165,7 +177,7 @@ const Auth = () => {
           {isSignUp ? "Déjà un compte ?" : "Pas encore de compte ?"}{" "}
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-facebook-primary hover:underline"
+            className="text-blue-600 hover:underline"
           >
             {isSignUp ? "Se connecter" : "S'inscrire"}
           </button>
