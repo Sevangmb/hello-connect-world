@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { Sonner } from "sonner";
+import { toast, Toaster as Sonner } from "sonner";
 
 // Page imports
 import Auth from "@/pages/Auth";
