@@ -3,6 +3,7 @@ import { useNavigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import MainSidebar from "@/components/MainSidebar";
 import {
   LayoutDashboard,
   Users,
@@ -68,48 +69,27 @@ export function AdminLayout() {
   ];
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg">
-        <div className="flex flex-col h-full">
-          <div className="p-6">
+    <div className="flex min-h-screen bg-gray-50">
+      <MainSidebar />
+      
+      {/* Main content */}
+      <div className="flex-1 ml-64">
+        <div className="p-8">
+          <div className="mb-8 flex justify-between items-center">
             <h1 className="text-2xl font-bold">FRING! Admin</h1>
-            {adminRole && (
-              <p className="text-sm text-gray-500 mt-1">Administrateur</p>
-            )}
-          </div>
-
-          <nav className="flex-1 px-4 space-y-1">
-            {menuItems.map((item) => (
-              <Button
-                key={item.path}
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => navigate(item.path)}
-              >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.label}
-              </Button>
-            ))}
-          </nav>
-
-          <div className="p-4 border-t">
             <Button
               variant="ghost"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={handleLogout}
             >
-              <LogOut className="mr-3 h-5 w-5" />
+              <LogOut className="mr-2 h-5 w-5" />
               Déconnexion
             </Button>
           </div>
+          
+          <Outlet />
         </div>
-      </aside>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-auto bg-gray-50 p-8">
-        <Outlet />
-      </main>
+      </div>
     </div>
   );
 }
