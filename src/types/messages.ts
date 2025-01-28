@@ -3,7 +3,7 @@ export interface Message {
   content: string;
   sender_id: string;
   created_at: string;
-  profiles: {
+  sender: {
     username: string;
     avatar_url: string | null;
   };

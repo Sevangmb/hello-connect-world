@@ -22,7 +22,7 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
         .from("private_messages")
         .select(`
           *,
-          profiles:sender_id(username, avatar_url)
+          sender:profiles!private_messages_sender_id_fkey(username, avatar_url)
         `)
         .or(`sender_id.eq.${recipientId},receiver_id.eq.${recipientId}`)
         .order("created_at", { ascending: true });

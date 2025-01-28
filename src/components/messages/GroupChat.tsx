@@ -22,7 +22,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
         .from("group_messages")
         .select(`
           *,
-          profiles:sender_id(username, avatar_url)
+          sender:profiles!group_messages_sender_id_fkey(username, avatar_url)
         `)
         .eq("group_id", groupId)
         .order("created_at", { ascending: true });
@@ -92,7 +92,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
         {messages.map((message) => (
           <div key={message.id} className="flex flex-col">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium">{message.profiles.username}</span>
+              <span className="font-medium">{message.sender.username}</span>
               <span className="text-xs text-gray-500">
                 {new Date(message.created_at).toLocaleTimeString()}
               </span>
