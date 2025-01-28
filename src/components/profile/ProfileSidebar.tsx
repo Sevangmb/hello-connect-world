@@ -2,16 +2,18 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { 
   User, 
-  Image, 
-  Heart, 
-  Briefcase, 
-  Settings,
+  ShoppingBag, 
   Camera,
-  MessageCircle,
-  Users,
-  BadgeCheck,
-  ChevronDown,
-  ChevronUp
+  Heart,
+  Settings,
+  Shirt,
+  Store,
+  History,
+  ShoppingCart,
+  Plus,
+  Trophy,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import {
   Collapsible,
@@ -26,7 +28,7 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSidebarProps) => {
-  const [openMenus, setOpenMenus] = useState<string[]>(["profile"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["profile", "wardrobe", "marketplace"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -38,46 +40,43 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
 
   const menuItems = [
     {
-      id: "profile",
-      label: "Profil",
-      icon: User,
+      id: "wardrobe",
+      label: "Garde-Robe",
+      icon: Shirt,
       subItems: [
-        { id: "info", label: "Informations", icon: User },
-        { id: "photos", label: "Photos", icon: Camera },
+        { id: "wardrobe", label: "Ma Garde-Robe", icon: ShoppingBag },
+        { id: "outfits", label: "Mes Tenues", icon: Shirt },
+        { id: "looks", label: "Mes Looks", icon: Camera },
+        { id: "favorites", label: "Mes Favoris", icon: Heart },
       ]
     },
     {
-      id: "content",
-      label: "Contenu",
-      icon: Image,
+      id: "marketplace",
+      label: "Vide-Dressing",
+      icon: Store,
       subItems: [
-        { id: "looks", label: "Mes looks", icon: Image },
-        { id: "outfits", label: "Mes tenues", icon: Briefcase },
+        { id: "marketplace", label: "Articles en vente", icon: ShoppingBag },
+        { id: "add-item", label: "Ajouter un article", icon: Plus },
+        { id: "sales-history", label: "Historique des ventes", icon: History },
+        { id: "purchases", label: "Mes Achats", icon: ShoppingCart },
       ]
     },
     {
-      id: "social",
-      label: "Social",
-      icon: Users,
+      id: "achievements",
+      label: "Récompenses",
+      icon: Trophy,
       subItems: [
-        { id: "friends", label: "Amis", icon: Users },
-        { id: "messages", label: "Messages", icon: MessageCircle },
-      ]
-    },
-    {
-      id: "collections",
-      label: "Collections",
-      icon: Heart,
-      subItems: [
-        { id: "favorites", label: "Favoris", icon: Heart },
-        { id: "badges", label: "Badges", icon: BadgeCheck },
+        { id: "badges", label: "Mes Badges", icon: Trophy },
       ]
     },
     {
       id: "settings",
       label: "Paramètres",
       icon: Settings,
-      standalone: true
+      subItems: [
+        { id: "info", label: "Informations", icon: User },
+        { id: "privacy", label: "Mode privé", icon: EyeOff },
+      ]
     },
   ];
 
@@ -85,58 +84,44 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
     <div className="space-y-2">
       {menuItems.map((item) => (
         <div key={item.id} className="space-y-1">
-          {item.standalone ? (
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start",
-                activeSection === item.id && "bg-muted"
-              )}
-              onClick={() => onSectionChange(item.id)}
-            >
-              <item.icon className="h-4 w-4 mr-2" />
-              {item.label}
-            </Button>
-          ) : (
-            <Collapsible
-              open={openMenus.includes(item.id)}
-              onOpenChange={() => toggleMenu(item.id)}
-            >
-              <CollapsibleTrigger asChild>
+          <Collapsible
+            open={openMenus.includes(item.id)}
+            onOpenChange={() => toggleMenu(item.id)}
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between group"
+              >
+                <span className="flex items-center">
+                  <item.icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </span>
+                {openMenus.includes(item.id) ? (
+                  <Eye className="h-4 w-4 transition-transform" />
+                ) : (
+                  <EyeOff className="h-4 w-4 transition-transform" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pl-6 space-y-1">
+              {item.subItems?.map((subItem) => (
                 <Button
+                  key={subItem.id}
                   variant="ghost"
-                  className="w-full justify-between group"
-                >
-                  <span className="flex items-center">
-                    <item.icon className="h-4 w-4 mr-2" />
-                    {item.label}
-                  </span>
-                  {openMenus.includes(item.id) ? (
-                    <ChevronUp className="h-4 w-4 transition-transform" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 transition-transform" />
+                  size="sm"
+                  className={cn(
+                    "w-full justify-start",
+                    activeSection === subItem.id && "bg-muted"
                   )}
+                  onClick={() => onSectionChange(subItem.id)}
+                >
+                  <subItem.icon className="h-4 w-4 mr-2" />
+                  {subItem.label}
                 </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1">
-                {item.subItems?.map((subItem) => (
-                  <Button
-                    key={subItem.id}
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start",
-                      activeSection === subItem.id && "bg-muted"
-                    )}
-                    onClick={() => onSectionChange(subItem.id)}
-                  >
-                    <subItem.icon className="h-4 w-4 mr-2" />
-                    {subItem.label}
-                  </Button>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       ))}
     </div>
