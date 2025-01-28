@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Home,
   Search,
@@ -15,49 +13,13 @@ import {
   MapPin,
   Filter,
   List,
-  Cog,
-  Shield
+  Cog
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function MainSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        console.log("Checking admin status...");
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          console.log("No user found");
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error("Error checking admin status:", error);
-          return;
-        }
-
-        console.log("Admin status:", data?.is_admin);
-        setIsAdmin(data?.is_admin || false);
-      } catch (error) {
-        console.error("Error in checkAdminStatus:", error);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
 
   return (
     <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
@@ -182,17 +144,6 @@ export default function MainSidebar() {
           <Cog className="h-4 w-4" />
           Paramètres
         </Button>
-
-        {isAdmin && (
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 mt-4"
-            onClick={() => navigate("/admin")}
-          >
-            <Shield className="h-4 w-4" />
-            Panneau d'administration
-          </Button>
-        )}
       </ScrollArea>
     </nav>
   );
