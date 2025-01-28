@@ -42,7 +42,6 @@ import {
   ChartBar,
   UserCheck,
   ShoppingCart,
-  QuestionMarkCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -460,7 +459,7 @@ export default function MainSidebar() {
                   })}
                   onClick={() => navigate("/help")}
                 >
-                  <QuestionMarkCircle className="h-4 w-4" />
+                  <HelpCircle className="h-4 w-4" />
                   Aide & Support
                 </Button>
                 <Button
