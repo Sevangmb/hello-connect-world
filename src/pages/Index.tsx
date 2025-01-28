@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { WeatherSection } from "@/components/home/WeatherSection";
+import { PopularHashtags } from "@/components/hashtags/PopularHashtags";
 
 const Index = () => {
   return (
@@ -11,7 +12,7 @@ const Index = () => {
       <main className="pt-24 pb-8 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto space-y-6">
           <WeatherSection />
-          {/* Other sections will be added here */}
+          <PopularHashtags />
         </div>
       </main>
       <BottomNav />
