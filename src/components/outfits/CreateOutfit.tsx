@@ -35,12 +35,21 @@ export const CreateOutfit = () => {
 
     try {
       setIsSaving(true);
+
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
       const { error } = await supabase.from("outfits").insert({
         name,
         description: description || null,
         top_id: selectedTop,
         bottom_id: selectedBottom,
         shoes_id: selectedShoes,
+        user_id: user.id, // Add the user_id here
       });
 
       if (error) throw error;
