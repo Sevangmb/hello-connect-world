@@ -8,7 +8,11 @@ import { CreateGroupDialog } from "./CreateGroupDialog";
 import { SearchGroups } from "./SearchGroups";
 import { GroupView } from "./GroupView";
 
-export const GroupsList = () => {
+interface GroupsListProps {
+  onChatSelect?: (group: { id: string; name: string }) => void;
+}
+
+export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
   const [groups, setGroups] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string } | null>(null);
@@ -46,7 +50,15 @@ export const GroupsList = () => {
     fetchGroups();
   }, []);
 
-  if (selectedGroup) {
+  const handleGroupSelect = (group: { id: string; name: string }) => {
+    if (onChatSelect) {
+      onChatSelect(group);
+    } else {
+      setSelectedGroup(group);
+    }
+  };
+
+  if (selectedGroup && !onChatSelect) {
     return (
       <GroupView
         groupId={selectedGroup.id}
@@ -65,7 +77,7 @@ export const GroupsList = () => {
         </Button>
       </div>
 
-      <SearchGroups onSelect={(group) => setSelectedGroup(group)} />
+      <SearchGroups onSelect={handleGroupSelect} />
 
       {groups.length === 0 ? (
         <p className="text-muted-foreground">Aucun groupe trouvé</p>
@@ -75,7 +87,7 @@ export const GroupsList = () => {
             <Card 
               key={group.id} 
               className="p-4 cursor-pointer hover:bg-gray-50"
-              onClick={() => setSelectedGroup(group)}
+              onClick={() => handleGroupSelect(group)}
             >
               <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
               {group.description && (
