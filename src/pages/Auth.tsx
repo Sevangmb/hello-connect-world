@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
@@ -18,7 +18,6 @@ const Auth = () => {
   const { toast } = useToast();
 
   const validateEmail = (email: string) => {
-    // Regex basique pour la validation d'email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       throw new Error("L'adresse email n'est pas valide");
@@ -36,7 +35,6 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      // Validation des champs
       validateEmail(email);
       validatePassword(password);
 
@@ -63,7 +61,7 @@ const Auth = () => {
         
         toast({
           title: "Compte créé avec succès",
-          description: "Vous pouvez maintenant vous connecter",
+          description: "Veuillez vérifier votre email pour confirmer votre compte",
         });
         
         setIsSignUp(false);
@@ -73,11 +71,22 @@ const Auth = () => {
           password,
         });
         
-        if (error) throw error;
+        if (error) {
+          if (error.message === "Email not confirmed") {
+            toast({
+              variant: "destructive",
+              title: "Email non confirmé",
+              description: "Veuillez vérifier votre boîte mail et confirmer votre email avant de vous connecter",
+            });
+            return;
+          }
+          throw error;
+        }
         
         navigate("/");
       }
     } catch (error: any) {
+      console.error("Auth error:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
