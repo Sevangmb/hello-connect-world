@@ -18,7 +18,12 @@ import {
   Cloud,
   Sparkles,
   Newspaper,
-  Award
+  Award,
+  Briefcase,
+  Image,
+  Upload,
+  Tag,
+  ShoppingBag
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -36,7 +41,7 @@ const MainSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -89,14 +94,18 @@ const MainSidebar = () => {
       description: "Recherche et tendances"
     },
     {
-      id: "wardrobe",
-      label: "Garde-Robe",
-      icon: Shirt,
+      id: "personal",
+      label: "Mon Univers",
+      icon: ShoppingBag,
       subItems: [
         { id: "wardrobe", label: "Ma Garde-Robe", path: "/wardrobe", icon: Shirt },
         { id: "outfits", label: "Mes Tenues", path: "/outfits", icon: Camera },
-        { id: "looks", label: "Mes Looks", path: "/looks", icon: Camera },
+        { id: "looks", label: "Mes Looks", path: "/looks", icon: Image },
+        { id: "suitcases", label: "Mes Valises", path: "/suitcases", icon: Briefcase },
         { id: "favorites", label: "Mes Favoris", path: "/favorites", icon: Heart },
+        { id: "add-clothes", label: "Ajouter un Vêtement", path: "/add-clothes", icon: Plus },
+        { id: "create-outfit", label: "Créer une Tenue", path: "/create-outfit", icon: Tag },
+        { id: "publish-look", label: "Publier un Look", path: "/publish-look", icon: Upload },
       ]
     },
     {
