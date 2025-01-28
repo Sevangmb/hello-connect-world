@@ -8,8 +8,7 @@ import { ClothesList } from "@/components/clothes/ClothesList";
 import { FriendsList } from "@/components/friends/FriendsList";
 import { AddFriend } from "@/components/friends/AddFriend";
 import { GroupsList } from "@/components/groups/GroupsList";
-import { PrivateChat } from "@/components/messages/PrivateChat";
-import { GroupChat } from "@/components/messages/GroupChat";
+import { MessagesList } from "@/components/messages/MessagesList";
 import { CreateOutfit } from "@/components/outfits/CreateOutfit";
 import { OutfitsList } from "@/components/outfits/OutfitsList";
 import { CreateChallenge } from "@/components/challenges/CreateChallenge";
@@ -20,12 +19,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const [selectedChat, setSelectedChat] = useState<{
-    type: "private" | "group";
-    id: string;
-    name: string;
-  } | null>(null);
-
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "messages" | "clothes" | "outfits" | "challenges" | "profile"
   >("posts");
@@ -52,55 +45,7 @@ const Index = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-
-      // Pour chaque post, récupérer le nombre de likes et les commentaires
-      const postsWithDetails = await Promise.all(posts.map(async (post) => {
-        const [{ count: likesCount }, { data: comments }] = await Promise.all([
-          supabase
-            .from("outfit_likes")
-            .select("id", { count: "exact" })
-            .eq("outfit_id", post.id),
-          supabase
-            .from("outfit_comments")
-            .select(`
-              id,
-              content,
-              created_at,
-              profiles:user_id (
-                username,
-                avatar_url
-              )
-            `)
-            .eq("outfit_id", post.id)
-            .order("created_at", { ascending: true }),
-        ]);
-
-        // Vérifier si l'utilisateur actuel a liké le post
-        const { data: userLike } = await supabase
-          .from("outfit_likes")
-          .select("id")
-          .eq("outfit_id", post.id)
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        return {
-          ...post,
-          author: post.profiles,
-          likes: likesCount || 0,
-          liked: !!userLike,
-          comments: comments?.map(comment => ({
-            id: comment.id,
-            content: comment.content,
-            created_at: comment.created_at,
-            author: {
-              username: comment.profiles.username,
-              avatar_url: comment.profiles.avatar_url,
-            },
-          })) || [],
-        };
-      }));
-
-      return postsWithDetails;
+      return posts;
     },
   });
 
@@ -154,41 +99,12 @@ const Index = () => {
             <TabsContent value="friends">
               <div className="space-y-8">
                 <AddFriend />
-                <FriendsList onChatSelect={(friend) => {
-                  setSelectedChat({
-                    type: "private",
-                    id: friend.id,
-                    name: friend.username || "Utilisateur",
-                  });
-                  setActiveTab("messages");
-                }} />
+                <FriendsList />
               </div>
             </TabsContent>
 
             <TabsContent value="messages">
-              <div className="space-y-8">
-                {selectedChat ? (
-                  selectedChat.type === "private" ? (
-                    <PrivateChat
-                      recipientId={selectedChat.id}
-                      recipientName={selectedChat.name}
-                    />
-                  ) : (
-                    <GroupChat
-                      groupId={selectedChat.id}
-                      groupName={selectedChat.name}
-                    />
-                  )
-                ) : (
-                  <GroupsList onChatSelect={(group) => {
-                    setSelectedChat({
-                      type: "group",
-                      id: group.id,
-                      name: group.name,
-                    });
-                  }} />
-                )}
-              </div>
+              <MessagesList />
             </TabsContent>
 
             <TabsContent value="clothes">
@@ -200,8 +116,8 @@ const Index = () => {
 
             <TabsContent value="outfits">
               <div className="space-y-8">
-                <OutfitsList />
                 <CreateOutfit />
+                <OutfitsList />
               </div>
             </TabsContent>
 
