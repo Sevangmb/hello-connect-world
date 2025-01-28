@@ -13,26 +13,52 @@ const TrendingOutfits = () => {
     queryKey: ["trending-outfits"],
     queryFn: async () => {
       console.log("Fetching trending outfits...");
-      const { data, error } = await supabase
-        .from("outfits")
+      
+      // Première requête pour obtenir le nombre de likes par tenue
+      const { data: likesCount, error: likesError } = await supabase
+        .from('outfit_likes')
+        .select('outfit_id, count(*)', { count: 'exact' })
+        .groupBy('outfit_id');
+
+      if (likesError) {
+        console.error("Error fetching likes count:", likesError);
+        throw likesError;
+      }
+
+      // Trier les IDs des tenues par nombre de likes
+      const sortedOutfitIds = likesCount
+        ?.sort((a: any, b: any) => b.count - a.count)
+        .map((item: any) => item.outfit_id)
+        .slice(0, 20) || [];
+
+      if (sortedOutfitIds.length === 0) {
+        return [];
+      }
+
+      // Récupérer les détails des tenues triées
+      const { data: outfits, error: outfitsError } = await supabase
+        .from('outfits')
         .select(`
           *,
           top:clothes!outfits_top_id_fkey(*),
           bottom:clothes!outfits_bottom_id_fkey(*),
           shoes:clothes!outfits_shoes_id_fkey(*),
-          outfit_likes(count),
           user:profiles!outfits_user_id_profiles_fkey(username, avatar_url)
         `)
-        .order('outfit_likes(count)', { ascending: false })
-        .limit(20);
+        .in('id', sortedOutfitIds);
 
-      if (error) {
-        console.error("Error fetching trending outfits:", error);
-        throw error;
+      if (outfitsError) {
+        console.error("Error fetching outfits details:", outfitsError);
+        throw outfitsError;
       }
 
-      console.log("Fetched trending outfits:", data);
-      return data;
+      // Réorganiser les tenues selon l'ordre des likes
+      const orderedOutfits = sortedOutfitIds
+        .map(id => outfits?.find(outfit => outfit.id === id))
+        .filter(outfit => outfit !== undefined);
+
+      console.log("Fetched trending outfits:", orderedOutfits);
+      return orderedOutfits;
     },
   });
 
