@@ -12,9 +12,8 @@ import Explore from "./pages/Explore";
 import Personal from "./pages/Personal";
 import Community from "./pages/Community";
 import Profile from "./pages/Profile";
-import Friends from "./pages/Friends";
-import Messages from "./pages/Messages";
-import Clothes from "./pages/Clothes";
+import Feed from "./pages/Feed";
+import Suggestions from "./pages/Suggestions";
 import Challenges from "./pages/Challenges";
 
 const queryClient = new QueryClient();
@@ -50,12 +49,36 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Routes principales du menu */}
+          {/* Routes principales */}
           <Route
             path="/"
             element={
               <PrivateRoute>
                 <Index />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/suggestions"
+            element={
+              <PrivateRoute>
+                <Suggestions />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/feed"
+            element={
+              <PrivateRoute>
+                <Feed />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/challenges"
+            element={
+              <PrivateRoute>
+                <Challenges />
               </PrivateRoute>
             }
           />
@@ -88,40 +111,6 @@ const App = () => (
             element={
               <PrivateRoute>
                 <Profile />
-              </PrivateRoute>
-            }
-          />
-
-          {/* Routes du sous-menu */}
-          <Route
-            path="/friends"
-            element={
-              <PrivateRoute>
-                <Friends />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/messages"
-            element={
-              <PrivateRoute>
-                <Messages />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/clothes"
-            element={
-              <PrivateRoute>
-                <Clothes />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/challenges"
-            element={
-              <PrivateRoute>
-                <Challenges />
               </PrivateRoute>
             }
           />

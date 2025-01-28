@@ -13,20 +13,16 @@ import {
 
 const subMenuItems = [
   {
-    label: "Fil d'actualité",
+    label: "Météo",
     path: "/",
   },
   {
-    label: "Amis",
-    path: "/friends",
+    label: "Suggestions IA",
+    path: "/suggestions",
   },
   {
-    label: "Messages",
-    path: "/messages",
-  },
-  {
-    label: "Vêtements",
-    path: "/clothes",
+    label: "Fil d'actualité",
+    path: "/feed",
   },
   {
     label: "Défis",
@@ -38,6 +34,11 @@ export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  const isHomeRoute = location.pathname === "/" || 
+                     location.pathname === "/suggestions" || 
+                     location.pathname === "/feed" || 
+                     location.pathname === "/challenges";
 
   const handleLogout = async () => {
     try {
@@ -105,25 +106,27 @@ export const Header = () => {
       </div>
 
       {/* Sous-menu */}
-      <div className="border-t">
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex items-center space-x-1">
-            {subMenuItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`px-4 py-2 text-sm font-medium transition-colors hover:text-facebook-primary ${
-                  location.pathname === item.path 
-                    ? "text-facebook-primary border-b-2 border-facebook-primary" 
-                    : "text-gray-600"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
+      {isHomeRoute && (
+        <div className="border-t">
+          <div className="max-w-7xl mx-auto px-4">
+            <nav className="flex items-center space-x-1">
+              {subMenuItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors hover:text-facebook-primary ${
+                    location.pathname === item.path 
+                      ? "text-facebook-primary border-b-2 border-facebook-primary" 
+                      : "text-gray-600"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 };
