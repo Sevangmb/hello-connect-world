@@ -12,13 +12,12 @@ export const ChallengesList = () => {
   const { data: challenges, isLoading } = useQuery({
     queryKey: ["challenges"],
     queryFn: async () => {
+      console.log("Fetching challenges...");
       const { data, error } = await supabase
         .from("challenges")
         .select(`
           *,
-          creator:creator_id(
-            username
-          ),
+          creator:profiles!challenges_creator_id_fkey(username),
           participants:challenge_participants(count),
           votes:challenge_votes(count)
         `)
@@ -29,6 +28,7 @@ export const ChallengesList = () => {
         throw error;
       }
 
+      console.log("Fetched challenges:", data);
       return data;
     },
   });
