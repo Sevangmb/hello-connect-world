@@ -16,22 +16,8 @@ import { CreateChallenge } from "@/components/challenges/CreateChallenge";
 import { ChallengesList } from "@/components/challenges/ChallengesList";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const SAMPLE_POSTS = [
-  {
-    id: 1,
-    author: "Marie Dupont",
-    content: "Quelle belle journée pour coder ! 💻✨",
-    likes: 12,
-  },
-  {
-    id: 2,
-    author: "Jean Martin",
-    content: "Je viens de terminer mon nouveau projet !",
-    image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-    likes: 24,
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [selectedChat, setSelectedChat] = useState<{
@@ -43,6 +29,81 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<
     "posts" | "friends" | "messages" | "clothes" | "outfits" | "challenges" | "profile"
   >("posts");
+
+  const { data: posts, isLoading: postsLoading } = useQuery({
+    queryKey: ["posts"],
+    queryFn: async () => {
+      console.log("Fetching posts...");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      // Récupérer les posts avec les informations de l'auteur et les likes/commentaires
+      const { data: posts, error } = await supabase
+        .from("posts")
+        .select(`
+          id,
+          content,
+          created_at,
+          profiles:user_id (
+            id,
+            username,
+            avatar_url
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Pour chaque post, récupérer le nombre de likes et les commentaires
+      const postsWithDetails = await Promise.all(posts.map(async (post) => {
+        const [{ count: likesCount }, { data: comments }] = await Promise.all([
+          supabase
+            .from("outfit_likes")
+            .select("id", { count: "exact" })
+            .eq("post_id", post.id),
+          supabase
+            .from("outfit_comments")
+            .select(`
+              id,
+              content,
+              created_at,
+              profiles:user_id (
+                username,
+                avatar_url
+              )
+            `)
+            .eq("post_id", post.id)
+            .order("created_at", { ascending: true }),
+        ]);
+
+        // Vérifier si l'utilisateur actuel a liké le post
+        const { data: userLike } = await supabase
+          .from("outfit_likes")
+          .select("id")
+          .eq("post_id", post.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        return {
+          ...post,
+          author: post.profiles,
+          likes: likesCount || 0,
+          liked: !!userLike,
+          comments: comments?.map(comment => ({
+            id: comment.id,
+            content: comment.content,
+            created_at: comment.created_at,
+            author: {
+              username: comment.profiles.username,
+              avatar_url: comment.profiles.avatar_url,
+            },
+          })) || [],
+        };
+      }));
+
+      return postsWithDetails;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -79,9 +140,15 @@ const Index = () => {
             <TabsContent value="posts">
               <div className="space-y-8">
                 <CreatePost />
-                {SAMPLE_POSTS.map((post) => (
-                  <Post key={post.id} {...post} />
-                ))}
+                {postsLoading ? (
+                  <p className="text-center text-muted-foreground">Chargement des publications...</p>
+                ) : !posts?.length ? (
+                  <p className="text-center text-muted-foreground">Aucune publication pour le moment</p>
+                ) : (
+                  posts.map((post) => (
+                    <Post key={post.id} {...post} />
+                  ))
+                )}
               </div>
             </TabsContent>
 
