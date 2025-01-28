@@ -14,7 +14,7 @@ export const ParticipantsList = ({ participants, onVote }: ParticipantsListProps
 
   if (!participants?.length) return null;
 
-  const handleVote = async (participantId: string, vote: "up" | "down") => {
+  const handleVote = async (participantId: string) => {
     await onVote(participantId);
   };
 

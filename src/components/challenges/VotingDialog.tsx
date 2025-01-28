@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Trophy, Vote } from "lucide-react";
 import { useState } from "react";
@@ -113,12 +113,6 @@ export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
-          <Vote className="h-4 w-4" />
-          Voter
-        </Button>
-      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>

@@ -79,7 +79,8 @@ export const ChallengesList = () => {
         >
           <ChallengeHeader 
             challenge={challenge} 
-            onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)} 
+            onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
+            onVote={(participantId) => handleVote(participantId, challenge.id)}
           />
           
           {challenge.description && (
@@ -90,7 +91,7 @@ export const ChallengesList = () => {
           
           <ParticipantsList 
             participants={challenge.participants} 
-            onVote={(participantId) => handleVote(participantId, challenge.id)}
+            onVote={handleVote}
           />
         </div>
       ))}
