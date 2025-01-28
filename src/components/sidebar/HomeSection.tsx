@@ -13,14 +13,14 @@ export const HomeSection = () => {
   const navigate = useNavigate();
 
   return (
-    <AccordionItem value="home" className="border-none">
+    <AccordionItem value="home" className="border-none" defaultValue="home">
       <AccordionTrigger className="py-2">
         <div className="flex items-center gap-2">
           <Home className="h-4 w-4" />
           Accueil
         </div>
       </AccordionTrigger>
-      <AccordionContent>
+      <AccordionContent className="!mt-0">
         <div className="flex flex-col gap-1 pl-6">
           <Button
             variant="ghost"
