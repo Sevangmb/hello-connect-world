@@ -61,7 +61,7 @@ const Auth = () => {
         
         toast({
           title: "Compte créé avec succès",
-          description: "Vous pouvez maintenant vous connecter",
+          description: "Un email de confirmation vous a été envoyé. Veuillez vérifier votre boîte de réception et vos spams.",
         });
         
         setIsSignUp(false);
@@ -72,13 +72,13 @@ const Auth = () => {
         });
         
         if (error) {
-          console.error("Auth error:", error);
+          console.error("Erreur d'authentification:", error);
           
           if (error.message === "Email not confirmed") {
             toast({
               variant: "destructive",
               title: "Email non confirmé",
-              description: "Veuillez vérifier votre boîte mail et confirmer votre email avant de vous connecter. Si vous ne trouvez pas l'email, vérifiez vos spams.",
+              description: "Veuillez vérifier votre boîte mail et confirmer votre email avant de vous connecter. Si vous ne trouvez pas l'email, vérifiez vos spams ou réessayez de vous inscrire.",
             });
             return;
           }
@@ -98,7 +98,7 @@ const Auth = () => {
         navigate("/");
       }
     } catch (error: any) {
-      console.error("Auth error:", error);
+      console.error("Erreur d'authentification:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
