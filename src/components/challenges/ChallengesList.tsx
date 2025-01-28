@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trophy, Users, Calendar } from "lucide-react";
+import { Loader2, Trophy, Users, Calendar, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/components/ui/use-toast";
+import { JoinChallengeDialog } from "./JoinChallengeDialog";
 
 export const ChallengesList = () => {
   const { toast } = useToast();
@@ -18,7 +19,14 @@ export const ChallengesList = () => {
         .select(`
           *,
           profiles!challenges_creator_id_profiles_fkey(username),
-          participants:challenge_participants(count),
+          participants:challenge_participants(
+            id,
+            user_id,
+            outfit_id,
+            comment,
+            outfits(name),
+            profiles:user_id(username)
+          ),
           votes:challenge_votes(count)
         `)
         .order("created_at", { ascending: false });
@@ -33,7 +41,7 @@ export const ChallengesList = () => {
     },
   });
 
-  const handleJoinChallenge = async (challengeId: string) => {
+  const handleJoinChallenge = async (challengeId: string, outfitId: string, comment: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Utilisateur non connecté");
@@ -57,7 +65,12 @@ export const ChallengesList = () => {
 
       const { error } = await supabase
         .from("challenge_participants")
-        .insert({ challenge_id: challengeId, user_id: user.id });
+        .insert({ 
+          challenge_id: challengeId, 
+          user_id: user.id,
+          outfit_id: outfitId,
+          comment: comment
+        });
 
       if (error) throw error;
 
@@ -71,6 +84,47 @@ export const ChallengesList = () => {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de rejoindre le défi",
+      });
+    }
+  };
+
+  const handleVote = async (participantId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
+      const { error } = await supabase
+        .from("challenge_votes")
+        .insert({
+          challenge_id: challenges?.find(c => 
+            c.participants?.some(p => p.id === participantId)
+          )?.id,
+          voter_id: user.id,
+          participant_id: participantId
+        });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast({
+            variant: "default",
+            title: "Vote déjà enregistré",
+            description: "Vous avez déjà voté pour ce participant",
+          });
+          return;
+        }
+        throw error;
+      }
+
+      toast({
+        title: "Vote enregistré",
+        description: "Votre vote a été pris en compte",
+      });
+    } catch (error: any) {
+      console.error("Error voting:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'enregistrer votre vote",
       });
     }
   };
@@ -108,9 +162,10 @@ export const ChallengesList = () => {
                 Créé par {challenge.profiles?.username || "Utilisateur inconnu"}
               </p>
             </div>
-            <Button onClick={() => handleJoinChallenge(challenge.id)}>
-              Participer
-            </Button>
+            <JoinChallengeDialog 
+              challengeId={challenge.id}
+              onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
+            />
           </div>
 
           {challenge.description && (
@@ -129,11 +184,41 @@ export const ChallengesList = () => {
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
               <span>
-                {challenge.participants?.[0]?.count || 0} participant
-                {(challenge.participants?.[0]?.count || 0) > 1 ? "s" : ""}
+                {challenge.participants?.length || 0} participant
+                {(challenge.participants?.length || 0) > 1 ? "s" : ""}
               </span>
             </div>
           </div>
+
+          {challenge.participants && challenge.participants.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <h4 className="font-medium">Participants</h4>
+              <div className="space-y-2">
+                {challenge.participants.map((participant) => (
+                  <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                    <div>
+                      <p className="font-medium">{participant.profiles?.username}</p>
+                      {participant.outfits && (
+                        <p className="text-sm text-gray-600">Tenue: {participant.outfits.name}</p>
+                      )}
+                      {participant.comment && (
+                        <p className="text-sm text-gray-500">{participant.comment}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVote(participant.id)}
+                      className="gap-2"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      Voter
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

@@ -36,6 +36,7 @@ export type Database = {
       challenge_participants: {
         Row: {
           challenge_id: string
+          comment: string | null
           created_at: string
           id: string
           outfit_id: string | null
@@ -45,6 +46,7 @@ export type Database = {
         }
         Insert: {
           challenge_id: string
+          comment?: string | null
           created_at?: string
           id?: string
           outfit_id?: string | null
@@ -54,6 +56,7 @@ export type Database = {
         }
         Update: {
           challenge_id?: string
+          comment?: string | null
           created_at?: string
           id?: string
           outfit_id?: string | null
