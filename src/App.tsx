@@ -8,6 +8,7 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Clothes from "@/pages/Clothes";
 import Outfits from "@/pages/Outfits";
+import TrendingOutfits from "@/pages/TrendingOutfits";
 import Challenges from "@/pages/Challenges";
 import Challenge from "@/pages/Challenge";
 import Friends from "@/pages/Friends";
@@ -32,6 +33,7 @@ function App() {
         <Route path="/search" element={<Search />} />
         <Route path="/hashtags" element={<Hashtags />} />
         <Route path="/hashtag/:name" element={<Hashtags />} />
+        <Route path="/trending/outfits" element={<TrendingOutfits />} />
         
         {/* Routes personnelles */}
         <Route path="/personal" element={<Personal />} />
