@@ -9,9 +9,11 @@ import {
   Users,
   User,
   Shield,
-  Newspaper,
+  Cloud,
   Sparkles,
-  Compass
+  Newspaper,
+  Trophy,
+  Store
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,12 +64,12 @@ export default function MainSidebar() {
                 <Button
                   variant="ghost"
                   className={cn("w-full justify-start gap-2", {
-                    "bg-gray-100": location.pathname === "/feed",
+                    "bg-gray-100": location.pathname === "/weather",
                   })}
-                  onClick={() => navigate("/feed")}
+                  onClick={() => navigate("/weather")}
                 >
-                  <Newspaper className="h-4 w-4" />
-                  Fil d'actualité
+                  <Cloud className="h-4 w-4" />
+                  Météo du Jour
                 </Button>
                 <Button
                   variant="ghost"
@@ -77,17 +79,37 @@ export default function MainSidebar() {
                   onClick={() => navigate("/suggestions")}
                 >
                   <Sparkles className="h-4 w-4" />
-                  Suggestions
+                  Suggestions IA
                 </Button>
                 <Button
                   variant="ghost"
                   className={cn("w-full justify-start gap-2", {
-                    "bg-gray-100": location.pathname === "/explore",
+                    "bg-gray-100": location.pathname === "/feed",
                   })}
-                  onClick={() => navigate("/explore")}
+                  onClick={() => navigate("/feed")}
                 >
-                  <Compass className="h-4 w-4" />
-                  Découvrir
+                  <Newspaper className="h-4 w-4" />
+                  Fil d'Actualité
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/challenges",
+                  })}
+                  onClick={() => navigate("/challenges")}
+                >
+                  <Trophy className="h-4 w-4" />
+                  Défis Mode
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/stores",
+                  })}
+                  onClick={() => navigate("/stores")}
+                >
+                  <Store className="h-4 w-4" />
+                  Boutiques
                 </Button>
               </div>
             </AccordionContent>
