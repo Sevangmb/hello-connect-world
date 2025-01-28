@@ -5,10 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Carousel,
   CarouselContent,
@@ -26,6 +35,9 @@ export const CreateOutfit = () => {
   const [selectedBottom, setSelectedBottom] = useState<string | null>(null);
   const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<"tops" | "bottoms" | "shoes" | null>(null);
 
   const [topSource, setTopSource] = useState<"mine" | "friends">("mine");
   const [bottomSource, setBottomSource] = useState<"mine" | "friends">("mine");
@@ -33,15 +45,18 @@ export const CreateOutfit = () => {
 
   const { data: tops, isLoading: topsLoading } = useClothes({ 
     category: "Hauts",
-    source: topSource 
+    source: topSource,
+    search: activeSection === "tops" ? searchQuery : undefined
   });
   const { data: bottoms, isLoading: bottomsLoading } = useClothes({ 
     category: "Bas",
-    source: bottomSource 
+    source: bottomSource,
+    search: activeSection === "bottoms" ? searchQuery : undefined
   });
   const { data: shoes, isLoading: shoesLoading } = useClothes({ 
     category: "Chaussures",
-    source: shoesSource 
+    source: shoesSource,
+    search: activeSection === "shoes" ? searchQuery : undefined
   });
 
   const handleSave = async () => {
@@ -98,6 +113,27 @@ export const CreateOutfit = () => {
     }
   };
 
+  const handleSearch = (section: "tops" | "bottoms" | "shoes") => {
+    setActiveSection(section);
+    setIsSearchOpen(true);
+  };
+
+  const handleSelectItem = (id: string) => {
+    switch (activeSection) {
+      case "tops":
+        setSelectedTop(id);
+        break;
+      case "bottoms":
+        setSelectedBottom(id);
+        break;
+      case "shoes":
+        setSelectedShoes(id);
+        break;
+    }
+    setIsSearchOpen(false);
+    setSearchQuery("");
+  };
+
   const ClothingSection = ({ 
     title, 
     items, 
@@ -105,6 +141,7 @@ export const CreateOutfit = () => {
     onSelect,
     source,
     onSourceChange,
+    section,
   }: { 
     title: string;
     items: any[];
@@ -112,24 +149,35 @@ export const CreateOutfit = () => {
     onSelect: (id: string) => void;
     source: "mine" | "friends";
     onSourceChange: (value: "mine" | "friends") => void;
+    section: "tops" | "bottoms" | "shoes";
   }) => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-medium text-lg">{title}</h3>
-        <RadioGroup 
-          value={source} 
-          onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
-          className="flex space-x-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="mine" id={`mine-${title}`} />
-            <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="friends" id={`friends-${title}`} />
-            <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
-          </div>
-        </RadioGroup>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => handleSearch(section)}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Rechercher
+          </Button>
+          <RadioGroup 
+            value={source} 
+            onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="mine" id={`mine-${title}`} />
+              <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="friends" id={`friends-${title}`} />
+              <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
+            </div>
+          </RadioGroup>
+        </div>
       </div>
       {items && items.length > 0 ? (
         <div className="relative px-12">
@@ -215,6 +263,7 @@ export const CreateOutfit = () => {
           onSelect={setSelectedTop}
           source={topSource}
           onSourceChange={setTopSource}
+          section="tops"
         />
         <ClothingSection
           title="Bas"
@@ -223,6 +272,7 @@ export const CreateOutfit = () => {
           onSelect={setSelectedBottom}
           source={bottomSource}
           onSourceChange={setBottomSource}
+          section="bottoms"
         />
         <ClothingSection
           title="Chaussures"
@@ -231,8 +281,49 @@ export const CreateOutfit = () => {
           onSelect={setSelectedShoes}
           source={shoesSource}
           onSourceChange={setShoesSource}
+          section="shoes"
         />
       </div>
+
+      <CommandDialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <CommandInput 
+          placeholder="Rechercher un vêtement..." 
+          value={searchQuery}
+          onValueChange={setSearchQuery}
+        />
+        <CommandList>
+          <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
+          <CommandGroup>
+            {activeSection === "tops" && tops?.map((item) => (
+              <CommandItem
+                key={item.id}
+                value={item.name}
+                onSelect={() => handleSelectItem(item.id)}
+              >
+                {item.name}
+              </CommandItem>
+            ))}
+            {activeSection === "bottoms" && bottoms?.map((item) => (
+              <CommandItem
+                key={item.id}
+                value={item.name}
+                onSelect={() => handleSelectItem(item.id)}
+              >
+                {item.name}
+              </CommandItem>
+            ))}
+            {activeSection === "shoes" && shoes?.map((item) => (
+              <CommandItem
+                key={item.id}
+                value={item.name}
+                onSelect={() => handleSelectItem(item.id)}
+              >
+                {item.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving}>
