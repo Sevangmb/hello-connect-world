@@ -17,12 +17,37 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const validateEmail = (email: string) => {
+    // Regex basique pour la validation d'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error("L'adresse email n'est pas valide");
+    }
+  };
+
+  const validatePassword = (password: string) => {
+    if (password.length < 6) {
+      throw new Error("Le mot de passe doit contenir au moins 6 caractères");
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
+      // Validation des champs
+      validateEmail(email);
+      validatePassword(password);
+
       if (isSignUp) {
+        if (!username.trim()) {
+          throw new Error("Le nom d'utilisateur est requis");
+        }
+        if (!fullName.trim()) {
+          throw new Error("Le nom complet est requis");
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -118,6 +143,7 @@ const Auth = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
             />
           </div>
           
