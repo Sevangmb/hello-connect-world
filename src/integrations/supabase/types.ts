@@ -9,33 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_users: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          role: Database["public"]["Enums"]["admin_role"]
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          role?: Database["public"]["Enums"]["admin_role"]
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          role?: Database["public"]["Enums"]["admin_role"]
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       badges: {
         Row: {
           created_at: string
@@ -683,6 +656,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_admin: boolean | null
           updated_at: string
           username: string | null
           visibility: string
@@ -692,6 +666,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           updated_at?: string
           username?: string | null
           visibility?: string
@@ -701,6 +676,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           updated_at?: string
           username?: string | null
           visibility?: string
@@ -772,12 +748,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_admin_role: {
-        Args: {
-          user_id: string
-        }
-        Returns: Database["public"]["Enums"]["admin_role"]
-      }
       is_admin: {
         Args: {
           user_id: string
@@ -786,7 +756,7 @@ export type Database = {
       }
     }
     Enums: {
-      admin_role: "super_admin" | "admin" | "moderator"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
