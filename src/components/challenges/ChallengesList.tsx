@@ -17,7 +17,7 @@ export const ChallengesList = () => {
         .from("challenges")
         .select(`
           *,
-          profiles!challenges_creator_id_fkey(username),
+          profiles!challenges_creator_id_profiles_fkey(username),
           participants:challenge_participants(count),
           votes:challenge_votes(count)
         `)
