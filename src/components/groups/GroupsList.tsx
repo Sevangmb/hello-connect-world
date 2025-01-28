@@ -6,7 +6,11 @@ import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 
-export const GroupsList = () => {
+interface GroupsListProps {
+  onChatSelect?: (group: { id: string; name: string }) => void;
+}
+
+export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
   const [groups, setGroups] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { toast } = useToast();

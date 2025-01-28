@@ -4,17 +4,7 @@ import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  created_at: string;
-  profiles: {
-    username: string;
-    avatar_url: string | null;
-  };
-}
+import { PrivateMessage } from "@/types/messages";
 
 interface PrivateChatProps {
   recipientId: string;
@@ -22,7 +12,7 @@ interface PrivateChatProps {
 }
 
 export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const { toast } = useToast();
 
@@ -42,7 +32,7 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
         return;
       }
 
-      setMessages(data || []);
+      setMessages(data as PrivateMessage[] || []);
     };
 
     fetchMessages();
@@ -59,7 +49,7 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
           filter: `sender_id=eq.${recipientId},receiver_id=eq.${recipientId}`,
         },
         (payload) => {
-          setMessages((current) => [...current, payload.new as Message]);
+          setMessages((current) => [...current, payload.new as PrivateMessage]);
         }
       )
       .subscribe();

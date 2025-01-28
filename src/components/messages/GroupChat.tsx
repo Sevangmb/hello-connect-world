@@ -4,17 +4,7 @@ import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Message {
-  id: string;
-  content: string;
-  sender_id: string;
-  created_at: string;
-  profiles: {
-    username: string;
-    avatar_url: string | null;
-  };
-}
+import { GroupMessage } from "@/types/messages";
 
 interface GroupChatProps {
   groupId: string;
@@ -22,7 +12,7 @@ interface GroupChatProps {
 }
 
 export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const { toast } = useToast();
 
@@ -42,7 +32,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
         return;
       }
 
-      setMessages(data || []);
+      setMessages(data as GroupMessage[] || []);
     };
 
     fetchMessages();
@@ -59,7 +49,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
           filter: `group_id=eq.${groupId}`,
         },
         (payload) => {
-          setMessages((current) => [...current, payload.new as Message]);
+          setMessages((current) => [...current, payload.new as GroupMessage]);
         }
       )
       .subscribe();

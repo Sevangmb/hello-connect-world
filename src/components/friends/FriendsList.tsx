@@ -6,7 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const FriendsList = () => {
+interface FriendsListProps {
+  onChatSelect?: (friend: { id: string; username: string }) => void;
+}
+
+export const FriendsList = ({ onChatSelect }: FriendsListProps) => {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -140,7 +144,7 @@ export const FriendsList = () => {
               : friendship.user_profile;
 
             return (
-              <Card key={friendship.id} className="p-4">
+              <Card key={friendship.id} className="p-4" onClick={() => onChatSelect?.(friendProfile)}>
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={friendProfile.avatar_url} />
