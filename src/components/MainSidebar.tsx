@@ -14,7 +14,11 @@ import {
   Eye,
   EyeOff,
   Heart,
-  Camera
+  Camera,
+  Cloud,
+  Sparkles,
+  Newspaper,
+  Award
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -32,7 +36,7 @@ const MainSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [openMenus, setOpenMenus] = useState<string[]>(["wardrobe"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -69,9 +73,13 @@ const MainSidebar = () => {
     {
       id: "home",
       label: "Accueil",
-      path: "/",
       icon: Home,
-      description: "Fil d'actualité et posts"
+      subItems: [
+        { id: "weather", label: "Météo", path: "/", icon: Cloud },
+        { id: "ai", label: "Suggestions IA", path: "/suggestions", icon: Sparkles },
+        { id: "feed", label: "Fil d'actualité", path: "/feed", icon: Newspaper },
+        { id: "challenges", label: "Défis", path: "/challenges", icon: Award },
+      ]
     },
     {
       id: "explore",
