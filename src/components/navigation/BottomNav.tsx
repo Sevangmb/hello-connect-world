@@ -31,7 +31,8 @@ const MENU_ITEMS = [
     label: "Mon Univers",
     icon: ShoppingBag,
     path: "/personal",
-    description: "Garde-robe et tenues"
+    description: "Garde-robe et tenues",
+    isMain: true
   },
   {
     label: "Communauté",
@@ -53,7 +54,7 @@ export const BottomNav = () => {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
-      <div className="flex justify-around">
+      <div className="flex justify-around items-center relative">
         {MENU_ITEMS.map((item) => (
           <TooltipProvider key={item.path}>
             <Tooltip>
@@ -61,12 +62,26 @@ export const BottomNav = () => {
                 <button
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex flex-col items-center justify-center w-full p-2 hover:bg-gray-50 transition-colors",
-                    location.pathname === item.path && "text-facebook-primary"
+                    "flex flex-col items-center justify-center p-2 transition-colors relative",
+                    item.isMain ? "w-16 -mt-4" : "w-full",
+                    location.pathname === item.path 
+                      ? "text-facebook-primary" 
+                      : "text-gray-500 hover:text-facebook-primary hover:bg-gray-50"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  <span className="text-xs mt-1">{item.label}</span>
+                  {item.isMain ? (
+                    <div className="bg-facebook-primary text-white p-3 rounded-full shadow-lg -mt-2">
+                      <item.icon className="h-6 w-6" />
+                    </div>
+                  ) : (
+                    <item.icon className="h-5 w-5" />
+                  )}
+                  <span className={cn(
+                    "text-xs mt-1",
+                    item.isMain && "font-medium"
+                  )}>
+                    {item.label}
+                  </span>
                 </button>
               </TooltipTrigger>
               <TooltipContent>
