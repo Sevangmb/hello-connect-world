@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NotificationsList } from "@/components/notifications/NotificationsList";
 
 export default function Notifications() {
   return (
@@ -10,14 +10,8 @@ export default function Notifications() {
       <MainSidebar />
       <main className="pt-24 pb-8 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Vos notifications apparaîtront ici</p>
-            </CardContent>
-          </Card>
+          <h1 className="text-2xl font-bold mb-6">Notifications</h1>
+          <NotificationsList />
         </div>
       </main>
       <BottomNav />
