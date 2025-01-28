@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +50,7 @@ export const CreateOutfit = () => {
         top_id: selectedTop,
         bottom_id: selectedBottom,
         shoes_id: selectedShoes,
-        user_id: user.id, // Add the user_id here
+        user_id: user.id,
       });
 
       if (error) throw error;
@@ -66,7 +67,7 @@ export const CreateOutfit = () => {
       setSelectedBottom(null);
       setSelectedShoes(null);
 
-      // Refresh outfits list if we implement it later
+      // Refresh outfits list
       queryClient.invalidateQueries({ queryKey: ["outfits"] });
     } catch (error: any) {
       console.error("Error saving outfit:", error);
@@ -89,6 +90,46 @@ export const CreateOutfit = () => {
       </div>
     );
   }
+
+  const ClothingSection = ({ 
+    title, 
+    items, 
+    selectedId, 
+    onSelect 
+  }: { 
+    title: string;
+    items: any[];
+    selectedId: string | null;
+    onSelect: (id: string) => void;
+  }) => (
+    <div className="space-y-2">
+      <h3 className="font-medium text-lg">{title}</h3>
+      <ScrollArea className="h-[300px] border rounded-lg p-4">
+        <div className="space-y-2">
+          {items?.map((item) => (
+            <div
+              key={item.id}
+              className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                selectedId === item.id
+                  ? "border-primary bg-primary/10"
+                  : "hover:bg-muted"
+              }`}
+              onClick={() => onSelect(item.id)}
+            >
+              {item.image_url && (
+                <img
+                  src={item.image_url}
+                  alt={item.name}
+                  className="w-full h-32 object-cover rounded-md mb-2"
+                />
+              )}
+              <p className="font-medium">{item.name}</p>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -114,84 +155,25 @@ export const CreateOutfit = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-4">
-          <h3 className="font-medium">Haut</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {tops?.map((top) => (
-              <div
-                key={top.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedTop === top.id
-                    ? "border-primary bg-primary/10"
-                    : "hover:bg-muted"
-                }`}
-                onClick={() => setSelectedTop(top.id)}
-              >
-                {top.image_url && (
-                  <img
-                    src={top.image_url}
-                    alt={top.name}
-                    className="w-full h-32 object-cover rounded-md mb-2"
-                  />
-                )}
-                <p className="font-medium">{top.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-medium">Bas</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {bottoms?.map((bottom) => (
-              <div
-                key={bottom.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedBottom === bottom.id
-                    ? "border-primary bg-primary/10"
-                    : "hover:bg-muted"
-                }`}
-                onClick={() => setSelectedBottom(bottom.id)}
-              >
-                {bottom.image_url && (
-                  <img
-                    src={bottom.image_url}
-                    alt={bottom.name}
-                    className="w-full h-32 object-cover rounded-md mb-2"
-                  />
-                )}
-                <p className="font-medium">{bottom.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-medium">Chaussures</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto">
-            {shoes?.map((shoe) => (
-              <div
-                key={shoe.id}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedShoes === shoe.id
-                    ? "border-primary bg-primary/10"
-                    : "hover:bg-muted"
-                }`}
-                onClick={() => setSelectedShoes(shoe.id)}
-              >
-                {shoe.image_url && (
-                  <img
-                    src={shoe.image_url}
-                    alt={shoe.name}
-                    className="w-full h-32 object-cover rounded-md mb-2"
-                  />
-                )}
-                <p className="font-medium">{shoe.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="space-y-6">
+        <ClothingSection
+          title="Hauts"
+          items={tops || []}
+          selectedId={selectedTop}
+          onSelect={setSelectedTop}
+        />
+        <ClothingSection
+          title="Bas"
+          items={bottoms || []}
+          selectedId={selectedBottom}
+          onSelect={setSelectedBottom}
+        />
+        <ClothingSection
+          title="Chaussures"
+          items={shoes || []}
+          selectedId={selectedShoes}
+          onSelect={setSelectedShoes}
+        />
       </div>
 
       <div className="flex justify-end">
