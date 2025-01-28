@@ -8,6 +8,8 @@ type ChallengeHeaderProps = {
 };
 
 export const ChallengeHeader = ({ challenge, onJoin }: ChallengeHeaderProps) => {
+  const creatorUsername = challenge.profiles[0]?.username || "Utilisateur inconnu";
+  
   return (
     <div className="flex items-start justify-between">
       <div>
@@ -16,7 +18,7 @@ export const ChallengeHeader = ({ challenge, onJoin }: ChallengeHeaderProps) => 
           {challenge.title}
         </h3>
         <p className="text-sm text-muted-foreground">
-          Créé par {challenge.profiles?.username || "Utilisateur inconnu"}
+          Créé par {creatorUsername}
         </p>
       </div>
       <JoinChallengeDialog 

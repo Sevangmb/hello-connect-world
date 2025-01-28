@@ -17,7 +17,9 @@ export const ParticipantsList = ({ participants, onVote }: ParticipantsListProps
         {participants.map((participant) => (
           <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
             <div>
-              <p className="font-medium">{participant.profiles[0]?.username || "Utilisateur inconnu"}</p>
+              <p className="font-medium">
+                {participant.profiles[0]?.username || "Utilisateur inconnu"}
+              </p>
               {participant.outfits && (
                 <p className="text-sm text-gray-600">Tenue: {participant.outfits.name}</p>
               )}
