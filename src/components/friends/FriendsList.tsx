@@ -3,18 +3,21 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Check, X, UserPlus, User } from "lucide-react";
+import { Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const FriendsList = () => {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
 
   const fetchFriends = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setCurrentUser(user);
 
       // Récupérer les amis acceptés
       const { data: acceptedFriends, error: friendsError } = await supabase
@@ -133,8 +136,7 @@ export const FriendsList = () => {
           <p className="text-muted-foreground">Vous n'avez pas encore d'amis</p>
         ) : (
           friends.map((friendship) => {
-            const { data: { user } } = supabase.auth.getUser();
-            const friend = friendship.user_id === user?.id 
+            const friend = friendship.user_id === currentUser?.id 
               ? friendship.friend 
               : friendship.user;
 
