@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,7 @@ export const ProfileForm = () => {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchProfile();
   }, []);
 
@@ -144,7 +144,7 @@ export const ProfileForm = () => {
 
       <div className="flex items-center gap-4">
         <Avatar className="w-20 h-20">
-          <AvatarImage src={profile.avatar_url || undefined} />
+          <AvatarImage src={profile?.avatar_url || undefined} />
           <AvatarFallback>
             <User className="w-8 h-8" />
           </AvatarFallback>
@@ -186,7 +186,7 @@ export const ProfileForm = () => {
           <Label htmlFor="username">Nom d'utilisateur</Label>
           <Input
             id="username"
-            value={profile.username || ""}
+            value={profile?.username || ""}
             onChange={(e) => setProfile(prev => prev ? { ...prev, username: e.target.value } : null)}
             placeholder="Votre nom d'utilisateur"
           />
@@ -196,7 +196,7 @@ export const ProfileForm = () => {
           <Label htmlFor="full_name">Nom complet</Label>
           <Input
             id="full_name"
-            value={profile.full_name || ""}
+            value={profile?.full_name || ""}
             onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
             placeholder="Votre nom complet"
           />
