@@ -32,7 +32,7 @@ export const CreateOutfit = () => {
   const [shoesSource, setShoesSource] = useState<"mine" | "friends">("mine");
 
   const { data: tops, isLoading: topsLoading } = useClothes({ 
-    category: "Haut",
+    category: "Hauts",
     source: topSource 
   });
   const { data: bottoms, isLoading: bottomsLoading } = useClothes({ 
