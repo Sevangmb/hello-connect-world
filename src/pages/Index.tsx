@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { CreatePost } from "@/components/CreatePost";
 import { Post } from "@/components/Post";
 import { ProfileForm } from "@/components/profile/ProfileForm";
+import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 
 const SAMPLE_POSTS = [
   {
@@ -29,6 +30,7 @@ const Index = () => {
       <main className="pt-20 pb-8 px-4 md:pl-72">
         <div className="max-w-2xl mx-auto space-y-4">
           <ProfileForm />
+          <AddClothesForm />
           <CreatePost />
           
           {SAMPLE_POSTS.map((post) => (
