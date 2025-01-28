@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CreateGroupDialog } from "./CreateGroupDialog";
-import { SearchGroups } from "./SearchGroups";
 import { GroupView } from "./GroupView";
 
 interface GroupsListProps {
@@ -14,7 +12,6 @@ interface GroupsListProps {
 
 export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
   const [groups, setGroups] = useState<any[]>([]);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
 
@@ -69,15 +66,12 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Groupes</h2>
-        <Button onClick={() => setShowCreateDialog(true)}>
+      <div className="flex items-center justify-end">
+        <Button onClick={() => window.dispatchEvent(new CustomEvent('create-group'))}>
           <Plus className="h-4 w-4 mr-2" />
           Créer un groupe
         </Button>
       </div>
-
-      <SearchGroups onSelect={handleGroupSelect} />
 
       {groups.length === 0 ? (
         <p className="text-muted-foreground">Aucun groupe trouvé</p>
@@ -101,12 +95,6 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
           ))}
         </div>
       )}
-
-      <CreateGroupDialog 
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onGroupCreated={fetchGroups}
-      />
     </div>
   );
 };
