@@ -9,8 +9,9 @@ const Index = () => {
       <Header />
       <MainSidebar />
       <main className="pt-24 pb-8 px-4 md:pl-72">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6">
           <WeatherSection />
+          {/* Other sections will be added here */}
         </div>
       </main>
       <BottomNav />

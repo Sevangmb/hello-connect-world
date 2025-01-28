@@ -1,16 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Cloud, Sun, CloudRain, Shirt } from "lucide-react";
+import { Cloud, Sun, CloudRain, Shirt, ThermometerSun } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface WeatherData {
+  temperature: number;
+  condition: 'sunny' | 'cloudy' | 'rainy';
+  location: string;
+  recommendation: string;
+  feelsLike: number;
+  humidity: number;
+}
+
 export const WeatherSection = () => {
-  const { data: weather, isLoading } = useQuery({
+  const { data: weather, isLoading } = useQuery<WeatherData>({
     queryKey: ["weather"],
     queryFn: async () => {
-      // Simulate weather data fetch - replace with actual API call
+      // TODO: Replace with actual API call
+      // For now using mock data
       return {
         temperature: 22,
+        feelsLike: 24,
+        humidity: 65,
         condition: "sunny",
         location: "Paris",
         recommendation: "Une journée parfaite pour porter un t-shirt léger avec un jean"
@@ -44,8 +56,8 @@ export const WeatherSection = () => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+    <Card className="p-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">{weather?.temperature}°C</h2>
           <p className="text-muted-foreground">{weather?.location}</p>
@@ -53,9 +65,26 @@ export const WeatherSection = () => {
         {getWeatherIcon()}
       </div>
       
-      <div className="flex items-start gap-2 text-muted-foreground">
-        <Shirt className="h-5 w-5 mt-1" />
-        <p>{weather?.recommendation}</p>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <ThermometerSun className="h-5 w-5 text-orange-500" />
+          <div>
+            <p className="text-sm text-muted-foreground">Ressenti</p>
+            <p className="font-medium">{weather?.feelsLike}°C</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Cloud className="h-5 w-5 text-blue-500" />
+          <div>
+            <p className="text-sm text-muted-foreground">Humidité</p>
+            <p className="font-medium">{weather?.humidity}%</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-start gap-2 text-muted-foreground border-t pt-4">
+        <Shirt className="h-5 w-5 mt-1 text-primary" />
+        <p className="text-sm">{weather?.recommendation}</p>
       </div>
     </Card>
   );
