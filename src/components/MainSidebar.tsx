@@ -167,62 +167,44 @@ const MainSidebar = () => {
       <nav className="flex-1 px-2 py-4">
         <div className="space-y-1">
           {menuItems.map((item) => (
-            item.subItems ? (
-              <Collapsible
-                key={item.id}
-                open={openMenus.includes(item.id)}
-                onOpenChange={() => toggleMenu(item.id)}
-              >
-                <CollapsibleTrigger asChild>
+            <Collapsible
+              key={item.id}
+              open={openMenus.includes(item.id)}
+              onOpenChange={() => toggleMenu(item.id)}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between group"
+                >
+                  <span className="flex items-center gap-2">
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </span>
+                  {openMenus.includes(item.id) ? (
+                    <Eye className="h-4 w-4 transition-transform" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 transition-transform" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 space-y-1">
+                {item.subItems.map((subItem) => (
                   <Button
+                    key={subItem.id}
                     variant="ghost"
-                    className="w-full justify-between group"
-                  >
-                    <span className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </span>
-                    {openMenus.includes(item.id) ? (
-                      <Eye className="h-4 w-4 transition-transform" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 transition-transform" />
+                    className={cn(
+                      "w-full justify-start gap-2",
+                      location.pathname === subItem.path && "bg-blue-50 text-facebook-primary"
                     )}
+                    onClick={() => navigate(subItem.path)}
+                  >
+                    <subItem.icon className="h-4 w-4" />
+                    {subItem.label}
                   </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-6 space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <Button
-                      key={subItem.id}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start gap-2",
-                        location.pathname === subItem.path && "bg-blue-50 text-facebook-primary"
-                      )}
-                      onClick={() => navigate(subItem.path)}
-                    >
-                      <subItem.icon className="h-4 w-4" />
-                      {subItem.label}
-                    </Button>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            ) : (
-              <Button
-                key={item.id}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-2",
-                  location.pathname === item.path && "bg-blue-50 text-facebook-primary"
-                )}
-                onClick={() => navigate(item.path)}
-              >
-                <item.icon className="h-4 w-4" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium">{item.label}</p>
-                  <p className="text-xs text-gray-500">{item.description}</p>
-                </div>
-              </Button>
-            )
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </div>
       </nav>
