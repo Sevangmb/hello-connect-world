@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClothesCard } from "@/components/clothes/ClothesCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export const SearchResults = () => {
+  const { toast } = useToast();
   const { data: results, isLoading } = useQuery({
     queryKey: ["search-results"],
     queryFn: async () => {
@@ -53,7 +55,7 @@ export const SearchResults = () => {
           brand: cloth.brand || '',
           size: cloth.size || '',
           color: cloth.color || '',
-          material: cloth.material || '',
+          material: material.material || '',
           style: cloth.style || '',
           price: cloth.price || 0,
           purchase_date: cloth.purchase_date || '',
@@ -68,6 +70,60 @@ export const SearchResults = () => {
     // Since this is a search results page, we probably don't want to actually
     // delete items here, but we need to satisfy the type requirement
     return Promise.resolve();
+  };
+
+  const handleArchive = async (id: string, archived: boolean): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from("clothes")
+        .update({ 
+          archived,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: archived ? "Vêtement archivé" : "Vêtement désarchivé",
+        description: `Le vêtement a été ${archived ? "archivé" : "désarchivé"} avec succès`,
+      });
+    } catch (error: any) {
+      console.error("Error updating clothes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Impossible de ${archived ? "archiver" : "désarchiver"} le vêtement`,
+      });
+    }
+  };
+
+  const handleAlterationToggle = async (id: string, needsAlteration: boolean): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from("clothes")
+        .update({ 
+          needs_alteration: needsAlteration,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: needsAlteration ? "Vêtement à retoucher" : "Vêtement retouché",
+        description: needsAlteration 
+          ? "Le vêtement a été marqué comme à retoucher"
+          : "Le vêtement a été marqué comme retouché",
+      });
+    } catch (error: any) {
+      console.error("Error updating clothes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de retouche",
+      });
+    }
   };
 
   if (isLoading) {
@@ -119,7 +175,10 @@ export const SearchResults = () => {
                 key={cloth.id}
                 cloth={cloth}
                 onDelete={handleDelete}
+                onArchive={handleArchive}
+                onAlterationToggle={handleAlterationToggle}
                 isDeleting={false}
+                isUpdating={false}
               />
             ))}
           </div>
