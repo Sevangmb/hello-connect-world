@@ -20,7 +20,10 @@ export const useClothes = (filters: ClothesFilters = {}) => {
 
       let query = supabase
         .from("clothes")
-        .select("*, profiles:user_id(username)");
+        .select(`
+          *,
+          profiles:profiles!clothes_user_id_fkey(username)
+        `);
 
       if (filters.category) {
         query = query.eq("category", filters.category);
