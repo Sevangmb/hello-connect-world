@@ -4,12 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export const CreateOutfit = () => {
   const { toast } = useToast();
@@ -21,7 +27,6 @@ export const CreateOutfit = () => {
   const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Ajout des états pour le type de vêtements à afficher
   const [topSource, setTopSource] = useState<"mine" | "friends">("mine");
   const [bottomSource, setBottomSource] = useState<"mine" | "friends">("mine");
   const [shoesSource, setShoesSource] = useState<"mine" | "friends">("mine");
@@ -74,14 +79,12 @@ export const CreateOutfit = () => {
         description: "Votre tenue a été enregistrée avec succès",
       });
 
-      // Reset form
       setName("");
       setDescription("");
       setSelectedTop(null);
       setSelectedBottom(null);
       setSelectedShoes(null);
 
-      // Refresh outfits list
       queryClient.invalidateQueries({ queryKey: ["outfits"] });
     } catch (error: any) {
       console.error("Error saving outfit:", error);
@@ -138,30 +141,39 @@ export const CreateOutfit = () => {
           </div>
         </RadioGroup>
       </div>
-      <ScrollArea className="h-[300px] border rounded-lg p-4">
-        <div className="space-y-2">
-          {items?.map((item) => (
-            <div
-              key={item.id}
-              className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                selectedId === item.id
-                  ? "border-primary bg-primary/10"
-                  : "hover:bg-muted"
-              }`}
-              onClick={() => onSelect(item.id)}
-            >
-              {item.image_url && (
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  className="w-full h-32 object-cover rounded-md mb-2"
-                />
-              )}
-              <p className="font-medium">{item.name}</p>
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+      {items && items.length > 0 ? (
+        <Carousel className="w-full">
+          <CarouselContent>
+            {items.map((item) => (
+              <CarouselItem key={item.id} className="md:basis-1/2 lg:basis-1/3">
+                <div
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedId === item.id
+                      ? "border-primary bg-primary/10"
+                      : "hover:bg-muted"
+                  }`}
+                  onClick={() => onSelect(item.id)}
+                >
+                  {item.image_url && (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-32 object-cover rounded-md mb-2"
+                    />
+                  )}
+                  <p className="font-medium">{item.name}</p>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+      ) : (
+        <p className="text-muted-foreground text-center py-8">
+          Aucun vêtement trouvé dans cette catégorie
+        </p>
+      )}
     </div>
   );
 
