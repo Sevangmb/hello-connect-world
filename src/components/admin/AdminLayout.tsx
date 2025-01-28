@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -13,11 +13,7 @@ import {
   LogOut
 } from "lucide-react";
 
-interface AdminLayoutProps {
-  children: React.ReactNode;
-}
-
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout() {
   const [adminRole, setAdminRole] = useState<boolean>(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,6 +29,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         .eq('id', user.id)
         .single();
 
+      if (!profile?.is_admin) {
+        navigate('/');
+        return;
+      }
+
       setAdminRole(profile?.is_admin || false);
     };
 
@@ -46,7 +47,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         title: "Déconnexion réussie",
         description: "Vous avez été déconnecté avec succès",
       });
-      navigate("/admin/login");
+      navigate("/auth");
     } catch (error) {
       console.error("Logout error:", error);
       toast({
@@ -58,7 +59,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
     { icon: Users, label: "Utilisateurs", path: "/admin/users" },
     { icon: ShoppingBag, label: "Boutiques", path: "/admin/shops" },
     { icon: FileText, label: "Contenu", path: "/admin/content" },
@@ -67,9 +68,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="flex h-screen">
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+      <aside className="w-64 bg-white shadow-lg">
         <div className="flex flex-col h-full">
           <div className="p-6">
             <h1 className="text-2xl font-bold">FRING! Admin</h1>
@@ -106,8 +107,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <main className="ml-64 p-8">
-        {children}
+      <main className="flex-1 overflow-auto bg-gray-50 p-8">
+        <Outlet />
       </main>
     </div>
   );

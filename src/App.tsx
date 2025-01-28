@@ -19,6 +19,7 @@ import NotFound from "@/pages/NotFound";
 import Clothes from "@/pages/Clothes";
 import { OutfitsList } from "@/components/outfits/OutfitsList";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -70,16 +71,18 @@ function App() {
             {/* Routes IA */}
             <Route path="/suggestions" element={<Suggestions />} />
 
-            {/* Routes Administration */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/shops" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/marketplace" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/content" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/stats" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/marketing" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/settings" element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="/admin/help" element={<Navigate to="/admin/dashboard" replace />} />
+            {/* Routes Administration - Maintenant intégrées dans la mise en page principale */}
+            <Route path="/admin/*" element={<AdminLayout />}>
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="users" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="shops" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="marketplace" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="content" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="stats" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="marketing" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="settings" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="help" element={<Navigate to="/admin/dashboard" replace />} />
+            </Route>
             
             {/* Route 404 */}
             <Route path="*" element={<NotFound />} />
