@@ -132,11 +132,11 @@ export const CreateOutfit = () => {
         </RadioGroup>
       </div>
       {items && items.length > 0 ? (
-        <div className="relative">
-          <Carousel className="w-full">
+        <div className="relative px-12">
+          <Carousel opts={{ align: "center" }}>
             <CarouselContent>
               {items.map((item) => (
-                <CarouselItem key={item.id}>
+                <CarouselItem key={item.id} className="basis-full">
                   <div
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                       selectedId === item.id
@@ -149,7 +149,7 @@ export const CreateOutfit = () => {
                       <img
                         src={item.image_url}
                         alt={item.name}
-                        className="w-full h-36 object-cover rounded-md mb-2"
+                        className="w-full h-32 object-contain rounded-md mb-2"
                       />
                     )}
                     <p className="font-medium text-center">{item.name}</p>
@@ -157,10 +157,10 @@ export const CreateOutfit = () => {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <div className="absolute -left-12 top-1/2 -translate-y-1/2">
+            <div className="absolute -left-2 top-1/2 -translate-y-1/2">
               <CarouselPrevious />
             </div>
-            <div className="absolute -right-12 top-1/2 -translate-y-1/2">
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2">
               <CarouselNext />
             </div>
           </Carousel>
