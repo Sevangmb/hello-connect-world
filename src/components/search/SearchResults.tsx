@@ -13,7 +13,7 @@ export const SearchResults = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // Fetch clothes
+      // Fetch clothes with correct join to profiles
       const { data: clothes } = await supabase
         .from("clothes")
         .select(`
@@ -23,10 +23,8 @@ export const SearchResults = () => {
           category,
           image_url,
           created_at,
-          profiles:user_id (
-            username,
-            avatar_url
-          )
+          user_id,
+          profiles!clothes_user_id_fkey(username, avatar_url)
         `)
         .limit(10);
 
