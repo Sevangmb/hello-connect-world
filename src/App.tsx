@@ -1,19 +1,33 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
+import Messages from "@/pages/Messages";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { ContentManagement } from "@/components/admin/ContentManagement";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
-import { UsersManagement } from "@/components/admin/UsersManagement";
-import { SiteSettings } from "@/components/admin/SiteSettings";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminShops from "@/pages/admin/AdminShops";
+import AdminContent from "@/pages/admin/AdminContent";
+import AdminStats from "@/pages/admin/AdminStats";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminHelp from "@/pages/admin/AdminHelp";
+import { PrivateRoute } from "@/components/auth/PrivateRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="content" element={<ContentManagement />} />
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="users" element={<UsersManagement />} />
-          <Route path="settings" element={<SiteSettings />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="shops" element={<AdminShops />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="stats" element={<AdminStats />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="help" element={<AdminHelp />} />
         </Route>
       </Routes>
     </BrowserRouter>
