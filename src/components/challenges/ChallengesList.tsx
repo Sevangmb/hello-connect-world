@@ -92,6 +92,7 @@ export const ChallengesList = () => {
           <ParticipantsList 
             participants={challenge.participants} 
             onVote={handleVote}
+            challengeId={challenge.id}
           />
         </div>
       ))}

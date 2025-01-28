@@ -6,16 +6,17 @@ import { VotingDialog } from "./VotingDialog";
 
 type ParticipantsListProps = {
   participants: Participant[];
-  onVote: (participantId: string) => Promise<void>;
+  onVote: (participantId: string, challengeId: string) => Promise<void>;
+  challengeId: string;
 };
 
-export const ParticipantsList = ({ participants, onVote }: ParticipantsListProps) => {
+export const ParticipantsList = ({ participants, onVote, challengeId }: ParticipantsListProps) => {
   const [isVotingOpen, setIsVotingOpen] = useState(false);
 
   if (!participants?.length) return null;
 
   const handleVote = async (participantId: string) => {
-    await onVote(participantId);
+    await onVote(participantId, challengeId);
   };
 
   return (
