@@ -204,6 +204,42 @@ export type Database = {
         }
         Relationships: []
       }
+      clothes_hashtags: {
+        Row: {
+          clothes_id: string
+          created_at: string
+          hashtag_id: string
+          id: string
+        }
+        Insert: {
+          clothes_id: string
+          created_at?: string
+          hashtag_id: string
+          id?: string
+        }
+        Update: {
+          clothes_id?: string
+          created_at?: string
+          hashtag_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clothes_hashtags_clothes_id_fkey"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clothes_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendships: {
         Row: {
           created_at: string
@@ -351,6 +387,24 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      hashtags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -566,6 +620,42 @@ export type Database = {
             columns: ["top_id"]
             isOneToOne: false
             referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outfits_hashtags: {
+        Row: {
+          created_at: string
+          hashtag_id: string
+          id: string
+          outfit_id: string
+        }
+        Insert: {
+          created_at?: string
+          hashtag_id: string
+          id?: string
+          outfit_id: string
+        }
+        Update: {
+          created_at?: string
+          hashtag_id?: string
+          id?: string
+          outfit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfits_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfits_hashtags_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
             referencedColumns: ["id"]
           },
         ]
