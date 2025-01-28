@@ -10,7 +10,9 @@ import { ClothesCard } from "./ClothesCard";
 export const ClothesList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<ClothesFilters>({});
+  const [filters, setFilters] = useState<ClothesFilters>({
+    source: "mine" // On ajoute le filtre pour n'afficher que mes vêtements
+  });
   const { data: clothes, isLoading } = useClothes(filters);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
