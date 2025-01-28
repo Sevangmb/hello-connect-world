@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, ArrowLeft, Shield } from "lucide-react";
 
 type AuthMode = "login" | "signup" | "reset";
 
@@ -121,6 +121,35 @@ const Auth = () => {
     }
   };
 
+  const handleAdminLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "admin",
+        password: "admin",
+      });
+
+      if (error) throw error;
+
+      console.log("Connexion admin réussie");
+      toast({
+        title: "Connexion admin réussie",
+        description: "Bienvenue administrateur !",
+      });
+      
+      navigate("/admin");
+    } catch (error: any) {
+      console.error("Erreur de connexion admin:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -206,7 +235,7 @@ const Auth = () => {
             )}
           </div>
 
-          <div>
+          <div className="space-y-4">
             <Button
               type="submit"
               className="w-full"
@@ -222,6 +251,19 @@ const Auth = () => {
                 "Envoyer le lien de réinitialisation"
               )}
             </Button>
+
+            {mode === "login" && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleAdminLogin}
+                disabled={loading}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Connexion Admin (admin/admin)
+              </Button>
+            )}
           </div>
 
           {mode === "login" && (
