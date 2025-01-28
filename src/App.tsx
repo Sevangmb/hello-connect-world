@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ContentManagement } from "@/components/admin/ContentManagement";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { UsersManagement } from "@/components/admin/UsersManagement";
+import { SiteSettings } from "@/components/admin/SiteSettings";
 
 function App() {
   return (
@@ -8,12 +11,9 @@ function App() {
       <Routes>
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="content" element={<ContentManagement />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="shops" element={<ShopManagement />} />
-          <Route path="stats" element={<Statistics />} />
-          <Route path="settings" element={<Settings />} />
-          {/* Add other existing routes here */}
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UsersManagement />} />
+          <Route path="settings" element={<SiteSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>
