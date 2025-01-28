@@ -18,7 +18,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const [adminRole, setAdminRole] = useState<string | null>(null);
+  const [adminRole, setAdminRole] = useState<boolean>(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,11 +27,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: role } = await supabase.rpc('get_admin_role', {
-        user_id: user.id
-      });
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
 
-      setAdminRole(role);
+      setAdminRole(profile?.is_admin || false);
     };
 
     checkAdminRole();
@@ -72,7 +74,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-6">
             <h1 className="text-2xl font-bold">FRING! Admin</h1>
             {adminRole && (
-              <p className="text-sm text-gray-500 mt-1 capitalize">{adminRole}</p>
+              <p className="text-sm text-gray-500 mt-1">Administrateur</p>
             )}
           </div>
 
