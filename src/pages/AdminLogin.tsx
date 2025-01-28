@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const { toast } = useToast();
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -16,28 +18,29 @@ export default function AdminLogin() {
     setLoading(true);
     
     try {
-      const { data: { user }, error } = await supabase.auth.signInWithPassword({
+      // 1. Tentative de connexion
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
-      if (error) throw error;
+      if (authError) throw authError;
+      if (!user) throw new Error("Aucun utilisateur trouvé");
       
-      // Vérifier si l'utilisateur est un admin
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('is_active', true)
-        .maybeSingle();
+      // 2. Vérification du rôle admin
+      const { data: isAdmin, error: roleError } = await supabase.rpc('is_admin', {
+        user_id: user.id
+      });
       
-      if (adminError) throw adminError;
+      if (roleError) throw roleError;
       
-      if (!adminData) {
+      if (!isAdmin) {
+        await supabase.auth.signOut();
         throw new Error("Accès non autorisé");
       }
       
-      window.location.href = '/admin';
+      // Redirection vers le dashboard admin
+      navigate('/admin');
       
     } catch (error: any) {
       console.error('Erreur de connexion:', error);
@@ -53,8 +56,8 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6">Admin Login</h1>
+      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold text-center mb-6">Administration</h1>
         
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
