@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -13,6 +19,8 @@ export const Header = () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      console.log("Déconnexion réussie");
       
       toast({
         title: "Déconnexion réussie",
@@ -52,15 +60,23 @@ export const Header = () => {
           <button className="p-2 hover:bg-gray-100 rounded-full">
             <Search className="h-5 w-5 md:hidden" />
           </button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="text-gray-600 hover:bg-gray-100"
-            title="Se déconnecter"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:bg-gray-100"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Se déconnecter</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </header>
