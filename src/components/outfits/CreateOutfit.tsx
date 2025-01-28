@@ -172,76 +172,104 @@ export const CreateOutfit = () => {
     source: "mine" | "friends";
     onSourceChange: (value: "mine" | "friends") => void;
     section: "tops" | "bottoms" | "shoes";
-  }) => (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium text-lg">{title}</h3>
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => handleSearch(section)}
-          >
-            <Search className="h-4 w-4 mr-2" />
-            Rechercher
-          </Button>
-          <RadioGroup 
-            value={source} 
-            onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
-            className="flex space-x-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="mine" id={`mine-${title}`} />
-              <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="friends" id={`friends-${title}`} />
-              <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
-            </div>
-          </RadioGroup>
+  }) => {
+    const selectedItem = items.find(item => item.id === selectedId);
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="font-medium text-lg">{title}</h3>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleSearch(section)}
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Rechercher
+            </Button>
+            <RadioGroup 
+              value={source} 
+              onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="mine" id={`mine-${title}`} />
+                <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="friends" id={`friends-${title}`} />
+                <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
+
+        {selectedItem ? (
+          <div className="p-4 border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {selectedItem.image_url && (
+                  <img
+                    src={selectedItem.image_url}
+                    alt={selectedItem.name}
+                    className="w-20 h-20 object-contain rounded-md"
+                  />
+                )}
+                <div>
+                  <p className="font-medium">{selectedItem.name}</p>
+                  {selectedItem.description && (
+                    <p className="text-sm text-gray-500">{selectedItem.description}</p>
+                  )}
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => onSelect("")}
+              >
+                Changer
+              </Button>
+            </div>
+          </div>
+        ) : items && items.length > 0 ? (
+          <div className="relative px-12">
+            <Carousel opts={{ align: "center" }}>
+              <CarouselContent>
+                {items.map((item) => (
+                  <CarouselItem key={item.id} className="basis-full">
+                    <div
+                      className="p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted"
+                      onClick={() => onSelect(item.id)}
+                    >
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-32 object-contain rounded-md mb-2"
+                        />
+                      )}
+                      <p className="font-medium text-center">{item.name}</p>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="absolute -left-2 top-1/2 -translate-y-1/2">
+                <CarouselPrevious />
+              </div>
+              <div className="absolute -right-2 top-1/2 -translate-y-1/2">
+                <CarouselNext />
+              </div>
+            </Carousel>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-center py-8">
+            Aucun vêtement trouvé dans cette catégorie
+          </p>
+        )}
       </div>
-      {items && items.length > 0 ? (
-        <div className="relative px-12">
-          <Carousel opts={{ align: "center" }}>
-            <CarouselContent>
-              {items.map((item) => (
-                <CarouselItem key={item.id} className="basis-full">
-                  <div
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedId === item.id
-                        ? "border-primary bg-primary/10"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => onSelect(item.id)}
-                  >
-                    {item.image_url && (
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-32 object-contain rounded-md mb-2"
-                      />
-                    )}
-                    <p className="font-medium text-center">{item.name}</p>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="absolute -left-2 top-1/2 -translate-y-1/2">
-              <CarouselPrevious />
-            </div>
-            <div className="absolute -right-2 top-1/2 -translate-y-1/2">
-              <CarouselNext />
-            </div>
-          </Carousel>
-        </div>
-      ) : (
-        <p className="text-muted-foreground text-center py-8">
-          Aucun vêtement trouvé dans cette catégorie
-        </p>
-      )}
-    </div>
-  );
+    );
+  };
 
   const isLoading = topsLoading || bottomsLoading || shoesLoading;
 
