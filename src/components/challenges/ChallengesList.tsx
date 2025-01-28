@@ -1,20 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Trophy, Users, Calendar, ThumbsUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { JoinChallengeDialog } from "./JoinChallengeDialog";
-
-type Participant = {
-  id: string;
-  user_id: string;
-  outfit_id: string | null;
-  comment: string | null;
-  outfits: { name: string } | null;
-  profiles: { username: string | null }[];
-};
+import { ChallengeHeader } from "./ChallengeHeader";
+import { ChallengeMetadata } from "./ChallengeMetadata";
+import { ParticipantsList } from "./ParticipantsList";
+import { Challenge } from "./types";
 
 export const ChallengesList = () => {
   const { toast } = useToast();
@@ -47,7 +38,6 @@ export const ChallengesList = () => {
         throw error;
       }
 
-      // Trier les défis par date de début
       const sortedChallenges = data.sort((a, b) => {
         const dateA = new Date(a.start_date);
         const dateB = new Date(b.start_date);
@@ -71,7 +61,6 @@ export const ChallengesList = () => {
         return;
       }
 
-      // Vérifier si le défi est toujours actif
       const { data: challenge } = await supabase
         .from("challenges")
         .select("status, end_date")
@@ -87,7 +76,6 @@ export const ChallengesList = () => {
         return;
       }
 
-      // Vérifier si l'utilisateur participe déjà
       const { data: existingParticipation } = await supabase
         .from("challenge_participants")
         .select()
@@ -195,78 +183,26 @@ export const ChallengesList = () => {
 
   return (
     <div className="space-y-4">
-      {challenges.map((challenge) => (
+      {challenges.map((challenge: Challenge) => (
         <div
           key={challenge.id}
           className="bg-white p-4 rounded-lg shadow space-y-4"
         >
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-facebook-primary" />
-                {challenge.title}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Créé par {challenge.profiles?.username || "Utilisateur inconnu"}
-              </p>
-            </div>
-            <JoinChallengeDialog 
-              challengeId={challenge.id}
-              onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
-            />
-          </div>
-
+          <ChallengeHeader 
+            challenge={challenge} 
+            onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)} 
+          />
+          
           {challenge.description && (
             <p className="text-sm text-gray-600">{challenge.description}</p>
           )}
 
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>
-                Du {format(new Date(challenge.start_date), "PPP", { locale: fr })}
-                {" au "}
-                {format(new Date(challenge.end_date), "PPP", { locale: fr })}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              <span>
-                {challenge.participants?.length || 0} participant
-                {(challenge.participants?.length || 0) > 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
-
-          {challenge.participants && challenge.participants.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <h4 className="font-medium">Participants</h4>
-              <div className="space-y-2">
-                {challenge.participants.map((participant: Participant) => (
-                  <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                    <div>
-                      <p className="font-medium">{participant.profiles[0]?.username || "Utilisateur inconnu"}</p>
-                      {participant.outfits && (
-                        <p className="text-sm text-gray-600">Tenue: {participant.outfits.name}</p>
-                      )}
-                      {participant.comment && (
-                        <p className="text-sm text-gray-500">{participant.comment}</p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleVote(participant.id)}
-                      className="gap-2"
-                    >
-                      <ThumbsUp className="h-4 w-4" />
-                      Voter
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <ChallengeMetadata challenge={challenge} />
+          
+          <ParticipantsList 
+            participants={challenge.participants} 
+            onVote={handleVote}
+          />
         </div>
       ))}
     </div>
