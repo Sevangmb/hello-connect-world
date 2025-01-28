@@ -32,15 +32,15 @@ export const CreateOutfit = () => {
   const [shoesSource, setShoesSource] = useState<"mine" | "friends">("mine");
 
   const { data: tops, isLoading: topsLoading } = useClothes({ 
-    category: "haut",
+    category: "Haut",
     source: topSource 
   });
   const { data: bottoms, isLoading: bottomsLoading } = useClothes({ 
-    category: "bas",
+    category: "Bas",
     source: bottomSource 
   });
   const { data: shoes, isLoading: shoesLoading } = useClothes({ 
-    category: "chaussures",
+    category: "Chaussures",
     source: shoesSource 
   });
 
@@ -132,33 +132,39 @@ export const CreateOutfit = () => {
         </RadioGroup>
       </div>
       {items && items.length > 0 ? (
-        <Carousel className="w-full">
-          <CarouselContent>
-            {items.map((item) => (
-              <CarouselItem key={item.id}>
-                <div
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                    selectedId === item.id
-                      ? "border-primary bg-primary/10"
-                      : "hover:bg-muted"
-                  }`}
-                  onClick={() => onSelect(item.id)}
-                >
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="w-full h-48 object-cover rounded-md mb-2"
-                    />
-                  )}
-                  <p className="font-medium text-center">{item.name}</p>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
+        <div className="relative">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {items.map((item) => (
+                <CarouselItem key={item.id}>
+                  <div
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedId === item.id
+                        ? "border-primary bg-primary/10"
+                        : "hover:bg-muted"
+                    }`}
+                    onClick={() => onSelect(item.id)}
+                  >
+                    {item.image_url && (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-36 object-cover rounded-md mb-2"
+                      />
+                    )}
+                    <p className="font-medium text-center">{item.name}</p>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <div className="absolute -left-12 top-1/2 -translate-y-1/2">
+              <CarouselPrevious />
+            </div>
+            <div className="absolute -right-12 top-1/2 -translate-y-1/2">
+              <CarouselNext />
+            </div>
+          </Carousel>
+        </div>
       ) : (
         <p className="text-muted-foreground text-center py-8">
           Aucun vêtement trouvé dans cette catégorie
