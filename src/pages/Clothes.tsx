@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { Sidebar } from "@/components/Sidebar";
+import { MainSidebar } from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 import { ClothesList } from "@/components/clothes/ClothesList";
@@ -8,7 +8,7 @@ const Clothes = () => {
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
-      <Sidebar />
+      <MainSidebar />
       <main className="pt-24 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto space-y-8">
           <h1 className="text-2xl font-bold">Vêtements</h1>
