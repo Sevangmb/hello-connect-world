@@ -24,11 +24,11 @@ export const ChallengesList = () => {
             user_id,
             outfit_id,
             comment,
-            outfits(
+            outfits!inner(
               name,
-              top:top_id(name, image_url),
-              bottom:bottom_id(name, image_url),
-              shoes:shoes_id(name, image_url)
+              top:clothes!top_id(name, image_url),
+              bottom:clothes!bottom_id(name, image_url),
+              shoes:clothes!shoes_id(name, image_url)
             ),
             profiles(username)
           ),
