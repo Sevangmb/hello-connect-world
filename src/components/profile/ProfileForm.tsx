@@ -35,7 +35,15 @@ export const ProfileForm = () => {
 
       if (error) throw error;
       console.log("Profile fetched:", data);
-      setProfile(data);
+      
+      // Ensure visibility is either "public" or "private"
+      const visibility = data?.visibility === "private" ? "private" : "public";
+      setProfile(data ? {
+        ...data,
+        visibility,
+        username: data.username || "",
+        full_name: data.full_name || "",
+      } : null);
     } catch (error: any) {
       console.error("Error fetching profile:", error.message);
       toast({
