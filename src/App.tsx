@@ -1,11 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import { Sonner } from "sonner";
+
+// Page imports
 import Auth from "@/pages/Auth";
 import Feed from "@/pages/Feed";
-import Clothes from "@/pages/Clothes";
 import Personal from "@/pages/Personal";
 import Profile from "@/pages/Profile";
 import Messages from "@/pages/Messages";
@@ -15,6 +16,8 @@ import Challenges from "@/pages/Challenges";
 import Friends from "@/pages/Friends";
 import Suggestions from "@/pages/Suggestions";
 import NotFound from "@/pages/NotFound";
+import Clothes from "@/pages/Clothes";
+import { OutfitsList } from "@/components/outfits/OutfitsList";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +36,7 @@ function App() {
             {/* Routes Mon Univers */}
             <Route path="/clothes" element={<Clothes />} />
             <Route path="/wardrobe" element={<Navigate to="/clothes" replace />} />
-            <Route path="/outfits" element={<Navigate to="/clothes" replace />} />
+            <Route path="/outfits" element={<OutfitsList />} />
             <Route path="/looks" element={<Navigate to="/clothes" replace />} />
             <Route path="/suitcases" element={<Navigate to="/clothes" replace />} />
             <Route path="/favorites" element={<Navigate to="/clothes" replace />} />
