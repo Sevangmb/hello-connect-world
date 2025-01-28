@@ -18,22 +18,29 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  console.log("Mode actuel:", mode);
+  console.log("Current auth mode:", mode);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Tentative de connexion avec:", email);
+    console.log("Attempting login with:", email);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Login error:", error.message);
+        throw error;
+      }
 
-      console.log("Connexion réussie");
+      if (!data.user) {
+        throw new Error("No user data returned");
+      }
+
+      console.log("Login successful:", data);
       toast({
         title: "Connexion réussie",
         description: "Bienvenue !",
@@ -41,11 +48,13 @@ const Auth = () => {
       
       navigate("/");
     } catch (error: any) {
-      console.error("Erreur de connexion:", error);
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
-        title: "Erreur",
-        description: error.message,
+        title: "Erreur de connexion",
+        description: error.message === "Invalid login credentials"
+          ? "Email ou mot de passe incorrect"
+          : error.message,
       });
     } finally {
       setLoading(false);
@@ -55,10 +64,10 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Tentative d'inscription avec:", email, username, fullName);
+    console.log("Attempting signup with:", email, username, fullName);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -69,9 +78,16 @@ const Auth = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Signup error:", error.message);
+        throw error;
+      }
 
-      console.log("Inscription réussie");
+      if (!data.user) {
+        throw new Error("No user data returned");
+      }
+
+      console.log("Signup successful:", data);
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès !",
@@ -79,10 +95,10 @@ const Auth = () => {
       
       setMode("login");
     } catch (error: any) {
-      console.error("Erreur d'inscription:", error);
+      console.error("Signup error:", error);
       toast({
         variant: "destructive",
-        title: "Erreur",
+        title: "Erreur d'inscription",
         description: error.message,
       });
     } finally {
@@ -93,7 +109,7 @@ const Auth = () => {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Demande de réinitialisation pour:", email);
+    console.log("Requesting password reset for:", email);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -102,7 +118,7 @@ const Auth = () => {
 
       if (error) throw error;
 
-      console.log("Email de réinitialisation envoyé");
+      console.log("Password reset email sent");
       toast({
         title: "Email envoyé",
         description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe.",
@@ -110,7 +126,7 @@ const Auth = () => {
       
       setMode("login");
     } catch (error: any) {
-      console.error("Erreur de réinitialisation:", error);
+      console.error("Password reset error:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
