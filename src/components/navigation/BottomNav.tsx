@@ -8,7 +8,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
+const MENU_ITEMS = [
   {
     label: "Accueil",
     icon: Home,
@@ -46,9 +46,9 @@ export const BottomNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t md:hidden">
-      <div className="flex items-center justify-around">
-        {menuItems.map((item) => (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t">
+      <div className="flex justify-around">
+        {MENU_ITEMS.map((item) => (
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
