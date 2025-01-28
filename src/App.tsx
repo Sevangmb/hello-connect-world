@@ -1,75 +1,80 @@
-import { useEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
-import { supabase } from "./integrations/supabase/client";
-import { useStore } from "./store";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import { toast, Toaster as Sonner } from "sonner";
 
-// Pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import Admin from "./pages/Admin";
-import AdminSettings from "./pages/AdminSettings";
-import AdminLogin from "./pages/AdminLogin";
-import NotFound from "./pages/NotFound";
+// Page imports
+import Auth from "@/pages/Auth";
+import Feed from "@/pages/Feed";
+import Personal from "@/pages/Personal";
+import Profile from "@/pages/Profile";
+import Messages from "@/pages/Messages";
+import Explore from "@/pages/Explore";
+import Community from "@/pages/Community";
+import Challenges from "@/pages/Challenges";
+import Friends from "@/pages/Friends";
+import Suggestions from "@/pages/Suggestions";
+import NotFound from "@/pages/NotFound";
+import Clothes from "@/pages/Clothes";
+import { OutfitsList } from "@/components/outfits/OutfitsList";
 
-// Components
-import { Navbar } from "./components/Navbar";
-import { Footer } from "./components/Footer";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+const queryClient = new QueryClient();
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const setUser = useStore((state) => state.setUser);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [setUser]);
-
-  if (isLoading) {
-    return null;
-  }
-
   return (
-    <>
-      <Navbar />
-      <main className="container mx-auto min-h-screen px-4 py-8">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Admin Routes */}
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
-      <Toaster position="bottom-right" />
-    </>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Router>
+          <Routes>
+            {/* Routes principales */}
+            <Route path="/" element={<Feed />} />
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Routes Mon Univers */}
+            <Route path="/clothes" element={<Clothes />} />
+            <Route path="/wardrobe" element={<Navigate to="/clothes" replace />} />
+            <Route path="/outfits" element={<OutfitsList />} />
+            <Route path="/looks" element={<Navigate to="/clothes" replace />} />
+            <Route path="/suitcases" element={<Navigate to="/clothes" replace />} />
+            <Route path="/favorites" element={<Navigate to="/clothes" replace />} />
+            <Route path="/add-clothes" element={<Navigate to="/clothes" replace />} />
+            <Route path="/create-outfit" element={<Navigate to="/clothes" replace />} />
+            <Route path="/publish-look" element={<Navigate to="/clothes" replace />} />
+            
+            {/* Routes Communauté */}
+            <Route path="/personal" element={<Personal />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/challenges" element={<Challenges />} />
+            <Route path="/friends" element={<Friends />} />
+            <Route path="/groups" element={<Navigate to="/community" replace />} />
+            
+            {/* Routes Vide-Dressing */}
+            <Route path="/marketplace" element={<Navigate to="/clothes" replace />} />
+            <Route path="/add-item" element={<Navigate to="/clothes" replace />} />
+            <Route path="/sales-history" element={<Navigate to="/clothes" replace />} />
+            <Route path="/purchases" element={<Navigate to="/clothes" replace />} />
+            
+            {/* Routes Récompenses */}
+            <Route path="/badges" element={<Navigate to="/profile" replace />} />
+            
+            {/* Routes Paramètres */}
+            <Route path="/privacy" element={<Navigate to="/profile" replace />} />
+            
+            {/* Routes IA */}
+            <Route path="/suggestions" element={<Suggestions />} />
+            
+            {/* Route 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

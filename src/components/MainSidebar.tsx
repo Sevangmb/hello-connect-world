@@ -30,27 +30,25 @@ import {
   Hash,
   MapPin,
   Filter,
-  List,
-  Shield,
-  LayoutDashboard
+  List
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useState } from "react";
 import { Button } from "./ui/button";
 
 const MainSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal", "profile"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -160,34 +158,6 @@ const MainSidebar = () => {
         { id: "badges", label: "Mes Badges", path: "/badges", icon: Trophy },
         { id: "settings", label: "Paramètres", path: "/profile", icon: Settings },
         { id: "privacy", label: "Mode privé", path: "/privacy", icon: EyeOff },
-      ]
-    },
-    {
-      id: "admin",
-      label: "Administration",
-      icon: Shield,
-      subItems: [
-        { 
-          id: "dashboard", 
-          label: "Tableau de bord", 
-          path: "/admin", 
-          icon: LayoutDashboard,
-          description: "Voir les indicateurs"
-        },
-        { 
-          id: "users", 
-          label: "Utilisateurs", 
-          path: "/admin/users", 
-          icon: Users,
-          description: "Gérer les utilisateurs"
-        },
-        { 
-          id: "settings", 
-          label: "Paramètres", 
-          path: "/admin/settings", 
-          icon: Settings,
-          description: "Réglages du site"
-        },
       ]
     }
   ];

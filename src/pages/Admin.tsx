@@ -16,16 +16,15 @@ export default function Admin() {
           return;
         }
 
-        const { data: isAdmin, error } = await supabase.rpc('is_admin', {
+        const { data: isAdmin } = await supabase.rpc('is_admin', {
           user_id: user.id
         });
 
-        if (error || !isAdmin) {
-          console.error("Erreur de vérification admin:", error);
-          navigate("/admin/login");
+        if (!isAdmin) {
+          navigate("/");
         }
       } catch (error) {
-        console.error("Erreur de vérification admin:", error);
+        console.error("Error checking admin access:", error);
         navigate("/admin/login");
       }
     };
