@@ -17,7 +17,7 @@ export const ChallengesList = () => {
         .from("challenges")
         .select(`
           *,
-          profiles!challenges_creator_id_fkey(username),
+          creator:profiles(username),
           participants:challenge_participants(count),
           votes:challenge_votes(count)
         `)
@@ -88,7 +88,7 @@ export const ChallengesList = () => {
                 {challenge.title}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Créé par {challenge.profiles?.username || "Utilisateur inconnu"}
+                Créé par {challenge.creator?.username || "Utilisateur inconnu"}
               </p>
             </div>
             <Button onClick={() => handleJoinChallenge(challenge.id)}>
