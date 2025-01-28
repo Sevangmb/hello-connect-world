@@ -76,15 +76,20 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Use upsert instead of insert to handle existing ratings
       const { error } = await supabase
         .from("outfit_ratings")
-        .upsert({
-          outfit_id: outfitId,
-          user_id: user.id,
-          rating: value,
-        }, {
-          onConflict: 'user_id,outfit_id',
-        });
+        .upsert(
+          {
+            outfit_id: outfitId,
+            user_id: user.id,
+            rating: value,
+          },
+          {
+            onConflict: 'user_id,outfit_id',
+            ignoreDuplicates: false
+          }
+        );
 
       if (error) throw error;
 
