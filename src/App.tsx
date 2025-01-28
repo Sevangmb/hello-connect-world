@@ -17,12 +17,16 @@ import Messages from "@/pages/Messages";
 import Notifications from "@/pages/Notifications";
 import Hashtags from "@/pages/Hashtags";
 import Suggestions from "@/pages/Suggestions";
+import Auth from "@/pages/Auth";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   return (
     <>
       <Routes>
+        {/* Route d'authentification */}
+        <Route path="/auth" element={<Auth />} />
+        
         {/* Routes principales */}
         <Route path="/" element={<Index />} />
         <Route path="/feed" element={<Feed />} />
