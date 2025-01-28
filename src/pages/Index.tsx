@@ -37,7 +37,6 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // Récupérer les posts avec les informations de l'auteur et les likes/commentaires
       const { data: posts, error } = await supabase
         .from("posts")
         .select(`
@@ -60,7 +59,7 @@ const Index = () => {
           supabase
             .from("outfit_likes")
             .select("id", { count: "exact" })
-            .eq("post_id", post.id),
+            .eq("outfit_id", post.id),
           supabase
             .from("outfit_comments")
             .select(`
@@ -72,7 +71,7 @@ const Index = () => {
                 avatar_url
               )
             `)
-            .eq("post_id", post.id)
+            .eq("outfit_id", post.id)
             .order("created_at", { ascending: true }),
         ]);
 
@@ -80,7 +79,7 @@ const Index = () => {
         const { data: userLike } = await supabase
           .from("outfit_likes")
           .select("id")
-          .eq("post_id", post.id)
+          .eq("outfit_id", post.id)
           .eq("user_id", user.id)
           .maybeSingle();
 

@@ -425,6 +425,13 @@ export type Database = {
             referencedRelation: "outfits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "outfit_comments_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       outfit_likes: {
@@ -452,6 +459,13 @@ export type Database = {
             columns: ["outfit_id"]
             isOneToOne: false
             referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfit_likes_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

@@ -47,7 +47,7 @@ export const Post = ({ id, author, content, created_at, likes: initialLikes, lik
       if (!isLiked) {
         const { error } = await supabase
           .from("outfit_likes")
-          .insert({ post_id: id, user_id: user.id });
+          .insert({ outfit_id: id, user_id: user.id });
 
         if (error) throw error;
         setLikes(prev => prev + 1);
@@ -56,7 +56,7 @@ export const Post = ({ id, author, content, created_at, likes: initialLikes, lik
         const { error } = await supabase
           .from("outfit_likes")
           .delete()
-          .match({ post_id: id, user_id: user.id });
+          .match({ outfit_id: id, user_id: user.id });
 
         if (error) throw error;
         setLikes(prev => prev - 1);
@@ -83,7 +83,7 @@ export const Post = ({ id, author, content, created_at, likes: initialLikes, lik
       const { data, error } = await supabase
         .from("outfit_comments")
         .insert({
-          post_id: id,
+          outfit_id: id,
           user_id: user.id,
           content: newComment.trim(),
         })
