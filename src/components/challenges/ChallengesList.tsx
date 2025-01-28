@@ -25,34 +25,66 @@ export const ChallengesList = () => {
             outfit_id,
             comment,
             outfits(name),
-            user:profiles!challenge_participants_user_id_fkey(username)
+            profiles(username)
           ),
           votes:challenge_votes(count)
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .eq("status", "active")
+        .gte("end_date", new Date().toISOString());
 
       if (error) {
         console.error("Error fetching challenges:", error);
         throw error;
       }
 
-      console.log("Fetched challenges:", data);
-      return data;
+      // Trier les défis par date de début
+      const sortedChallenges = data.sort((a, b) => {
+        const dateA = new Date(a.start_date);
+        const dateB = new Date(b.start_date);
+        return dateA.getTime() - dateB.getTime();
+      });
+
+      console.log("Fetched challenges:", sortedChallenges);
+      return sortedChallenges;
     },
   });
 
   const handleJoinChallenge = async (challengeId: string, outfitId: string, comment: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilisateur non connecté");
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Non connecté",
+          description: "Vous devez être connecté pour participer à un défi",
+        });
+        return;
+      }
 
-      // Check if user is already participating
+      // Vérifier si le défi est toujours actif
+      const { data: challenge } = await supabase
+        .from("challenges")
+        .select("status, end_date")
+        .eq("id", challengeId)
+        .single();
+
+      if (!challenge || challenge.status !== "active" || new Date(challenge.end_date) < new Date()) {
+        toast({
+          variant: "destructive",
+          title: "Défi non disponible",
+          description: "Ce défi n'est plus disponible pour participation",
+        });
+        return;
+      }
+
+      // Vérifier si l'utilisateur participe déjà
       const { data: existingParticipation } = await supabase
         .from("challenge_participants")
         .select()
         .eq("challenge_id", challengeId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (existingParticipation) {
         toast({
@@ -91,7 +123,14 @@ export const ChallengesList = () => {
   const handleVote = async (participantId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Utilisateur non connecté");
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Non connecté",
+          description: "Vous devez être connecté pour voter",
+        });
+        return;
+      }
 
       const { error } = await supabase
         .from("challenge_votes")
@@ -140,7 +179,7 @@ export const ChallengesList = () => {
   if (!challenges?.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Aucun défi n'a encore été créé
+        Aucun défi actif en ce moment
       </div>
     );
   }
@@ -197,7 +236,7 @@ export const ChallengesList = () => {
                 {challenge.participants.map((participant) => (
                   <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
                     <div>
-                      <p className="font-medium">{participant.user?.username}</p>
+                      <p className="font-medium">{participant.profiles?.username}</p>
                       {participant.outfits && (
                         <p className="text-sm text-gray-600">Tenue: {participant.outfits.name}</p>
                       )}
