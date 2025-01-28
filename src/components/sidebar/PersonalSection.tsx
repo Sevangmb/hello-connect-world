@@ -87,9 +87,9 @@ export const PersonalSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/create-outfit",
+              "bg-gray-100": location.pathname === "/outfits",
             })}
-            onClick={() => navigate("/create-outfit")}
+            onClick={() => navigate("/outfits")}
           >
             <Pencil className="h-4 w-4" />
             Créer une Tenue
