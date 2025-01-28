@@ -14,10 +14,10 @@ type Notification = {
   post_id: string | null;
   read: boolean;
   created_at: string;
-  actor?: {
-    username: string;
+  actor: {
+    username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
   post?: {
     content: string;
   };
@@ -35,12 +35,15 @@ export const NotificationsList = () => {
         .from("notifications")
         .select(`
           *,
-          actor:profiles!notifications_actor_id_fkey(username, avatar_url),
+          actor:profiles!notifications_actor_id_profiles_fkey(username, avatar_url),
           post:posts(content)
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching notifications:", error);
+        throw error;
+      }
       console.log("Notifications fetched:", notifications);
       return notifications as Notification[];
     },
@@ -71,17 +74,17 @@ export const NotificationsList = () => {
       case "like":
         return {
           icon: <Heart className="h-4 w-4 text-red-500" />,
-          message: `${notification.actor?.username} a aimé votre publication`,
+          message: `${notification.actor?.username || "Quelqu'un"} a aimé votre publication`,
         };
       case "comment":
         return {
           icon: <MessageSquare className="h-4 w-4 text-blue-500" />,
-          message: `${notification.actor?.username} a commenté votre publication`,
+          message: `${notification.actor?.username || "Quelqu'un"} a commenté votre publication`,
         };
       case "follow":
         return {
           icon: <UserPlus className="h-4 w-4 text-green-500" />,
-          message: `${notification.actor?.username} vous suit désormais`,
+          message: `${notification.actor?.username || "Quelqu'un"} vous suit désormais`,
         };
       default:
         return {
@@ -119,7 +122,7 @@ export const NotificationsList = () => {
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={notification.actor?.avatar_url || ""} />
                   <AvatarFallback>
-                    {notification.actor?.username?.[0]?.toUpperCase()}
+                    {notification.actor?.username?.[0]?.toUpperCase() || "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
