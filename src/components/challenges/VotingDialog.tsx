@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
 import { useState } from "react";
 import { Participant } from "./types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Shirt, PenSquare, Footprints } from "lucide-react";
 
 type VotingDialogProps = {
   isOpen: boolean;
@@ -42,6 +44,73 @@ export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDi
     });
   };
 
+  const renderOutfitCard = (participant: Participant) => {
+    if (!participant.outfits) return null;
+    
+    return (
+      <Card className="w-full">
+        <CardContent className="space-y-4 pt-6">
+          <div className="flex items-center gap-4">
+            <Shirt className="h-5 w-5 text-blue-500" />
+            <div>
+              <p className="font-medium">Haut</p>
+              {participant.outfits.top && (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={participant.outfits.top.image_url || ""}
+                    alt={participant.outfits.top.name}
+                    className="h-16 w-16 object-cover rounded-md"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{participant.outfits.top.name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <PenSquare className="h-5 w-5 text-indigo-500" />
+            <div>
+              <p className="font-medium">Bas</p>
+              {participant.outfits.bottom && (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={participant.outfits.bottom.image_url || ""}
+                    alt={participant.outfits.bottom.name}
+                    className="h-16 w-16 object-cover rounded-md"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{participant.outfits.bottom.name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Footprints className="h-5 w-5 text-purple-500" />
+            <div>
+              <p className="font-medium">Chaussures</p>
+              {participant.outfits.shoes && (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={participant.outfits.shoes.image_url || ""}
+                    alt={participant.outfits.shoes.name}
+                    className="h-16 w-16 object-cover rounded-md"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{participant.outfits.shoes.name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-[425px]">
@@ -55,13 +124,12 @@ export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDi
           <div className="space-y-4">
             <div className="text-center">
               <p className="font-medium">{currentParticipant.profiles.username}</p>
-              {currentParticipant.outfits && (
-                <p className="text-sm text-gray-600">Tenue: {currentParticipant.outfits.name}</p>
-              )}
               {currentParticipant.comment && (
                 <p className="text-sm text-gray-500 mt-2">{currentParticipant.comment}</p>
               )}
             </div>
+
+            {renderOutfitCard(currentParticipant)}
 
             <div className="flex justify-center gap-4">
               <Button
