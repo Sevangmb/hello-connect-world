@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { ThumbsUp } from "lucide-react";
+import { Award } from "lucide-react";
 import { Participant } from "./types";
+import { useState } from "react";
+import { VotingDialog } from "./VotingDialog";
 
 type ParticipantsListProps = {
   participants: Participant[];
@@ -8,11 +10,29 @@ type ParticipantsListProps = {
 };
 
 export const ParticipantsList = ({ participants, onVote }: ParticipantsListProps) => {
+  const [isVotingOpen, setIsVotingOpen] = useState(false);
+
   if (!participants?.length) return null;
+
+  const handleVote = async (participantId: string, vote: "up" | "down") => {
+    await onVote(participantId);
+  };
 
   return (
     <div className="mt-4 space-y-3">
-      <h4 className="font-medium">Participants</h4>
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium">Participants</h4>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsVotingOpen(true)}
+          className="gap-2"
+        >
+          <Award className="h-4 w-4" />
+          Voter
+        </Button>
+      </div>
+
       <div className="space-y-2">
         {participants.map((participant) => (
           <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
@@ -27,18 +47,16 @@ export const ParticipantsList = ({ participants, onVote }: ParticipantsListProps
                 <p className="text-sm text-gray-500">{participant.comment}</p>
               )}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onVote(participant.id)}
-              className="gap-2"
-            >
-              <ThumbsUp className="h-4 w-4" />
-              Voter
-            </Button>
           </div>
         ))}
       </div>
+
+      <VotingDialog
+        isOpen={isVotingOpen}
+        onClose={() => setIsVotingOpen(false)}
+        participants={participants}
+        onVote={handleVote}
+      />
     </div>
   );
 };
