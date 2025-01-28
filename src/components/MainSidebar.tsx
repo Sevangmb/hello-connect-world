@@ -25,9 +25,11 @@ import {
   Camera,
   Upload,
   FileText,
-  Suitcase,
+  Briefcase,
   ScanLine,
-  PlusCircle
+  PlusCircle,
+  Pencil,
+  Share2
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,7 +250,7 @@ export default function MainSidebar() {
                   })}
                   onClick={() => navigate("/suitcases")}
                 >
-                  <Suitcase className="h-4 w-4" />
+                  <Briefcase className="h-4 w-4" />
                   Mes Valises
                 </Button>
                 <Button
@@ -260,6 +262,26 @@ export default function MainSidebar() {
                 >
                   <Heart className="h-4 w-4" />
                   Mes Favoris
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/create-outfit",
+                  })}
+                  onClick={() => navigate("/create-outfit")}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Créer une Tenue
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/publish-look",
+                  })}
+                  onClick={() => navigate("/publish-look")}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Publier un Look
                 </Button>
                 <AccordionItem value="add-clothes" className="border-none">
                   <AccordionTrigger className="py-2">
