@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -12,7 +10,7 @@ export default function Admin() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          navigate("/admin/login");
+          navigate("/auth");
           return;
         }
 
@@ -25,16 +23,12 @@ export default function Admin() {
         }
       } catch (error) {
         console.error("Error checking admin access:", error);
-        navigate("/admin/login");
+        navigate("/auth");
       }
     };
 
     checkAdminAccess();
   }, [navigate]);
 
-  return (
-    <AdminLayout>
-      <AdminDashboard />
-    </AdminLayout>
-  );
+  return null; // This component now only handles authentication, routing is managed by App.tsx
 }
