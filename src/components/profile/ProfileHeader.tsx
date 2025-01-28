@@ -24,8 +24,8 @@ export const ProfileHeader = () => {
   });
 
   return (
-    <div className="px-4 py-6 bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
           {/* Photo de profil */}
           <div className="relative group">

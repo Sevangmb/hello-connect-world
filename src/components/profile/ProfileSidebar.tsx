@@ -9,7 +9,9 @@ import {
   Camera,
   MessageCircle,
   Users,
-  BadgeCheck
+  BadgeCheck,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import {
   Collapsible,
@@ -24,7 +26,7 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSidebarProps) => {
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["profile"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -80,7 +82,7 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
   ];
 
   return (
-    <div className="space-y-2 p-4">
+    <div className="space-y-2">
       {menuItems.map((item) => (
         <div key={item.id} className="space-y-1">
           {item.standalone ? (
@@ -103,10 +105,17 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
               <CollapsibleTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start"
+                  className="w-full justify-between group"
                 >
-                  <item.icon className="h-4 w-4 mr-2" />
-                  {item.label}
+                  <span className="flex items-center">
+                    <item.icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </span>
+                  {openMenus.includes(item.id) ? (
+                    <ChevronUp className="h-4 w-4 transition-transform" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 transition-transform" />
+                  )}
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-6 space-y-1">
