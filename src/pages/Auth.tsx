@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, User, ArrowLeft } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 type AuthMode = "login" | "signup" | "reset";
 
@@ -31,14 +38,7 @@ const Auth = () => {
         password,
       });
 
-      if (error) {
-        console.error("Login error:", error.message);
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error("No user data returned");
-      }
+      if (error) throw error;
 
       console.log("Login successful:", data);
       toast({
@@ -78,14 +78,7 @@ const Auth = () => {
         },
       });
 
-      if (error) {
-        console.error("Signup error:", error.message);
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error("No user data returned");
-      }
+      if (error) throw error;
 
       console.log("Signup successful:", data);
       toast({
@@ -138,91 +131,102 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {mode !== "login" && (
-          <Button
-            variant="ghost"
-            className="mb-4"
-            onClick={() => setMode("login")}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
-          </Button>
-        )}
-
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          {mode !== "login" && (
+            <Button
+              variant="ghost"
+              className="mb-4 w-fit"
+              onClick={() => setMode("login")}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Retour
+            </Button>
+          )}
+          <CardTitle>
             {mode === "login"
               ? "Connexion"
               : mode === "signup"
               ? "Inscription"
               : "Réinitialiser le mot de passe"}
-          </h2>
-        </div>
-
-        <form
-          className="mt-8 space-y-6"
-          onSubmit={
-            mode === "login"
-              ? handleLogin
+          </CardTitle>
+          <CardDescription>
+            {mode === "login"
+              ? "Connectez-vous à votre compte"
               : mode === "signup"
-              ? handleSignup
-              : handlePasswordReset
-          }
-        >
-          <div className="rounded-md shadow-sm space-y-4">
+              ? "Créez votre compte"
+              : "Entrez votre email pour réinitialiser votre mot de passe"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="space-y-4"
+            onSubmit={
+              mode === "login"
+                ? handleLogin
+                : mode === "signup"
+                ? handleSignup
+                : handlePasswordReset
+            }
+          >
             {mode === "signup" && (
               <>
-                <div className="flex items-center space-x-2">
-                  <User className="text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Nom d'utilisateur"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <User className="text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Nom d'utilisateur"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <User className="text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Nom complet"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <User className="text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Nom complet"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
               </>
             )}
             
-            <div className="flex items-center space-x-2">
-              <Mail className="text-gray-400" />
-              <Input
-                type="email"
-                placeholder="Adresse email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            {mode !== "reset" && (
+            <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <Lock className="text-gray-400" />
+                <Mail className="text-muted-foreground" />
                 <Input
-                  type="password"
-                  placeholder="Mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  type="email"
+                  placeholder="Adresse email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
-            )}
-          </div>
+            </div>
 
-          <div>
+            {mode !== "reset" && (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Lock className="text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder="Mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full"
@@ -238,28 +242,28 @@ const Auth = () => {
                 "Envoyer le lien de réinitialisation"
               )}
             </Button>
-          </div>
 
-          {mode === "login" && (
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setMode("signup")}
-              >
-                Créer un compte
-              </Button>
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setMode("reset")}
-              >
-                Mot de passe oublié ?
-              </Button>
-            </div>
-          )}
-        </form>
-      </div>
+            {mode === "login" && (
+              <div className="flex flex-col space-y-2 text-center">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => setMode("signup")}
+                >
+                  Pas encore de compte ? S'inscrire
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => setMode("reset")}
+                >
+                  Mot de passe oublié ?
+                </Button>
+              </div>
+            )}
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 };
