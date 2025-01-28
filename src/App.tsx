@@ -1,4 +1,3 @@
-```tsx
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -20,7 +19,7 @@ import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
-export default function App() {
+function App() {
   const [isLoading, setIsLoading] = useState(true);
   const setUser = useStore((state) => state.setUser);
 
@@ -73,4 +72,5 @@ export default function App() {
     </>
   );
 }
-```
+
+export default App;
