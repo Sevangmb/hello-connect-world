@@ -25,9 +25,9 @@ export const HomeSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/weather",
+              "bg-gray-100": location.pathname === "/",
             })}
-            onClick={() => navigate("/weather")}
+            onClick={() => navigate("/")}
           >
             <Cloud className="h-4 w-4" />
             Météo du Jour
