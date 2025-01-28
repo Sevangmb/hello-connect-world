@@ -39,7 +39,10 @@ import {
   Settings,
   BookOpen,
   Megaphone,
-  ChartBar
+  ChartBar,
+  UserCheck,
+  ShoppingCart,
+  QuestionMarkCircle,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +76,15 @@ export default function MainSidebar() {
 
     checkAdminStatus();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
@@ -397,6 +409,67 @@ export default function MainSidebar() {
                 >
                   <UserPlus className="h-4 w-4" />
                   Trouver des amis
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="profile" className="border-none">
+            <AccordionTrigger className="py-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Profil
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="flex flex-col gap-1 pl-6">
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/profile",
+                  })}
+                  onClick={() => navigate("/profile")}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Mon Profil
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/profile/settings",
+                  })}
+                  onClick={() => navigate("/profile/settings")}
+                >
+                  <Settings className="h-4 w-4" />
+                  Paramètres
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/marketplace",
+                  })}
+                  onClick={() => navigate("/marketplace")}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Vide-Dressing
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2", {
+                    "bg-gray-100": location.pathname === "/help",
+                  })}
+                  onClick={() => navigate("/help")}
+                >
+                  <QuestionMarkCircle className="h-4 w-4" />
+                  Aide & Support
+                </Button>
+                <Button
+                  variant="ghost"
+                  className={cn("w-full justify-start gap-2")}
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Déconnexion
                 </Button>
               </div>
             </AccordionContent>
