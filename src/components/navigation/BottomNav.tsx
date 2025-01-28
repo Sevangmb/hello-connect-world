@@ -1,14 +1,9 @@
 import { 
   Home, 
   Search, 
-  User, 
-  Users,
   Shirt,
-  Cloud,
-  MapPin,
-  MessageSquare,
-  Bell,
-  Settings
+  Users,
+  User,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -18,7 +13,7 @@ const menuItems = [
     label: "Accueil",
     icon: Home,
     path: "/",
-    description: "Fil d'actualité et suggestions"
+    description: "Météo, suggestions et fil d'actualité"
   },
   {
     label: "Explorer",
@@ -27,7 +22,7 @@ const menuItems = [
     description: "Recherche et tendances"
   },
   {
-    label: "Perso",
+    label: "Mon Univers",
     icon: Shirt,
     path: "/personal",
     description: "Garde-robe et tenues"
@@ -42,7 +37,7 @@ const menuItems = [
     label: "Profil",
     icon: User,
     path: "/profile",
-    description: "Paramètres et options"
+    description: "Mon profil et paramètres"
   }
 ];
 
@@ -59,8 +54,9 @@ export const BottomNav = () => {
             onClick={() => navigate(item.path)}
             className={cn(
               "flex flex-col items-center justify-center w-full p-2 hover:bg-gray-50 transition-colors",
-              location.pathname === item.path && "text-facebook-primary"
+              location.pathname === item.path && "text-primary"
             )}
+            title={item.description}
           >
             <item.icon className="h-5 w-5" />
             <span className="text-xs mt-1">{item.label}</span>
