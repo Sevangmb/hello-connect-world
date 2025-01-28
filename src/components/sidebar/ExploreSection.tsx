@@ -23,7 +23,7 @@ const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
     .select(`
       id,
       name,
-      count:clothes_hashtags(count),
+      clothes_count:clothes_hashtags(count),
       outfit_count:outfits_hashtags(count)
     `)
     .order('created_at', { ascending: false })
@@ -36,11 +36,22 @@ const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
 
   console.log("Hashtags data:", data);
 
-  return data.map(tag => ({
-    name: tag.name,
-    count: (tag.count || 0) + (tag.outfit_count || 0)
-  }))
-  .sort((a, b) => b.count - a.count);
+  return data.map(tag => {
+    // Extraire le compte des vêtements
+    const clothesCount = Array.isArray(tag.clothes_count) 
+      ? tag.clothes_count.length 
+      : (tag.clothes_count || 0);
+    
+    // Extraire le compte des tenues
+    const outfitCount = Array.isArray(tag.outfit_count)
+      ? tag.outfit_count.length
+      : (tag.outfit_count || 0);
+
+    return {
+      name: tag.name,
+      count: clothesCount + outfitCount
+    };
+  }).sort((a, b) => b.count - a.count);
 };
 
 export const ExploreSection = () => {
