@@ -25,10 +25,11 @@ export const AddFriend = () => {
         .from('profiles')
         .select('id, username')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
-      if (searchError || !foundUser) {
-        throw new Error("Utilisateur non trouvé");
+      if (searchError) throw searchError;
+      if (!foundUser) {
+        throw new Error(`Aucun utilisateur trouvé avec le nom "${username}"`);
       }
 
       if (foundUser.id === user.id) {
@@ -40,8 +41,9 @@ export const AddFriend = () => {
         .from('friendships')
         .select('*')
         .or(`and(user_id.eq.${user.id},friend_id.eq.${foundUser.id}),and(user_id.eq.${foundUser.id},friend_id.eq.${user.id})`)
-        .single();
+        .maybeSingle();
 
+      if (checkError) throw checkError;
       if (existingFriendship) {
         throw new Error("Une demande d'ami existe déjà avec cet utilisateur");
       }
