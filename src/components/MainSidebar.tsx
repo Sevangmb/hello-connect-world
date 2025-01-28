@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,13 +14,35 @@ import {
   MapPin,
   Filter,
   List,
-  Cog
+  Cog,
+  Shield
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function MainSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: isAdmin } = await supabase.rpc('is_admin', {
+          user_id: user.id
+        });
+
+        setIsAdmin(isAdmin || false);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
 
   return (
     <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
@@ -144,6 +167,18 @@ export default function MainSidebar() {
           <Cog className="h-4 w-4" />
           Paramètres
         </Button>
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/admin",
+            })}
+            onClick={() => navigate("/admin")}
+          >
+            <Shield className="h-4 w-4" />
+            Administration
+          </Button>
+        )}
       </ScrollArea>
     </nav>
   );
