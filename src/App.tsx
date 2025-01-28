@@ -3,6 +3,7 @@ import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import Messages from "@/pages/Messages";
 import Profile from "@/pages/Profile";
+import Settings from "@/pages/Profile/Settings";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
@@ -22,6 +23,7 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/profile/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
