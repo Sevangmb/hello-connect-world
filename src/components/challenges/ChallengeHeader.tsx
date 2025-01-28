@@ -1,13 +1,17 @@
-import { Trophy } from "lucide-react";
+import { Trophy, Vote } from "lucide-react";
 import { JoinChallengeDialog } from "./JoinChallengeDialog";
+import { VotingDialog } from "./VotingDialog";
 import { Challenge } from "./types";
+import { useState } from "react";
 
 type ChallengeHeaderProps = {
   challenge: Challenge;
   onJoin: (outfitId: string, comment: string) => Promise<void>;
+  onVote: (participantId: string) => Promise<void>;
 };
 
-export const ChallengeHeader = ({ challenge, onJoin }: ChallengeHeaderProps) => {
+export const ChallengeHeader = ({ challenge, onJoin, onVote }: ChallengeHeaderProps) => {
+  const [isVotingOpen, setIsVotingOpen] = useState(false);
   const creatorUsername = challenge.profiles[0]?.username || "Utilisateur inconnu";
   
   return (
@@ -21,10 +25,18 @@ export const ChallengeHeader = ({ challenge, onJoin }: ChallengeHeaderProps) => 
           Créé par {creatorUsername}
         </p>
       </div>
-      <JoinChallengeDialog 
-        challengeId={challenge.id}
-        onJoin={onJoin}
-      />
+      <div className="flex gap-2">
+        <JoinChallengeDialog 
+          challengeId={challenge.id}
+          onJoin={onJoin}
+        />
+        <VotingDialog
+          isOpen={isVotingOpen}
+          onClose={() => setIsVotingOpen(false)}
+          participants={challenge.participants}
+          onVote={(participantId) => onVote(participantId)}
+        />
+      </div>
     </div>
   );
 };

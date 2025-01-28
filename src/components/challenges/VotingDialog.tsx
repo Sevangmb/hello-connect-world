@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Trophy } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Trophy, Vote } from "lucide-react";
 import { useState } from "react";
 import { Participant } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,7 @@ type VotingDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   participants: Participant[];
-  onVote: (participantId: string, vote: "up" | "down") => Promise<void>;
+  onVote: (participantId: string) => Promise<void>;
 };
 
 export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDialogProps) => {
@@ -23,7 +23,7 @@ export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDi
   const handleVote = async (vote: "up" | "down") => {
     if (!currentParticipant) return;
 
-    await onVote(currentParticipant.id, vote);
+    await onVote(currentParticipant.id);
     setVotedParticipants(prev => ({
       ...prev,
       [currentParticipant.id]: vote
@@ -112,7 +112,13 @@ export const VotingDialog = ({ isOpen, onClose, participants, onVote }: VotingDi
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="gap-2">
+          <Vote className="h-4 w-4" />
+          Voter
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
