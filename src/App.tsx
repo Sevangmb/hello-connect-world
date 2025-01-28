@@ -1,34 +1,56 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import Auth from "@/pages/Auth";
 import Feed from "@/pages/Feed";
-import Messages from "@/pages/Messages";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
-import Friends from "@/pages/Friends";
-import Groups from "@/pages/Groups";
-import Notifications from "@/pages/Notifications";
-import Challenges from "@/pages/Challenges";
-import Challenge from "@/pages/Challenge";
-import Admin from "@/pages/Admin";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
-import { AdminRoute } from "@/components/auth/AdminRoute";
 
-export default function App() {
+function App() {
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session);
+      
+      if (event === 'SIGNED_IN') {
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue !",
+        });
+      } else if (event === 'SIGNED_OUT') {
+        toast({
+          title: "Déconnexion",
+          description: "À bientôt !",
+        });
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log("Token refreshed successfully");
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
-    <Routes>
-      <Route path="/" element={<Feed />} />
-      <Route path="/messages" element={<Messages />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/profile/:id" element={<Profile />} />
-      <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-      <Route path="/friends" element={<Friends />} />
-      <Route path="/groups" element={<Groups />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/challenges" element={<Challenges />} />
-      <Route path="/challenge/:id" element={<Challenge />} />
-      <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-    </Routes>
+    <Router>
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Feed />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;
