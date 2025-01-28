@@ -4,7 +4,7 @@ export type Participant = {
   outfit_id: string | null;
   comment: string | null;
   outfits: { name: string } | null;
-  profiles: { username: string | null }; // Changed from array to single object
+  profiles: { username: string | null };
 };
 
 export type Challenge = {
@@ -14,7 +14,7 @@ export type Challenge = {
   start_date: string;
   end_date: string;
   creator_id: string;
-  profiles: { username: string | null }; // Changed from array to single object
+  profiles: { username: string | null };
   participants: Participant[];
   votes: { count: number }[];
 };

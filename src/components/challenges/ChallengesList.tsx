@@ -18,7 +18,7 @@ export const ChallengesList = () => {
         .from("challenges")
         .select(`
           *,
-          profiles:challenges_creator_id_fkey(username),
+          profiles(username),
           participants:challenge_participants(
             id,
             user_id,
