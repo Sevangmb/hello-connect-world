@@ -4,6 +4,7 @@ import { CreatePost } from "@/components/CreatePost";
 import { Post } from "@/components/Post";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
+import { ClothesList } from "@/components/clothes/ClothesList";
 
 const SAMPLE_POSTS = [
   {
@@ -28,9 +29,10 @@ const Index = () => {
       <Sidebar />
       
       <main className="pt-20 pb-8 px-4 md:pl-72">
-        <div className="max-w-2xl mx-auto space-y-4">
+        <div className="max-w-4xl mx-auto space-y-8">
           <ProfileForm />
           <AddClothesForm />
+          <ClothesList />
           <CreatePost />
           
           {SAMPLE_POSTS.map((post) => (
