@@ -21,7 +21,7 @@ export const GroupsList = () => {
         .select(`
           *,
           members:group_members(
-            user:user_id(username, avatar_url),
+            profiles(username, avatar_url),
             role
           )
         `);

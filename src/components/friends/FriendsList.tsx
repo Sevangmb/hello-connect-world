@@ -24,8 +24,8 @@ export const FriendsList = () => {
         .from('friendships')
         .select(`
           *,
-          friend:friend_id(id, username, avatar_url),
-          user:user_id(id, username, avatar_url)
+          profiles!friendships_friend_id_fkey(id, username, avatar_url),
+          profiles!friendships_user_id_fkey(id, username, avatar_url)
         `)
         .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
         .eq('status', 'accepted');
@@ -37,8 +37,8 @@ export const FriendsList = () => {
         .from('friendships')
         .select(`
           *,
-          friend:friend_id(id, username, avatar_url),
-          user:user_id(id, username, avatar_url)
+          profiles!friendships_friend_id_fkey(id, username, avatar_url),
+          profiles!friendships_user_id_fkey(id, username, avatar_url)
         `)
         .eq('friend_id', user.id)
         .eq('status', 'pending');
@@ -100,12 +100,12 @@ export const FriendsList = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={request.user.avatar_url} />
+                    <AvatarImage src={request.profiles.avatar_url} />
                     <AvatarFallback>
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="font-medium">{request.user.username}</span>
+                  <span className="font-medium">{request.profiles.username}</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -137,8 +137,8 @@ export const FriendsList = () => {
         ) : (
           friends.map((friendship) => {
             const friend = friendship.user_id === currentUser?.id 
-              ? friendship.friend 
-              : friendship.user;
+              ? friendship.profiles 
+              : friendship.profiles;
 
             return (
               <Card key={friendship.id} className="p-4">
