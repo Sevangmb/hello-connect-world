@@ -15,6 +15,7 @@ import Groups from "@/pages/Groups";
 import Messages from "@/pages/Messages";
 import Notifications from "@/pages/Notifications";
 import Hashtags from "@/pages/Hashtags";
+import Suggestions from "@/pages/Suggestions";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         {/* Routes principales */}
         <Route path="/" element={<Index />} />
         <Route path="/feed" element={<Feed />} />
+        <Route path="/suggestions" element={<Suggestions />} />
         
         {/* Routes d'exploration */}
         <Route path="/explore" element={<Explore />} />
