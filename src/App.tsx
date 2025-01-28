@@ -18,6 +18,7 @@ import Suggestions from "@/pages/Suggestions";
 import NotFound from "@/pages/NotFound";
 import Clothes from "@/pages/Clothes";
 import { OutfitsList } from "@/components/outfits/OutfitsList";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,17 @@ function App() {
             
             {/* Routes IA */}
             <Route path="/suggestions" element={<Suggestions />} />
+
+            {/* Routes Administration */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/shops" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/marketplace" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/content" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/stats" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/marketing" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/settings" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="/admin/help" element={<Navigate to="/admin/dashboard" replace />} />
             
             {/* Route 404 */}
             <Route path="*" element={<NotFound />} />
