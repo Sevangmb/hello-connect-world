@@ -630,6 +630,13 @@ export type Database = {
             referencedRelation: "clothes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "outfits_user_id_profiles_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       outfits_hashtags: {
