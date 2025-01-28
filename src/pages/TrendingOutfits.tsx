@@ -17,16 +17,17 @@ const TrendingOutfits = () => {
       // Première requête pour obtenir le nombre de likes par tenue
       const { data: likesCount, error: likesError } = await supabase
         .from('outfit_likes')
-        .select('outfit_id, count', {
-          count: 'exact'
-        })
-        .select('outfit_id')
-        .select('count(*)', { count: 'exact', head: false });
+        .select('outfit_id, count')
+        .select('count(*)')
+        .order('count', { ascending: false })
+        .limit(20);
 
       if (likesError) {
         console.error("Error fetching likes count:", likesError);
         throw likesError;
       }
+
+      console.log("Likes count data:", likesCount);
 
       // Trier les IDs des tenues par nombre de likes
       const sortedOutfitIds = likesCount
