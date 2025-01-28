@@ -14,7 +14,7 @@ export type Challenge = {
   start_date: string;
   end_date: string;
   creator_id: string;
-  profiles: { username: string | null };
+  profiles: { username: string | null }[];
   participants: Participant[];
   votes: { count: number }[];
 };
