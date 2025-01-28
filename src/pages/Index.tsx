@@ -52,7 +52,7 @@ const Index = () => {
         // Get likes count
         const { count: likesCount } = await supabase
           .from("outfit_likes")
-          .select("*", { count: true })
+          .select("*", { count: "exact" })
           .eq("outfit_id", post.id);
 
         // Check if current user liked the post
@@ -61,7 +61,7 @@ const Index = () => {
           .select("id")
           .eq("outfit_id", post.id)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         // Get comments
         const { data: comments } = await supabase
