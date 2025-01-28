@@ -26,10 +26,22 @@ function App() {
         <Sonner />
         <Router>
           <Routes>
+            {/* Routes principales */}
             <Route path="/" element={<Feed />} />
             <Route path="/auth" element={<Auth />} />
+            
+            {/* Routes Mon Univers */}
             <Route path="/clothes" element={<Clothes />} />
             <Route path="/wardrobe" element={<Navigate to="/clothes" replace />} />
+            <Route path="/outfits" element={<Navigate to="/clothes" replace />} />
+            <Route path="/looks" element={<Navigate to="/clothes" replace />} />
+            <Route path="/suitcases" element={<Navigate to="/clothes" replace />} />
+            <Route path="/favorites" element={<Navigate to="/clothes" replace />} />
+            <Route path="/add-clothes" element={<Navigate to="/clothes" replace />} />
+            <Route path="/create-outfit" element={<Navigate to="/clothes" replace />} />
+            <Route path="/publish-look" element={<Navigate to="/clothes" replace />} />
+            
+            {/* Routes Communauté */}
             <Route path="/personal" element={<Personal />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/messages" element={<Messages />} />
@@ -37,7 +49,24 @@ function App() {
             <Route path="/community" element={<Community />} />
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/friends" element={<Friends />} />
+            <Route path="/groups" element={<Navigate to="/community" replace />} />
+            
+            {/* Routes Vide-Dressing */}
+            <Route path="/marketplace" element={<Navigate to="/clothes" replace />} />
+            <Route path="/add-item" element={<Navigate to="/clothes" replace />} />
+            <Route path="/sales-history" element={<Navigate to="/clothes" replace />} />
+            <Route path="/purchases" element={<Navigate to="/clothes" replace />} />
+            
+            {/* Routes Récompenses */}
+            <Route path="/badges" element={<Navigate to="/profile" replace />} />
+            
+            {/* Routes Paramètres */}
+            <Route path="/privacy" element={<Navigate to="/profile" replace />} />
+            
+            {/* Routes IA */}
             <Route path="/suggestions" element={<Suggestions />} />
+            
+            {/* Route 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
