@@ -21,7 +21,17 @@ const Profile = () => {
       case "favorites":
         return <div>Mes Favoris (en développement)</div>;
       case "marketplace":
-        return <div>Mon Vide-Dressing (en développement)</div>;
+        return <div>Articles en vente (en développement)</div>;
+      case "add-item":
+        return <div>Ajouter un article (en développement)</div>;
+      case "sales-history":
+        return <div>Historique des ventes (en développement)</div>;
+      case "purchases":
+        return <div>Mes Achats (en développement)</div>;
+      case "badges":
+        return <div>Mes Badges (en développement)</div>;
+      case "privacy":
+        return <div>Mode privé (en développement)</div>;
       default:
         return <div>Section en cours de développement</div>;
     }
@@ -30,21 +40,16 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
-      <Sidebar />
-      
       <div className="md:pl-64">
         <div className="max-w-7xl mx-auto">
           <div className="px-4 py-6">
             <div className="flex gap-6">
-              {/* Menu latéral unique */}
               <div className="hidden lg:block w-64 flex-shrink-0">
                 <ProfileSidebar 
                   activeSection={activeSection} 
                   onSectionChange={setActiveSection} 
                 />
               </div>
-
-              {/* Contenu principal */}
               <div className="flex-1 max-w-3xl">
                 {renderContent()}
               </div>
@@ -52,7 +57,6 @@ const Profile = () => {
           </div>
         </div>
       </div>
-
       <BottomNav />
     </div>
   );

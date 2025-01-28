@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { 
+  Home,
+  Search,
+  Users,
   Shirt,
   Camera,
   Heart,
@@ -11,7 +14,8 @@ import {
   Plus,
   Trophy,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageCircle
 } from "lucide-react";
 import {
   Collapsible,
@@ -26,7 +30,7 @@ interface ProfileSidebarProps {
 }
 
 export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSidebarProps) => {
-  const [openMenus, setOpenMenus] = useState<string[]>(["wardrobe", "marketplace"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["wardrobe"]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -38,6 +42,18 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
 
   const menuItems = [
     {
+      id: "home",
+      label: "Accueil",
+      icon: Home,
+      subItems: []
+    },
+    {
+      id: "explore",
+      label: "Explorer",
+      icon: Search,
+      subItems: []
+    },
+    {
       id: "wardrobe",
       label: "Garde-Robe",
       icon: Shirt,
@@ -46,6 +62,15 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
         { id: "outfits", label: "Mes Tenues", icon: Camera },
         { id: "looks", label: "Mes Looks", icon: Camera },
         { id: "favorites", label: "Mes Favoris", icon: Heart },
+      ]
+    },
+    {
+      id: "community",
+      label: "Communauté",
+      icon: Users,
+      subItems: [
+        { id: "messages", label: "Messages", icon: MessageCircle },
+        { id: "groups", label: "Groupes", icon: Users },
       ]
     },
     {
@@ -82,44 +107,58 @@ export const ProfileSidebar = ({ activeSection, onSectionChange }: ProfileSideba
     <div className="space-y-2">
       {menuItems.map((item) => (
         <div key={item.id} className="space-y-1">
-          <Collapsible
-            open={openMenus.includes(item.id)}
-            onOpenChange={() => toggleMenu(item.id)}
-          >
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-between group"
-              >
-                <span className="flex items-center">
-                  <item.icon className="h-4 w-4 mr-2" />
-                  {item.label}
-                </span>
-                {openMenus.includes(item.id) ? (
-                  <Eye className="h-4 w-4 transition-transform" />
-                ) : (
-                  <EyeOff className="h-4 w-4 transition-transform" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pl-6 space-y-1">
-              {item.subItems?.map((subItem) => (
+          {item.subItems.length > 0 ? (
+            <Collapsible
+              open={openMenus.includes(item.id)}
+              onOpenChange={() => toggleMenu(item.id)}
+            >
+              <CollapsibleTrigger asChild>
                 <Button
-                  key={subItem.id}
                   variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start",
-                    activeSection === subItem.id && "bg-muted"
-                  )}
-                  onClick={() => onSectionChange(subItem.id)}
+                  className="w-full justify-between group"
                 >
-                  <subItem.icon className="h-4 w-4 mr-2" />
-                  {subItem.label}
+                  <span className="flex items-center">
+                    <item.icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </span>
+                  {openMenus.includes(item.id) ? (
+                    <Eye className="h-4 w-4 transition-transform" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 transition-transform" />
+                  )}
                 </Button>
-              ))}
-            </CollapsibleContent>
-          </Collapsible>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 space-y-1">
+                {item.subItems?.map((subItem) => (
+                  <Button
+                    key={subItem.id}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start",
+                      activeSection === subItem.id && "bg-muted"
+                    )}
+                    onClick={() => onSectionChange(subItem.id)}
+                  >
+                    <subItem.icon className="h-4 w-4 mr-2" />
+                    {subItem.label}
+                  </Button>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                activeSection === item.id && "bg-muted"
+              )}
+              onClick={() => onSectionChange(item.id)}
+            >
+              <item.icon className="h-4 w-4 mr-2" />
+              {item.label}
+            </Button>
+          )}
         </div>
       ))}
     </div>
