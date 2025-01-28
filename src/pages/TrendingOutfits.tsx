@@ -21,7 +21,7 @@ const TrendingOutfits = () => {
           bottom:clothes!outfits_bottom_id_fkey(*),
           shoes:clothes!outfits_shoes_id_fkey(*),
           outfit_likes(count),
-          profiles!outfits_user_id_fkey(username, avatar_url)
+          profiles:profiles!outfits_user_id_fkey(username, avatar_url)
         `)
         .order("outfit_likes(count)", { ascending: false })
         .limit(20);
@@ -53,14 +53,14 @@ const TrendingOutfits = () => {
                     <CardHeader>
                       <div className="flex items-center gap-2">
                         <img
-                          src={outfit.profiles.avatar_url || "/placeholder.svg"}
-                          alt={outfit.profiles.username}
+                          src={outfit.profiles?.avatar_url || "/placeholder.svg"}
+                          alt={outfit.profiles?.username}
                           className="w-8 h-8 rounded-full"
                         />
                         <div>
                           <h3 className="text-xl font-semibold">{outfit.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            par {outfit.profiles.username}
+                            par {outfit.profiles?.username}
                           </p>
                         </div>
                       </div>
