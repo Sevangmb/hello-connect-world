@@ -31,7 +31,8 @@ import {
   MapPin,
   Filter,
   List,
-  Cog
+  Cog,
+  Shield
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -232,7 +233,7 @@ const MainSidebar = () => {
               className="w-full justify-start gap-2 mt-4"
               onClick={() => navigate("/admin")}
             >
-              <Cog className="h-4 w-4" />
+              <Shield className="h-4 w-4" />
               Panneau d'administration
             </Button>
           )}
