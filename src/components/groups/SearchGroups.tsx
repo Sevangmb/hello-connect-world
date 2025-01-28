@@ -28,7 +28,7 @@ export const SearchGroups = ({ onSelect }: SearchGroupsProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const { data, error } = await supabase
+      const query = supabase
         .from('groups')
         .select(`
           *,
@@ -38,13 +38,12 @@ export const SearchGroups = ({ onSelect }: SearchGroupsProps) => {
           )
         `);
 
-      if (error) throw error;
-
       if (search) {
-        return data.filter(group => 
-          group.name.toLowerCase().includes(search.toLowerCase())
-        );
+        query.ilike('name', `%${search}%`);
       }
+
+      const { data, error } = await query.limit(5);
+      if (error) throw error;
 
       return data;
     },

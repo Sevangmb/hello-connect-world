@@ -1,52 +1,67 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { UserPlus } from "lucide-react";
+import { UserPlus, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
 
 export const AddFriend = () => {
-  const [username, setUsername] = useState("");
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleAddFriend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!username.trim()) return;
+  const { data: searchResults } = useQuery({
+    queryKey: ["users-search", search],
+    queryFn: async () => {
+      console.log("Searching users with query:", search);
+      if (!search) return [];
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      // Rechercher les utilisateurs par nom d'utilisateur
+      const { data: users, error } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .ilike('username', `%${search}%`)
+        .neq('id', user.id)
+        .limit(5);
+
+      if (error) throw error;
+
+      // Filtrer les utilisateurs déjà amis
+      const { data: friendships } = await supabase
+        .from('friendships')
+        .select('friend_id, user_id, status')
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+
+      return users.filter(searchedUser => 
+        !friendships?.some(friendship => 
+          (friendship.user_id === searchedUser.id || friendship.friend_id === searchedUser.id) &&
+          (friendship.status === 'accepted' || friendship.status === 'pending')
+        )
+      );
+    },
+    enabled: search.length > 0,
+  });
+
+  const handleAddFriend = async (foundUser: { id: string; username: string }) => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
-
-      // Rechercher l'utilisateur par son nom d'utilisateur
-      const { data: foundUser, error: searchError } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (searchError) throw searchError;
-      if (!foundUser) {
-        throw new Error(`Aucun utilisateur trouvé avec le nom "${username}"`);
-      }
-
-      if (foundUser.id === user.id) {
-        throw new Error("Vous ne pouvez pas vous ajouter vous-même");
-      }
-
-      // Vérifier si une demande d'ami existe déjà
-      const { data: existingFriendship, error: checkError } = await supabase
-        .from('friendships')
-        .select('*')
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${foundUser.id}),and(user_id.eq.${foundUser.id},friend_id.eq.${user.id})`)
-        .maybeSingle();
-
-      if (checkError) throw checkError;
-      if (existingFriendship) {
-        throw new Error("Une demande d'ami existe déjà avec cet utilisateur");
-      }
 
       // Créer la demande d'ami
       const { error: createError } = await supabase
@@ -61,10 +76,10 @@ export const AddFriend = () => {
 
       toast({
         title: "Demande envoyée",
-        description: `Demande d'ami envoyée à ${username}`,
+        description: `Demande d'ami envoyée à ${foundUser.username}`,
       });
 
-      setUsername("");
+      setOpen(false);
     } catch (error: any) {
       console.error('Erreur lors de l\'ajout d\'ami:', error);
       toast({
@@ -80,18 +95,45 @@ export const AddFriend = () => {
   return (
     <Card className="p-4">
       <h2 className="text-2xl font-bold mb-4">Ajouter un ami</h2>
-      <form onSubmit={handleAddFriend} className="flex gap-2">
-        <Input
-          type="text"
-          placeholder="Nom d'utilisateur"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <Button type="submit" disabled={loading}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Ajouter
-        </Button>
-      </form>
+      <Button 
+        variant="outline" 
+        className="w-full justify-start" 
+        onClick={() => setOpen(true)}
+      >
+        <UserPlus className="mr-2 h-4 w-4" />
+        Rechercher un utilisateur...
+      </Button>
+
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <Command>
+          <CommandInput 
+            placeholder="Rechercher un utilisateur..." 
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>Aucun utilisateur trouvé.</CommandEmpty>
+            <CommandGroup heading="Utilisateurs">
+              {searchResults?.map((user) => (
+                <CommandItem
+                  key={user.id}
+                  value={user.username || ""}
+                  onSelect={() => handleAddFriend(user)}
+                  disabled={loading}
+                >
+                  <Avatar className="h-6 w-6 mr-2">
+                    <AvatarImage src={user.avatar_url || ""} />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  {user.username}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
     </Card>
   );
 };
