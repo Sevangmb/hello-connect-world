@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import Search from "@/pages/Search";
 import Explore from "@/pages/Explore";
+import Outfits from "@/pages/Outfits";
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<Index />} />
         <Route path="/search" element={<Search />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/outfits" element={<Outfits />} />
       </Routes>
       <Toaster />
     </>
