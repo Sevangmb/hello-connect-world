@@ -23,7 +23,10 @@ export const useClothes = (filters: ClothesFilters = {}) => {
         .select("*");
 
       if (filters.category) {
-        query = query.eq("category", filters.category);
+        // Première lettre en majuscule, le reste en minuscule
+        const formattedCategory = filters.category.charAt(0).toUpperCase() + filters.category.slice(1).toLowerCase();
+        console.log("Searching for category:", formattedCategory);
+        query = query.eq("category", formattedCategory);
       }
 
       if (filters.search) {
