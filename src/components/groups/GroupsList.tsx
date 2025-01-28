@@ -6,14 +6,12 @@ import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CreateGroupDialog } from "./CreateGroupDialog";
 import { SearchGroups } from "./SearchGroups";
+import { GroupView } from "./GroupView";
 
-interface GroupsListProps {
-  onChatSelect?: (group: { id: string; name: string }) => void;
-}
-
-export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
+export const GroupsList = () => {
   const [groups, setGroups] = useState<any[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
 
   const fetchGroups = async () => {
@@ -32,7 +30,7 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
         `);
 
       if (error) throw error;
-
+      console.log("Groupes récupérés:", data);
       setGroups(data || []);
     } catch (error: any) {
       console.error('Erreur lors de la récupération des groupes:', error);
@@ -48,6 +46,15 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
     fetchGroups();
   }, []);
 
+  if (selectedGroup) {
+    return (
+      <GroupView
+        groupId={selectedGroup.id}
+        onBack={() => setSelectedGroup(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,7 +65,7 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
         </Button>
       </div>
 
-      <SearchGroups onSelect={(group) => onChatSelect?.(group)} />
+      <SearchGroups onSelect={(group) => setSelectedGroup(group)} />
 
       {groups.length === 0 ? (
         <p className="text-muted-foreground">Aucun groupe trouvé</p>
@@ -68,7 +75,7 @@ export const GroupsList = ({ onChatSelect }: GroupsListProps) => {
             <Card 
               key={group.id} 
               className="p-4 cursor-pointer hover:bg-gray-50"
-              onClick={() => onChatSelect?.(group)}
+              onClick={() => setSelectedGroup(group)}
             >
               <h3 className="text-xl font-semibold mb-2">{group.name}</h3>
               {group.description && (
