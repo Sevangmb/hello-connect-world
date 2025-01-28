@@ -30,7 +30,8 @@ import {
   Hash,
   MapPin,
   Filter,
-  List
+  List,
+  Cog
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,7 +42,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 
 const MainSidebar = () => {
@@ -49,6 +50,24 @@ const MainSidebar = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal", "profile"]);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        setIsAdmin(profile?.is_admin || false);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
@@ -206,6 +225,17 @@ const MainSidebar = () => {
               </CollapsibleContent>
             </Collapsible>
           ))}
+
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 mt-4"
+              onClick={() => navigate("/admin")}
+            >
+              <Cog className="h-4 w-4" />
+              Panneau d'administration
+            </Button>
+          )}
         </div>
       </nav>
 
