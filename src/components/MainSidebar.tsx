@@ -50,7 +50,8 @@ const MainSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [openMenus, setOpenMenus] = useState<string[]>(["home", "wardrobe", "personal", "profile", "admin"]);
+  // Initialiser avec un tableau vide pour que tout soit replié par défaut
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus(prev => 
