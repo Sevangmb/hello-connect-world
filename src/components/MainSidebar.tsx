@@ -24,7 +24,13 @@ import {
   Upload,
   Tag,
   ShoppingBag,
-  User
+  User,
+  TrendingUp,
+  Star,
+  Hash,
+  MapPin,
+  Filter,
+  List
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -90,9 +96,32 @@ const MainSidebar = () => {
     {
       id: "explore",
       label: "Explorer",
-      path: "/explore",
       icon: Search,
-      description: "Recherche et tendances"
+      subItems: [
+        { id: "search", label: "Recherche", path: "/explore/search", icon: Search },
+        { 
+          id: "trends", 
+          label: "Tendances", 
+          path: "/explore/trends", 
+          icon: TrendingUp,
+          subItems: [
+            { id: "popular-outfits", label: "Tenues Populaires", path: "/explore/trends/outfits", icon: Heart },
+            { id: "popular-items", label: "Articles Populaires", path: "/explore/trends/items", icon: Star },
+            { id: "popular-hashtags", label: "Hashtags Populaires", path: "/explore/trends/hashtags", icon: Hash }
+          ]
+        },
+        {
+          id: "shops",
+          label: "Boutiques",
+          path: "/explore/shops",
+          icon: Store,
+          subItems: [
+            { id: "shops-map", label: "Carte Interactive", path: "/explore/shops/map", icon: MapPin },
+            { id: "shops-filters", label: "Filtres de recherche", path: "/explore/shops/search", icon: Filter },
+            { id: "shops-list", label: "Liste des Boutiques", path: "/explore/shops/list", icon: List }
+          ]
+        }
+      ]
     },
     {
       id: "personal",
