@@ -17,8 +17,8 @@ const TrendingOutfits = () => {
       // Première requête pour obtenir le nombre de likes par tenue
       const { data: likesCount, error: likesError } = await supabase
         .from('outfit_likes')
-        .select('outfit_id, count')
-        .select('count(*)')
+        .select('outfit_id, count(*)', { count: 'exact' })
+        .group('outfit_id')
         .order('count', { ascending: false })
         .limit(20);
 
