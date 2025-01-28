@@ -7,6 +7,15 @@ import { fr } from "date-fns/locale";
 import { useToast } from "@/components/ui/use-toast";
 import { JoinChallengeDialog } from "./JoinChallengeDialog";
 
+type Participant = {
+  id: string;
+  user_id: string;
+  outfit_id: string | null;
+  comment: string | null;
+  outfits: { name: string } | null;
+  profiles: { username: string | null }[];
+};
+
 export const ChallengesList = () => {
   const { toast } = useToast();
 
@@ -233,7 +242,7 @@ export const ChallengesList = () => {
             <div className="mt-4 space-y-3">
               <h4 className="font-medium">Participants</h4>
               <div className="space-y-2">
-                {challenge.participants.map((participant) => (
+                {challenge.participants.map((participant: Participant) => (
                   <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
                     <div>
                       <p className="font-medium">{participant.profiles[0]?.username || "Utilisateur inconnu"}</p>
