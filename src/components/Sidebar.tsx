@@ -6,11 +6,14 @@ import {
   LogOut,
   Shirt,
   UserCircle,
-  Trophy
+  Trophy,
+  MapPin,
+  Search
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { 
@@ -20,45 +23,34 @@ const menuItems = [
     description: "Fil d'actualité et posts"
   },
   { 
-    icon: Users, 
-    label: "Amis", 
-    path: "/friends",
-    description: "Gérer vos amis"
-  },
-  { 
-    icon: MessageSquare, 
-    label: "Messages", 
-    path: "/messages",
-    description: "Conversations privées et groupes"
+    icon: Search, 
+    label: "Explorer", 
+    path: "/explore",
+    description: "Recherche et tendances"
   },
   { 
     icon: Shirt, 
-    label: "Vêtements", 
-    path: "/clothes",
-    description: "Gérer votre garde-robe"
+    label: "Perso", 
+    path: "/personal",
+    description: "Garde-robe et tenues"
   },
   { 
-    icon: Trophy, 
-    label: "Défis", 
-    path: "/challenges",
-    description: "Participer aux défis"
+    icon: Users, 
+    label: "Communauté", 
+    path: "/community",
+    description: "Messages et groupes"
   },
   { 
     icon: UserCircle, 
     label: "Profil", 
     path: "/profile",
-    description: "Modifier votre profil"
-  },
-  { 
-    icon: Settings, 
-    label: "Paramètres", 
-    path: "/settings",
-    description: "Configurer votre compte"
+    description: "Paramètres et options"
   }
 ];
 
 export const Sidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -85,25 +77,35 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="hidden md:flex flex-col fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-white border-r">
+    <aside className="hidden md:flex flex-col fixed left-0 top-24 h-[calc(100vh-6rem)] w-64 bg-white border-r">
       <nav className="flex-1 px-2 py-4">
         <div className="space-y-1">
           {menuItems.map((item) => (
-            <a
+            <button
               key={item.path}
-              href={item.path}
-              className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-gray-100 transition-colors group"
+              onClick={() => navigate(item.path)}
+              className={cn(
+                "flex items-center gap-3 w-full px-3 py-2 text-sm rounded-lg transition-colors group hover:bg-gray-100",
+                location.pathname === item.path 
+                  ? "text-facebook-primary bg-blue-50" 
+                  : "text-gray-700"
+              )}
             >
-              <item.icon className="h-5 w-5 text-gray-500 group-hover:text-facebook-primary" />
-              <div className="flex-1">
-                <p className="font-medium text-gray-700 group-hover:text-facebook-primary">
+              <item.icon className={cn(
+                "h-5 w-5",
+                location.pathname === item.path 
+                  ? "text-facebook-primary" 
+                  : "text-gray-500 group-hover:text-facebook-primary"
+              )} />
+              <div className="flex-1 text-left">
+                <p className="font-medium">
                   {item.label}
                 </p>
                 <p className="text-xs text-gray-500">
                   {item.description}
                 </p>
               </div>
-            </a>
+            </button>
           ))}
         </div>
       </nav>

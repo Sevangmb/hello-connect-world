@@ -2,7 +2,7 @@ import { Search, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Tooltip,
@@ -11,8 +11,32 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const subMenuItems = [
+  {
+    label: "Fil d'actualité",
+    path: "/",
+  },
+  {
+    label: "Amis",
+    path: "/friends",
+  },
+  {
+    label: "Messages",
+    path: "/messages",
+  },
+  {
+    label: "Vêtements",
+    path: "/clothes",
+  },
+  {
+    label: "Défis",
+    path: "/challenges",
+  }
+];
+
 export const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -39,8 +63,8 @@ export const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-4">
-      <div className="max-w-7xl mx-auto flex items-center justify-between h-14">
+    <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
         <div className="flex items-center gap-2">
           <a href="/" className="text-facebook-primary text-2xl font-bold">
             social
@@ -77,6 +101,27 @@ export const Header = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        </div>
+      </div>
+
+      {/* Sous-menu */}
+      <div className="border-t">
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex items-center space-x-1">
+            {subMenuItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`px-4 py-2 text-sm font-medium transition-colors hover:text-facebook-primary ${
+                  location.pathname === item.path 
+                    ? "text-facebook-primary border-b-2 border-facebook-primary" 
+                    : "text-gray-600"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
     </header>
