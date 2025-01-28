@@ -125,7 +125,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: "admin",
+        email: "admin@admin.com",
         password: "admin",
       });
 
@@ -261,7 +261,7 @@ const Auth = () => {
                 disabled={loading}
               >
                 <Shield className="mr-2 h-4 w-4" />
-                Connexion Admin (admin/admin)
+                Connexion Admin (admin@admin.com/admin)
               </Button>
             )}
           </div>
