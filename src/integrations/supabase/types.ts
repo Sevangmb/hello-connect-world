@@ -118,6 +118,13 @@ export type Database = {
             referencedRelation: "challenges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "challenge_votes_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_participants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       challenges: {

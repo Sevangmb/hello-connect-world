@@ -24,7 +24,12 @@ export const ChallengesList = () => {
             user_id,
             outfit_id,
             comment,
-            outfits(name),
+            outfits(
+              name,
+              top:top_id(name, image_url),
+              bottom:bottom_id(name, image_url),
+              shoes:shoes_id(name, image_url)
+            ),
             profiles(username)
           ),
           votes:challenge_votes(count)
@@ -45,7 +50,7 @@ export const ChallengesList = () => {
       });
 
       console.log("Fetched challenges:", sortedChallenges);
-      return sortedChallenges;
+      return sortedChallenges as Challenge[];
     },
   });
 
