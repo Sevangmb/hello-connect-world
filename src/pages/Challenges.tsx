@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { MainSidebar } from "@/components/MainSidebar";
+import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { CreateChallenge } from "@/components/challenges/CreateChallenge";
 import { ChallengesList } from "@/components/challenges/ChallengesList";

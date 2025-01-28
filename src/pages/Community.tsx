@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
-import { MainSidebar } from "@/components/MainSidebar";
+import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { MessagesList } from "@/components/messages/MessagesList";
 import { GroupsList } from "@/components/groups/GroupsList";

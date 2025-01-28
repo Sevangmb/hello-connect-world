@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import { MainSidebar } from "@/components/MainSidebar";
+import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { AddClothesForm } from "@/components/clothes/AddClothesForm";
 import { ClothesList } from "@/components/clothes/ClothesList";
