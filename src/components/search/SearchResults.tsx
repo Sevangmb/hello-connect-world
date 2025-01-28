@@ -43,6 +43,13 @@ export const SearchResults = () => {
     },
   });
 
+  const handleDelete = async (id: string): Promise<void> => {
+    console.log("Would delete item with id:", id);
+    // Since this is a search results page, we probably don't want to actually
+    // delete items here, but we need to satisfy the type requirement
+    return Promise.resolve();
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -91,7 +98,7 @@ export const SearchResults = () => {
               <ClothesCard
                 key={cloth.id}
                 cloth={cloth}
-                onDelete={() => {}}
+                onDelete={handleDelete}
                 isDeleting={false}
               />
             ))}
