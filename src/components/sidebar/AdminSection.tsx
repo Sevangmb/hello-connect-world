@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   AccordionContent,
@@ -33,6 +34,13 @@ export const AdminSection = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
+          <div className="mb-2">
+            <Input 
+              type="search" 
+              placeholder="Rechercher..." 
+              className="h-8 text-sm"
+            />
+          </div>
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
