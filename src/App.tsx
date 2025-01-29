@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -22,26 +22,24 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Shops />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile/:id" element={<Profile />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/clothes" element={<Clothes />} />
-          <Route path="/outfits" element={<Outfits />} />
-          <Route path="/shops" element={<Shops />} />
-          <Route path="/shops/create" element={<CreateShop />} />
-          <Route path="/challenges" element={<Challenges />} />
-          <Route path="/friends" element={<Friends />} />
-          <Route path="/groups" element={<Groups />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </Router>
+      <Routes>
+        <Route path="/" element={<Shops />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/profile/:id" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/clothes" element={<Clothes />} />
+        <Route path="/outfits" element={<Outfits />} />
+        <Route path="/shops" element={<Shops />} />
+        <Route path="/shops/create" element={<CreateShop />} />
+        <Route path="/challenges" element={<Challenges />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/groups" element={<Groups />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
