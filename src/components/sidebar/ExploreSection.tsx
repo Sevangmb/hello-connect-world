@@ -1,4 +1,4 @@
-import { Search, Heart, Star, Hash, MapPin, Filter, List } from "lucide-react";
+import { Search, Heart, Star, Hash, MapPin, Filter, List, ShoppingBag } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,16 @@ export const ExploreSection = () => {
           >
             <Hash className="h-4 w-4" />
             Hashtags
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/shops",
+            })}
+            onClick={() => navigate("/shops")}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Boutiques
           </Button>
           <Button
             variant="ghost"

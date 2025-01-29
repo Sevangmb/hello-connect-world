@@ -23,6 +23,7 @@ import { Admin } from "@/layouts/Admin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { Toaster } from "@/components/ui/sonner";
+import Shops from "@/pages/Shops";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
         <Route path="/hashtags" element={<Hashtags />} />
         <Route path="/hashtag/:name" element={<Hashtags />} />
         <Route path="/trending/outfits" element={<TrendingOutfits />} />
+        <Route path="/shops" element={<Shops />} />
         
         {/* Routes personnelles */}
         <Route path="/personal" element={<Personal />} />
