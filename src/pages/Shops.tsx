@@ -8,11 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Shops() {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchShops();
@@ -20,6 +22,19 @@ export default function Shops() {
 
   const fetchShops = async () => {
     try {
+      console.log("Fetching shops...");
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log("No user found");
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour voir les boutiques",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('shops')
         .select(`
@@ -29,17 +44,27 @@ export default function Shops() {
             id
           )
         `)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
+        .eq('status', 'approved');
 
       if (error) {
         console.error('Error fetching shops:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les boutiques",
+          variant: "destructive",
+        });
         return;
       }
 
+      console.log("Shops fetched:", data);
       setShops(data || []);
     } catch (error) {
       console.error('Error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
