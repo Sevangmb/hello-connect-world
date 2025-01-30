@@ -14,10 +14,11 @@ const TrendingOutfits = () => {
     queryFn: async () => {
       console.log("Fetching trending outfits...");
       
-      // Première requête pour obtenir le nombre de likes par tenue
+      // Première requête pour obtenir le nombre de likes par tenue avec GROUP BY
       const { data: likesCount, error: likesError } = await supabase
         .from('outfit_likes')
-        .select('outfit_id, count', { count: 'exact', head: false })
+        .select('outfit_id, count(*)', { count: 'exact', head: false })
+        .groupBy('outfit_id')
         .order('count', { ascending: false })
         .limit(20);
 
@@ -30,8 +31,7 @@ const TrendingOutfits = () => {
 
       // Trier les IDs des tenues par nombre de likes
       const sortedOutfitIds = likesCount
-        ?.sort((a: any, b: any) => b.count - a.count)
-        .map((item: any) => item.outfit_id)
+        ?.map((item: any) => item.outfit_id)
         .slice(0, 20) || [];
 
       if (sortedOutfitIds.length === 0) {
