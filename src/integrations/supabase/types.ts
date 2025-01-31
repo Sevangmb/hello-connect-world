@@ -870,33 +870,96 @@ export type Database = {
           },
         ]
       }
-      shops: {
+      shop_reviews: {
         Row: {
+          comment: string | null
           created_at: string
-          description: string | null
           id: string
-          name: string
-          status: string
+          rating: number
+          shop_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          comment?: string | null
           created_at?: string
-          description?: string | null
           id?: string
-          name: string
-          status?: string
+          rating: number
+          shop_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          shop_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_reviews_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shops: {
+        Row: {
+          address: string | null
+          average_rating: number | null
+          categories: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          opening_hours: Json | null
+          phone: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          average_rating?: number | null
+          categories?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          opening_hours?: Json | null
+          phone?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          average_rating?: number | null
+          categories?: string[] | null
           created_at?: string
           description?: string | null
           id?: string
           name?: string
+          opening_hours?: Json | null
+          phone?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: [
           {
