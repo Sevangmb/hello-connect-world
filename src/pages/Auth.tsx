@@ -25,22 +25,52 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  console.log("Current auth mode:", mode);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Attempting login with:", email);
+    console.log("Tentative de connexion avec:", email);
 
     try {
+      // Vérifions d'abord si l'utilisateur existe
+      const { data: userExists } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', email)
+        .single();
+
+      if (!userExists) {
+        console.log("Utilisateur non trouvé dans la base de données");
+        toast({
+          variant: "destructive",
+          title: "Erreur de connexion",
+          description: "Aucun compte trouvé avec cet email. Veuillez vous inscrire.",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur de connexion détaillée:", error);
+        let errorMessage = "Email ou mot de passe incorrect";
+        
+        if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+        }
+        
+        toast({
+          variant: "destructive",
+          title: "Erreur de connexion",
+          description: errorMessage,
+        });
+        throw error;
+      }
 
-      console.log("Login successful:", data);
+      console.log("Connexion réussie:", data);
       toast({
         title: "Connexion réussie",
         description: "Bienvenue !",
@@ -48,14 +78,7 @@ const Auth = () => {
       
       navigate("/");
     } catch (error: any) {
-      console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur de connexion",
-        description: error.message === "Invalid login credentials"
-          ? "Email ou mot de passe incorrect"
-          : error.message,
-      });
+      console.error("Erreur complète:", error);
     } finally {
       setLoading(false);
     }
@@ -64,7 +87,7 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Attempting signup with:", email, username, fullName);
+    console.log("Tentative d'inscription avec:", { email, username, fullName });
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -78,17 +101,20 @@ const Auth = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur d'inscription détaillée:", error);
+        throw error;
+      }
 
-      console.log("Signup successful:", data);
+      console.log("Inscription réussie:", data);
       toast({
         title: "Inscription réussie",
-        description: "Votre compte a été créé avec succès !",
+        description: "Un email de confirmation vous a été envoyé. Veuillez vérifier votre boîte mail.",
       });
       
       setMode("login");
     } catch (error: any) {
-      console.error("Signup error:", error);
+      console.error("Erreur d'inscription:", error);
       toast({
         variant: "destructive",
         title: "Erreur d'inscription",
