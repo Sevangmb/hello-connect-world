@@ -2,11 +2,13 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 export function PrivateRoute({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
   const location = useLocation();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -15,9 +17,13 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
         
         if (error) {
           console.error("Error checking auth status:", error);
+          toast({
+            variant: "destructive",
+            title: "Erreur d'authentification",
+            description: "Veuillez vous reconnecter",
+          });
           setAuthenticated(false);
         } else {
-          console.log("Session check result:", session);
           setAuthenticated(!!session);
         }
       } catch (error) {
@@ -28,8 +34,20 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Initial auth check
     checkAuth();
-  }, []);
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", _event, session);
+      setAuthenticated(!!session);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [toast]);
 
   if (loading) {
     return (
