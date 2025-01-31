@@ -1,28 +1,25 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { ShopCard } from "@/components/shops/ShopCard";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Shops() {
-  const [shops, setShops] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchShops();
-  }, []);
-
-  const fetchShops = async () => {
-    try {
-      console.log("Fetching shops...");
+  const { data: shops, isLoading } = useQuery({
+    queryKey: ["shops", searchQuery],
+    queryFn: async () => {
+      console.log("Fetching shops with query:", searchQuery);
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -32,10 +29,10 @@ export default function Shops() {
           description: "Vous devez être connecté pour voir les boutiques",
           variant: "destructive",
         });
-        return;
+        return [];
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('shops')
         .select(`
           *,
@@ -46,6 +43,12 @@ export default function Shops() {
         `)
         .eq('status', 'approved');
 
+      if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
         console.error('Error fetching shops:', error);
         toast({
@@ -53,22 +56,13 @@ export default function Shops() {
           description: "Impossible de charger les boutiques",
           variant: "destructive",
         });
-        return;
+        throw error;
       }
 
       console.log("Shops fetched:", data);
-      setShops(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data || [];
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -84,31 +78,22 @@ export default function Shops() {
             </Button>
           </div>
 
-          {loading ? (
-            <div>Chargement...</div>
+          <div className="mb-6">
+            <Input
+              type="search"
+              placeholder="Rechercher une boutique..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+
+          {isLoading ? (
+            <div className="text-center py-8">Chargement...</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {shops.map((shop) => (
-                <Card key={shop.id} className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate(`/shops/${shop.id}`)}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{shop.name}</span>
-                      <ShoppingBag className="h-5 w-5 text-gray-400" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500 mb-2">{shop.description}</p>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Par {shop.profiles?.username || 'Inconnu'}
-                      </span>
-                      <Badge variant="secondary">
-                        {shop.shop_items?.length || 0} articles
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+              {shops?.map((shop) => (
+                <ShopCard key={shop.id} shop={shop} />
               ))}
             </div>
           )}
