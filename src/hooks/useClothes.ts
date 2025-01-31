@@ -10,6 +10,8 @@ export type ClothesFilters = {
   source?: "mine" | "friends";
   showArchived?: boolean;
   needsAlteration?: boolean;
+  isForSale?: boolean;
+  shopId?: string;
 };
 
 export const useClothes = (filters: ClothesFilters = {}) => {
@@ -64,6 +66,14 @@ export const useClothes = (filters: ClothesFilters = {}) => {
 
       if (filters.needsAlteration !== undefined) {
         query = query.eq("needs_alteration", filters.needsAlteration);
+      }
+
+      if (filters.isForSale !== undefined) {
+        query = query.eq("is_for_sale", filters.isForSale);
+      }
+
+      if (filters.shopId) {
+        query = query.eq("shop_id", filters.shopId);
       }
 
       if (filters.sortBy) {

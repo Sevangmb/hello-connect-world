@@ -16,6 +16,9 @@ import { useToast } from "@/components/ui/use-toast";
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
   description: z.string().optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  website: z.string().url("L'URL doit être valide").optional().or(z.literal("")),
 });
 
 export default function CreateShop() {
@@ -28,6 +31,9 @@ export default function CreateShop() {
     defaultValues: {
       name: "",
       description: "",
+      address: "",
+      phone: "",
+      website: "",
     },
   });
 
@@ -49,6 +55,10 @@ export default function CreateShop() {
         name: values.name,
         description: values.description,
         user_id: user.id,
+        address: values.address || null,
+        phone: values.phone || null,
+        website: values.website || null,
+        status: "pending",
       });
 
       if (error) throw error;
@@ -107,6 +117,48 @@ export default function CreateShop() {
                         className="resize-none" 
                         {...field} 
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Adresse</FormLabel>
+                    <FormControl>
+                      <Input placeholder="123 rue du Commerce" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Téléphone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+33 6 12 34 56 78" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Site web</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://www.monsite.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

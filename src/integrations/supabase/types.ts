@@ -181,11 +181,13 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_for_sale: boolean | null
           material: string | null
           name: string
           needs_alteration: boolean | null
           price: number | null
           purchase_date: string | null
+          shop_id: string | null
           size: string | null
           style: string | null
           subcategory: string | null
@@ -201,11 +203,13 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_for_sale?: boolean | null
           material?: string | null
           name: string
           needs_alteration?: boolean | null
           price?: number | null
           purchase_date?: string | null
+          shop_id?: string | null
           size?: string | null
           style?: string | null
           subcategory?: string | null
@@ -221,11 +225,13 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_for_sale?: boolean | null
           material?: string | null
           name?: string
           needs_alteration?: boolean | null
           price?: number | null
           purchase_date?: string | null
+          shop_id?: string | null
           size?: string | null
           style?: string | null
           subcategory?: string | null
@@ -233,6 +239,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clothes_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clothes_user_id_profiles_fkey"
             columns: ["user_id"]
