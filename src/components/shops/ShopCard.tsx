@@ -1,67 +1,60 @@
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, MapPin, Phone, Globe } from "lucide-react";
+import { MapPin, Store, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-type ShopCardProps = {
+interface ShopCardProps {
   shop: {
     id: string;
     name: string;
     description: string | null;
     address: string | null;
-    phone: string | null;
-    website: string | null;
-    average_rating: number | null;
+    status: string;
     shop_items: { id: string }[];
-    profiles: { username: string | null };
+    profiles: {
+      username: string | null;
+    } | null;
   };
-};
+}
 
-export const ShopCard = ({ shop }: ShopCardProps) => {
+export function ShopCard({ shop }: ShopCardProps) {
   const navigate = useNavigate();
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className="hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => navigate(`/shops/${shop.id}`)}
     >
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>{shop.name}</span>
-          <ShoppingBag className="h-5 w-5 text-gray-400" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-500 mb-4">{shop.description}</p>
-        <div className="flex flex-col gap-2">
-          {shop.address && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MapPin className="h-4 w-4" />
-              <span>{shop.address}</span>
-            </div>
-          )}
-          {shop.phone && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Phone className="h-4 w-4" />
-              <span>{shop.phone}</span>
-            </div>
-          )}
-          {shop.website && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Globe className="h-4 w-4" />
-              <span>{shop.website}</span>
-            </div>
-          )}
-        </div>
-        <div className="mt-4 flex justify-between items-center">
-          <span className="text-sm text-gray-600">
-            Par {shop.profiles?.username || 'Inconnu'}
-          </span>
-          <Badge variant="secondary">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2">
+              <Store className="h-5 w-5" />
+              {shop.name}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              par {shop.profiles?.username || "Utilisateur inconnu"}
+            </p>
+          </div>
+          <Badge>
+            <ShoppingBag className="h-3 w-3 mr-1" />
             {shop.shop_items?.length || 0} articles
           </Badge>
         </div>
+      </CardHeader>
+      <CardContent>
+        {shop.description && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {shop.description}
+          </p>
+        )}
+        {shop.address && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            {shop.address}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-};
+}
