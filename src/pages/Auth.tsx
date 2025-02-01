@@ -31,24 +31,6 @@ const Auth = () => {
     console.log("Tentative de connexion avec:", email);
 
     try {
-      // Vérifions d'abord si l'utilisateur existe
-      const { data: userExists } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .single();
-
-      if (!userExists) {
-        console.log("Utilisateur non trouvé dans la base de données");
-        toast({
-          variant: "destructive",
-          title: "Erreur de connexion",
-          description: "Aucun compte trouvé avec cet email. Veuillez vous inscrire.",
-        });
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
