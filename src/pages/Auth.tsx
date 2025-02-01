@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, User, ArrowLeft } from "lucide-react";
 import {
@@ -27,11 +27,28 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
     setLoading(true);
     console.log("Tentative de connexion avec:", email);
 
     try {
+      // Vérifions d'abord si l'utilisateur existe
+      const { data: userExists } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', email)
+        .single();
+
+      if (!userExists) {
+        console.log("Utilisateur non trouvé dans la base de données");
+        toast({
+          variant: "destructive",
+          title: "Erreur de connexion",
+          description: "Aucun compte trouvé avec cet email. Veuillez vous inscrire.",
+        });
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -43,8 +60,6 @@ const Auth = () => {
         
         if (error.message.includes("Email not confirmed")) {
           errorMessage = "Veuillez confirmer votre email avant de vous connecter";
-        } else if (error.message.includes("Invalid login credentials")) {
-          errorMessage = "Email ou mot de passe incorrect. Si vous n'avez pas de compte, veuillez vous inscrire.";
         }
         
         toast({
@@ -71,7 +86,6 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
     setLoading(true);
     console.log("Tentative d'inscription avec:", { email, username, fullName });
 
@@ -89,17 +103,6 @@ const Auth = () => {
 
       if (error) {
         console.error("Erreur d'inscription détaillée:", error);
-        let errorMessage = error.message;
-        
-        if (error.message.includes("User already registered")) {
-          errorMessage = "Un compte existe déjà avec cet email. Veuillez vous connecter.";
-        }
-        
-        toast({
-          variant: "destructive",
-          title: "Erreur d'inscription",
-          description: errorMessage,
-        });
         throw error;
       }
 
@@ -112,6 +115,11 @@ const Auth = () => {
       setMode("login");
     } catch (error: any) {
       console.error("Erreur d'inscription:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur d'inscription",
+        description: error.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -119,7 +127,6 @@ const Auth = () => {
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
     setLoading(true);
     console.log("Requesting password reset for:", email);
 
@@ -128,14 +135,7 @@ const Auth = () => {
         redirectTo: `${window.location.origin}/auth/reset`,
       });
 
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: error.message,
-        });
-        throw error;
-      }
+      if (error) throw error;
 
       console.log("Password reset email sent");
       toast({
@@ -146,6 +146,11 @@ const Auth = () => {
       setMode("login");
     } catch (error: any) {
       console.error("Password reset error:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -202,7 +207,6 @@ const Auth = () => {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
-                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -215,7 +219,6 @@ const Auth = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
-                      disabled={loading}
                     />
                   </div>
                 </div>
@@ -231,7 +234,6 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={loading}
                 />
               </div>
             </div>
@@ -246,8 +248,6 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    disabled={loading}
-                    minLength={6}
                   />
                 </div>
               </div>
@@ -275,7 +275,6 @@ const Auth = () => {
                   type="button"
                   variant="link"
                   onClick={() => setMode("signup")}
-                  disabled={loading}
                 >
                   Pas encore de compte ? S'inscrire
                 </Button>
@@ -283,7 +282,6 @@ const Auth = () => {
                   type="button"
                   variant="link"
                   onClick={() => setMode("reset")}
-                  disabled={loading}
                 >
                   Mot de passe oublié ?
                 </Button>

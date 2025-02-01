@@ -39,26 +39,26 @@ export const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+    <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between h-14 px-4">
         <div className="flex items-center gap-2">
-          <a href="/" className="text-2xl font-bold text-primary">
+          <a href="/" className="text-facebook-primary text-2xl font-bold">
             social
           </a>
         </div>
         
         <div className="hidden md:flex items-center max-w-md w-full relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input 
             type="search"
             placeholder="Rechercher..."
-            className="pl-10"
+            className="pl-10 bg-gray-100 border-none"
           />
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-accent rounded-full md:hidden">
-            <Search className="h-5 w-5" />
+          <button className="p-2 hover:bg-gray-100 rounded-full">
+            <Search className="h-5 w-5 md:hidden" />
           </button>
           <TooltipProvider>
             <Tooltip>
@@ -67,7 +67,7 @@ export const Header = () => {
                   variant="ghost"
                   size="icon"
                   onClick={handleLogout}
-                  className="text-muted-foreground hover:bg-accent"
+                  className="text-gray-600 hover:bg-gray-100"
                 >
                   <LogOut className="h-5 w-5" />
                 </Button>

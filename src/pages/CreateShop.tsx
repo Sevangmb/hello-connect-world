@@ -11,14 +11,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
   description: z.string().optional(),
-  address: z.string().min(2, "L'adresse est requise"),
-  phone: z.string().min(10, "Le numéro de téléphone doit faire au moins 10 caractères"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
   website: z.string().url("L'URL doit être valide").optional().or(z.literal("")),
 });
 
@@ -39,11 +38,8 @@ export default function CreateShop() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (loading) return;
-    
     try {
       setLoading(true);
-      console.log("Creating shop with values:", values);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -55,37 +51,17 @@ export default function CreateShop() {
         return;
       }
 
-      // Vérifier si l'utilisateur a déjà une boutique
-      const { data: existingShops } = await supabase
-        .from("shops")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (existingShops) {
-        toast({
-          title: "Erreur",
-          description: "Vous avez déjà une boutique. Vous ne pouvez pas en créer une deuxième.",
-          variant: "destructive",
-        });
-        navigate("/shops");
-        return;
-      }
-
       const { error } = await supabase.from("shops").insert({
         name: values.name,
         description: values.description,
         user_id: user.id,
-        address: values.address,
-        phone: values.phone,
+        address: values.address || null,
+        phone: values.phone || null,
         website: values.website || null,
         status: "pending",
       });
 
-      if (error) {
-        console.error("Error creating shop:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Boutique créée",
@@ -93,13 +69,11 @@ export default function CreateShop() {
       });
       
       navigate("/shops");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating shop:", error);
       toast({
         title: "Erreur",
-        description: error.message === "duplicate key value violates unique constraint \"shops_user_id_key\"" 
-          ? "Vous avez déjà une boutique. Vous ne pouvez pas en créer une deuxième."
-          : "Une erreur est survenue lors de la création de la boutique",
+        description: "Une erreur est survenue lors de la création de la boutique",
         variant: "destructive",
       });
     } finally {
@@ -108,12 +82,11 @@ export default function CreateShop() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
       <MainSidebar />
-      
-      <main className="container mx-auto px-4 pt-24 pb-16 md:pl-72 md:pb-0">
-        <div className="max-w-2xl mx-auto bg-card p-6 rounded-lg shadow">
+      <main className="pt-24 px-4 md:pl-72">
+        <div className="max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Ouvrir ma boutique</h1>
           
           <Form {...form}>
@@ -123,7 +96,7 @@ export default function CreateShop() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom de la boutique *</FormLabel>
+                    <FormLabel>Nom de la boutique</FormLabel>
                     <FormControl>
                       <Input placeholder="Ma superbe boutique" {...field} />
                     </FormControl>
@@ -155,7 +128,7 @@ export default function CreateShop() {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Adresse *</FormLabel>
+                    <FormLabel>Adresse</FormLabel>
                     <FormControl>
                       <Input placeholder="123 rue du Commerce" {...field} />
                     </FormControl>
@@ -169,7 +142,7 @@ export default function CreateShop() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Téléphone *</FormLabel>
+                    <FormLabel>Téléphone</FormLabel>
                     <FormControl>
                       <Input placeholder="+33 6 12 34 56 78" {...field} />
                     </FormControl>
@@ -192,28 +165,16 @@ export default function CreateShop() {
                 )}
               />
 
-              <div className="flex justify-end gap-4 pt-4">
+              <div className="flex justify-end gap-4">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => navigate("/shops")}
-                  disabled={loading}
                 >
                   Annuler
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={loading}
-                  className="min-w-[100px]"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Création...
-                    </>
-                  ) : (
-                    "Créer ma boutique"
-                  )}
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Création..." : "Créer ma boutique"}
                 </Button>
               </div>
             </form>
