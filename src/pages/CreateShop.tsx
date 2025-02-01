@@ -39,7 +39,7 @@ export default function CreateShop() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (loading) return; // Prevent multiple submissions
+    if (loading) return;
     
     try {
       setLoading(true);
@@ -52,6 +52,23 @@ export default function CreateShop() {
           description: "Vous devez être connecté pour créer une boutique",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Vérifier si l'utilisateur a déjà une boutique
+      const { data: existingShops } = await supabase
+        .from("shops")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingShops) {
+        toast({
+          title: "Erreur",
+          description: "Vous avez déjà une boutique. Vous ne pouvez pas en créer une deuxième.",
+          variant: "destructive",
+        });
+        navigate("/shops");
         return;
       }
 
@@ -76,11 +93,13 @@ export default function CreateShop() {
       });
       
       navigate("/shops");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating shop:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la création de la boutique",
+        description: error.message === "duplicate key value violates unique constraint \"shops_user_id_key\"" 
+          ? "Vous avez déjà une boutique. Vous ne pouvez pas en créer une deuxième."
+          : "Une erreur est survenue lors de la création de la boutique",
         variant: "destructive",
       });
     } finally {
