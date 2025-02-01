@@ -11,7 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
@@ -38,6 +39,8 @@ export default function CreateShop() {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (loading) return; // Prevent multiple submissions
+    
     try {
       setLoading(true);
       console.log("Creating shop with values:", values);
@@ -175,11 +178,23 @@ export default function CreateShop() {
                   type="button" 
                   variant="outline" 
                   onClick={() => navigate("/shops")}
+                  disabled={loading}
                 >
                   Annuler
                 </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Création..." : "Créer ma boutique"}
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="min-w-[100px]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Création...
+                    </>
+                  ) : (
+                    "Créer ma boutique"
+                  )}
                 </Button>
               </div>
             </form>
