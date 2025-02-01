@@ -32,9 +32,9 @@ export default function MainSidebar() {
   }, []);
 
   return (
-    <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
+    <aside className="fixed left-0 top-0 bottom-0 z-20 hidden w-64 border-r border-border bg-background pt-16 md:block">
       <ScrollArea className="h-full px-4 py-6">
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible className="w-full">
           <HomeSection />
           <ExploreSection />
           <PersonalSection />
@@ -43,6 +43,6 @@ export default function MainSidebar() {
           {isAdmin && <AdminSection />}
         </Accordion>
       </ScrollArea>
-    </nav>
+    </aside>
   );
 }
