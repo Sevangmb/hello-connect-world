@@ -27,9 +27,9 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
+import CreateShop from "@/pages/CreateShop";
 import { Admin } from "@/layouts/Admin";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-import "./index.css";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -73,6 +73,7 @@ const App = () => {
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/explore" element={<Explore />} />
       <Route path="/shops" element={<Shops />} />
+      <Route path="/shops/create" element={<CreateShop />} />
       <Route path="/stores/map" element={<StoresList />} />
       <Route path="/stores/search" element={<StoresList />} />
       <Route path="/stores/list" element={<StoresList />} />
