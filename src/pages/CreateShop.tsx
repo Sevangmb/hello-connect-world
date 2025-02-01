@@ -16,8 +16,8 @@ import { useToast } from "@/components/ui/use-toast";
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
   description: z.string().optional(),
-  address: z.string().optional(),
-  phone: z.string().optional(),
+  address: z.string().min(2, "L'adresse est requise"),
+  phone: z.string().min(10, "Le numéro de téléphone doit faire au moins 10 caractères"),
   website: z.string().url("L'URL doit être valide").optional().or(z.literal("")),
 });
 
@@ -40,6 +40,7 @@ export default function CreateShop() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+      console.log("Creating shop with values:", values);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -55,13 +56,16 @@ export default function CreateShop() {
         name: values.name,
         description: values.description,
         user_id: user.id,
-        address: values.address || null,
-        phone: values.phone || null,
+        address: values.address,
+        phone: values.phone,
         website: values.website || null,
         status: "pending",
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating shop:", error);
+        throw error;
+      }
 
       toast({
         title: "Boutique créée",
@@ -82,11 +86,12 @@ export default function CreateShop() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
+    <div className="min-h-screen bg-background">
       <Header />
       <MainSidebar />
-      <main className="pt-24 px-4 md:pl-72">
-        <div className="max-w-2xl mx-auto">
+      
+      <main className="container mx-auto px-4 pt-24 pb-16 md:pl-72 md:pb-0">
+        <div className="max-w-2xl mx-auto bg-card p-6 rounded-lg shadow">
           <h1 className="text-2xl font-bold mb-6">Ouvrir ma boutique</h1>
           
           <Form {...form}>
@@ -96,7 +101,7 @@ export default function CreateShop() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nom de la boutique</FormLabel>
+                    <FormLabel>Nom de la boutique *</FormLabel>
                     <FormControl>
                       <Input placeholder="Ma superbe boutique" {...field} />
                     </FormControl>
@@ -128,7 +133,7 @@ export default function CreateShop() {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Adresse</FormLabel>
+                    <FormLabel>Adresse *</FormLabel>
                     <FormControl>
                       <Input placeholder="123 rue du Commerce" {...field} />
                     </FormControl>
@@ -142,7 +147,7 @@ export default function CreateShop() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Téléphone</FormLabel>
+                    <FormLabel>Téléphone *</FormLabel>
                     <FormControl>
                       <Input placeholder="+33 6 12 34 56 78" {...field} />
                     </FormControl>
@@ -165,7 +170,7 @@ export default function CreateShop() {
                 )}
               />
 
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end gap-4 pt-4">
                 <Button 
                   type="button" 
                   variant="outline" 
