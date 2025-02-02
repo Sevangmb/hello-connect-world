@@ -66,62 +66,12 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/marketplace",
-            })}
-            onClick={() => navigate("/admin/marketplace")}
-          >
-            <ShoppingBag className="h-4 w-4" />
-            Vide-Dressing
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/content",
-            })}
-            onClick={() => navigate("/admin/content")}
-          >
-            <BookOpen className="h-4 w-4" />
-            Contenu
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/admin/stats",
             })}
             onClick={() => navigate("/admin/stats")}
           >
             <ChartBar className="h-4 w-4" />
             Statistiques
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/marketing",
-            })}
-            onClick={() => navigate("/admin/marketing")}
-          >
-            <Megaphone className="h-4 w-4" />
-            Marketing
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/settings",
-            })}
-            onClick={() => navigate("/admin/settings")}
-          >
-            <Settings className="h-4 w-4" />
-            Paramètres
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/help",
-            })}
-            onClick={() => navigate("/admin/help")}
-          >
-            <HelpCircle className="h-4 w-4" />
-            Aide & Support
           </Button>
         </div>
       </AccordionContent>

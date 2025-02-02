@@ -23,3 +23,24 @@ const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Res
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   fetch: customFetch,
 });
+
+export const adminQueries = {
+  fetchAdminStats: async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, is_admin, created_at', { count: 'exact' });
+    if (error) {
+      throw error;
+    }
+    return data;
+  },
+  fetchAnalytics: async () => {
+    const { data, error } = await supabase
+      .from('analytics')
+      .select('*');
+    if (error) {
+      throw error;
+    }
+    return data;
+  },
+};
