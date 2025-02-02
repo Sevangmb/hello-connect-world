@@ -63,7 +63,7 @@ const Stats: React.FC = () => {
       {/* Bar Chart Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Bar Chart - Mensuel</CardTitle>
+          <CardTitle>Croissance Mensuelle des Utilisateurs & Boutiques</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -82,7 +82,7 @@ const Stats: React.FC = () => {
       {/* Line Chart Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Line Chart - Hebdomadaire</CardTitle>
+          <CardTitle>Croissance Hebdomadaire des Utilisateurs & Boutiques</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>

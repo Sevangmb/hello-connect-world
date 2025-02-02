@@ -3,12 +3,7 @@ import {
   LayoutDashboard,
   Users,
   Store,
-  ShoppingBag,
-  BookOpen,
   ChartBar,
-  Megaphone,
-  Settings,
-  HelpCircle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";

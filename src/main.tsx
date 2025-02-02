@@ -1,5 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import AdminShops from "@/pages/admin/AdminShops";
+import AdminStats from "@/pages/admin/AdminStats";
+import AdminUsers from "@/pages/AdminUsers";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
@@ -64,6 +67,9 @@ const App = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="shops" element={<AdminShops />} />
+        <Route path="stats" element={<AdminStats />} />
         <Route path="shops" element={<AdminShops />} />
       </Route>
 
