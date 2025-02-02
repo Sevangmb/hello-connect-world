@@ -27,9 +27,10 @@ export default function Login() {
       
       navigate("/");
     } catch (error: any) {
+      const errorMessage = error.code === "invalid_credentials" ? "Identifiants invalides. Veuillez vérifier votre email et mot de passe." : error.message;
       toast({
         title: "Erreur de connexion",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

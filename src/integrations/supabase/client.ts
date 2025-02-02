@@ -8,4 +8,18 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const defaultFetch = fetch;
+const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Response> => {
+  const response = await defaultFetch(url, options);
+  if (!response.ok) {
+    const errorData = await response.clone().json().catch(() => null);
+    if (errorData && errorData.code === "invalid_credentials") {
+      throw new Error("Identifiants invalides. Veuillez vérifier votre email et mot de passe.");
+    }
+  }
+  return response;
+};
+
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  fetch: customFetch,
+});
