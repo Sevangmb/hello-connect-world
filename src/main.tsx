@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -28,7 +28,8 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
-import { Admin } from "@/layouts/Admin";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 
@@ -46,29 +47,32 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <Routes>
-      {/* Auth Section */}
+      {/* Auth Section - Public routes for authentication (login, admin login) */}
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
 
       {/* Admin Section */}
       <Route
-        path="/admin/*"
+        path="/admin"
         element={
           <AdminRoute>
-            <Admin />
+            <AdminLayout />
           </AdminRoute>
         }
-      />
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+      </Route>
 
-      {/* Home Section */}
+      {/* Home Section - Public routes for general site content (Index, feed, challenges, etc.) */}
       <Route path="/" element={<Index />} />
       <Route path="/suggestions" element={<Suggestions />} />
       <Route path="/feed" element={<Feed />} />
       <Route path="/challenges" element={<Challenges />} />
       <Route path="/challenge/:id" element={<Challenge />} />
 
-      {/* Explore Section */}
+      {/* Explore Section - Public routes for exploring content (search, trending, hashtags, shops, stores, etc.) */}
       <Route path="/search" element={<Search />} />
       <Route path="/trending/outfits" element={<TrendingOutfits />} />
       <Route path="/hashtags" element={<Hashtags />} />
@@ -79,12 +83,12 @@ const App = () => {
       <Route path="/stores/search" element={<StoresList />} />
       <Route path="/stores/list" element={<StoresList />} />
 
-      {/* Personal Section */}
+      {/* Personal Section - Public routes for personalized user content (clothes, outfits, personal profile) */}
       <Route path="/clothes" element={<Clothes />} />
       <Route path="/outfits" element={<Outfits />} />
       <Route path="/personal" element={<Personal />} />
 
-      {/* Community Section */}
+      {/* Community Section - Public routes for community interaction (community, messages, groups, notifications, friends) */}
       <Route path="/community" element={<Community />} />
       <Route path="/messages" element={<Messages />} />
       <Route path="/groups" element={<Groups />} />
@@ -92,13 +96,13 @@ const App = () => {
       <Route path="/friends" element={<Friends />} />
       <Route path="/find-friends" element={<FindFriends />} />
 
-      {/* Profile Section */}
+      {/* Profile Section - Public routes for user profile and settings, plus marketplace/help fallback */}
       <Route path="/profile" element={<Profile />} />
       <Route path="/profile/settings" element={<Settings />} />
       <Route path="/marketplace" element={<StoresList />} />
       <Route path="/help" element={<NotFound />} />
 
-      {/* 404 */}
+      {/* Fallback Route - Catches unmatched paths and renders NotFound component */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -107,7 +111,7 @@ const App = () => {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter>{/* Provides routing context for the application */}>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
