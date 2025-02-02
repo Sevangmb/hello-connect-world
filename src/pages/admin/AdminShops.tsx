@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Check, Trash2, X } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,11 +25,16 @@ export default function AdminShops() {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("Fetching shops...");
     fetchShops();
   }, []);
 
   const fetchShops = async () => {
     try {
+      console.log("Starting shops fetch");
+      const { data: userData } = await supabase.auth.getUser();
+      console.log("Current user:", userData);
+
       const { data, error } = await supabase
         .from('shops')
         .select(`
@@ -51,6 +56,7 @@ export default function AdminShops() {
         return;
       }
 
+      console.log("Fetched shops:", data);
       setShops(data || []);
     } catch (error) {
       console.error('Error:', error);
@@ -61,6 +67,7 @@ export default function AdminShops() {
 
   const updateShopStatus = async (shopId: string, status: 'approved' | 'rejected') => {
     try {
+      console.log(`Updating shop ${shopId} status to ${status}`);
       const { error } = await supabase
         .from('shops')
         .update({ status })
@@ -87,6 +94,7 @@ export default function AdminShops() {
 
   const deleteShop = async (shopId: string) => {
     try {
+      console.log(`Deleting shop ${shopId}`);
       const { error } = await supabase
         .from('shops')
         .delete()
