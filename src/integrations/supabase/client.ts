@@ -12,10 +12,14 @@ const defaultFetch = fetch;
 const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Response> => {
   const response = await defaultFetch(url, options);
   if (!response.ok) {
-    const errorData = await response.clone().json().catch(() => null);
-    if (errorData && errorData.code === "invalid_credentials") {
-      throw new Error("Identifiants invalides. Veuillez vérifier votre email et mot de passe.");
-    }
+    let errorMessage = "An error occurred while fetching.";
+    try {
+      const errorData = await response.clone().json();
+      if (errorData && errorData.code === "invalid_credentials") {
+        errorMessage = "Identifiants invalides. Veuillez vérifier votre email et mot de passe.";
+      }
+    } catch (e) {}
+    throw new Error(errorMessage);
   }
   return response;
 };
