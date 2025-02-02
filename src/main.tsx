@@ -111,7 +111,7 @@ const App = () => {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{/* Provides routing context for the application */}>
+      <BrowserRouter>{/* Provides routing context for the application */}
         <App />
       </BrowserRouter>
     </QueryClientProvider>
