@@ -7,7 +7,6 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
-
 const defaultFetch = fetch;
 const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Response> => {
   const response = await defaultFetch(url, options);
@@ -23,7 +22,6 @@ const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Res
   }
   return response;
 };
-
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   fetch: customFetch,
 });
