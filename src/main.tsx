@@ -30,6 +30,14 @@ import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminShops from "@/pages/admin/AdminShops";
+import AdminMarketplace from "@/pages/admin/AdminMarketplace";
+import AdminContent from "@/pages/admin/AdminContent";
+import AdminStats from "@/pages/admin/AdminStats";
+import AdminMarketing from "@/pages/admin/AdminMarketing";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminHelp from "@/pages/admin/AdminHelp";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 
@@ -63,6 +71,14 @@ const App = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="shops" element={<AdminShops />} />
+        <Route path="marketplace" element={<AdminMarketplace />} />
+        <Route path="content" element={<AdminContent />} />
+        <Route path="stats" element={<AdminStats />} />
+        <Route path="marketing" element={<AdminMarketing />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="help" element={<AdminHelp />} />
       </Route>
 
       {/* Home Section - Public routes for general site content (Index, feed, challenges, etc.) */}

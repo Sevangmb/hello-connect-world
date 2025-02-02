@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function AdminStats() {
+export default function AdminMarketplace() {
   return (
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Statistiques</CardTitle>
+          <CardTitle>Gestion du Vide-Dressing</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Affichage des statistiques d'administration</p>
+          <p>Interface de gestion du vide-dressing</p>
         </CardContent>
       </Card>
     </div>
