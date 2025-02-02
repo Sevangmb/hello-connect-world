@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
@@ -48,6 +48,23 @@ export default function CreateShop() {
           description: "Vous devez être connecté pour créer une boutique",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Check if user already has a shop
+      const { data: existingShop } = await supabase
+        .from("shops")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingShop) {
+        toast({
+          title: "Erreur",
+          description: "Vous avez déjà une boutique",
+          variant: "destructive",
+        });
+        navigate("/shops");
         return;
       }
 
