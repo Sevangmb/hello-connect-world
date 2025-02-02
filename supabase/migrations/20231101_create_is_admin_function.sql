@@ -17,4 +17,4 @@ BEGIN
      
     RETURN admin_flag;
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql VOLATILE;
