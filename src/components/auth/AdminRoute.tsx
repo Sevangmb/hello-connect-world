@@ -9,7 +9,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const checkAdminStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+      if (process.env.NODE_ENV === 'development') { console.log("User session:", session); }
       if (!session) {
         setLoading(false);
         return;
@@ -21,6 +21,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
         .eq('id', session.user.id)
         .single();
 
+      if (process.env.NODE_ENV === 'development') { console.log("Admin check result for user", session.user.id, ":", profile?.is_admin); }
       setIsAdmin(profile?.is_admin || false);
       setLoading(false);
     };
