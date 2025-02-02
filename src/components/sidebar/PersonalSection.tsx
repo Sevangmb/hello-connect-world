@@ -21,8 +21,15 @@ import {
 } from "@/components/ui/accordion";
 
 export const PersonalSection = () => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const safeNavigate = (path: string) => {
+    try {
+      navigate(path);
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
+  };
 
   return (
     <AccordionItem value="personal" className="border-none">
@@ -39,7 +46,7 @@ export const PersonalSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/clothes",
             })}
-            onClick={() => navigate("/clothes")}
+            onClick={() => safeNavigate("/clothes")}
           >
             <Shirt className="h-4 w-4" />
             Ma Garde-Robe
@@ -49,7 +56,7 @@ export const PersonalSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/outfits",
             })}
-            onClick={() => navigate("/outfits")}
+            onClick={() => safeNavigate("/outfits")}
           >
             <ShoppingBag className="h-4 w-4" />
             Mes Tenues
@@ -57,39 +64,9 @@ export const PersonalSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/looks",
-            })}
-            onClick={() => navigate("/looks")}
-          >
-            <Camera className="h-4 w-4" />
-            Mes Looks
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/suitcases",
-            })}
-            onClick={() => navigate("/suitcases")}
-          >
-            <Briefcase className="h-4 w-4" />
-            Mes Valises
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/favorites",
-            })}
-            onClick={() => navigate("/favorites")}
-          >
-            <Heart className="h-4 w-4" />
-            Mes Favoris
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/outfits",
             })}
-            onClick={() => navigate("/outfits")}
+            onClick={() => safeNavigate("/outfits")}
           >
             <Pencil className="h-4 w-4" />
             Créer une Tenue
@@ -99,7 +76,7 @@ export const PersonalSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/publish-look",
             })}
-            onClick={() => navigate("/publish-look")}
+            onClick={() => safeNavigate("/publish-look")}
           >
             <Share2 className="h-4 w-4" />
             Publier un Look
@@ -118,7 +95,7 @@ export const PersonalSection = () => {
                   className={cn("w-full justify-start gap-2", {
                     "bg-gray-100": location.pathname === "/add-clothes/scan",
                   })}
-                  onClick={() => navigate("/add-clothes/scan")}
+                  onClick={() => safeNavigate("/add-clothes/scan")}
                 >
                   <ScanLine className="h-4 w-4" />
                   Scanner étiquette
@@ -128,7 +105,7 @@ export const PersonalSection = () => {
                   className={cn("w-full justify-start gap-2", {
                     "bg-gray-100": location.pathname === "/add-clothes/photo",
                   })}
-                  onClick={() => navigate("/add-clothes/photo")}
+                  onClick={() => safeNavigate("/add-clothes/photo")}
                 >
                   <Camera className="h-4 w-4" />
                   Prendre une Photo
@@ -138,7 +115,7 @@ export const PersonalSection = () => {
                   className={cn("w-full justify-start gap-2", {
                     "bg-gray-100": location.pathname === "/add-clothes/import",
                   })}
-                  onClick={() => navigate("/add-clothes/import")}
+                  onClick={() => safeNavigate("/add-clothes/import")}
                 >
                   <Upload className="h-4 w-4" />
                   Importer depuis la Galerie
@@ -148,7 +125,7 @@ export const PersonalSection = () => {
                   className={cn("w-full justify-start gap-2", {
                     "bg-gray-100": location.pathname === "/add-clothes/manual",
                   })}
-                  onClick={() => navigate("/add-clothes/manual")}
+                  onClick={() => safeNavigate("/add-clothes/manual")}
                 >
                   <FileText className="h-4 w-4" />
                   Saisie Manuelle

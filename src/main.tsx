@@ -30,6 +30,10 @@ import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
 import { Admin } from "@/layouts/Admin";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import ShopDetail from "@/pages/ShopDetail";
+import ClothesDetail from "@/pages/ClothesDetail";
+import OutfitDetail from "@/pages/OutfitDetail";
+import Help from "@/pages/Help";
 import "./index.css";
 
 // Create a client
@@ -75,13 +79,13 @@ const App = () => {
       <Route path="/explore" element={<Explore />} />
       <Route path="/shops" element={<Shops />} />
       <Route path="/shops/create" element={<CreateShop />} /> {/* Ajout de la nouvelle route */}
-      <Route path="/stores/map" element={<StoresList />} />
-      <Route path="/stores/search" element={<StoresList />} />
-      <Route path="/stores/list" element={<StoresList />} />
+      <Route path="/shops/:id" element={<ShopDetail />} />
 
       {/* Personal Section */}
       <Route path="/clothes" element={<Clothes />} />
+      <Route path="/clothes/:id" element={<ClothesDetail />} />
       <Route path="/outfits" element={<Outfits />} />
+      <Route path="/outfits/:id" element={<OutfitDetail />} />
       <Route path="/personal" element={<Personal />} />
 
       {/* Community Section */}
@@ -95,8 +99,8 @@ const App = () => {
       {/* Profile Section */}
       <Route path="/profile" element={<Profile />} />
       <Route path="/profile/settings" element={<Settings />} />
-      <Route path="/marketplace" element={<StoresList />} />
-      <Route path="/help" element={<NotFound />} />
+      <Route path="/marketplace" element={<Shops />} />
+      <Route path="/help" element={<Help />} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
