@@ -32,8 +32,8 @@ const Auth = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: email.trim(),
+        password: password.trim(),
       });
 
       if (error) {
@@ -72,13 +72,18 @@ const Auth = () => {
     console.log("Tentative d'inscription avec:", { email, username, fullName });
 
     try {
+      // Vérifier si les champs requis sont remplis
+      if (!email || !password || !username || !fullName) {
+        throw new Error("Veuillez remplir tous les champs");
+      }
+
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: email.trim(),
+        password: password.trim(),
         options: {
           data: {
-            username,
-            full_name: fullName,
+            username: username.trim(),
+            full_name: fullName.trim(),
           },
         },
       });
@@ -110,16 +115,16 @@ const Auth = () => {
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Requesting password reset for:", email);
+    console.log("Demande de réinitialisation pour:", email);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/auth/reset`,
       });
 
       if (error) throw error;
 
-      console.log("Password reset email sent");
+      console.log("Email de réinitialisation envoyé");
       toast({
         title: "Email envoyé",
         description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe.",
@@ -127,7 +132,7 @@ const Auth = () => {
       
       setMode("login");
     } catch (error: any) {
-      console.error("Password reset error:", error);
+      console.error("Erreur de réinitialisation:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
