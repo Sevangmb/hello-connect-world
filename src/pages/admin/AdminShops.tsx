@@ -5,8 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Check, Trash2, X } from "lucide-react";
+import { Check, Trash2, X, Edit2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import EditShopForm from "@/components/admin/EditShopForm";
+import ShopDetailsDialog from "@/components/admin/ShopDetailsDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +25,8 @@ export default function AdminShops() {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [selectedShopForEdit, setSelectedShopForEdit] = useState<any>(null);
+  const [selectedShopForDetails, setSelectedShopForDetails] = useState<any>(null);
 
   useEffect(() => {
     console.log("Fetching shops...");
@@ -187,6 +191,22 @@ export default function AdminShops() {
                           </Button>
                         </>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-600"
+                        onClick={() => setSelectedShopForEdit(shop)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-600"
+                        onClick={() => setSelectedShopForDetails(shop)}
+                      >
+                        <Info className="h-4 w-4" />
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -223,6 +243,12 @@ export default function AdminShops() {
           </Table>
         </CardContent>
       </Card>
+          {selectedShopForEdit && (
+            <EditShopForm shop={selectedShopForEdit} onClose={() => { setSelectedShopForEdit(null); fetchShops(); }} />
+          )}
+          {selectedShopForDetails && (
+            <ShopDetailsDialog shop={selectedShopForDetails} onClose={() => setSelectedShopForDetails(null)} />
+          )}
     </div>
   );
 }

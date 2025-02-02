@@ -30,6 +30,7 @@ import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminShops from "@/pages/admin/AdminShops";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 
@@ -63,6 +64,7 @@ const App = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="shops" element={<AdminShops />} />
       </Route>
 
       {/* Home Section - Public routes for general site content (Index, feed, challenges, etc.) */}
