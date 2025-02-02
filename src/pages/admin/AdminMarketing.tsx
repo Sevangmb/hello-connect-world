@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function AdminSettings() {
+export default function AdminMarketing() {
   return (
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Paramètres</CardTitle>
+          <CardTitle>Marketing</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Cette page permet la configuration des paramètres du site, en ajustant les options et adaptant la plateforme selon les besoins.</p>
+          <p>Cette page est dédiée à la gestion des campagnes marketing : lancement de campagnes et suivi des performances publicitaires.</p>
         </CardContent>
       </Card>
     </div>

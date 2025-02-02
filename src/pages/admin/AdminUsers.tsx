@@ -5,10 +5,10 @@ export default function AdminUsers() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Gestion des utilisateurs</CardTitle>
+          <CardTitle>Utilisateurs</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Interface de gestion des utilisateurs</p>
+          <p>Cette page permet de gérer tous les utilisateurs du site, consulter les profils, modifier les rôles et contrôler l'accès.</p>
         </CardContent>
       </Card>
     </div>

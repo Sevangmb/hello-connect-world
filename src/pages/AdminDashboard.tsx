@@ -6,10 +6,10 @@ export default function AdminDashboard() {
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Panneau de bord</CardTitle>
+          <CardTitle>Tableau de Bord</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Bienvenue dans l'interface d'administration</p>
+          <p>Aperçu des métriques clés : nombre d'utilisateurs, boutiques actives, données de ventes, etc.</p>
         </CardContent>
       </Card>
     </div>
