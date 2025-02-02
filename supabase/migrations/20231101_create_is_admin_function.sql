@@ -1,8 +1,7 @@
 -- Migration: 20231101_create_is_admin_function.sql
--- This migration creates the "is_admin" function in the Supabase PostgreSQL database.
--- The function accepts a user_id (UUID) as its parameter, queries the "profiles" table to retrieve
--- the corresponding "is_admin" flag, and returns a boolean value indicating whether the user is an admin.
--- This function is used by the AdminLogin page (and other admin routes) to enforce admin access.
+-- This migration creates the 'is_admin' function in the Supabase PostgreSQL database.
+-- The function accepts a user_id (UUID) as its parameter, queries the 'profiles' table to retrieve
+-- the corresponding 'is_admin' flag, and returns a boolean value indicating whether the user is an admin.
 
 CREATE OR REPLACE FUNCTION public.is_admin(user_id UUID)
 RETURNS boolean
