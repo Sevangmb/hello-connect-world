@@ -31,24 +31,6 @@ const Auth = () => {
     console.log("Tentative de connexion avec:", email);
 
     try {
-      // Vérifions d'abord si l'utilisateur existe
-      const { data: userExists } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .single();
-
-      if (!userExists) {
-        console.log("Utilisateur non trouvé dans la base de données");
-        toast({
-          variant: "destructive",
-          title: "Erreur de connexion",
-          description: "Aucun compte trouvé avec cet email. Veuillez vous inscrire.",
-        });
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -157,27 +139,27 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-custom-cream p-4">
+      <Card className="w-full max-w-md border-custom-teal">
         <CardHeader>
           {mode !== "login" && (
             <Button
               variant="ghost"
-              className="mb-4 w-fit"
+              className="mb-4 w-fit text-custom-blue hover:text-custom-teal"
               onClick={() => setMode("login")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour
             </Button>
           )}
-          <CardTitle>
+          <CardTitle className="text-custom-blue">
             {mode === "login"
               ? "Connexion"
               : mode === "signup"
               ? "Inscription"
               : "Réinitialiser le mot de passe"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-custom-teal">
             {mode === "login"
               ? "Connectez-vous à votre compte"
               : mode === "signup"
@@ -200,25 +182,27 @@ const Auth = () => {
               <>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <User className="text-muted-foreground" />
+                    <User className="text-custom-blue" />
                     <Input
                       type="text"
                       placeholder="Nom d'utilisateur"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
+                      className="border-custom-teal focus:ring-custom-blue"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <User className="text-muted-foreground" />
+                    <User className="text-custom-blue" />
                     <Input
                       type="text"
                       placeholder="Nom complet"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
+                      className="border-custom-teal focus:ring-custom-blue"
                     />
                   </div>
                 </div>
@@ -227,13 +211,14 @@ const Auth = () => {
             
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <Mail className="text-muted-foreground" />
+                <Mail className="text-custom-blue" />
                 <Input
                   type="email"
                   placeholder="Adresse email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="border-custom-teal focus:ring-custom-blue"
                 />
               </div>
             </div>
@@ -241,13 +226,14 @@ const Auth = () => {
             {mode !== "reset" && (
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Lock className="text-muted-foreground" />
+                  <Lock className="text-custom-blue" />
                   <Input
                     type="password"
                     placeholder="Mot de passe"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="border-custom-teal focus:ring-custom-blue"
                   />
                 </div>
               </div>
@@ -255,7 +241,7 @@ const Auth = () => {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-custom-blue hover:bg-custom-teal text-white"
               disabled={loading}
             >
               {loading ? (
@@ -275,6 +261,7 @@ const Auth = () => {
                   type="button"
                   variant="link"
                   onClick={() => setMode("signup")}
+                  className="text-custom-blue hover:text-custom-teal"
                 >
                   Pas encore de compte ? S'inscrire
                 </Button>
@@ -282,6 +269,7 @@ const Auth = () => {
                   type="button"
                   variant="link"
                   onClick={() => setMode("reset")}
+                  className="text-custom-blue hover:text-custom-teal"
                 >
                   Mot de passe oublié ?
                 </Button>
