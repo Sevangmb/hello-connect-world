@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Edit2, Info } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Check, Trash2, X, Edit2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import EditShopForm from "@/components/admin/EditShopForm";
+import ShopDetailsDialog from "@/components/admin/ShopDetailsDialog";
 import EditShopForm from "@/components/admin/EditShopForm";
 import ShopDetailsDialog from "@/components/admin/ShopDetailsDialog";
 import {
@@ -25,6 +27,8 @@ export default function AdminShops() {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [selectedShopForEdit, setSelectedShopForEdit] = useState<any>(null);
+  const [selectedShopForDetails, setSelectedShopForDetails] = useState<any>(null);
   const [selectedShopForEdit, setSelectedShopForEdit] = useState<any>(null);
   const [selectedShopForDetails, setSelectedShopForDetails] = useState<any>(null);
 
@@ -243,6 +247,12 @@ export default function AdminShops() {
           </Table>
         </CardContent>
       </Card>
+          {selectedShopForEdit && (
+            <EditShopForm shop={selectedShopForEdit} onClose={() => { setSelectedShopForEdit(null); fetchShops(); }} />
+          )}
+          {selectedShopForDetails && (
+            <ShopDetailsDialog shop={selectedShopForDetails} onClose={() => setSelectedShopForDetails(null)} />
+          )}
           {selectedShopForEdit && (
             <EditShopForm shop={selectedShopForEdit} onClose={() => { setSelectedShopForEdit(null); fetchShops(); }} />
           )}

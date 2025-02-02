@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ totalUsers: 0, totalShops: 0, totalPosts: 0, totalOutfits: 0, totalChallenges: 0 });
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalShops: 0,
+    totalPosts: 0,
+    totalOutfits: 0,
+    totalChallenges: 0
+  });
   const [chartData, setChartData] = useState([]);
 
   useEffect(() => {
@@ -12,6 +18,9 @@ export default function AdminDashboard() {
       try {
         const { count: usersCount } = await supabase
           .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        const { count: shopsCount } = await supabase
+          .from('shops')
           .select('*', { count: 'exact', head: true });
         const { count: shopsCount } = await supabase
           .from('shops')
