@@ -29,6 +29,19 @@ export default function AdminShops() {
         <CardContent>
           <p>Cette page permet aux administrateurs de visualiser et gérer les boutiques, d&apos;approuver ou rejeter les demandes, et d&apos;inspecter les détails de chaque boutique.</p>
           <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Propriétaire</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={3}>Aucune boutique disponible</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
