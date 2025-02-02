@@ -1,5 +1,13 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminShops from "@/pages/admin/AdminShops";
+import AdminMarketplace from "@/pages/admin/AdminMarketplace";
+import AdminContent from "@/pages/admin/AdminContent";
+import AdminStats from "@/pages/admin/AdminStats";
+import AdminMarketing from "@/pages/admin/AdminMarketing";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminHelp from "@/pages/admin/AdminHelp";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
@@ -71,6 +79,14 @@ const App = () => {
       >
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="shops" element={<AdminShops />} />
+        <Route path="marketplace" element={<AdminMarketplace />} />
+        <Route path="content" element={<AdminContent />} />
+        <Route path="stats" element={<AdminStats />} />
+        <Route path="marketing" element={<AdminMarketing />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="help" element={<AdminHelp />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="shops" element={<AdminShops />} />
         <Route path="marketplace" element={<AdminMarketplace />} />
