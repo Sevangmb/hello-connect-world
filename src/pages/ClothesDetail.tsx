@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 
-const ClothesDetail = () => {
+export default function ClothesDetail() {
   const { id } = useParams<{ id: string }>();
 
   return (
@@ -36,5 +36,4 @@ const ClothesDetail = () => {
   );
 };
 
-export default ClothesDetail;
 </code>
