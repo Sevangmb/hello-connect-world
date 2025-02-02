@@ -5,10 +5,10 @@ export default function AdminContent() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Gestion du contenu</CardTitle>
+          <CardTitle>Contenu</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Interface de gestion du contenu du site</p>
+          <p>Cette page permet aux administrateurs d'ajouter, modifier ou supprimer le contenu textuel affiché sur le site.</p>
         </CardContent>
       </Card>
     </div>

@@ -8,7 +8,7 @@ export default function AdminSettings() {
           <CardTitle>Paramètres</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Configuration du site</p>
+          <p>Cette page permet la configuration des paramètres du site, en ajustant les options et adaptant la plateforme selon les besoins.</p>
         </CardContent>
       </Card>
     </div>

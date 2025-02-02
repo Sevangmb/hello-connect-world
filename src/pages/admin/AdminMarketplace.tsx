@@ -5,10 +5,10 @@ export default function AdminMarketplace() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Gestion du Vide-Dressing</CardTitle>
+          <CardTitle>Vide-Dressing</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Interface de gestion du vide-dressing</p>
+          <p>Cette page est dédiée à la gestion du vide-dressing : modération des articles, supervision des transactions, et gestion des offres.</p>
         </CardContent>
       </Card>
     </div>

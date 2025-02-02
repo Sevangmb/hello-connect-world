@@ -8,7 +8,7 @@ export default function AdminStats() {
           <CardTitle>Statistiques</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Affichage des statistiques d'administration</p>
+          <p>Cette page fournit un aperçu des statistiques clés de l'administration, incluant des métriques utilisateurs, la performance des ventes et d'autres indicateurs essentiels.</p>
         </CardContent>
       </Card>
     </div>

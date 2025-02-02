@@ -8,7 +8,7 @@ export default function AdminHelp() {
           <CardTitle>Aide & Support</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Centre d'aide et documentation</p>
+          <p>Ce centre d'aide offre des FAQ, de la documentation détaillée et des informations pour contacter le support. Vous y trouverez des guides pour résoudre les problèmes courants et obtenir une assistance personnalisée.</p>
         </CardContent>
       </Card>
     </div>

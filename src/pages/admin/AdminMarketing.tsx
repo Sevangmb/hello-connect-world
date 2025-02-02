@@ -8,7 +8,7 @@ export default function AdminMarketing() {
           <CardTitle>Marketing</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>Interface de gestion des campagnes marketing</p>
+          <p>Cette page est dédiée à la gestion des campagnes marketing : lancement de campagnes et suivi des performances publicitaires.</p>
         </CardContent>
       </Card>
     </div>

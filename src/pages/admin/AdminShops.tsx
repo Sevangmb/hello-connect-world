@@ -24,10 +24,11 @@ export default function AdminShops() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Gestion des boutiques</CardTitle>
+          <CardTitle>Boutiques</CardTitle>
         </CardHeader>
         <CardContent>
-          Interface de gestion des boutiques
+          <p>Cette page permet aux administrateurs de visualiser et gérer les boutiques, d&apos;approuver ou rejeter les demandes, et d&apos;inspecter les détails de chaque boutique.</p>
+          <Table>
         </CardContent>
       </Card>
     </div>
