@@ -18,6 +18,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Montserrat', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -28,24 +31,31 @@ export default {
           primary: "#1877F2",
           hover: "#1666d1",
         },
+        custom: {
+          blue: "#69d2e7",
+          teal: "#a7dbd8",
+          cream: "#e0e4cc",
+          orange: "#f38630",
+          rust: "#fa6900",
+        },
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          DEFAULT: "#69d2e7",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
+          DEFAULT: "#a7dbd8",
           foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
+          DEFAULT: "#fa6900",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
+          DEFAULT: "#e0e4cc",
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "#f38630",
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
