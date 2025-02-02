@@ -84,7 +84,9 @@ const App = () => {
       {/* Personal Section */}
       <Route path="/clothes" element={<Clothes />} />
       <Route path="/clothes/:id" element={<ClothesDetail />} />
+      <Route path="/clothes/:id" element={<ClothesDetail />} />
       <Route path="/outfits" element={<Outfits />} />
+      <Route path="/outfits/:id" element={<OutfitDetail />} />
       <Route path="/outfits/:id" element={<OutfitDetail />} />
       <Route path="/personal" element={<Personal />} />
 
