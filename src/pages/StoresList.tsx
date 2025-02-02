@@ -13,16 +13,15 @@ export default function StoresList() {
   const [shops, setShops] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchShops();
-    fetchFavorites();
+    fetchUserAndData();
   }, []);
 
-  const fetchShops = async () => {
+  const fetchUserAndData = async () => {
     try {
-      console.log("Fetching stores list...");
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -35,6 +34,21 @@ export default function StoresList() {
         return;
       }
 
+      setUserId(user.id);
+      await Promise.all([fetchShops(), fetchFavorites()]);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la récupération de l'utilisateur",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchShops = async () => {
+    try {
+      console.log("Fetching stores list...");
       const { data, error } = await supabase
         .from('shops')
         .select(`
@@ -85,13 +99,23 @@ export default function StoresList() {
   };
 
   const toggleFavorite = async (shopId: string) => {
+    if (!userId) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour ajouter des favoris",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       if (favorites.includes(shopId)) {
         // Remove from favorites
         const { error } = await supabase
           .from('favorite_shops')
           .delete()
-          .eq('shop_id', shopId);
+          .eq('shop_id', shopId)
+          .eq('user_id', userId);
 
         if (error) throw error;
 
@@ -104,7 +128,10 @@ export default function StoresList() {
         // Add to favorites
         const { error } = await supabase
           .from('favorite_shops')
-          .insert({ shop_id: shopId });
+          .insert({ 
+            shop_id: shopId,
+            user_id: userId
+          });
 
         if (error) throw error;
 
