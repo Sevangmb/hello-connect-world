@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Shops from "@/pages/Shops";
+import CreateShop from "@/pages/CreateShop"; // Ajout de l'import
 import StoresList from "@/pages/StoresList";
 import Search from "@/pages/Search";
 import TrendingOutfits from "@/pages/TrendingOutfits";
@@ -73,6 +74,7 @@ const App = () => {
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/explore" element={<Explore />} />
       <Route path="/shops" element={<Shops />} />
+      <Route path="/shops/create" element={<CreateShop />} /> {/* Ajout de la nouvelle route */}
       <Route path="/stores/map" element={<StoresList />} />
       <Route path="/stores/search" element={<StoresList />} />
       <Route path="/stores/list" element={<StoresList />} />
