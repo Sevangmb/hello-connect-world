@@ -22,7 +22,14 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface EditShopFormProps {
-  shop: any;
+  shop: {
+    id: string;
+    name: string;
+    description?: string;
+    address?: string;
+    phone?: string;
+    website?: string;
+  };
   onClose: () => void;
 }
 

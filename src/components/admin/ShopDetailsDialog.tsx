@@ -6,7 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
 interface ShopDetailsDialogProps {
-  shop: any;
+  shop: {
+    id: string;
+    name: string;
+    description?: string;
+    address?: string;
+    phone?: string;
+    website?: string;
+    status: string;
+    created_at?: string;
+    shop_items?: any[];
+    profiles?: { username?: string };
+  };
   onClose: () => void;
 }
 

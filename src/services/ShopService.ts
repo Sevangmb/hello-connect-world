@@ -1,7 +1,8 @@
 <code>
 import { supabase } from "@/integrations/supabase/client";
+export class ShopService {
 
-export async function fetchShops(): Promise<any[]> {
+static async fetchShops(): Promise<any[]> {
   try {
     const { data, error } = await supabase
       .from("shops")
@@ -13,8 +14,9 @@ export async function fetchShops(): Promise<any[]> {
     throw error;
   }
 }
+}
 
-export async function updateShopStatus(
+static async updateShopStatus(
   shopId: string,
   status: "approved" | "rejected"
 ): Promise<void> {
@@ -30,7 +32,7 @@ export async function updateShopStatus(
   }
 }
 
-export async function deleteShop(shopId: string): Promise<void> {
+static async deleteShop(shopId: string): Promise<void> {
   try {
     const { error } = await supabase
       .from("shops")
@@ -43,7 +45,7 @@ export async function deleteShop(shopId: string): Promise<void> {
   }
 }
 
-export async function getShopDetails(shopId: string): Promise<any> {
+static async getShopDetails(shopId: string): Promise<any> {
   try {
     const { data, error } = await supabase
       .from("shops")

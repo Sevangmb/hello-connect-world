@@ -14,8 +14,16 @@ const customFetch = async (url: RequestInfo, options?: RequestInit): Promise<Res
     let errorMessage = "An error occurred while fetching.";
     try {
       const errorData = await response.clone().json();
-      if (errorData && errorData.code === "invalid_credentials") {
-        errorMessage = "Identifiants invalides. Veuillez vérifier votre email et mot de passe.";
+      if (errorData) {
+        if (errorData.code === "invalid_credentials") {
+          errorMessage = "Identifiants invalides. Veuillez vérifier votre email et mot de passe.";
+        } else if (errorData.code === "expired_token") {
+          errorMessage = "Votre session a expiré, veuillez vous reconnecter.";
+        } else if (errorData.code === "invalid_session") {
+          errorMessage = "Session invalide. Veuillez vous reconnecter.";
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
       }
     } catch (e) {}
     throw new Error(errorMessage);
