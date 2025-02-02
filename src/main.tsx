@@ -49,7 +49,7 @@ const App = () => {
     <Routes>
       {/* Auth Section - Public routes for authentication (login, admin login) */}
       <Route path="/auth" element={<Auth />} />
-      <Route path="/auth/login" element={<Auth />} />
+      
       <Route path="/auth/admin" element={<AdminLogin />} />
 
       {/* Admin Section */}

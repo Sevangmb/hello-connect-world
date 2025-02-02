@@ -8,11 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, MessageSquare } from "lucide-react";
 
 const Messages = () => {
-  const [selectedFriend, setSelectedFriend] = useState<{ id: string; username: string } | null>(null);
+  
 
-  const handleChatSelect = (friend: { id: string; username: string }) => {
-    setSelectedFriend(friend);
-  };
+  
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -39,7 +37,7 @@ const Messages = () => {
             </TabsContent>
 
             <TabsContent value="friends">
-              <FriendsList onChatSelect={handleChatSelect} />
+              <FriendsList />
             </TabsContent>
           </Tabs>
         </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
-import { supabase } from "@/integrations/supabase/client";
+/* Sidebar Sections */
 import { HomeSection } from "./sidebar/HomeSection";
 import { ExploreSection } from "./sidebar/ExploreSection";
 import { PersonalSection } from "./sidebar/PersonalSection";
@@ -40,6 +41,7 @@ export default function MainSidebar() {
           <PersonalSection />
           <CommunitySection />
           <ProfileSection />
+          {/* Admin Section */}
           {isAdmin && <AdminSection />}
         </Accordion>
       </ScrollArea>
