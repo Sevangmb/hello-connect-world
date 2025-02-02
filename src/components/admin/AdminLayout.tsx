@@ -60,7 +60,7 @@ export function AdminLayout() {
   };
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
+    { icon: LayoutDashboard, label: "Panneau de bord", path: "/admin/dashboard" },
     { icon: Users, label: "Utilisateurs", path: "/admin/users" },
     { icon: ShoppingBag, label: "Boutiques", path: "/admin/shops" },
     { icon: FileText, label: "Contenu", path: "/admin/content" },

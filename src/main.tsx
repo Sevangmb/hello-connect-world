@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -28,7 +28,8 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
-import { Admin } from "@/layouts/Admin";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 
@@ -51,15 +52,18 @@ const App = () => {
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
 
-      {/* Admin Section - Protected routes for administrators using AdminRoute wrapper */}
+      {/* Admin Section */}
       <Route
-        path="/admin/*"
+        path="/admin"
         element={
           <AdminRoute>
-            <Admin />
+            <AdminLayout />
           </AdminRoute>
         }
-      />
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+      </Route>
 
       {/* Home Section - Public routes for general site content (Index, feed, challenges, etc.) */}
       <Route path="/" element={<Index />} />
