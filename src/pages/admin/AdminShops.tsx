@@ -4,10 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Check, Trash2, X } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminShops() {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchShops();
@@ -28,6 +43,11 @@ export default function AdminShops() {
 
       if (error) {
         console.error('Error fetching shops:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les boutiques",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -36,6 +56,58 @@ export default function AdminShops() {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateShopStatus = async (shopId: string, status: 'approved' | 'rejected') => {
+    try {
+      const { error } = await supabase
+        .from('shops')
+        .update({ status })
+        .eq('id', shopId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: `La boutique a été ${status === 'approved' ? 'approuvée' : 'rejetée'}`,
+      });
+
+      // Refresh shops list
+      fetchShops();
+    } catch (error) {
+      console.error('Error updating shop status:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la boutique",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteShop = async (shopId: string) => {
+    try {
+      const { error } = await supabase
+        .from('shops')
+        .delete()
+        .eq('id', shopId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Succès",
+        description: "La boutique a été supprimée",
+      });
+
+      // Refresh shops list
+      fetchShops();
+    } catch (error) {
+      console.error('Error deleting shop:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la boutique",
+        variant: "destructive",
+      });
     }
   };
 
@@ -72,6 +144,7 @@ export default function AdminShops() {
                 <TableHead>Articles</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Date de création</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -83,6 +156,58 @@ export default function AdminShops() {
                   <TableCell>{getStatusBadge(shop.status)}</TableCell>
                   <TableCell>
                     {format(new Date(shop.created_at), 'dd/MM/yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {shop.status === 'pending' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600"
+                            onClick={() => updateShopStatus(shop.id, 'approved')}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600"
+                            onClick={() => updateShopStatus(shop.id, 'rejected')}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer la boutique</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Êtes-vous sûr de vouloir supprimer cette boutique ? Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteShop(shop.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
