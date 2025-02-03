@@ -30,7 +30,6 @@ export function SiteSettings() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check authentication and admin status
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -82,10 +81,12 @@ export function SiteSettings() {
   // Convert array of settings to object
   const settings = settingsArray?.reduce((acc: { [key: string]: any }, setting) => {
     try {
-      acc[setting.key] = setting.value;
+      if (setting && setting.key && setting.value) {
+        acc[setting.key] = setting.value;
+      }
       return acc;
     } catch (error) {
-      console.error(`Error processing setting ${setting.key}:`, error);
+      console.error(`Error processing setting ${setting?.key}:`, error);
       return acc;
     }
   }, {});
@@ -144,7 +145,7 @@ export function SiteSettings() {
     }
   };
 
-  if (isSettingsLoading || isCategoriesLoading) {
+  if (isSettingsLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
