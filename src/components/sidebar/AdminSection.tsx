@@ -36,7 +36,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/dashboard",
+              "bg-custom-blue text-white": location.pathname === "/admin/dashboard",
             })}
             onClick={() => navigate("/admin/dashboard")}
           >
@@ -46,7 +46,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/users",
+              "bg-custom-blue text-white": location.pathname === "/admin/users",
             })}
             onClick={() => navigate("/admin/users")}
           >
@@ -56,7 +56,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/shops",
+              "bg-custom-blue text-white": location.pathname === "/admin/shops",
             })}
             onClick={() => navigate("/admin/shops")}
           >
@@ -66,7 +66,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/marketplace",
+              "bg-custom-blue text-white": location.pathname === "/admin/marketplace",
             })}
             onClick={() => navigate("/admin/marketplace")}
           >
@@ -76,7 +76,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/content",
+              "bg-custom-blue text-white": location.pathname === "/admin/content",
             })}
             onClick={() => navigate("/admin/content")}
           >
@@ -86,7 +86,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/stats",
+              "bg-custom-blue text-white": location.pathname === "/admin/stats",
             })}
             onClick={() => navigate("/admin/stats")}
           >
@@ -96,7 +96,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/marketing",
+              "bg-custom-blue text-white": location.pathname === "/admin/marketing",
             })}
             onClick={() => navigate("/admin/marketing")}
           >
@@ -106,7 +106,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/settings",
+              "bg-custom-blue text-white": location.pathname === "/admin/settings",
             })}
             onClick={() => navigate("/admin/settings")}
           >
@@ -116,7 +116,7 @@ export const AdminSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/admin/help",
+              "bg-custom-blue text-white": location.pathname === "/admin/help",
             })}
             onClick={() => navigate("/admin/help")}
           >
