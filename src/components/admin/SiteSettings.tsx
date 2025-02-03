@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,14 +22,34 @@ import {
   MessageSquare,
   ListTree,
   Share2,
+  Loader2,
 } from "lucide-react";
 
 export function SiteSettings() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        console.error("Auth error:", error);
+        toast({
+          variant: "destructive",
+          title: "Accès non autorisé",
+          description: "Veuillez vous connecter avec un compte administrateur.",
+        });
+        navigate("/auth");
+      }
+    };
+    
+    checkAuth();
+  }, [navigate, toast]);
+
   // Fetch site settings
-  const { data: settingsArray } = useQuery({
+  const { data: settingsArray, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
       console.log("Fetching site settings...");
@@ -53,7 +74,7 @@ export function SiteSettings() {
   }, {});
 
   // Fetch categories
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ["site-categories"],
     queryFn: async () => {
       console.log("Fetching site categories...");
@@ -76,13 +97,16 @@ export function SiteSettings() {
   const handleSave = async (key: string, value: any) => {
     setIsLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       console.log("Saving setting:", { key, value });
       const { error } = await supabase
         .from("site_settings")
         .upsert({ 
           key, 
           value, 
-          updated_by: (await supabase.auth.getUser()).data.user?.id 
+          updated_by: user.id 
         })
         .eq("key", key);
 
@@ -103,6 +127,14 @@ export function SiteSettings() {
       setIsLoading(false);
     }
   };
+
+  if (isSettingsLoading || isCategoriesLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -364,4 +396,4 @@ export function SiteSettings() {
       </Card>
     </div>
   );
-};
+}
