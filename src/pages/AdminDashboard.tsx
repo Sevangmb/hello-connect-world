@@ -34,11 +34,11 @@ export default function AdminDashboard() {
           .from("sales")
           .select("amount");
         let totalSales = 0;
+        if (salesError) {
+          console.error("Error retrieving sales data from sales table:", salesError);
+        }
         if (!salesError && salesRows) {
-          totalSales = salesRows.reduce(
-            (acc: number, row: any) => acc + (row.amount || 0),
-            0
-          );
+          totalSales = salesRows.reduce((acc: number, row: any) => acc + (row.amount || 0), 0);
         }
 
         // Fetch Monthly Active Users (MAU) - users active in the last 30 days
