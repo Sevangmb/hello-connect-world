@@ -205,6 +205,14 @@ const AdminUsers = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          title={user.is_admin ? "Rétrograder l'utilisateur" : "Promouvoir l'utilisateur en admin"}
+                          onClick={() => handleToggleRole(user.id, user.is_admin)}
+                        >
+                          {user.is_admin ? "Rétrograder" : "Promouvoir admin"}
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -252,6 +260,9 @@ const AdminUsers = () => {
                           onClick={() => handleExportData(user.id)}
                         >
                           <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive" title="Supprimer l'utilisateur" onClick={() => handleDeleteUser(user.id)}>
+                          Supprimer
                         </Button>
                       </TableCell>
                     </TableRow>
