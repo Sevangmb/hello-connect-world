@@ -17,8 +17,7 @@ const TrendingOutfits = () => {
       // First get the count of likes for each outfit
       const { data: likeCounts, error: likesError } = await supabase
         .from('outfit_likes')
-        .select('outfit_id, created_at')
-        .order('created_at', { ascending: false });
+        .select('outfit_id');
 
       if (likesError) {
         console.error("Error fetching likes:", likesError);
@@ -26,10 +25,11 @@ const TrendingOutfits = () => {
       }
 
       // Count likes per outfit and sort
-      const outfitLikeCounts = likeCounts?.reduce((acc, curr) => {
-        acc[curr.outfit_id] = (acc[curr.outfit_id] || 0) + 1;
+      const outfitLikeCounts = likeCounts?.reduce((acc: Record<string, number>, curr) => {
+        const outfitId = curr.outfit_id;
+        acc[outfitId] = (acc[outfitId] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>);
+      }, {});
 
       // Sort outfits by like count
       const sortedOutfitIds = Object.entries(outfitLikeCounts || {})

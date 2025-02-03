@@ -4,18 +4,26 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export function Header() {
-  const { data: settings } = useQuery({
+  const { data: settingsArray } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .single();
+        .order('key');
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
+
+  // Convert array to object for easier access
+  const settings = settingsArray?.reduce((acc: { [key: string]: any }, setting) => {
+    if (setting?.key && setting?.value) {
+      acc[setting.key] = setting.value;
+    }
+    return acc;
+  }, {});
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50">
