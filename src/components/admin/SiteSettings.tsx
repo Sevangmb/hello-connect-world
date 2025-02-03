@@ -59,7 +59,6 @@ export function SiteSettings() {
     checkAuth();
   }, [navigate, toast]);
 
-  // Fetch site settings
   const { data: settingsArray, isLoading: isSettingsLoading } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
@@ -79,7 +78,6 @@ export function SiteSettings() {
     },
   });
 
-  // Convert array of settings to object
   const settings = settingsArray?.reduce((acc: { [key: string]: any }, setting) => {
     try {
       if (setting && setting.key && setting.value) {
