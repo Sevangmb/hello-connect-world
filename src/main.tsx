@@ -7,6 +7,7 @@ import NotFound from "@/pages/NotFound";
 import Shops from "@/pages/Shops";
 import CreateShop from "@/pages/CreateShop"; // Ajout de l'import
 import StoresList from "@/pages/StoresList";
+import StoresMap from "@/pages/StoresMap";
 import Search from "@/pages/Search";
 import TrendingOutfits from "@/pages/TrendingOutfits";
 import Hashtags from "@/pages/Hashtags";
@@ -95,7 +96,7 @@ const App = () => {
       <Route path="/explore" element={<Explore />} />
       <Route path="/shops" element={<Shops />} />
       <Route path="/shops/create" element={<CreateShop />} /> {/* Ajout de la nouvelle route */}
-      <Route path="/stores/map" element={<StoresList />} />
+      <Route path="/stores/map" element={<StoresMap />} />
       <Route path="/stores/search" element={<StoresList />} />
       <Route path="/stores/list" element={<StoresList />} />
 
