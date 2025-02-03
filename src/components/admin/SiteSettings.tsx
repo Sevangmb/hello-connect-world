@@ -28,46 +28,62 @@ export function SiteSettings() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Fetch site settings
-  const { data: settings } = useQuery({
+  const { data: settingsArray } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
+      console.log("Fetching site settings...");
       const { data, error } = await supabase
         .from("site_settings")
         .select("*");
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching settings:", error);
+        throw error;
+      }
       
-      // Convert array of settings to object
-      const settingsObj: { [key: string]: any } = {};
-      data.forEach((setting) => {
-        settingsObj[setting.key] = setting.value;
-      });
-      
-      return settingsObj;
+      console.log("Settings fetched:", data);
+      return data || [];
     },
   });
+
+  // Convert array of settings to object
+  const settings = settingsArray?.reduce((acc: { [key: string]: any }, setting) => {
+    acc[setting.key] = setting.value;
+    return acc;
+  }, {});
 
   // Fetch categories
   const { data: categories } = useQuery({
     queryKey: ["site-categories"],
     queryFn: async () => {
+      console.log("Fetching site categories...");
       const { data, error } = await supabase
         .from("site_categories")
         .select("*")
         .order("type")
         .order("order_index");
       
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching categories:", error);
+        throw error;
+      }
+      
+      console.log("Categories fetched:", data);
+      return data || [];
     },
   });
 
   const handleSave = async (key: string, value: any) => {
     setIsLoading(true);
     try {
+      console.log("Saving setting:", { key, value });
       const { error } = await supabase
         .from("site_settings")
-        .upsert({ key, value, updated_by: (await supabase.auth.getUser()).data.user?.id })
+        .upsert({ 
+          key, 
+          value, 
+          updated_by: (await supabase.auth.getUser()).data.user?.id 
+        })
         .eq("key", key);
 
       if (error) throw error;
@@ -348,4 +364,4 @@ export function SiteSettings() {
       </Card>
     </div>
   );
-}
+};
