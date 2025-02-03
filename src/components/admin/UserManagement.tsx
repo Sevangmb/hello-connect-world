@@ -269,6 +269,11 @@ export function UserManagement() {
   return (
     <div className="space-y-6 p-4">
       <h1 className="text-2xl font-bold">Gestion des Utilisateurs</h1>
+      {/* BEGIN ALERT BANNER - New addition */}
+      <div className="alert-banner">
+         2.0 Experimental Advanced. N'a pas accès aux infos en temps réel ni à certaines fonctionnalités Gemini.
+      </div>
+      {/* END ALERT BANNER */}
       
       {/* Filtering Controls */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
