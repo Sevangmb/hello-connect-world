@@ -14,29 +14,32 @@ const TrendingOutfits = () => {
     queryFn: async () => {
       console.log("Fetching trending outfits...");
       
-      // First query to get outfits sorted by likes count using a subquery
-      const { data: likedOutfits, error: likesError } = await supabase
+      // First get the count of likes for each outfit
+      const { data: likeCounts, error: likesError } = await supabase
         .from('outfit_likes')
-        .select(`
-          outfit_id,
-          count:count(*)
-        `)
-        .order('count', { ascending: false })
-        .limit(20);
+        .select('outfit_id, created_at')
+        .order('created_at', { ascending: false });
 
       if (likesError) {
-        console.error("Error fetching likes count:", likesError);
+        console.error("Error fetching likes:", likesError);
         throw likesError;
       }
 
-      console.log("Likes data:", likedOutfits);
+      // Count likes per outfit and sort
+      const outfitLikeCounts = likeCounts?.reduce((acc, curr) => {
+        acc[curr.outfit_id] = (acc[curr.outfit_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
-      if (!likedOutfits?.length) {
+      // Sort outfits by like count
+      const sortedOutfitIds = Object.entries(outfitLikeCounts || {})
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 20)
+        .map(([id]) => id);
+
+      if (!sortedOutfitIds.length) {
         return [];
       }
-
-      // Get the outfit IDs sorted by popularity
-      const outfitIds = likedOutfits.map(item => item.outfit_id);
 
       // Fetch full outfit details
       const { data: outfits, error: outfitsError } = await supabase
@@ -48,7 +51,7 @@ const TrendingOutfits = () => {
           shoes:clothes!outfits_shoes_id_fkey(*),
           user:profiles!outfits_user_id_profiles_fkey(username, avatar_url)
         `)
-        .in('id', outfitIds);
+        .in('id', sortedOutfitIds);
 
       if (outfitsError) {
         console.error("Error fetching outfits details:", outfitsError);
@@ -56,7 +59,7 @@ const TrendingOutfits = () => {
       }
 
       // Sort outfits according to likes count order
-      const orderedOutfits = outfitIds
+      const orderedOutfits = sortedOutfitIds
         .map(id => outfits?.find(outfit => outfit.id === id))
         .filter(outfit => outfit !== undefined);
 
