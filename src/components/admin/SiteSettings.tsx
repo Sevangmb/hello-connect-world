@@ -67,7 +67,8 @@ export function SiteSettings() {
       console.log("Fetching site settings...");
       const { data, error } = await supabase
         .from("site_settings")
-        .select("*");
+        .select("*")
+        .order('key');
       
       if (error) {
         console.error("Error fetching settings:", error);
@@ -81,8 +82,13 @@ export function SiteSettings() {
 
   // Convert array of settings to object
   const settings = settingsArray?.reduce((acc: { [key: string]: any }, setting) => {
-    acc[setting.key] = setting.value;
-    return acc;
+    try {
+      acc[setting.key] = setting.value;
+      return acc;
+    } catch (error) {
+      console.error(`Error processing setting ${setting.key}:`, error);
+      return acc;
+    }
   }, {});
 
   const { data: categories, isLoading: isCategoriesLoading } = useQuery({
@@ -92,8 +98,8 @@ export function SiteSettings() {
       const { data, error } = await supabase
         .from("site_categories")
         .select("*")
-        .order("type")
-        .order("order_index");
+        .order('type')
+        .order('order_index');
       
       if (error) {
         console.error("Error fetching categories:", error);
@@ -139,7 +145,7 @@ export function SiteSettings() {
     }
   };
 
-  if (isSettingsLoading) {
+  if (isSettingsLoading || isCategoriesLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
