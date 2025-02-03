@@ -13,6 +13,7 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
   const { toast } = useToast();
   const [rating, setRating] = useState<number | null>(null);
   const [isLiked, setIsLiked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: voteData, refetch: refetchVotes } = useQuery({
     queryKey: ["outfit-votes", outfitId],
@@ -39,7 +40,6 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           .maybeSingle(),
       ]);
 
-      // Update local states
       setIsLiked(!!userLike);
       if (userRating?.rating) {
         setRating(userRating.rating);
@@ -54,7 +54,10 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
   });
 
   const handleLike = async () => {
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -66,16 +69,12 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
       }
 
       if (!isLiked) {
-        // Try to delete any existing like first to handle potential race conditions
-        await supabase
-          .from("outfit_likes")
-          .delete()
-          .eq("outfit_id", outfitId)
-          .eq("user_id", user.id);
-
         const { error } = await supabase
           .from("outfit_likes")
-          .insert({ outfit_id: outfitId, user_id: user.id });
+          .upsert(
+            { outfit_id: outfitId, user_id: user.id },
+            { onConflict: "user_id,outfit_id" }
+          );
 
         if (error) throw error;
 
@@ -108,11 +107,16 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
         title: "Erreur",
         description: "Impossible de modifier le j'aime",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleRating = async (value: number) => {
+    if (isSubmitting) return;
+
     try {
+      setIsSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -123,20 +127,16 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
         return;
       }
 
-      // Delete any existing rating first to handle potential race conditions
-      await supabase
-        .from("outfit_ratings")
-        .delete()
-        .eq("outfit_id", outfitId)
-        .eq("user_id", user.id);
-
       const { error } = await supabase
         .from("outfit_ratings")
-        .insert({
-          outfit_id: outfitId,
-          user_id: user.id,
-          rating: value,
-        });
+        .upsert(
+          {
+            outfit_id: outfitId,
+            user_id: user.id,
+            rating: value,
+          },
+          { onConflict: "user_id,outfit_id" }
+        );
 
       if (error) throw error;
 
@@ -154,6 +154,8 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
         title: "Erreur",
         description: "Impossible d'ajouter votre note",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,6 +166,7 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           variant="outline"
           size="sm"
           onClick={handleLike}
+          disabled={isSubmitting}
           className={isLiked ? "text-facebook-primary" : ""}
         >
           <ThumbsUp className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
@@ -178,6 +181,7 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
             variant="ghost"
             size="sm"
             onClick={() => handleRating(value)}
+            disabled={isSubmitting}
             className={rating === value ? "text-yellow-500" : ""}
           >
             <Star className={`h-4 w-4 ${rating === value ? "fill-current" : ""}`} />
