@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import UserManagement from '@/components/admin/UserManagement';
+import { UserManagement } from '@/components/admin/UserManagement';
 
 interface Profile {
   id: string;
