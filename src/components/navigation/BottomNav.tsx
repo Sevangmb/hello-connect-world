@@ -64,7 +64,7 @@ export const BottomNav = () => {
                   className={cn(
                     "flex flex-col items-center justify-center p-2 transition-colors relative",
                     item.isMain ? "w-16 -mt-4" : "w-full",
-                    location.pathname === item.path 
+                    (item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path))
                       ? "text-facebook-primary" 
                       : "text-gray-500 hover:text-facebook-primary hover:bg-gray-50"
                   )}
