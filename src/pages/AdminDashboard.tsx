@@ -119,9 +119,6 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{usersCount}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Utilisateurs inscrits
-                      </p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -129,10 +126,7 @@ export default function AdminDashboard() {
                       <CardTitle>Taux de croissance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{growthRate}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Croissance des utilisateurs
-                      </p>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -140,10 +134,7 @@ export default function AdminDashboard() {
                       <CardTitle>Taux de rétention</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{retentionRate}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Fidélisation des utilisateurs
-                      </p>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -151,10 +142,7 @@ export default function AdminDashboard() {
                       <CardTitle>Taux de churn</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{churnRate}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Utilisateurs perdus
-                      </p>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -162,12 +150,7 @@ export default function AdminDashboard() {
                       <CardTitle>Durée moyenne des sessions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">
-                        {avgSessionDuration}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Temps moyen par session
-                      </p>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -175,10 +158,7 @@ export default function AdminDashboard() {
                       <CardTitle>Répartition démographique</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{demographics}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Informations démographiques
-                      </p>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                 </div>
