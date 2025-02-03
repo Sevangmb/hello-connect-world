@@ -66,7 +66,8 @@ export function SiteSettings() {
       console.log("Fetching site settings...");
       const { data, error } = await supabase
         .from("site_settings")
-        .select("*");
+        .select("*")
+        .order('key');
       
       if (error) {
         console.error("Error fetching settings:", error);
@@ -145,7 +146,7 @@ export function SiteSettings() {
     }
   };
 
-  if (isSettingsLoading) {
+  if (isSettingsLoading || isCategoriesLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -413,4 +414,3 @@ export function SiteSettings() {
       </Card>
     </div>
   );
-}
