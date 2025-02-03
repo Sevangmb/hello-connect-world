@@ -67,8 +67,7 @@ export function SiteSettings() {
       console.log("Fetching site settings...");
       const { data, error } = await supabase
         .from("site_settings")
-        .select("*")
-        .order('key');
+        .select("*");
       
       if (error) {
         console.error("Error fetching settings:", error);
