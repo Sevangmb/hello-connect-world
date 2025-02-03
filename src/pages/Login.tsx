@@ -27,9 +27,10 @@ export default function Login() {
       
       navigate("/");
     } catch (error: any) {
+      const errorMessage = error?.message || 'Une erreur inattendue est survenue';
       toast({
         title: "Erreur de connexion",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
