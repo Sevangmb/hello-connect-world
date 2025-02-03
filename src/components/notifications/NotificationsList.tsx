@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageSquare, Heart, UserPlus, Check } from "lucide-react";
+import { Bell, MessageSquare, Heart, UserPlus, Check, AtSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -85,6 +85,16 @@ export const NotificationsList = () => {
         return {
           icon: <UserPlus className="h-4 w-4 text-green-500" />,
           message: `${notification.actor?.username || "Quelqu'un"} vous suit désormais`,
+        };
+      case "mention":
+        return {
+          icon: <AtSign className="h-4 w-4 text-indigo-500" />,
+          message: `${notification.actor?.username || "Quelqu'un"} vous a mentionné`,
+        };
+      case "private_message":
+        return {
+          icon: <MessageSquare className="h-4 w-4 text-cyan-500" />,
+          message: `${notification.actor?.username || "Quelqu'un"} vous a envoyé un message privé`,
         };
       default:
         return {
