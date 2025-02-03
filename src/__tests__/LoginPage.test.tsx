@@ -1,4 +1,3 @@
-<code>
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,13 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Mock the useNavigate hook from react-router-dom and toast hook from the UI library
 const mockedNavigate = jest.fn();
-jest.mock("react-router-dom", () => {
-  const actual = jest.requireActual("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockedNavigate,
-  };
-});
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockedNavigate,
+}));
 
 const mockedToast = jest.fn();
 jest.mock("@/components/ui/use-toast", () => ({
@@ -63,7 +59,7 @@ describe("Login Page", () => {
 
     await userEvent.type(emailInput, "test@example.com");
     await userEvent.type(passwordInput, "password123");
-    userEvent.click(submitButton);
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
@@ -90,7 +86,7 @@ describe("Login Page", () => {
 
     await userEvent.type(emailInput, "wrong@example.com");
     await userEvent.type(passwordInput, "wrongpassword");
-    userEvent.click(submitButton);
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
@@ -119,8 +115,7 @@ describe("Login Page", () => {
     renderWithRouter(<Login />);
     const submitButton = screen.getByRole("button", { name: /se connecter/i });
 
-    // Do not type into email and password fields; they remain empty
-    userEvent.click(submitButton);
+    await userEvent.click(submitButton);
 
     await waitFor(() => {
       expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
@@ -140,4 +135,3 @@ describe("Login Page", () => {
     expect(mockedNavigate).not.toHaveBeenCalled();
   });
 });
-</code>
