@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -30,11 +30,23 @@ export function SiteSettings() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check authentication
+  // Check authentication and admin status
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("No session");
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!profile?.is_admin) {
+          throw new Error("Not an admin");
+        }
+      } catch (error) {
         console.error("Auth error:", error);
         toast({
           variant: "destructive",
