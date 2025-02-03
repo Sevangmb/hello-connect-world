@@ -18,7 +18,7 @@ interface Profile {
   is_admin: boolean | null;
 }
 
-export function UsersManagement() {
+const AdminUsers = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -191,4 +191,6 @@ export function UsersManagement() {
       </Card>
     </div>
   );
-}
+};
+
+export default AdminUsers;
