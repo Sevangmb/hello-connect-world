@@ -20,103 +20,95 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function AdminShops() {
-  const [shops, setShops] = useState<any[]>([]);
+  const [shops, setShops] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("Fetching shops...");
     fetchShops();
   }, []);
 
   const fetchShops = async () => {
     try {
-      console.log("Starting shops fetch");
-      const { data: userData } = await supabase.auth.getUser();
-      console.log("Current user:", userData);
-
+      console.log("Fetching shops...");
       const { data, error } = await supabase
-        .from('shops')
+        .from("shops")
         .select(`
           *,
           profiles:user_id (
             username,
             full_name
-          ),
-          shop_items (
-            id
           )
-        `);
+        `)
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching shops:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les boutiques",
-          variant: "destructive",
-        });
-        return;
+        console.error("Error fetching shops:", error);
+        throw error;
       }
 
-      console.log("Fetched shops:", data);
+      console.log("Shops fetched:", data);
       setShops(data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       toast({
-        title: "Erreur",
-        description: "Une erreur est survenue",
         variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de charger les boutiques",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateShopStatus = async (shopId: string, status: 'approved' | 'rejected') => {
+  const handleStatusChange = async (shopId, newStatus) => {
     try {
-      console.log(`Updating shop ${shopId} status to ${status}`);
       const { error } = await supabase
-        .from('shops')
-        .update({ status })
-        .eq('id', shopId);
+        .from("shops")
+        .update({ status: newStatus })
+        .eq("id", shopId);
 
       if (error) throw error;
 
-      toast({
-        title: "Succès",
-        description: `La boutique a été ${status === 'approved' ? 'approuvée' : 'rejetée'}`,
-      });
+      setShops(shops.map(shop => 
+        shop.id === shopId ? { ...shop, status: newStatus } : shop
+      ));
 
-      fetchShops();
-    } catch (error) {
-      console.error('Error:', error);
       toast({
+        title: "Statut mis à jour",
+        description: `La boutique a été ${newStatus === "approved" ? "approuvée" : "rejetée"}`,
+        variant: newStatus === "approved" ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error("Error updating shop status:", error);
+      toast({
+        variant: "destructive",
         title: "Erreur",
         description: "Impossible de mettre à jour le statut",
-        variant: "destructive",
       });
     }
   };
 
-  const deleteShop = async (shopId: string) => {
+  const handleDeleteShop = async (shopId) => {
     try {
-      console.log(`Deleting shop ${shopId}`);
       const { error } = await supabase
-        .from('shops')
+        .from("shops")
         .delete()
-        .eq('id', shopId);
+        .eq("id", shopId);
 
       if (error) throw error;
 
+      setShops(shops.filter(shop => shop.id !== shopId));
       toast({
-        title: "Succès",
-        description: "La boutique a été supprimée",
+        title: "Boutique supprimée",
+        description: "La boutique a été supprimée avec succès",
       });
-
-      fetchShops();
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error deleting shop:", error);
       toast({
+        variant: "destructive",
         title: "Erreur",
         description: "Impossible de supprimer la boutique",
-        variant: "destructive",
       });
     }
   };
@@ -128,15 +120,14 @@ export default function AdminShops() {
           <CardTitle>Boutiques</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">Cette page permet aux administrateurs de visualiser et gérer les boutiques, d&apos;approuver ou rejeter les demandes, et d&apos;inspecter les détails de chaque boutique.</p>
+          <p className="mb-4">Cette page permet aux administrateurs de visualiser et gérer les boutiques, d'approuver ou rejeter les demandes, et d'inspecter les détails de chaque boutique.</p>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nom</TableHead>
                 <TableHead>Propriétaire</TableHead>
-                <TableHead>Articles</TableHead>
                 <TableHead>Statut</TableHead>
-                <TableHead>Créée le</TableHead>
+                <TableHead>Date de création</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -144,71 +135,71 @@ export default function AdminShops() {
               {shops.map((shop) => (
                 <TableRow key={shop.id}>
                   <TableCell>{shop.name}</TableCell>
-                  <TableCell>{shop.profiles?.username || shop.profiles?.full_name || 'Inconnu'}</TableCell>
-                  <TableCell>{shop.shop_items?.length || 0}</TableCell>
                   <TableCell>
-                    <Badge variant={
-                      shop.status === 'approved' ? 'success' :
-                      shop.status === 'rejected' ? 'destructive' :
-                      'default'
-                    }>
-                      {shop.status === 'approved' ? 'Approuvée' :
-                       shop.status === 'rejected' ? 'Rejetée' :
-                       'En attente'}
+                    {shop.profiles?.username || shop.profiles?.full_name || "Utilisateur inconnu"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        shop.status === "approved"
+                          ? "default"
+                          : shop.status === "rejected"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {shop.status === "approved"
+                        ? "Approuvée"
+                        : shop.status === "rejected"
+                        ? "Rejetée"
+                        : "En attente"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{format(new Date(shop.created_at), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
-                      {shop.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600"
-                            onClick={() => updateShopStatus(shop.id, 'approved')}
+                    {format(new Date(shop.created_at), "dd/MM/yyyy")}
+                  </TableCell>
+                  <TableCell className="space-x-2">
+                    {shop.status === "pending" && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(shop.id, "approved")}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleStatusChange(shop.id, "rejected")}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir supprimer cette boutique ? Cette action est irréversible.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteShop(shop.id)}
                           >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600"
-                            onClick={() => updateShopStatus(shop.id, 'rejected')}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Supprimer la boutique</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Êtes-vous sûr de vouloir supprimer cette boutique ? Cette action est irréversible.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteShop(shop.id)}
-                              className="bg-red-600"
-                            >
-                              Supprimer
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
