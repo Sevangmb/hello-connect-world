@@ -1047,6 +1047,30 @@ export type Database = {
         }
         Relationships: []
       }
+      site_stats: {
+        Row: {
+          category: string
+          id: number
+          metric: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          category: string
+          id?: never
+          metric: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          category?: string
+          id?: never
+          metric?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -1112,11 +1136,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_and_award_badges: {
+        Args: {
+          user_id: string
+        }
+        Returns: undefined
+      }
+      handle_new_group: {
+        Args: {
+          group_name: string
+        }
+        Returns: undefined
+      }
       is_admin: {
         Args: {
           user_id: string
         }
         Returns: boolean
+      }
+      update_shop_average_rating: {
+        Args: {
+          shop_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
