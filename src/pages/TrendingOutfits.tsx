@@ -14,14 +14,13 @@ const TrendingOutfits = () => {
     queryFn: async () => {
       console.log("Fetching trending outfits...");
       
-      // First query to get outfits sorted by likes count
+      // First query to get outfits sorted by likes count using a subquery
       const { data: likedOutfits, error: likesError } = await supabase
         .from('outfit_likes')
         .select(`
           outfit_id,
           count:count(*)
         `)
-        .group('outfit_id')
         .order('count', { ascending: false })
         .limit(20);
 
