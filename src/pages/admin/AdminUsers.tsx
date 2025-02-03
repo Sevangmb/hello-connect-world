@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import UserManagement from '@/components/admin/UserManagement';
 
 interface Profile {
   id: string;
@@ -39,38 +40,6 @@ export default function AdminUsers() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des Utilisateurs</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p>Chargement...</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom d'utilisateur</TableHead>
-                  <TableHead>Nom complet</TableHead>
-                  <TableHead>Date d'inscription</TableHead>
-                  <TableHead>Rôle</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.username || "Non défini"}</TableCell>
-                    <TableCell>{user.full_name || "Non défini"}</TableCell>
-                    <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy")}</TableCell>
-                    <TableCell>{user.is_admin ? "Administrateur" : "Utilisateur"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <UserManagement />
   );
 }
