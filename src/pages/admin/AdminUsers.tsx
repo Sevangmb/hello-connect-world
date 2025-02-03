@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Edit, PauseCircle, UserX, Key, MessageSquare, Star, Download } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -196,26 +197,61 @@ const AdminUsers = () => {
                       <TableCell>{user.visibility}</TableCell>
                       <TableCell>{user.is_admin ? "Oui" : "Non"}</TableCell>
                       <TableCell className="space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEditProfile(user.id)}>
-                          Modifier le profil
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Modifier le profil"
+                          onClick={() => handleEditProfile(user.id)}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSuspendUser(user.id)}>
-                          Suspendre le compte
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Suspendre le compte"
+                          onClick={() => handleSuspendUser(user.id)}
+                        >
+                          <PauseCircle className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleBanUser(user.id)}>
-                          Bannir le compte
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Bannir le compte"
+                          onClick={() => handleBanUser(user.id)}
+                        >
+                          <UserX className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleResetPassword(user.id)}>
-                          Réinitialiser le mot de passe
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Réinitialiser le mot de passe"
+                          onClick={() => handleResetPassword(user.id)}
+                        >
+                          <Key className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleSendMessage(user.id)}>
-                          Envoyer un message
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Envoyer un message"
+                          onClick={() => handleSendMessage(user.id)}
+                        >
+                          <MessageSquare className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleForcePremium(user.id)}>
-                          Forcer le passage en Premium
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Forcer le passage en Premium"
+                          onClick={() => handleForcePremium(user.id)}
+                        >
+                          <Star className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleExportData(user.id)}>
-                          Exporter les données
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label="Exporter les données"
+                          onClick={() => handleExportData(user.id)}
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
