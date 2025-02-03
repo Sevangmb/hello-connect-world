@@ -109,6 +109,7 @@ export default function AdminDashboard() {
             <Tabs defaultValue="utilisateurs">
               <TabsList>
                 <TabsTrigger value="utilisateurs">Utilisateurs</TabsTrigger>
+                <TabsTrigger value="revenus">Revenus et Monétisation : Chiffre d'affaires total</TabsTrigger>
                 <TabsTrigger value="shops">Shops</TabsTrigger>
               </TabsList>
               <TabsContent value="utilisateurs">
@@ -119,6 +120,22 @@ export default function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{usersCount}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Utilisateurs actifs (MAU)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">N/A</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Nouveaux utilisateurs</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">N/A</div>
                     </CardContent>
                   </Card>
                   <Card>
@@ -156,6 +173,22 @@ export default function AdminDashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Répartition démographique</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">N/A</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Utilisateurs Premium vs Gratuit</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">N/A</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Taux de conversion</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">N/A</div>
