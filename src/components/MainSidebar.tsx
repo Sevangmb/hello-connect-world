@@ -18,11 +18,13 @@ export default function MainSidebar() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data: isAdmin } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        });
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
 
-        setIsAdmin(isAdmin || false);
+        setIsAdmin(profile?.is_admin || false);
       } catch (error) {
         console.error("Error checking admin status:", error);
       }
