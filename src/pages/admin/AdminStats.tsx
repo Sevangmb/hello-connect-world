@@ -1,93 +1,69 @@
-// Added necessary hooks, table components and supabase integration for fetching stats
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
- 
+import { format } from "date-fns";
+
+interface SiteStat {
+  id: number;
+  category: string;
+  metric: string;
+  value: number;
+  updated_at: string;
+}
+
 export default function AdminStats() {
-  const [stats, setStats] = useState<any[]>([]);
+  const [stats, setStats] = useState<SiteStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
- 
+
   useEffect(() => {
     const fetchStats = async () => {
-      const { data, error } = await supabase
-        .from("site_stats")
-        .select("*");
-      if (error) {
-        setError(error.message);
-      } else {
-        setStats(data);
+      try {
+        console.log("Fetching site stats...");
+        const { data, error } = await supabase
+          .from('site_stats')
+          .select('*')
+          .order('category', { ascending: true });
+
+        if (error) throw error;
+        console.log("Stats fetched:", data);
+        setStats(data || []);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchStats();
   }, []);
- 
-  if (loading) {
-    return <div>Chargement...</div>;
-  }
- 
-  if (error) {
-    return <div>Erreur: {error}</div>;
-  }
- 
-  const websiteStats = stats.filter((stat) => stat.category === "website");
-  const contentStats = stats.filter((stat) => stat.category === "content");
- 
+
   return (
-    <div className="grid gap-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Statistiques du Site Web</CardTitle>
+          <CardTitle>Statistiques du Site</CardTitle>
         </CardHeader>
         <CardContent>
-          {websiteStats.length === 0 ? (
-            <p>Aucune statistique disponible pour le site web.</p>
+          {loading ? (
+            <p>Chargement...</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Catégorie</TableHead>
                   <TableHead>Métrique</TableHead>
                   <TableHead>Valeur</TableHead>
                   <TableHead>Mise à jour</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {websiteStats.map((stat) => (
+                {stats.map((stat) => (
                   <TableRow key={stat.id}>
+                    <TableCell className="capitalize">{stat.category}</TableCell>
                     <TableCell>{stat.metric}</TableCell>
                     <TableCell>{stat.value}</TableCell>
-                    <TableCell>{new Date(stat.updated_at).toLocaleString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Statistiques du Contenu</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {contentStats.length === 0 ? (
-            <p>Aucune statistique disponible pour le contenu.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Métrique</TableHead>
-                  <TableHead>Valeur</TableHead>
-                  <TableHead>Mise à jour</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contentStats.map((stat) => (
-                  <TableRow key={stat.id}>
-                    <TableCell>{stat.metric}</TableCell>
-                    <TableCell>{stat.value}</TableCell>
-                    <TableCell>{new Date(stat.updated_at).toLocaleString()}</TableCell>
+                    <TableCell>{format(new Date(stat.updated_at), "dd/MM/yyyy HH:mm")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
