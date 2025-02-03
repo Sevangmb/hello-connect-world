@@ -85,7 +85,6 @@ export function SiteSettings() {
     return acc;
   }, {});
 
-  // Fetch categories
   const { data: categories, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ["site-categories"],
     queryFn: async () => {
@@ -140,7 +139,7 @@ export function SiteSettings() {
     }
   };
 
-  if (isSettingsLoading || isCategoriesLoading) {
+  if (isSettingsLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
