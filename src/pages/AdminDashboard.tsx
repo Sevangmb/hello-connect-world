@@ -8,6 +8,10 @@ export default function AdminDashboard() {
   const [activeShopsCount, setActiveShopsCount] = useState(0);
   const [salesData, setSalesData] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mauCount, setMauCount] = useState(0);
+  const [newUsersCount, setNewUsersCount] = useState(0);
+  const [premiumUsers, setPremiumUsers] = useState({ premium: 0, free: 0 });
+  const [conversionRate, setConversionRate] = useState("N/A");
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -15,12 +19,12 @@ export default function AdminDashboard() {
         const { count: userCount } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
-
+  
         const { count: shopCount } = await supabase
           .from('shops')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'approved');
-
+  
         const { data: salesRows, error: salesError } = await supabase
           .from('sales')
           .select('amount');
@@ -28,9 +32,43 @@ export default function AdminDashboard() {
         if (!salesError && salesRows) {
           totalSales = salesRows.reduce((acc: number, row: any) => acc + (row.amount || 0), 0);
         }
+  
+        // Fetch Monthly Active Users (MAU) - users active in the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const { count: activeCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .gte('last_active', thirtyDaysAgo.toISOString());
+  
+        // Fetch New Users in the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { count: newUsers } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', sevenDaysAgo.toISOString());
+  
+        // Fetch Premium Users count (assuming is_premium boolean column)
+        const { count: premiumCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_premium', true);
+        const freeCount = (userCount || 0) - (premiumCount || 0);
+  
+        // Calculate conversion rate: percentage of free users converted to premium
+        let conversion = "N/A";
+        if ((userCount || 0) - (premiumCount || 0) > 0) {
+          conversion = (((premiumCount || 0) / ((userCount || 0) - (premiumCount || 0))) * 100).toFixed(2) + "%";
+        }
+  
         setUsersCount(userCount || 0);
         setActiveShopsCount(shopCount || 0);
         setSalesData(totalSales);
+        setMauCount(activeCount || 0);
+        setNewUsersCount(newUsers || 0);
+        setPremiumUsers({ premium: premiumCount || 0, free: freeCount });
+        setConversionRate(conversion);
       } catch (error) {
         console.error("Error fetching metrics:", error);
       } finally {
@@ -50,41 +88,51 @@ export default function AdminDashboard() {
           {loading ? (
             <p>Chargement...</p>
           ) : (
-            <Tabs defaultValue="utilisateurs" className="w-full">
-              <TabsList>
-                <TabsTrigger value="utilisateurs">Utilisateurs</TabsTrigger>
-                <TabsTrigger value="engagement">Engagement et Activité</TabsTrigger>
-                <TabsTrigger value="vide-dressing">Vide-Dressing</TabsTrigger>
-                <TabsTrigger value="boutiques">Boutiques Locales</TabsTrigger>
-                <TabsTrigger value="revenus">Revenus et Monétisation</TabsTrigger>
-                <TabsTrigger value="techniques">Performances Techniques</TabsTrigger>
-                <TabsTrigger value="marketing">Marketing</TabsTrigger>
-              </TabsList>
-              <TabsContent value="utilisateurs">
-                <div className="text-2xl font-bold">{usersCount}</div>
-                <p className="text-xs text-muted-foreground">Total des utilisateurs inscrits</p>
-              </TabsContent>
-              <TabsContent value="engagement">
-                <p>En cours de développement</p>
-              </TabsContent>
-              <TabsContent value="vide-dressing">
-                <p>En cours de développement</p>
-              </TabsContent>
-              <TabsContent value="boutiques">
-                <div className="text-2xl font-bold">{activeShopsCount}</div>
-                <p className="text-xs text-muted-foreground">Boutiques actives</p>
-              </TabsContent>
-              <TabsContent value="revenus">
-                <div className="text-2xl font-bold">{salesData !== null ? salesData : "N/A"}</div>
-                <p className="text-xs text-muted-foreground">Chiffre d'affaires total</p>
-              </TabsContent>
-              <TabsContent value="techniques">
-                <p>En cours de développement</p>
-              </TabsContent>
-              <TabsContent value="marketing">
-                <p>En cours de développement</p>
-              </TabsContent>
-            </Tabs>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Total des utilisateurs inscrits</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{usersCount}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Utilisateurs actifs (MAU)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{mauCount}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nouveaux utilisateurs (7 derniers jours)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{newUsersCount}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Utilisateurs Premium vs. Gratuits</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {premiumUsers.premium} / {premiumUsers.free}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Premium / Gratuits</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Taux de conversion</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{conversionRate}</div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </CardContent>
       </Card>
