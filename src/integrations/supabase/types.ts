@@ -874,6 +874,24 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          amount: number
+          created_at: string
+          id: number
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: never
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: never
+        }
+        Relationships: []
+      }
       shop_items: {
         Row: {
           clothes_id: string
