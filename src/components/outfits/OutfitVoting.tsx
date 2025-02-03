@@ -12,6 +12,7 @@ interface OutfitVotingProps {
 export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
   const { toast } = useToast();
   const [rating, setRating] = useState<number | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
 
   const { data: voteData, refetch: refetchVotes } = useQuery({
     queryKey: ["outfit-votes", outfitId],
@@ -19,11 +20,17 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      const [{ data: likes }, { data: userRating }] = await Promise.all([
+      const [{ data: likes }, { data: userLike }, { data: userRating }] = await Promise.all([
         supabase
           .from("outfit_likes")
           .select("id", { count: "exact" })
           .eq("outfit_id", outfitId),
+        supabase
+          .from("outfit_likes")
+          .select("id")
+          .eq("outfit_id", outfitId)
+          .eq("user_id", user.id)
+          .maybeSingle(),
         supabase
           .from("outfit_ratings")
           .select("rating")
@@ -32,13 +39,15 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           .maybeSingle(),
       ]);
 
-      // Mettre à jour le state local avec la note existante
+      // Update local states
+      setIsLiked(!!userLike);
       if (userRating?.rating) {
         setRating(userRating.rating);
       }
 
       return {
         likes: likes?.length || 0,
+        userLike: !!userLike,
         userRating: userRating?.rating || null,
       };
     },
@@ -47,26 +56,50 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
   const handleLike = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Vous devez être connecté pour aimer une tenue",
+        });
+        return;
+      }
 
-      const { error } = await supabase
-        .from("outfit_likes")
-        .insert({ outfit_id: outfitId, user_id: user.id });
+      if (!isLiked) {
+        const { error } = await supabase
+          .from("outfit_likes")
+          .insert({ outfit_id: outfitId, user_id: user.id });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "J'aime ajouté",
-        description: "Vous avez aimé cette tenue",
-      });
+        setIsLiked(true);
+        toast({
+          title: "J'aime ajouté",
+          description: "Vous avez aimé cette tenue",
+        });
+      } else {
+        const { error } = await supabase
+          .from("outfit_likes")
+          .delete()
+          .eq("outfit_id", outfitId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        setIsLiked(false);
+        toast({
+          title: "J'aime retiré",
+          description: "Vous n'aimez plus cette tenue",
+        });
+      }
 
       refetchVotes();
-    } catch (error) {
-      console.error("Error liking outfit:", error);
+    } catch (error: any) {
+      console.error("Error toggling like:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'ajouter le j'aime",
+        description: "Impossible de modifier le j'aime",
       });
     }
   };
@@ -74,9 +107,15 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
   const handleRating = async (value: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Vous devez être connecté pour noter une tenue",
+        });
+        return;
+      }
 
-      // Use upsert instead of insert to handle existing ratings
       const { error } = await supabase
         .from("outfit_ratings")
         .upsert(
@@ -87,7 +126,7 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           },
           {
             onConflict: 'user_id,outfit_id',
-            ignoreDuplicates: false
+            ignoreDuplicates: false,
           }
         );
 
@@ -100,7 +139,7 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
       });
 
       refetchVotes();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error rating outfit:", error);
       toast({
         variant: "destructive",
@@ -117,8 +156,9 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
           variant="outline"
           size="sm"
           onClick={handleLike}
+          className={isLiked ? "text-facebook-primary" : ""}
         >
-          <ThumbsUp className="h-4 w-4 mr-1" />
+          <ThumbsUp className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
           {voteData?.likes || 0}
         </Button>
       </div>
