@@ -66,6 +66,13 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
       }
 
       if (!isLiked) {
+        // Try to delete any existing like first to handle potential race conditions
+        await supabase
+          .from("outfit_likes")
+          .delete()
+          .eq("outfit_id", outfitId)
+          .eq("user_id", user.id);
+
         const { error } = await supabase
           .from("outfit_likes")
           .insert({ outfit_id: outfitId, user_id: user.id });
@@ -116,19 +123,20 @@ export const OutfitVoting = ({ outfitId }: OutfitVotingProps) => {
         return;
       }
 
+      // Delete any existing rating first to handle potential race conditions
+      await supabase
+        .from("outfit_ratings")
+        .delete()
+        .eq("outfit_id", outfitId)
+        .eq("user_id", user.id);
+
       const { error } = await supabase
         .from("outfit_ratings")
-        .upsert(
-          {
-            outfit_id: outfitId,
-            user_id: user.id,
-            rating: value,
-          },
-          {
-            onConflict: 'user_id,outfit_id',
-            ignoreDuplicates: false,
-          }
-        );
+        .insert({
+          outfit_id: outfitId,
+          user_id: user.id,
+          rating: value,
+        });
 
       if (error) throw error;
 
