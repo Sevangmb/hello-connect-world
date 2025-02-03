@@ -93,7 +93,56 @@ const AdminUsers = () => {
       });
     }
   };
-
+  
+  const handleEditProfile = (id: string) => {
+    toast({
+      title: "Modifier le profil",
+      description: `Modification du profil pour l'utilisateur ${id} simulée.`,
+    });
+  };
+  
+  const handleSuspendUser = (id: string) => {
+    toast({
+      title: "Suspendre le compte",
+      description: `Le compte de l'utilisateur ${id} a été suspendu (simulation).`,
+    });
+  };
+  
+  const handleBanUser = (id: string) => {
+    toast({
+      title: "Bannir le compte",
+      description: `L'utilisateur ${id} a été banni (simulation).`,
+    });
+  };
+  
+  const handleResetPassword = (id: string) => {
+    toast({
+      title: "Réinitialiser le mot de passe",
+      description: `Réinitialisation du mot de passe pour l'utilisateur ${id} simulée.`,
+    });
+  };
+  
+  const handleSendMessage = (id: string) => {
+    toast({
+      title: "Envoyer un message",
+      description: `Message envoyé à l'utilisateur ${id} (simulation).`,
+    });
+  };
+  
+  const handleForcePremium = (id: string) => {
+    toast({
+      title: "Forcer le passage en Premium",
+      description: `L'utilisateur ${id} est forcé à passer en Premium (simulation).`,
+    });
+  };
+  
+  const handleExportData = (id: string) => {
+    toast({
+      title: "Exporter les données",
+      description: `Les données de l'utilisateur ${id} ont été exportées (simulation).`,
+    });
+  };
+  
   return (
     <div className="space-y-6">
       <Card>
@@ -147,31 +196,26 @@ const AdminUsers = () => {
                       <TableCell>{user.visibility}</TableCell>
                       <TableCell>{user.is_admin ? "Oui" : "Non"}</TableCell>
                       <TableCell className="space-x-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">Supprimer</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
-                                Confirmer
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleToggleRole(user.id, user.is_admin)}
-                        >
-                          {user.is_admin ? "Rétrograder" : "Promouvoir admin"}
+                        <Button size="sm" variant="outline" onClick={() => handleEditProfile(user.id)}>
+                          Modifier le profil
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleSuspendUser(user.id)}>
+                          Suspendre le compte
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleBanUser(user.id)}>
+                          Bannir le compte
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleResetPassword(user.id)}>
+                          Réinitialiser le mot de passe
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleSendMessage(user.id)}>
+                          Envoyer un message
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleForcePremium(user.id)}>
+                          Forcer le passage en Premium
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleExportData(user.id)}>
+                          Exporter les données
                         </Button>
                       </TableCell>
                     </TableRow>
