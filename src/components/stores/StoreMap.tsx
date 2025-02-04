@@ -15,6 +15,7 @@ L.Icon.Default.mergeOptions({
 const StoreMap = () => {
   const [mounted, setMounted] = useState(false);
   const { stores, loading } = useStores();
+  const defaultCenter: [number, number] = [48.8566, 2.3522]; // Paris coordinates
 
   useEffect(() => {
     setMounted(true);
@@ -36,8 +37,7 @@ const StoreMap = () => {
     );
   }
 
-  // Find map center based on stores or use Paris as default
-  const defaultCenter: [number, number] = [48.8566, 2.3522];
+  // Find map center based on first store or use Paris as default
   const mapCenter = stores.length > 0 && stores[0].latitude && stores[0].longitude
     ? [stores[0].latitude, stores[0].longitude] as [number, number]
     : defaultCenter;
@@ -45,10 +45,10 @@ const StoreMap = () => {
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
+        key={mounted ? 'mounted' : 'loading'}
         center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
