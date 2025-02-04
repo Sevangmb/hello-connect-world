@@ -46,10 +46,10 @@ const StoreMap = () => {
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
+        key={`map-${mapCenter.join(',')}`}
         center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
