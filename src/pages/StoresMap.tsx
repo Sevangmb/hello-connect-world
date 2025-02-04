@@ -36,6 +36,7 @@ interface FilterState {
   style: string;
 }
 
+// Create icon outside component to avoid recreation on each render
 const customIcon = new Icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
   iconSize: [25, 41],
@@ -228,7 +229,6 @@ export default function StoresMap() {
             
             <div className="h-[600px] rounded-lg overflow-hidden">
               <MapContainer
-                key="map-container"
                 center={[48.8566, 2.3522]}
                 zoom={12}
                 style={{ height: "100%", width: "100%" }}
@@ -247,7 +247,9 @@ export default function StoresMap() {
                       <div className="p-2">
                         <h3 className="font-bold">{shop.name}</h3>
                         {shop.description && (
-                          <p className="text-sm text-gray-600 mt-1">{shop.description}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {shop.description}
+                          </p>
                         )}
                         {shop.address && (
                           <p className="text-sm mt-2">{shop.address}</p>
