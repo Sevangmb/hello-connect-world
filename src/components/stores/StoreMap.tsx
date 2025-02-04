@@ -27,6 +27,12 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
 
   if (!mounted) return null;
 
+  // Find map center based on stores or use Paris as default
+  const defaultCenter: [number, number] = [48.8566, 2.3522];
+  const mapCenter = stores.length > 0 
+    ? [stores[0].latitude, stores[0].longitude] as [number, number]
+    : defaultCenter;
+
   const calculateRoute = (shopLatLng: [number, number]) => {
     window.open(
       `https://www.google.com/maps/dir/?api=1&destination=${shopLatLng[0]},${shopLatLng[1]}`,
@@ -34,18 +40,13 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
     );
   };
 
-  // Find map center based on stores or use Paris as default
-  const defaultCenter: [number, number] = [48.8566, 2.3522];
-  const mapCenter = stores.length > 0 
-    ? [stores[0].latitude, stores[0].longitude] as [number, number]
-    : defaultCenter;
-
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
         center={mapCenter}
         zoom={12}
         style={{ height: "100%", width: "100%" }}
+        key={mounted ? "mounted" : "unmounted"}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
