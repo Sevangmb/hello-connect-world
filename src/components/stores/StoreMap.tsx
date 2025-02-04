@@ -32,6 +32,12 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
     );
   };
 
+  // Trouver le centre de la carte basé sur les magasins ou utiliser Paris par défaut
+  const defaultCenter: [number, number] = [48.8566, 2.3522];
+  const mapCenter = stores.length > 0 
+    ? [stores[0].latitude, stores[0].longitude] as [number, number]
+    : defaultCenter;
+
   if (!mounted) {
     return null;
   }
@@ -39,7 +45,8 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
-        center={[48.8566, 2.3522]}
+        key={mounted ? 'mounted' : 'unmounted'}
+        center={mapCenter}
         zoom={12}
         style={{ height: "100%", width: "100%" }}
       >
