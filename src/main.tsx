@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Shops from "@/pages/Shops";
-import CreateShop from "@/pages/CreateShop"; // Ajout de l'import
+import CreateShop from "@/pages/CreateShop";
+import StoresMap from "@/pages/StoresMap"; // Mise à jour de l'import
 import StoresList from "@/pages/StoresList";
 import Search from "@/pages/Search";
 import TrendingOutfits from "@/pages/TrendingOutfits";
@@ -51,11 +52,9 @@ const queryClient = new QueryClient({
   },
 });
 
-// App component merged directly into main
 const App = () => {
   return (
     <Routes>
-      {/* Auth Section - Public routes for authentication (login, admin login) */}
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
@@ -81,25 +80,24 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {/* Home Section - Public routes for general site content (Index, feed, challenges, etc.) */}
+      {/* Home Section */}
       <Route path="/" element={<Index />} />
       <Route path="/suggestions" element={<Suggestions />} />
       <Route path="/feed" element={<Feed />} />
       <Route path="/challenges" element={<Challenges />} />
       <Route path="/challenge/:id" element={<Challenge />} />
 
-      {/* Explore Section - Public routes for exploring content (search, trending, hashtags, shops, stores, etc.) */}
+      {/* Explore Section */}
       <Route path="/search" element={<Search />} />
       <Route path="/trending/outfits" element={<TrendingOutfits />} />
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/explore" element={<Explore />} />
       <Route path="/shops" element={<Shops />} />
-      <Route path="/shops/create" element={<CreateShop />} /> {/* Ajout de la nouvelle route */}
-      <Route path="/stores/map" element={<StoresList />} />
+      <Route path="/shops/create" element={<CreateShop />} />
+      <Route path="/stores/map" element={<StoresMap />} /> {/* Correction de la route */}
       <Route path="/stores/search" element={<StoresList />} />
       <Route path="/stores/list" element={<StoresList />} />
 
-      {/* Personal Section - Public routes for personalized user content (clothes, outfits, personal profile) */}
       <Route path="/clothes" element={<Clothes />} />
       <Route path="/outfits" element={<Outfits />} />
       <Route path="/personal" element={<Personal />} />
@@ -118,7 +116,7 @@ const App = () => {
       <Route path="/marketplace" element={<StoresList />} />
       <Route path="/help" element={<NotFound />} />
 
-      {/* Fallback Route - Catches unmatched paths and renders NotFound component */}
+      {/* Fallback Route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -127,7 +125,7 @@ const App = () => {
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{/* Provides routing context for the application */}
+      <BrowserRouter>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
