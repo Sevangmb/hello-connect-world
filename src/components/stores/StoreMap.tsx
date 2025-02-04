@@ -25,7 +25,13 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="h-[600px] rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
+        <p>Loading map...</p>
+      </div>
+    );
+  }
 
   // Find map center based on stores or use Paris as default
   const defaultCenter: [number, number] = [48.8566, 2.3522];
