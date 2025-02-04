@@ -9,28 +9,25 @@ const defaultCenter: [number, number] = [48.8566, 2.3522];
 const StoreMap = () => {
   const [isMounted, setIsMounted] = useState(false);
   const { stores, loading } = useStores();
-  const [Map, setMap] = useState<any>(null);
 
   useEffect(() => {
-    // Dynamic import of map components
-    const loadMap = async () => {
-      const L = (await import("leaflet")).default;
-      const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
+    const initializeMap = async () => {
+      try {
+        const L = (await import("leaflet")).default;
+        const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
 
-      // Set up the default marker icon
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-        iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-      });
+        // Set up the default marker icon
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+          iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+        });
 
-      // Create map component
-      const MapComponent = () => {
         const mapCenter = stores.length > 0 && stores[0].latitude && stores[0].longitude
           ? [stores[0].latitude, stores[0].longitude] as [number, number]
           : defaultCenter;
 
-        return (
+        const MapComponent = () => (
           <MapContainer
             center={mapCenter}
             zoom={13}
@@ -84,16 +81,29 @@ const StoreMap = () => {
             })}
           </MapContainer>
         );
-      };
 
-      setMap(() => MapComponent);
-      setIsMounted(true);
+        // Render the map
+        const mapDiv = document.getElementById('map-container');
+        if (mapDiv) {
+          const root = ReactDOM.createRoot(mapDiv);
+          root.render(<MapComponent />);
+          setIsMounted(true);
+        }
+      } catch (error) {
+        console.error("Error initializing map:", error);
+      }
     };
 
-    loadMap();
-  }, [stores]);
+    if (!isMounted && !loading) {
+      initializeMap();
+    }
 
-  if (!isMounted || loading || !Map) {
+    return () => {
+      setIsMounted(false);
+    };
+  }, [stores, loading, isMounted]);
+
+  if (loading || !isMounted) {
     return (
       <div className="h-[600px] rounded-lg overflow-hidden bg-gray-100">
         <Skeleton className="w-full h-full" />
@@ -103,7 +113,7 @@ const StoreMap = () => {
 
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
-      <Map />
+      <div id="map-container" className="w-full h-full" />
     </div>
   );
 };
