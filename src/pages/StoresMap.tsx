@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Icon } from "leaflet";
 import { Store, Filter, Navigation2, Heart } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -16,6 +15,84 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import "leaflet/dist/leaflet.css";
+
+// Separate Map component to handle react-leaflet context properly
+const ShopMap = ({ shops, favorites, toggleFavorite, calculateRoute }) => {
+  if (typeof window === 'undefined') return null; // Handle SSR
+  
+  const { MapContainer, TileLayer, Marker, Popup } = require('react-leaflet'); // Dynamic import
+  
+  const customIcon = new Icon({
+    iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+  });
+
+  return (
+    <MapContainer
+      center={[48.8566, 2.3522]}
+      zoom={12}
+      style={{ height: "100%", width: "100%" }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      {shops.map((shop) => (
+        <Marker
+          key={shop.id}
+          position={[shop.latitude, shop.longitude]}
+          icon={customIcon}
+        >
+          <Popup>
+            <div className="p-2">
+              <h3 className="font-bold">{shop.name}</h3>
+              {shop.description && (
+                <p className="text-sm text-gray-600 mt-1">{shop.description}</p>
+              )}
+              {shop.address && (
+                <p className="text-sm mt-2">{shop.address}</p>
+              )}
+              {shop.average_rating && (
+                <p className="text-sm mt-1">
+                  Note: {shop.average_rating.toFixed(1)}/5
+                </p>
+              )}
+              <div className="flex gap-2 mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => toggleFavorite(shop.id)}
+                >
+                  <Heart
+                    className={`h-4 w-4 mr-2 ${
+                      favorites.includes(shop.id)
+                        ? "fill-current text-red-500"
+                        : ""
+                    }`}
+                  />
+                  {favorites.includes(shop.id)
+                    ? "Retirer des favoris"
+                    : "Ajouter aux favoris"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    calculateRoute([shop.latitude, shop.longitude])
+                  }
+                >
+                  <Navigation2 className="h-4 w-4 mr-2" />
+                  Itinéraire
+                </Button>
+              </div>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
+};
 
 interface Shop {
   id: string;
@@ -36,12 +113,6 @@ interface FilterState {
   style: string;
 }
 
-const customIcon = new Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
-
 export default function StoresMap() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -52,11 +123,6 @@ export default function StoresMap() {
   });
   const [destination, setDestination] = useState<[number, number] | null>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchShops();
-    fetchFavorites();
-  }, []);
 
   const fetchShops = async () => {
     try {
@@ -154,6 +220,11 @@ export default function StoresMap() {
 
   useEffect(() => {
     fetchShops();
+    fetchFavorites();
+  }, []);
+
+  useEffect(() => {
+    fetchShops();
   }, [filters]);
 
   console.log("Rendering StoresMap component");
@@ -227,69 +298,12 @@ export default function StoresMap() {
             </div>
             
             <div className="h-[600px] rounded-lg overflow-hidden">
-              <MapContainer
-                center={[48.8566, 2.3522]}
-                zoom={12}
-                style={{ height: "100%", width: "100%" }}
-                key="map-container"
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {shops.map((shop) => (
-                  <Marker
-                    key={shop.id}
-                    position={[shop.latitude, shop.longitude]}
-                    icon={customIcon}
-                  >
-                    <Popup>
-                      <div className="p-2">
-                        <h3 className="font-bold">{shop.name}</h3>
-                        {shop.description && (
-                          <p className="text-sm text-gray-600 mt-1">{shop.description}</p>
-                        )}
-                        {shop.address && (
-                          <p className="text-sm mt-2">{shop.address}</p>
-                        )}
-                        {shop.average_rating && (
-                          <p className="text-sm mt-1">
-                            Note: {shop.average_rating.toFixed(1)}/5
-                          </p>
-                        )}
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleFavorite(shop.id)}
-                          >
-                            <Heart
-                              className={`h-4 w-4 mr-2 ${
-                                favorites.includes(shop.id)
-                                  ? "fill-current text-red-500"
-                                  : ""
-                              }`}
-                            />
-                            {favorites.includes(shop.id)
-                              ? "Retirer des favoris"
-                              : "Ajouter aux favoris"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              calculateRoute([shop.latitude, shop.longitude])
-                            }
-                          >
-                            <Navigation2 className="h-4 w-4 mr-2" />
-                            Itinéraire
-                          </Button>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <ShopMap 
+                shops={shops}
+                favorites={favorites}
+                toggleFavorite={toggleFavorite}
+                calculateRoute={calculateRoute}
+              />
             </div>
           </div>
         </div>
