@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-type SiteContent = {
-  title: string;
-  description: string;
-  content: string;
-};
+const contentSchema = z.object({
+  title: z.string().min(1, "Le titre est requis"),
+  description: z.string().optional(),
+  content: z.string().min(1, "Le contenu est requis"),
+});
+
+type ContentFormValues = z.infer<typeof contentSchema>;
 
 export function ContentManagement() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<SiteContent>({
+  const form = useForm<ContentFormValues>({
+    resolver: zodResolver(contentSchema),
     defaultValues: {
       title: "",
       description: "",
@@ -40,9 +45,12 @@ export function ContentManagement() {
     },
   });
 
-  const onSubmit = async (data: SiteContent) => {
+  console.log("Rendering ContentManagement component");
+
+  const onSubmit = async (data: ContentFormValues) => {
     try {
       setIsLoading(true);
+      console.log("Submitting content:", data);
       
       const { error } = await supabase
         .from('site_content')
@@ -54,8 +62,12 @@ export function ContentManagement() {
           },
         ]);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error inserting content:", error);
+        throw error;
+      }
 
+      console.log("Content added successfully");
       toast({
         title: "Contenu ajouté",
         description: "Le contenu a été ajouté avec succès",
