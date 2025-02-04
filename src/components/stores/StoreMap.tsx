@@ -37,7 +37,8 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
   const mapCenter = stores.length > 0 
     ? [stores[0].latitude, stores[0].longitude] as [number, number]
     : defaultCenter;
-
+  console.log("StoreMap: Number of stores received:", stores.length, "Map center:", mapCenter);
+  
   if (!mounted) {
     return null;
   }
@@ -45,10 +46,9 @@ export function StoreMap({ stores, favorites, onToggleFavorite }: StoreMapProps)
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
-        key={mounted ? 'mounted' : 'unmounted'}
         center={mapCenter}
         zoom={12}
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: "600px", width: "100%" }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
