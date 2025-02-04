@@ -1,53 +1,93 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Icon } from "leaflet";
-import { Store } from "lucide-react";
+import { Store, Filter, Navigation2, Heart } from "lucide-react";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import "leaflet/dist/leaflet.css";
 
-// Définir l'interface pour les boutiques
 interface Shop {
   id: string;
   name: string;
   description: string | null;
   address: string | null;
-  latitude?: number;
-  longitude?: number;
+  latitude: number;
+  longitude: number;
   status: string;
   average_rating: number | null;
   opening_hours: any;
   categories: string[] | null;
 }
 
+interface FilterState {
+  category: string;
+  priceRange: string;
+  style: string;
+}
+
+const customIcon = new Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+// Component pour centrer la carte sur la position de l'utilisateur
+function LocationMarker() {
+  const map = useMap();
+
+  useEffect(() => {
+    map.locate().on("locationfound", function (e) {
+      map.flyTo(e.latlng, map.getZoom());
+    });
+  }, [map]);
+
+  return null;
+}
+
 export default function StoresMap() {
   const [shops, setShops] = useState<Shop[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [filters, setFilters] = useState<FilterState>({
+    category: "all",
+    priceRange: "all",
+    style: "all",
+  });
+  const [destination, setDestination] = useState<[number, number] | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchShops();
+    fetchFavorites();
   }, []);
 
   const fetchShops = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("shops")
         .select("*")
         .eq("status", "approved");
 
+      if (filters.category !== "all") {
+        query = query.contains("categories", [filters.category]);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
-      // Pour le moment, on simule des coordonnées pour Paris
-      const shopsWithCoords = data.map(shop => ({
-        ...shop,
-        latitude: 48.8566 + (Math.random() - 0.5) * 0.1,
-        longitude: 2.3522 + (Math.random() - 0.5) * 0.1
-      }));
-
-      setShops(shopsWithCoords);
+      setShops(data || []);
     } catch (error) {
       console.error("Erreur lors du chargement des boutiques:", error);
       toast({
@@ -57,6 +97,79 @@ export default function StoresMap() {
       });
     }
   };
+
+  const fetchFavorites = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("favorite_shops")
+        .select("shop_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setFavorites(data.map(fav => fav.shop_id));
+    } catch (error) {
+      console.error("Erreur lors du chargement des favoris:", error);
+    }
+  };
+
+  const toggleFavorite = async (shopId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour ajouter des favoris",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (favorites.includes(shopId)) {
+        await supabase
+          .from("favorite_shops")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("shop_id", shopId);
+        setFavorites(favorites.filter(id => id !== shopId));
+      } else {
+        await supabase
+          .from("favorite_shops")
+          .insert([{ user_id: user.id, shop_id: shopId }]);
+        setFavorites([...favorites, shopId]);
+      }
+
+      toast({
+        title: "Succès",
+        description: favorites.includes(shopId)
+          ? "Boutique retirée des favoris"
+          : "Boutique ajoutée aux favoris",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la modification des favoris:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier les favoris",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const calculateRoute = (shopLatLng: [number, number]) => {
+    setDestination(shopLatLng);
+    // Ouvrir dans Google Maps
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${shopLatLng[0]},${shopLatLng[1]}`,
+      '_blank'
+    );
+  };
+
+  useEffect(() => {
+    fetchShops();
+  }, [filters]);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -72,6 +185,60 @@ export default function StoresMap() {
               indépendantes partenaires à proximité de leur position ou dans une zone 
               géographique choisie.
             </p>
+
+            {/* Filtres */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Select
+                value={filters.category}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, category: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les catégories</SelectItem>
+                  <SelectItem value="homme">Homme</SelectItem>
+                  <SelectItem value="femme">Femme</SelectItem>
+                  <SelectItem value="enfant">Enfant</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={filters.priceRange}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, priceRange: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Gamme de prix" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les prix</SelectItem>
+                  <SelectItem value="low">€ Économique</SelectItem>
+                  <SelectItem value="medium">€€ Moyen</SelectItem>
+                  <SelectItem value="high">€€€ Premium</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={filters.style}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, style: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Style" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les styles</SelectItem>
+                  <SelectItem value="casual">Casual</SelectItem>
+                  <SelectItem value="chic">Chic</SelectItem>
+                  <SelectItem value="sport">Sport</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             
             <div className="h-[600px] rounded-lg overflow-hidden">
               <MapContainer
@@ -83,16 +250,18 @@ export default function StoresMap() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <LocationMarker />
                 {shops.map((shop) => (
                   <Marker
                     key={shop.id}
-                    position={[shop.latitude || 48.8566, shop.longitude || 2.3522]}
+                    position={[shop.latitude, shop.longitude]}
+                    icon={customIcon}
                   >
                     <Popup>
                       <div className="p-2">
                         <h3 className="font-bold">{shop.name}</h3>
                         {shop.description && (
-                          <p className="text-sm text-gray-600">{shop.description}</p>
+                          <p className="text-sm text-gray-600 mt-1">{shop.description}</p>
                         )}
                         {shop.address && (
                           <p className="text-sm mt-2">{shop.address}</p>
@@ -102,6 +271,34 @@ export default function StoresMap() {
                             Note: {shop.average_rating.toFixed(1)}/5
                           </p>
                         )}
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleFavorite(shop.id)}
+                          >
+                            <Heart
+                              className={`h-4 w-4 mr-2 ${
+                                favorites.includes(shop.id)
+                                  ? "fill-current text-red-500"
+                                  : ""
+                              }`}
+                            />
+                            {favorites.includes(shop.id)
+                              ? "Retirer des favoris"
+                              : "Ajouter aux favoris"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              calculateRoute([shop.latitude, shop.longitude])
+                            }
+                          >
+                            <Navigation2 className="h-4 w-4 mr-2" />
+                            Itinéraire
+                          </Button>
+                        </div>
                       </div>
                     </Popup>
                   </Marker>

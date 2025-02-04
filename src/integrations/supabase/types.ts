@@ -990,6 +990,8 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           name: string
           opening_hours: Json | null
           phone: string | null
@@ -1005,6 +1007,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name: string
           opening_hours?: Json | null
           phone?: string | null
@@ -1020,6 +1024,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           opening_hours?: Json | null
           phone?: string | null
