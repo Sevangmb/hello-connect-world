@@ -44,6 +44,7 @@ const customIcon = new Icon({
 });
 
 export default function StoresMap() {
+  console.log("Rendering StoresMap component");
   const [shops, setShops] = useState<Shop[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
@@ -56,6 +57,7 @@ export default function StoresMap() {
 
   const fetchShops = async () => {
     try {
+      console.log("Fetching shops with filters:", filters);
       let query = supabase
         .from("shops")
         .select("*")
@@ -68,10 +70,10 @@ export default function StoresMap() {
       const { data, error } = await query;
 
       if (error) throw error;
-
+      console.log("Fetched shops:", data);
       setShops(data || []);
     } catch (error) {
-      console.error("Erreur lors du chargement des boutiques:", error);
+      console.error("Error fetching shops:", error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les boutiques",
@@ -91,10 +93,10 @@ export default function StoresMap() {
         .eq("user_id", user.id);
 
       if (error) throw error;
-
+      console.log("Fetched favorites:", data);
       setFavorites(data.map(fav => fav.shop_id));
     } catch (error) {
-      console.error("Erreur lors du chargement des favoris:", error);
+      console.error("Error fetching favorites:", error);
     }
   };
 
@@ -131,7 +133,7 @@ export default function StoresMap() {
           : "Boutique ajoutée aux favoris",
       });
     } catch (error) {
-      console.error("Erreur lors de la modification des favoris:", error);
+      console.error("Error toggling favorite:", error);
       toast({
         title: "Erreur",
         description: "Impossible de modifier les favoris",
@@ -149,15 +151,15 @@ export default function StoresMap() {
   };
 
   useEffect(() => {
+    console.log("Initial fetch of shops and favorites");
     fetchShops();
     fetchFavorites();
   }, []);
 
   useEffect(() => {
+    console.log("Filters changed, fetching shops");
     fetchShops();
   }, [filters]);
-
-  console.log("Rendering StoresMap component");
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
