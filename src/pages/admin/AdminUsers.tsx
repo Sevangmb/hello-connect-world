@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -24,31 +25,31 @@ const AdminUsers = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        console.log("Fetching users...");
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        console.log("Users fetched:", data);
-        setUsers(data || []);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger les utilisateurs",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
-  }, [toast]);
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      console.log("Fetching users...");
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      console.log("Users fetched:", data);
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de charger les utilisateurs",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleToggleRole = async (id: string, current: boolean | null) => {
     try {
@@ -56,8 +57,13 @@ const AdminUsers = () => {
         .from('profiles')
         .update({ is_admin: !current })
         .eq('id', id);
+      
       if (error) throw error;
-      setUsers(users.map(user => user.id === id ? { ...user, is_admin: !current } : user));
+      
+      setUsers(users.map(user => 
+        user.id === id ? { ...user, is_admin: !current } : user
+      ));
+      
       toast({
         title: "Rôle mis à jour",
         description: `L'utilisateur a été ${!current ? "promu" : "rétrogradé"}`,
@@ -78,7 +84,9 @@ const AdminUsers = () => {
         .from('profiles')
         .delete()
         .eq('id', id);
+      
       if (error) throw error;
+      
       setUsers(users.filter(user => user.id !== id));
       toast({
         title: "Utilisateur supprimé",
@@ -93,6 +101,14 @@ const AdminUsers = () => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -113,80 +129,75 @@ const AdminUsers = () => {
               <option value="private">Privé</option>
             </select>
           </div>
-          {loading ? (
-            <p>Chargement...</p>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nom d'utilisateur</TableHead>
-                    <TableHead>Nom complet</TableHead>
-                    <TableHead>Avatar</TableHead>
-                    <TableHead>Date d'inscription</TableHead>
-                    <TableHead>Visibilité</TableHead>
-                    <TableHead>Admin</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.id}</TableCell>
-                      <TableCell>{user.username || "Non défini"}</TableCell>
-                      <TableCell>{user.full_name || "Non défini"}</TableCell>
-                      <TableCell>
-                        {user.avatar_url ? (
-                          <img src={user.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full" />
-                        ) : (
-                          "N/A"
-                        )}
-                      </TableCell>
-                      <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{user.visibility}</TableCell>
-                      <TableCell>{user.is_admin ? "Oui" : "Non"}</TableCell>
-                      <TableCell className="space-x-2">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="destructive">Supprimer</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Annuler</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
-                                Confirmer
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleToggleRole(user.id, user.is_admin)}
-                        >
-                          {user.is_admin ? "Rétrograder" : "Promouvoir admin"}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline">Précédent</Button>
-                <Button variant="outline">1</Button>
-                <Button variant="outline">2</Button>
-                <Button variant="outline">3</Button>
-                <Button variant="outline">Suivant</Button>
-              </div>
-            </>
-          )}
+          
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Nom d'utilisateur</TableHead>
+                <TableHead>Nom complet</TableHead>
+                <TableHead>Avatar</TableHead>
+                <TableHead>Date d'inscription</TableHead>
+                <TableHead>Visibilité</TableHead>
+                <TableHead>Admin</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.id}</TableCell>
+                  <TableCell>{user.username || "Non défini"}</TableCell>
+                  <TableCell>{user.full_name || "Non défini"}</TableCell>
+                  <TableCell>
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full" />
+                    ) : (
+                      "N/A"
+                    )}
+                  </TableCell>
+                  <TableCell>{format(new Date(user.created_at), "dd/MM/yyyy")}</TableCell>
+                  <TableCell>{user.visibility}</TableCell>
+                  <TableCell>{user.is_admin ? "Oui" : "Non"}</TableCell>
+                  <TableCell className="space-x-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">Supprimer</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>
+                            Confirmer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleToggleRole(user.id, user.is_admin)}
+                    >
+                      {user.is_admin ? "Rétrograder" : "Promouvoir admin"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="outline">Précédent</Button>
+            <Button variant="outline">1</Button>
+            <Button variant="outline">2</Button>
+            <Button variant="outline">3</Button>
+            <Button variant="outline">Suivant</Button>
+          </div>
         </CardContent>
       </Card>
     </div>
