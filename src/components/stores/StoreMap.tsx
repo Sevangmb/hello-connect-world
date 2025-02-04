@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStores } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
@@ -85,7 +86,7 @@ const StoreMap = () => {
         // Render the map
         const mapDiv = document.getElementById('map-container');
         if (mapDiv) {
-          const root = ReactDOM.createRoot(mapDiv);
+          const root = createRoot(mapDiv);
           root.render(<MapComponent />);
           setIsMounted(true);
         }
