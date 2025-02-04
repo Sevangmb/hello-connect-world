@@ -17,27 +17,47 @@ export function AdminDashboard() {
         console.log("Fetching admin dashboard stats...");
         
         // Fetch total users
-        const { count: usersCount } = await supabase
+        const { count: usersCount, error: usersError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
+        
+        if (usersError) {
+          console.error('Error fetching users:', usersError);
+          return;
+        }
         console.log("Users count:", usersCount);
 
         // Fetch total shops
-        const { count: shopsCount } = await supabase
+        const { count: shopsCount, error: shopsError } = await supabase
           .from('shops')
           .select('*', { count: 'exact', head: true });
+        
+        if (shopsError) {
+          console.error('Error fetching shops:', shopsError);
+          return;
+        }
         console.log("Shops count:", shopsCount);
 
         // Fetch total shop items
-        const { count: itemsCount } = await supabase
+        const { count: itemsCount, error: itemsError } = await supabase
           .from('shop_items')
           .select('*', { count: 'exact', head: true });
+        
+        if (itemsError) {
+          console.error('Error fetching items:', itemsError);
+          return;
+        }
         console.log("Items count:", itemsCount);
 
         // Fetch total posts
-        const { count: postsCount } = await supabase
+        const { count: postsCount, error: postsError } = await supabase
           .from('posts')
           .select('*', { count: 'exact', head: true });
+        
+        if (postsError) {
+          console.error('Error fetching posts:', postsError);
+          return;
+        }
         console.log("Posts count:", postsCount);
 
         setStats({
