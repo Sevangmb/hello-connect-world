@@ -45,7 +45,6 @@ const StoreMap = () => {
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
-        key={mounted ? "mounted" : "unmounted"}
         center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
