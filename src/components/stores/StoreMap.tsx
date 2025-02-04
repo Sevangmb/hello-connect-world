@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { useStores } from "@/hooks/useStores";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,14 +14,6 @@ L.Icon.Default.mergeOptions({
 
 // Default center coordinates (Paris)
 const defaultCenter: [number, number] = [48.8566, 2.3522];
-
-const RecenterAutomatically = ({ bounds }: { bounds: L.LatLngBoundsExpression }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.fitBounds(bounds, { padding: [50, 50] });
-  }, [map, bounds]);
-  return null;
-};
 
 const StoreMap = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -39,15 +31,15 @@ const StoreMap = () => {
     );
   }
 
+  // Calculate map center based on first store or use default
+  const mapCenter = stores.length > 0 && stores[0].latitude && stores[0].longitude
+    ? [stores[0].latitude, stores[0].longitude] as [number, number]
+    : defaultCenter;
 
-  const Map = () => {
-    const validPositions = stores
-      .filter(store => store.latitude && store.longitude)
-      .map(store => [store.latitude, store.longitude] as [number, number]);
-    const bounds = validPositions.length > 0 ? L.latLngBounds(validPositions) : null;
-    return (
+  return (
+    <div className="h-[600px] rounded-lg overflow-hidden">
       <MapContainer
-        center={defaultCenter}
+        center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom={false}
@@ -56,7 +48,6 @@ const StoreMap = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {bounds && <RecenterAutomatically bounds={bounds} />}
         {stores.map((store) => {
           if (!store.latitude || !store.longitude) return null;
           
@@ -99,12 +90,6 @@ const StoreMap = () => {
           );
         })}
       </MapContainer>
-    );
-  };
-
-  return (
-    <div className="h-[600px] rounded-lg overflow-hidden">
-      <Map />
     </div>
   );
 };
