@@ -35,60 +35,65 @@ const StoreMap = () => {
     ? [stores[0].latitude, stores[0].longitude] as [number, number]
     : defaultCenter;
 
+  const Map = () => (
+    <MapContainer
+      center={mapCenter}
+      zoom={13}
+      style={{ height: "100%", width: "100%" }}
+      key={`${mapCenter[0]}-${mapCenter[1]}`}
+      scrollWheelZoom={false}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      {stores.map((store) => {
+        if (!store.latitude || !store.longitude) return null;
+        
+        return (
+          <Marker
+            key={store.id}
+            position={[store.latitude, store.longitude] as [number, number]}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-semibold">{store.name}</h3>
+                {store.description && (
+                  <p className="text-sm text-gray-600">{store.description}</p>
+                )}
+                {store.address && (
+                  <p className="text-sm mt-1">{store.address}</p>
+                )}
+                {store.phone && (
+                  <p className="text-sm mt-1">
+                    <a href={`tel:${store.phone}`} className="text-blue-500 hover:underline">
+                      {store.phone}
+                    </a>
+                  </p>
+                )}
+                {store.website && (
+                  <p className="text-sm mt-1">
+                    <a
+                      href={store.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      Visit Website
+                    </a>
+                  </p>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </MapContainer>
+  );
+
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
-      <MapContainer
-        center={mapCenter}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-        key={`${mapCenter[0]}-${mapCenter[1]}`}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {stores.map((store) => {
-          if (!store.latitude || !store.longitude) return null;
-          
-          return (
-            <Marker
-              key={store.id}
-              position={[store.latitude, store.longitude] as [number, number]}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-semibold">{store.name}</h3>
-                  {store.description && (
-                    <p className="text-sm text-gray-600">{store.description}</p>
-                  )}
-                  {store.address && (
-                    <p className="text-sm mt-1">{store.address}</p>
-                  )}
-                  {store.phone && (
-                    <p className="text-sm mt-1">
-                      <a href={`tel:${store.phone}`} className="text-blue-500 hover:underline">
-                        {store.phone}
-                      </a>
-                    </p>
-                  )}
-                  {store.website && (
-                    <p className="text-sm mt-1">
-                      <a
-                        href={store.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Visit Website
-                      </a>
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <Map />
     </div>
   );
 };
