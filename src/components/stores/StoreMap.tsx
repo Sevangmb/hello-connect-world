@@ -18,6 +18,7 @@ const StoreMap = () => {
         const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
 
         // Set up the default marker icon
+        delete L.Icon.Default.prototype._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
           iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
@@ -83,9 +84,12 @@ const StoreMap = () => {
           </MapContainer>
         );
 
-        // Render the map
+        // Clean up any existing map
         const mapDiv = document.getElementById('map-container');
         if (mapDiv) {
+          while (mapDiv.firstChild) {
+            mapDiv.removeChild(mapDiv.firstChild);
+          }
           const root = createRoot(mapDiv);
           root.render(<MapComponent />);
           setIsMounted(true);
@@ -101,6 +105,12 @@ const StoreMap = () => {
 
     return () => {
       setIsMounted(false);
+      const mapDiv = document.getElementById('map-container');
+      if (mapDiv) {
+        while (mapDiv.firstChild) {
+          mapDiv.removeChild(mapDiv.firstChild);
+        }
+      }
     };
   }, [stores, loading, isMounted]);
 
