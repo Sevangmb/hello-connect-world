@@ -66,7 +66,7 @@ export default function AdminDashboard() {
                     <p className="text-2xl font-bold">{metrics.premiumUsers}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Taux de conversion (Gratuits -> Premium):</p>
+                    <p className="text-sm text-gray-500">Taux de conversion (Gratuits {'->'} Premium):</p>
                     <p className="text-2xl font-bold">{metrics.conversionRate}%</p>
                   </div>
                 </div>
