@@ -48,6 +48,7 @@ const StoreMap = () => {
         center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
+        scrollWheelZoom={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
