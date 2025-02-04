@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
+import HelpAndSupport from "@/pages/HelpAndSupport";
 import Shops from "@/pages/Shops";
 import CreateShop from "@/pages/CreateShop";
 import StoresMap from "@/pages/StoresMap"; // Mise à jour de l'import
@@ -114,7 +115,7 @@ const App = () => {
       <Route path="/profile" element={<Profile />} />
       <Route path="/profile/settings" element={<Settings />} />
       <Route path="/marketplace" element={<StoresList />} />
-      <Route path="/help" element={<NotFound />} />
+      <Route path="/help" element={<HelpAndSupport />} />
 
       {/* Fallback Route */}
       <Route path="*" element={<NotFound />} />
