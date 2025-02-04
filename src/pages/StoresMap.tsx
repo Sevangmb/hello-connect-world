@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Icon } from "leaflet";
 import { Store, Filter, Navigation2, Heart } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import "leaflet/dist/leaflet.css";
 
 interface Shop {
@@ -42,19 +41,6 @@ const customIcon = new Icon({
   iconSize: [25, 41],
   iconAnchor: [12, 41],
 });
-
-// Component pour centrer la carte sur la position de l'utilisateur
-function LocationMarker() {
-  const map = useMap();
-
-  useEffect(() => {
-    map.locate().on("locationfound", function (e) {
-      map.flyTo(e.latlng, map.getZoom());
-    });
-  }, [map]);
-
-  return null;
-}
 
 export default function StoresMap() {
   const [shops, setShops] = useState<Shop[]>([]);
@@ -160,7 +146,6 @@ export default function StoresMap() {
 
   const calculateRoute = (shopLatLng: [number, number]) => {
     setDestination(shopLatLng);
-    // Ouvrir dans Google Maps
     window.open(
       `https://www.google.com/maps/dir/?api=1&destination=${shopLatLng[0]},${shopLatLng[1]}`,
       '_blank'
@@ -186,7 +171,6 @@ export default function StoresMap() {
               géographique choisie.
             </p>
 
-            {/* Filtres */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Select
                 value={filters.category}
@@ -250,7 +234,6 @@ export default function StoresMap() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <LocationMarker />
                 {shops.map((shop) => (
                   <Marker
                     key={shop.id}
