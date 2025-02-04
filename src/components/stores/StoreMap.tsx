@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 
 const StoreMap = () => {
   const [mounted, setMounted] = useState(false);
-  const { data: stores = [], isLoading } = useStores();
+  const { stores, loading } = useStores();
 
   useEffect(() => {
     setMounted(true);
@@ -28,7 +28,7 @@ const StoreMap = () => {
     );
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="h-[600px] rounded-lg overflow-hidden flex items-center justify-center bg-gray-100">
         <p>Loading stores...</p>

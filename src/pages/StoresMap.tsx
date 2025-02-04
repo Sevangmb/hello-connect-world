@@ -2,7 +2,7 @@ import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { StoreFilters } from "@/components/stores/StoreFilters";
-import { StoreMap } from "@/components/stores/StoreMap";
+import StoreMap from "@/components/stores/StoreMap";
 import { useStores } from "@/hooks/useStores";
 
 const StoresMap = () => {
@@ -35,17 +35,7 @@ const StoresMap = () => {
               onFiltersChange={setFilters}
             />
             
-            {loading ? (
-              <div className="h-[600px] flex items-center justify-center">
-                <p>Chargement de la carte...</p>
-              </div>
-            ) : (
-              <StoreMap
-                stores={stores}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-              />
-            )}
+            <StoreMap />
           </div>
         </div>
       </main>
