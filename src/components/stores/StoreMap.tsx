@@ -14,6 +14,7 @@ const StoreMap = () => {
   useEffect(() => {
     const initializeMap = async () => {
       try {
+        console.log("Initializing map with stores:", stores);
         const L = (await import("leaflet")).default;
         const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
 
@@ -24,9 +25,12 @@ const StoreMap = () => {
           shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
         });
 
+        // Calculate map center
         const mapCenter = stores.length > 0 && stores[0].latitude && stores[0].longitude
           ? [stores[0].latitude, stores[0].longitude] as [number, number]
           : defaultCenter;
+
+        console.log("Map center calculated:", mapCenter);
 
         const MapComponent = () => (
           <MapContainer
@@ -40,8 +44,12 @@ const StoreMap = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {stores.map((store) => {
-              if (!store.latitude || !store.longitude) return null;
+              if (!store.latitude || !store.longitude) {
+                console.log("Store missing coordinates:", store);
+                return null;
+              }
               
+              console.log("Rendering marker for store:", store);
               return (
                 <Marker
                   key={store.id}
@@ -83,7 +91,7 @@ const StoreMap = () => {
           </MapContainer>
         );
 
-        // Clean up any existing map
+        // Clean up existing map and create new one
         const mapDiv = document.getElementById('map-container');
         if (mapDiv) {
           while (mapDiv.firstChild) {
@@ -92,6 +100,9 @@ const StoreMap = () => {
           const root = createRoot(mapDiv);
           root.render(<MapComponent />);
           setIsMounted(true);
+          console.log("Map mounted successfully");
+        } else {
+          console.error("Map container element not found");
         }
       } catch (error) {
         console.error("Error initializing map:", error);
@@ -99,6 +110,7 @@ const StoreMap = () => {
     };
 
     if (!isMounted && !loading) {
+      console.log("Attempting to initialize map, loading state:", loading);
       initializeMap();
     }
 
