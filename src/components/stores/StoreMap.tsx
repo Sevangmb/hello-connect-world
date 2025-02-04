@@ -12,10 +12,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+const defaultCenter: [number, number] = [48.8566, 2.3522]; // Paris coordinates
+
 const StoreMap = () => {
   const [mounted, setMounted] = useState(false);
   const { stores, loading } = useStores();
-  const defaultCenter: [number, number] = [48.8566, 2.3522]; // Paris coordinates
 
   useEffect(() => {
     setMounted(true);
@@ -37,65 +38,68 @@ const StoreMap = () => {
     );
   }
 
-  // Find map center based on first store or use Paris as default
+  // Calculate map center
   const mapCenter = stores.length > 0 && stores[0].latitude && stores[0].longitude
     ? [stores[0].latitude, stores[0].longitude] as [number, number]
     : defaultCenter;
 
+  const MapComponent = () => (
+    <MapContainer
+      center={mapCenter}
+      zoom={13}
+      style={{ height: "100%", width: "100%" }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      {stores.map((store) => {
+        if (!store.latitude || !store.longitude) return null;
+        
+        return (
+          <Marker
+            key={store.id}
+            position={[store.latitude, store.longitude] as [number, number]}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-semibold">{store.name}</h3>
+                {store.description && (
+                  <p className="text-sm text-gray-600">{store.description}</p>
+                )}
+                {store.address && (
+                  <p className="text-sm mt-1">{store.address}</p>
+                )}
+                {store.phone && (
+                  <p className="text-sm mt-1">
+                    <a href={`tel:${store.phone}`} className="text-blue-500 hover:underline">
+                      {store.phone}
+                    </a>
+                  </p>
+                )}
+                {store.website && (
+                  <p className="text-sm mt-1">
+                    <a
+                      href={store.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      Visit Website
+                    </a>
+                  </p>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </MapContainer>
+  );
+
   return (
     <div className="h-[600px] rounded-lg overflow-hidden">
-      <MapContainer
-        key={mounted ? 'mounted' : 'loading'}
-        center={mapCenter}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {stores.map((store) => {
-          if (!store.latitude || !store.longitude) return null;
-          
-          return (
-            <Marker
-              key={store.id}
-              position={[store.latitude, store.longitude] as [number, number]}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-semibold">{store.name}</h3>
-                  {store.description && (
-                    <p className="text-sm text-gray-600">{store.description}</p>
-                  )}
-                  {store.address && (
-                    <p className="text-sm mt-1">{store.address}</p>
-                  )}
-                  {store.phone && (
-                    <p className="text-sm mt-1">
-                      <a href={`tel:${store.phone}`} className="text-blue-500 hover:underline">
-                        {store.phone}
-                      </a>
-                    </p>
-                  )}
-                  {store.website && (
-                    <p className="text-sm mt-1">
-                      <a
-                        href={store.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Visit Website
-                      </a>
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <MapComponent />
     </div>
   );
 };
