@@ -156,6 +156,8 @@ export default function StoresMap() {
     fetchShops();
   }, [filters]);
 
+  console.log("Rendering StoresMap component");
+
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
@@ -229,6 +231,7 @@ export default function StoresMap() {
                 center={[48.8566, 2.3522]}
                 zoom={12}
                 style={{ height: "100%", width: "100%" }}
+                key="map-container"
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
