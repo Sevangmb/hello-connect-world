@@ -42,78 +42,7 @@ const customIcon = new Icon({
   iconAnchor: [12, 41],
 });
 
-const MapComponent = ({ shops, favorites, toggleFavorite, calculateRoute }) => {
-  if (typeof window === 'undefined') return null;
-
-  return (
-    <MapContainer
-      center={[48.8566, 2.3522]}
-      zoom={12}
-      style={{ height: "100%", width: "100%" }}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {shops.map((shop) => (
-        <Marker
-          key={shop.id}
-          position={[shop.latitude, shop.longitude]}
-          icon={customIcon}
-        >
-          <Popup>
-            <div className="p-2">
-              <h3 className="font-bold">{shop.name}</h3>
-              {shop.description && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {shop.description}
-                </p>
-              )}
-              {shop.address && (
-                <p className="text-sm mt-2">{shop.address}</p>
-              )}
-              {shop.average_rating && (
-                <p className="text-sm mt-1">
-                  Note: {shop.average_rating.toFixed(1)}/5
-                </p>
-              )}
-              <div className="flex gap-2 mt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleFavorite(shop.id)}
-                >
-                  <Heart
-                    className={`h-4 w-4 mr-2 ${
-                      favorites.includes(shop.id)
-                        ? "fill-current text-red-500"
-                        : ""
-                    }`}
-                  />
-                  {favorites.includes(shop.id)
-                    ? "Retirer des favoris"
-                    : "Ajouter aux favoris"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    calculateRoute([shop.latitude, shop.longitude])
-                  }
-                >
-                  <Navigation2 className="h-4 w-4 mr-2" />
-                  Itinéraire
-                </Button>
-              </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
-  );
-};
-
-export default function StoresMap() {
+const StoresMap = () => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
@@ -230,6 +159,78 @@ export default function StoresMap() {
     fetchShops();
   }, [filters]);
 
+  // Only render the map on the client side
+  const MapComponent = () => {
+    if (typeof window === 'undefined') return null;
+
+    return (
+      <MapContainer
+        center={[48.8566, 2.3522]}
+        zoom={12}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {shops.map((shop) => (
+          <Marker
+            key={shop.id}
+            position={[shop.latitude, shop.longitude]}
+            icon={customIcon}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold">{shop.name}</h3>
+                {shop.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    {shop.description}
+                  </p>
+                )}
+                {shop.address && (
+                  <p className="text-sm mt-2">{shop.address}</p>
+                )}
+                {shop.average_rating && (
+                  <p className="text-sm mt-1">
+                    Note: {shop.average_rating.toFixed(1)}/5
+                  </p>
+                )}
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleFavorite(shop.id)}
+                  >
+                    <Heart
+                      className={`h-4 w-4 mr-2 ${
+                        favorites.includes(shop.id)
+                          ? "fill-current text-red-500"
+                          : ""
+                      }`}
+                    />
+                    {favorites.includes(shop.id)
+                      ? "Retirer des favoris"
+                      : "Ajouter aux favoris"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      calculateRoute([shop.latitude, shop.longitude])
+                    }
+                  >
+                    <Navigation2 className="h-4 w-4 mr-2" />
+                    Itinéraire
+                  </Button>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
@@ -299,12 +300,7 @@ export default function StoresMap() {
             </div>
             
             <div className="h-[600px] rounded-lg overflow-hidden">
-              <MapComponent 
-                shops={shops}
-                favorites={favorites}
-                toggleFavorite={toggleFavorite}
-                calculateRoute={calculateRoute}
-              />
+              <MapComponent />
             </div>
           </div>
         </div>
@@ -312,4 +308,6 @@ export default function StoresMap() {
       <BottomNav />
     </div>
   );
-}
+};
+
+export default StoresMap;
