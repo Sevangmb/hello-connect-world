@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import "leaflet/dist/leaflet.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
@@ -12,6 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import L from 'leaflet';
+
+// Centre de la France
+const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
+const DEFAULT_ZOOM = 6;
 
 const formSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères"),
@@ -21,10 +28,37 @@ const formSchema = z.object({
   website: z.string().url("L'URL doit être valide").optional().or(z.literal("")),
 });
 
+// Composant pour gérer les événements de la carte
+const LocationMarker = ({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) => {
+  const [position, setPosition] = useState<[number, number] | null>(null);
+
+  useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      setPosition([lat, lng]);
+      onLocationSelect(lat, lng);
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={position} />
+  );
+};
+
 export default function CreateShop() {
   const [loading, setLoading] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Configuration de l'icône par défaut de Leaflet
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+    iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,9 +71,16 @@ export default function CreateShop() {
     },
   });
 
+  const handleLocationSelect = (lat: number, lng: number) => {
+    console.log("Location selected:", lat, lng);
+    setLatitude(lat);
+    setLongitude(lng);
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
+      console.log("Starting shop creation...");
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -51,7 +92,7 @@ export default function CreateShop() {
         return;
       }
 
-      // Check if user already has a shop
+      // Vérification si l'utilisateur a déjà une boutique
       const { data: existingShop } = await supabase
         .from("shops")
         .select("id")
@@ -68,6 +109,15 @@ export default function CreateShop() {
         return;
       }
 
+      if (!latitude || !longitude) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner l'emplacement de votre boutique sur la carte",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.from("shops").insert({
         name: values.name,
         description: values.description,
@@ -76,6 +126,8 @@ export default function CreateShop() {
         phone: values.phone || null,
         website: values.website || null,
         status: "pending",
+        latitude,
+        longitude,
       });
 
       if (error) throw error;
@@ -181,6 +233,28 @@ export default function CreateShop() {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <FormLabel>Emplacement de la boutique</FormLabel>
+                <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200">
+                  <MapContainer
+                    center={FRANCE_CENTER}
+                    zoom={DEFAULT_ZOOM}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationMarker onLocationSelect={handleLocationSelect} />
+                  </MapContainer>
+                </div>
+                {!latitude && !longitude && (
+                  <p className="text-sm text-muted-foreground">
+                    Cliquez sur la carte pour sélectionner l'emplacement de votre boutique
+                  </p>
+                )}
+              </div>
 
               <div className="flex justify-end gap-4">
                 <Button 
