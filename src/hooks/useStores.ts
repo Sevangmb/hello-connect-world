@@ -47,11 +47,7 @@ export function useStores() {
       
       if (!user) {
         console.log("No user found");
-        toast({
-          title: "Erreur",
-          description: "Vous devez être connecté pour voir la liste des boutiques",
-          variant: "destructive",
-        });
+        setLoading(false);
         return;
       }
 
@@ -64,6 +60,8 @@ export function useStores() {
         description: "Une erreur est survenue lors de la récupération de l'utilisateur",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,19 +93,20 @@ export function useStores() {
       console.error('Error:', error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue",
+        description: "Une erreur est survenue lors de la récupération des boutiques",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchFavorites = async () => {
+    if (!userId) return;
+    
     try {
       const { data, error } = await supabase
         .from('favorite_shops')
-        .select('shop_id');
+        .select('shop_id')
+        .eq('user_id', userId);
 
       if (error) throw error;
 
@@ -139,7 +138,7 @@ export function useStores() {
 
         setFavorites(favorites.filter(id => id !== shopId));
         toast({
-          title: "Boutique retirée des favoris",
+          title: "Succès",
           description: "La boutique a été retirée de vos favoris",
         });
       } else {
@@ -154,7 +153,7 @@ export function useStores() {
 
         setFavorites([...favorites, shopId]);
         toast({
-          title: "Boutique ajoutée aux favoris",
+          title: "Succès",
           description: "La boutique a été ajoutée à vos favoris",
         });
       }

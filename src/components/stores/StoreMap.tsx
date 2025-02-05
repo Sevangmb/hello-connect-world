@@ -5,8 +5,9 @@ import { useStores } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
 import { useToast } from "@/hooks/use-toast";
 
-// Default center coordinates (Paris)
-const defaultCenter: [number, number] = [48.8566, 2.3522];
+// Centre de la France
+const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
+const DEFAULT_ZOOM = 6;
 
 const StoreMap = () => {
   const [isMounted, setIsMounted] = useState(false);
@@ -20,13 +21,12 @@ const StoreMap = () => {
       try {
         console.log("Starting map initialization...");
         
-        // Import Leaflet and React-Leaflet dynamically
         const L = (await import("leaflet")).default;
         const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
 
         console.log("Libraries loaded successfully");
 
-        // Set up the default marker icon
+        // Configuration de l'icône par défaut
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
@@ -34,20 +34,20 @@ const StoreMap = () => {
           shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
         });
 
-        // Calculate map center
-        const validStores = stores.filter(store => store.latitude && store.longitude);
+        // Filtrer les magasins avec des coordonnées valides
+        const validStores = stores.filter(store => 
+          store.latitude && 
+          store.longitude && 
+          !isNaN(store.latitude) && 
+          !isNaN(store.longitude)
+        );
+        
         console.log("Valid stores with coordinates:", validStores.length);
-
-        const mapCenter = validStores.length > 0
-          ? [validStores[0].latitude, validStores[0].longitude] as [number, number]
-          : defaultCenter;
-
-        console.log("Map center set to:", mapCenter);
 
         const MapComponent = () => (
           <MapContainer
-            center={mapCenter}
-            zoom={13}
+            center={FRANCE_CENTER}
+            zoom={DEFAULT_ZOOM}
             style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={true}
           >
@@ -58,7 +58,7 @@ const StoreMap = () => {
             {validStores.map((store) => (
               <Marker
                 key={store.id}
-                position={[store.latitude, store.longitude] as [number, number]}
+                position={[store.latitude!, store.longitude!] as [number, number]}
               >
                 <Popup>
                   <div className="p-2">
@@ -84,7 +84,7 @@ const StoreMap = () => {
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline"
                         >
-                          Visit Website
+                          Visiter le site web
                         </a>
                       </p>
                     )}
@@ -95,24 +95,17 @@ const StoreMap = () => {
           </MapContainer>
         );
 
-        // Clean up existing map container
         const mapDiv = document.getElementById('map-container');
         if (!mapDiv) {
           console.error("Map container element not found");
-          toast({
-            title: "Erreur",
-            description: "Impossible d'initialiser la carte",
-            variant: "destructive",
-          });
           return;
         }
 
-        // Clear previous content
+        // Nettoyer le conteneur existant
         while (mapDiv.firstChild) {
           mapDiv.removeChild(mapDiv.firstChild);
         }
 
-        // Create new root and render map
         mapRoot = createRoot(mapDiv);
         mapRoot.render(<MapComponent />);
         setIsMounted(true);
@@ -133,14 +126,13 @@ const StoreMap = () => {
       initializeMap();
     }
 
-    // Cleanup function
     return () => {
       if (mapRoot) {
         mapRoot.unmount();
       }
       setIsMounted(false);
     };
-  }, [stores, loading, isMounted]);
+  }, [stores, loading, isMounted, toast]);
 
   if (loading || !isMounted) {
     return (
