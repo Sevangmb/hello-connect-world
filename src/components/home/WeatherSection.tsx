@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Cloud, Sun, CloudRain, Shirt, ThermometerSun, Wind, Droplets, CloudFog, CloudDrizzle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface WeatherData {
   current: {
@@ -29,7 +30,9 @@ interface WeatherData {
 }
 
 export const WeatherSection = () => {
-  const { data: weather, isLoading } = useQuery<WeatherData>({
+  const { toast } = useToast();
+
+  const { data: weather, isLoading, error } = useQuery<WeatherData>({
     queryKey: ["weather"],
     queryFn: async () => {
       try {
@@ -37,14 +40,19 @@ export const WeatherSection = () => {
           .from('secrets')
           .select('value')
           .eq('key', 'OPENWEATHER_API_KEY')
-          .single();
+          .maybeSingle();
 
         if (secretError) {
           console.error("Error fetching API key:", secretError);
-          throw secretError;
+          throw new Error("Failed to fetch OpenWeather API key");
         }
 
         if (!secretData?.value) {
+          toast({
+            title: "Configuration Error",
+            description: "OpenWeather API key not found. Please make sure it's configured correctly.",
+            variant: "destructive",
+          });
           throw new Error("OpenWeather API key not found");
         }
 
@@ -58,12 +66,22 @@ export const WeatherSection = () => {
         const currentResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
+
+        if (!currentResponse.ok) {
+          throw new Error(`Weather API error: ${currentResponse.statusText}`);
+        }
+
         const currentData = await currentResponse.json();
 
         // Récupération des prévisions
         const forecastResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
+
+        if (!forecastResponse.ok) {
+          throw new Error(`Forecast API error: ${forecastResponse.statusText}`);
+        }
+
         const forecastData = await forecastResponse.json();
 
         // Traitement des prévisions pour obtenir une par jour
@@ -97,6 +115,11 @@ export const WeatherSection = () => {
         };
       } catch (error) {
         console.error("Erreur lors de la récupération de la météo:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch weather data. Please try again later.",
+          variant: "destructive",
+        });
         throw error;
       }
     },
@@ -150,6 +173,17 @@ export const WeatherSection = () => {
           <Skeleton className="h-8 w-1/3" />
           <Skeleton className="h-12 w-12 rounded-full" />
           <Skeleton className="h-4 w-2/3" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="text-center text-muted-foreground">
+          <p>Unable to load weather data.</p>
+          <p className="text-sm">Please check your configuration and try again.</p>
         </div>
       </Card>
     );
