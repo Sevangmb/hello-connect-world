@@ -33,11 +33,22 @@ export const WeatherSection = () => {
     queryKey: ["weather"],
     queryFn: async () => {
       try {
-        const { data: { OPENWEATHER_API_KEY } } = await supabase
+        const { data: secretData, error: secretError } = await supabase
           .from('secrets')
           .select('value')
           .eq('key', 'OPENWEATHER_API_KEY')
           .single();
+
+        if (secretError) {
+          console.error("Error fetching API key:", secretError);
+          throw secretError;
+        }
+
+        if (!secretData?.value) {
+          throw new Error("OpenWeather API key not found");
+        }
+
+        const OPENWEATHER_API_KEY = secretData.value;
 
         // Coordonnées de Paris par défaut
         const lat = 48.8566;
