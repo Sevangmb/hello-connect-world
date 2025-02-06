@@ -39,12 +39,11 @@ export const WeatherSection = () => {
       try {
         console.log("Fetching weather data...");
         
-        // Fetch API key from Supabase secrets
         const { data: secretData, error: secretError } = await supabase
           .from('secrets')
           .select('value')
           .eq('key', 'OPENWEATHER_API_KEY')
-          .maybeSingle();
+          .single();
 
         console.log("API key fetch result:", { secretData, secretError });
 
@@ -55,17 +54,11 @@ export const WeatherSection = () => {
 
         if (!secretData?.value) {
           console.error("No API key found in secrets");
-          toast({
-            title: "Configuration Error",
-            description: "OpenWeather API key not found. Please make sure it's configured correctly.",
-            variant: "destructive",
-          });
           throw new Error("OpenWeather API key not found");
         }
 
         const OPENWEATHER_API_KEY = secretData.value;
         
-        // Get user location with proper error handling
         let lat: number;
         let lon: number;
         
@@ -87,7 +80,6 @@ export const WeatherSection = () => {
           lon = DEFAULT_LOCATION.lon;
         }
 
-        // Fetch current weather
         const currentResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
@@ -97,8 +89,8 @@ export const WeatherSection = () => {
         }
 
         const currentData = await currentResponse.json();
+        console.log("Current weather data:", currentData);
 
-        // Fetch forecast
         const forecastResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
@@ -108,6 +100,7 @@ export const WeatherSection = () => {
         }
 
         const forecastData = await forecastResponse.json();
+        console.log("Forecast data:", forecastData);
 
         return {
           current: {
@@ -152,9 +145,9 @@ export const WeatherSection = () => {
   if (error) {
     return (
       <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          <p>Unable to load weather data.</p>
-          <p className="text-sm">Please check your configuration and try again.</p>
+        <div className="text-center text-destructive">
+          <p>Impossible de charger les données météo.</p>
+          <p className="text-sm">Veuillez vérifier votre configuration et réessayer.</p>
         </div>
       </Card>
     );
@@ -165,18 +158,25 @@ export const WeatherSection = () => {
   return (
     <div className="space-y-4">
       <Card className="p-6">
-        <h2 className="text-lg font-bold">{weather.location?.name}, {weather.location?.country}</h2>
-        <div className="flex items-center">
-          <img 
-            src={`https://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} 
-            alt={weather.current.description} 
-          />
-          <div className="ml-4">
-            <p className="text-2xl">{weather.current.temp}°C</p>
-            <p>{weather.current.description}</p>
+        <h2 className="text-lg font-bold mb-4">{weather.location?.name}, {weather.location?.country}</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <img 
+              src={`https://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} 
+              alt={weather.current.description}
+              className="w-16 h-16"
+            />
+            <div className="ml-4">
+              <p className="text-3xl font-bold">{weather.current.temp}°C</p>
+              <p className="text-muted-foreground capitalize">{weather.current.description}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Humidité: {weather.current.humidity}%</p>
+            <p className="text-sm text-muted-foreground">Vent: {weather.current.windSpeed} km/h</p>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-2 border-t pt-4">
           {weather.forecasts.map((forecast) => (
             <div key={forecast.date} className="flex flex-col items-center text-sm">
               <p className="font-medium">{forecast.date}</p>
@@ -191,12 +191,10 @@ export const WeatherSection = () => {
         </div>
       </Card>
 
-      {weather && (
-        <WeatherOutfitSuggestion 
-          temperature={weather.current.temp} 
-          description={weather.current.description}
-        />
-      )}
+      <WeatherOutfitSuggestion 
+        temperature={weather.current.temp} 
+        description={weather.current.description}
+      />
     </div>
   );
 };

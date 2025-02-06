@@ -10,13 +10,15 @@ type WeatherOutfitSuggestionProps = {
 };
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
-  const { data: suggestion, isLoading } = useQuery({
+  const { data: suggestion, isLoading, error } = useQuery({
     queryKey: ["outfit-suggestion", temperature, description],
     queryFn: async () => {
       try {
+        console.log("Fetching outfit suggestion for:", { temperature, description });
         const { data: { url } } = await supabase.functions.invoke('get-weather-outfit', {
           body: { temperature, weather: description }
         });
+        console.log("Received outfit suggestion:", url);
         return url;
       } catch (error) {
         console.error("Error fetching outfit suggestion:", error);
@@ -30,10 +32,22 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
     return (
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-blue-500" />
+          <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
         </div>
         <Skeleton className="h-20 w-full" />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-destructive" />
+          <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
+        </div>
+        <p className="text-destructive">Impossible de générer une suggestion pour le moment.</p>
       </Card>
     );
   }
@@ -43,7 +57,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="h-5 w-5 text-blue-500" />
+        <Sparkles className="h-5 w-5 text-primary" />
         <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
       </div>
       <p className="text-muted-foreground">{suggestion}</p>
