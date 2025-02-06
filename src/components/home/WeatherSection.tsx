@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Cloud, Sun, CloudRain, Shirt, ThermometerSun, Wind, Droplets, CloudFog, CloudDrizzle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { WeatherOutfitSuggestion } from "./WeatherOutfitSuggestion";
@@ -65,8 +64,7 @@ export const WeatherSection = () => {
         }
 
         const OPENWEATHER_API_KEY = secretData.value;
-        console.log("Successfully retrieved API key");
-
+        
         // Get user location with proper error handling
         let lat: number;
         let lon: number;
@@ -85,58 +83,46 @@ export const WeatherSection = () => {
           console.log("Got user location:", { lat, lon });
         } catch (geoError) {
           console.log("Geolocation error, using default location:", geoError);
-          toast({
-            title: "Location Access Denied",
-            description: "Using default location (Paris). Enable location access for local weather.",
-          });
           lat = DEFAULT_LOCATION.lat;
           lon = DEFAULT_LOCATION.lon;
         }
 
-        // Récupération de la météo actuelle
-        console.log("Fetching current weather...");
+        // Fetch current weather
         const currentResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
 
         if (!currentResponse.ok) {
-          console.error("Current weather API error:", currentResponse.statusText);
           throw new Error(`Weather API error: ${currentResponse.statusText}`);
         }
 
         const currentData = await currentResponse.json();
-        console.log("Current weather data received:", currentData);
 
-        // Récupération des prévisions
-        console.log("Fetching forecast...");
+        // Fetch forecast
         const forecastResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
 
         if (!forecastResponse.ok) {
-          console.error("Forecast API error:", forecastResponse.statusText);
           throw new Error(`Forecast API error: ${forecastResponse.statusText}`);
         }
 
         const forecastData = await forecastResponse.json();
-        console.log("Forecast data received:", forecastData);
-
-        const dailyForecasts = forecastData.list.map((item: any) => ({
-          date: item.dt_txt.split(" ")[0],
-          temp: Math.round(item.main.temp),
-          description: item.weather[0].description,
-          icon: item.weather[0].icon,
-        }));
 
         return {
           current: {
             temp: Math.round(currentData.main.temp),
             humidity: currentData.main.humidity,
-            windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
+            windSpeed: Math.round(currentData.wind.speed * 3.6),
             description: currentData.weather[0].description,
             icon: currentData.weather[0].icon,
           },
-          forecasts: dailyForecasts,
+          forecasts: forecastData.list.slice(0, 5).map((item: any) => ({
+            date: new Date(item.dt * 1000).toLocaleDateString('fr-FR', { weekday: 'short' }),
+            temp: Math.round(item.main.temp),
+            description: item.weather[0].description,
+            icon: item.weather[0].icon,
+          })),
           location: {
             name: currentData.name,
             country: currentData.sys.country,
@@ -144,11 +130,6 @@ export const WeatherSection = () => {
         };
       } catch (error) {
         console.error("Erreur lors de la récupération de la météo:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch weather data. Please try again later.",
-          variant: "destructive",
-        });
         throw error;
       }
     },
@@ -186,30 +167,36 @@ export const WeatherSection = () => {
       <Card className="p-6">
         <h2 className="text-lg font-bold">{weather.location?.name}, {weather.location?.country}</h2>
         <div className="flex items-center">
-          <img src={`http://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} alt={weather.current.description} />
+          <img 
+            src={`https://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} 
+            alt={weather.current.description} 
+          />
           <div className="ml-4">
             <p className="text-2xl">{weather.current.temp}°C</p>
             <p>{weather.current.description}</p>
           </div>
         </div>
-        <div className="mt-4">
-          <h3 className="font-semibold">Forecast</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {weather.forecasts.map((forecast) => (
-              <div key={forecast.date} className="flex flex-col items-center">
-                <p>{forecast.date}</p>
-                <img src={`http://openweathermap.org/img/wn/${forecast.icon}@2x.png`} alt={forecast.description} />
-                <p>{forecast.temp}°C</p>
-              </div>
-            ))}
-          </div>
+        <div className="mt-4 grid grid-cols-5 gap-2">
+          {weather.forecasts.map((forecast) => (
+            <div key={forecast.date} className="flex flex-col items-center text-sm">
+              <p className="font-medium">{forecast.date}</p>
+              <img 
+                src={`https://openweathermap.org/img/wn/${forecast.icon}.png`} 
+                alt={forecast.description}
+                className="w-8 h-8"
+              />
+              <p>{forecast.temp}°C</p>
+            </div>
+          ))}
         </div>
       </Card>
 
-      <WeatherOutfitSuggestion 
-        temperature={weather.current.temp} 
-        description={weather.current.description}
-      />
+      {weather && (
+        <WeatherOutfitSuggestion 
+          temperature={weather.current.temp} 
+          description={weather.current.description}
+        />
+      )}
     </div>
   );
 };
