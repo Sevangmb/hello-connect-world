@@ -30,7 +30,7 @@ serve(async (req) => {
     })
 
     return new Response(
-      JSON.stringify({ suggestion: response.generated_text }),
+      JSON.stringify({ url: response.generated_text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
