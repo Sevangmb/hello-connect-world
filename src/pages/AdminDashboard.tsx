@@ -230,7 +230,7 @@ export default function AdminDashboard() {
                     <p className="font-bold">{premiumUsers}</p>
                   </div>
                   <div>
-                    <p className="text-sm">Taux de conversion (Gratuits -&gt; Premium):</p>
+                    <p className="text-sm">Taux de conversion (Gratuits -> Premium):</p>
                     <p className="font-bold">{conversionRate}%</p>
                   </div>
                 </div>
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
                     <p className="font-bold">{averageSalePrice}</p>
                   </div>
                   <div>
-                    <p className="text-sm">Taux de conversion (mis en vente -&gt; vendus):</p>
+                    <p className="text-sm">Taux de conversion (mis en vente -> vendus):</p>
                     <p className="font-bold">{saleConversionRate}%</p>
                   </div>
                   <div>
@@ -365,7 +365,7 @@ export default function AdminDashboard() {
                     <p className="font-bold">{appointmentBookings}</p>
                   </div>
                   <div>
-                    <p className="text-sm">Taux de conversion (vitrine -&gt; magasin):</p>
+                    <p className="text-sm">Taux de conversion (vitrine -> magasin):</p>
                     <p className="font-bold">{storeConversionRate}%</p>
                   </div>
                 </div>

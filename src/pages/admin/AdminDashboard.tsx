@@ -146,7 +146,7 @@ export default function AdminDashboard() {
                     <p className="font-bold">0</p>
                   </div>
                   <div>
-                    <p className="text-sm">Taux de conversion (mis en vente -&gt; vendus):</p>
+                    <p className="text-sm">Taux de conversion (mis en vente -> vendus):</p>
                     <p className="font-bold">0%</p>
                   </div>
                   <div>
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
                     <p className="font-bold">0</p>
                   </div>
                   <div>
-                    <p className="text-sm">Taux de conversion (vitrine -&gt; magasin):</p>
+                    <p className="text-sm">Taux de conversion (vitrine -> magasin):</p>
                     <p className="font-bold">0%</p>
                   </div>
                 </div>
