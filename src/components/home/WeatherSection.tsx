@@ -37,6 +37,8 @@ export const WeatherSection = () => {
     queryKey: ["weather"],
     queryFn: async () => {
       try {
+        console.log("Fetching weather data...");
+        
         // Fetch API key from Supabase secrets
         const { data: secretData, error: secretError } = await supabase
           .from('secrets')
@@ -44,12 +46,15 @@ export const WeatherSection = () => {
           .eq('key', 'OPENWEATHER_API_KEY')
           .maybeSingle();
 
+        console.log("API key fetch result:", { secretData, secretError });
+
         if (secretError) {
           console.error("Error fetching API key:", secretError);
           throw new Error("Failed to fetch OpenWeather API key");
         }
 
         if (!secretData?.value) {
+          console.error("No API key found in secrets");
           toast({
             title: "Configuration Error",
             description: "OpenWeather API key not found. Please make sure it's configured correctly.",
@@ -59,12 +64,14 @@ export const WeatherSection = () => {
         }
 
         const OPENWEATHER_API_KEY = secretData.value;
+        console.log("Successfully retrieved API key");
 
         // Get user location with proper error handling
         let lat: number;
         let lon: number;
         
         try {
+          console.log("Requesting user location...");
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
               timeout: 5000,
@@ -74,6 +81,7 @@ export const WeatherSection = () => {
           
           lat = position.coords.latitude;
           lon = position.coords.longitude;
+          console.log("Got user location:", { lat, lon });
         } catch (geoError) {
           console.log("Geolocation error, using default location:", geoError);
           toast({
@@ -85,26 +93,32 @@ export const WeatherSection = () => {
         }
 
         // Récupération de la météo actuelle
+        console.log("Fetching current weather...");
         const currentResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
 
         if (!currentResponse.ok) {
+          console.error("Current weather API error:", currentResponse.statusText);
           throw new Error(`Weather API error: ${currentResponse.statusText}`);
         }
 
         const currentData = await currentResponse.json();
+        console.log("Current weather data received:", currentData);
 
         // Récupération des prévisions
+        console.log("Fetching forecast...");
         const forecastResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
 
         if (!forecastResponse.ok) {
+          console.error("Forecast API error:", forecastResponse.statusText);
           throw new Error(`Forecast API error: ${forecastResponse.statusText}`);
         }
 
         const forecastData = await forecastResponse.json();
+        console.log("Forecast data received:", forecastData);
 
         const dailyForecasts = forecastData.list.map((item: any) => ({
           date: item.dt_txt.split(" ")[0],
