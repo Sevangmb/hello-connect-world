@@ -7,27 +7,28 @@ import { useToast } from "@/hooks/use-toast";
 
 interface WeatherData {
   current: {
-    temperature: number;
-    condition: 'sunny' | 'cloudy' | 'rainy' | 'foggy' | 'drizzle';
-    feelsLike: number;
+    temp: number;
     humidity: number;
     windSpeed: number;
-    pressure: number;
-    visibility: number;
     description: string;
+    icon: string;
   };
-  forecast: Array<{
+  forecasts: Array<{
     date: string;
-    temperature: {
-      min: number;
-      max: number;
-    };
-    condition: 'sunny' | 'cloudy' | 'rainy' | 'foggy' | 'drizzle';
+    temp: number;
     description: string;
+    icon: string;
   }>;
-  location: string;
-  recommendation: string;
+  location?: {
+    name: string;
+    country: string;
+  };
 }
+
+const DEFAULT_LOCATION = {
+  lat: 48.8566, // Paris
+  lon: 2.3522
+};
 
 export const WeatherSection = () => {
   const { toast } = useToast();
@@ -36,6 +37,7 @@ export const WeatherSection = () => {
     queryKey: ["weather"],
     queryFn: async () => {
       try {
+        // Fetch API key from Supabase secrets
         const { data: secretData, error: secretError } = await supabase
           .from('secrets')
           .select('value')
@@ -58,11 +60,31 @@ export const WeatherSection = () => {
 
         const OPENWEATHER_API_KEY = secretData.value;
 
-        // Coordonnées de Paris par défaut
-        const lat = 48.8566;
-        const lon = 2.3522;
+        // Get user location with proper error handling
+        let lat: number;
+        let lon: number;
         
-        // Récupération des données actuelles
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+              maximumAge: 0,
+            });
+          });
+          
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+        } catch (geoError) {
+          console.log("Geolocation error, using default location:", geoError);
+          toast({
+            title: "Location Access Denied",
+            description: "Using default location (Paris). Enable location access for local weather.",
+          });
+          lat = DEFAULT_LOCATION.lat;
+          lon = DEFAULT_LOCATION.lon;
+        }
+
+        // Récupération de la météo actuelle
         const currentResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
         );
@@ -84,34 +106,26 @@ export const WeatherSection = () => {
 
         const forecastData = await forecastResponse.json();
 
-        // Traitement des prévisions pour obtenir une par jour
-        const dailyForecast = forecastData.list
-          .filter((_: any, index: number) => index % 8 === 0) // Une mesure par jour
-          .slice(0, 7) // 7 jours
-          .map((day: any) => ({
-            date: new Date(day.dt * 1000).toLocaleDateString('fr-FR', { weekday: 'long' }),
-            temperature: {
-              min: Math.round(day.main.temp_min),
-              max: Math.round(day.main.temp_max)
-            },
-            condition: getConditionFromId(day.weather[0].id),
-            description: day.weather[0].description
-          }));
+        const dailyForecasts = forecastData.list.map((item: any) => ({
+          date: item.dt_txt.split(" ")[0],
+          temp: Math.round(item.main.temp),
+          description: item.weather[0].description,
+          icon: item.weather[0].icon,
+        }));
 
         return {
           current: {
-            temperature: Math.round(currentData.main.temp),
-            condition: getConditionFromId(currentData.weather[0].id),
-            feelsLike: Math.round(currentData.main.feels_like),
+            temp: Math.round(currentData.main.temp),
             humidity: currentData.main.humidity,
-            windSpeed: Math.round(currentData.wind.speed * 3.6), // Conversion en km/h
-            pressure: currentData.main.pressure,
-            visibility: Math.round(currentData.visibility / 1000), // Conversion en km
-            description: currentData.weather[0].description
+            windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
+            description: currentData.weather[0].description,
+            icon: currentData.weather[0].icon,
           },
-          forecast: dailyForecast,
-          location: "Paris",
-          recommendation: getClothingRecommendation(Math.round(currentData.main.temp), currentData.weather[0].id)
+          forecasts: dailyForecasts,
+          location: {
+            name: currentData.name,
+            country: currentData.sys.country,
+          },
         };
       } catch (error) {
         console.error("Erreur lors de la récupération de la météo:", error);
@@ -123,53 +137,14 @@ export const WeatherSection = () => {
         throw error;
       }
     },
-    refetchInterval: 1800000, // Rafraîchissement toutes les 30 minutes
+    retry: 1,
+    staleTime: 1000 * 60 * 30, // 30 minutes
   });
-
-  const getConditionFromId = (id: number): WeatherData['current']['condition'] => {
-    if (id >= 200 && id < 300) return 'rainy'; // Orage
-    if (id >= 300 && id < 400) return 'drizzle'; // Bruine
-    if (id >= 500 && id < 600) return 'rainy'; // Pluie
-    if (id >= 700 && id < 800) return 'foggy'; // Brouillard
-    if (id === 800) return 'sunny'; // Ciel dégagé
-    return 'cloudy'; // Nuageux
-  };
-
-  const getClothingRecommendation = (temp: number, weatherId: number): string => {
-    if (temp < 10) {
-      return "Il fait froid ! Pensez à porter un manteau chaud, une écharpe et des gants.";
-    } else if (temp < 15) {
-      return "Une veste ou un pull chaud sera parfait pour aujourd'hui.";
-    } else if (temp < 20) {
-      return "Un pull léger ou une veste fine sera idéal.";
-    } else if (temp < 25) {
-      return "Température agréable pour un t-shirt avec éventuellement une petite veste.";
-    } else {
-      return "Il fait chaud ! Privilégiez des vêtements légers et respirants.";
-    }
-  };
-
-  const getWeatherIcon = (condition: WeatherData['current']['condition']) => {
-    switch (condition) {
-      case "sunny":
-        return <Sun className="h-12 w-12 text-yellow-500" />;
-      case "cloudy":
-        return <Cloud className="h-12 w-12 text-gray-500" />;
-      case "rainy":
-        return <CloudRain className="h-12 w-12 text-blue-500" />;
-      case "foggy":
-        return <CloudFog className="h-12 w-12 text-gray-400" />;
-      case "drizzle":
-        return <CloudDrizzle className="h-12 w-12 text-blue-400" />;
-      default:
-        return <Sun className="h-12 w-12 text-yellow-500" />;
-    }
-  };
 
   if (isLoading) {
     return (
-      <Card className="p-4">
-        <div className="space-y-3">
+      <Card className="p-6">
+        <div className="flex flex-col items-center gap-4">
           <Skeleton className="h-8 w-1/3" />
           <Skeleton className="h-12 w-12 rounded-full" />
           <Skeleton className="h-4 w-2/3" />
@@ -189,77 +164,30 @@ export const WeatherSection = () => {
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Météo actuelle */}
-      <Card className="p-6 animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">{weather?.current.temperature}°C</h2>
-            <p className="text-muted-foreground capitalize">{weather?.current.description}</p>
-            <p className="text-muted-foreground">{weather?.location}</p>
-          </div>
-          {weather && getWeatherIcon(weather.current.condition)}
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <ThermometerSun className="h-5 w-5 text-orange-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Ressenti</p>
-              <p className="font-medium">{weather?.current.feelsLike}°C</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Droplets className="h-5 w-5 text-blue-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Humidité</p>
-              <p className="font-medium">{weather?.current.humidity}%</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Wind className="h-5 w-5 text-green-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Vent</p>
-              <p className="font-medium">{weather?.current.windSpeed} km/h</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Cloud className="h-5 w-5 text-gray-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Visibilité</p>
-              <p className="font-medium">{weather?.current.visibility} km</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-start gap-2 text-muted-foreground border-t pt-4">
-          <Shirt className="h-5 w-5 mt-1 text-primary" />
-          <p className="text-sm">{weather?.recommendation}</p>
-        </div>
-      </Card>
+  if (!weather) return null;
 
-      {/* Prévisions sur 7 jours */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Prévisions sur 7 jours</h3>
-        <div className="grid gap-4">
-          {weather?.forecast.map((day, index) => (
-            <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
-              <div className="flex items-center gap-4">
-                {getWeatherIcon(day.condition)}
-                <div>
-                  <p className="font-medium capitalize">{day.date}</p>
-                  <p className="text-sm text-muted-foreground capitalize">{day.description}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-medium">{day.temperature.max}°C</p>
-                <p className="text-sm text-muted-foreground">{day.temperature.min}°C</p>
-              </div>
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-bold">{weather.location?.name}, {weather.location?.country}</h2>
+      <div className="flex items-center">
+        <img src={`http://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} alt={weather.current.description} />
+        <div className="ml-4">
+          <p className="text-2xl">{weather.current.temp}°C</p>
+          <p>{weather.current.description}</p>
+        </div>
+      </div>
+      <div className="mt-4">
+        <h3 className="font-semibold">Forecast</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {weather.forecasts.map((forecast) => (
+            <div key={forecast.date} className="flex flex-col items-center">
+              <p>{forecast.date}</p>
+              <img src={`http://openweathermap.org/img/wn/${forecast.icon}@2x.png`} alt={forecast.description} />
+              <p>{forecast.temp}°C</p>
             </div>
           ))}
         </div>
-      </Card>
-    </div>
+      </div>
+    </Card>
   );
 };
