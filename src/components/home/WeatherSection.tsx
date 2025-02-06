@@ -33,7 +33,7 @@ const DEFAULT_LOCATION = {
 export const WeatherSection = () => {
   const { toast } = useToast();
 
-  const { data: weather, isLoading, error } = useQuery<WeatherData>({
+  const { data: weather, isLoading, error } = useQuery({
     queryKey: ["weather"],
     queryFn: async () => {
       try {
@@ -43,7 +43,7 @@ export const WeatherSection = () => {
           .from('secrets')
           .select('value')
           .eq('key', 'OPENWEATHER_API_KEY')
-          .single();
+          .maybeSingle();
 
         console.log("API key fetch result:", { secretData, secretError });
 
@@ -66,7 +66,7 @@ export const WeatherSection = () => {
           console.log("Requesting user location...");
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 5000,
+              timeout: 10000,
               maximumAge: 0,
             });
           });
@@ -74,10 +74,21 @@ export const WeatherSection = () => {
           lat = position.coords.latitude;
           lon = position.coords.longitude;
           console.log("Got user location:", { lat, lon });
-        } catch (geoError) {
+          
+          toast({
+            title: "Localisation réussie",
+            description: "Nous utilisons votre position pour afficher la météo locale.",
+          });
+        } catch (geoError: any) {
           console.log("Geolocation error, using default location:", geoError);
           lat = DEFAULT_LOCATION.lat;
           lon = DEFAULT_LOCATION.lon;
+          
+          toast({
+            title: "Localisation par défaut",
+            description: "Nous utilisons Paris comme localisation par défaut.",
+            variant: "default"
+          });
         }
 
         const currentResponse = await fetch(
@@ -146,8 +157,10 @@ export const WeatherSection = () => {
     return (
       <Card className="p-6">
         <div className="text-center text-destructive">
-          <p>Impossible de charger les données météo.</p>
-          <p className="text-sm">Veuillez vérifier votre configuration et réessayer.</p>
+          <p className="font-semibold">Impossible de charger les données météo.</p>
+          <p className="text-sm mt-2">
+            {error instanceof Error ? error.message : "Veuillez vérifier votre configuration et réessayer."}
+          </p>
         </div>
       </Card>
     );
