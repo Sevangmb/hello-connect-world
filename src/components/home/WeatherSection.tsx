@@ -80,15 +80,24 @@ export const WeatherSection = () => {
             description: "Nous utilisons votre position pour afficher la météo locale.",
           });
         } catch (geoError: any) {
-          console.log("Geolocation error, using default location:", geoError);
+          console.log("Geolocation error:", geoError);
           lat = DEFAULT_LOCATION.lat;
           lon = DEFAULT_LOCATION.lon;
           
-          toast({
-            title: "Localisation par défaut",
-            description: "Nous utilisons Paris comme localisation par défaut.",
-            variant: "default"
-          });
+          // Check if user denied permission
+          if (geoError.code === 1) { // PERMISSION_DENIED
+            toast({
+              title: "Accès à la localisation refusé",
+              description: "Nous utilisons Paris comme localisation par défaut. Vous pouvez autoriser l'accès à votre position dans les paramètres de votre navigateur.",
+              variant: "default"
+            });
+          } else {
+            toast({
+              title: "Localisation par défaut",
+              description: "Nous utilisons Paris comme localisation par défaut.",
+              variant: "default"
+            });
+          }
         }
 
         const currentResponse = await fetch(
@@ -190,8 +199,8 @@ export const WeatherSection = () => {
           </div>
         </div>
         <div className="grid grid-cols-5 gap-2 border-t pt-4">
-          {weather.forecasts.map((forecast) => (
-            <div key={forecast.date} className="flex flex-col items-center text-sm">
+          {weather.forecasts.map((forecast, index) => (
+            <div key={`${forecast.date}-${index}`} className="flex flex-col items-center text-sm">
               <p className="font-medium">{forecast.date}</p>
               <img 
                 src={`https://openweathermap.org/img/wn/${forecast.icon}.png`} 
