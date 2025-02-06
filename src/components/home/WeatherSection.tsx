@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Cloud, Sun, CloudRain, Shirt, ThermometerSun, Wind, Droplets, CloudFog, CloudDrizzle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { WeatherOutfitSuggestion } from "./WeatherOutfitSuggestion";
 
 interface WeatherData {
   current: {
@@ -181,27 +182,34 @@ export const WeatherSection = () => {
   if (!weather) return null;
 
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-bold">{weather.location?.name}, {weather.location?.country}</h2>
-      <div className="flex items-center">
-        <img src={`http://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} alt={weather.current.description} />
-        <div className="ml-4">
-          <p className="text-2xl">{weather.current.temp}°C</p>
-          <p>{weather.current.description}</p>
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h2 className="text-lg font-bold">{weather.location?.name}, {weather.location?.country}</h2>
+        <div className="flex items-center">
+          <img src={`http://openweathermap.org/img/wn/${weather.current.icon}@2x.png`} alt={weather.current.description} />
+          <div className="ml-4">
+            <p className="text-2xl">{weather.current.temp}°C</p>
+            <p>{weather.current.description}</p>
+          </div>
         </div>
-      </div>
-      <div className="mt-4">
-        <h3 className="font-semibold">Forecast</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {weather.forecasts.map((forecast) => (
-            <div key={forecast.date} className="flex flex-col items-center">
-              <p>{forecast.date}</p>
-              <img src={`http://openweathermap.org/img/wn/${forecast.icon}@2x.png`} alt={forecast.description} />
-              <p>{forecast.temp}°C</p>
-            </div>
-          ))}
+        <div className="mt-4">
+          <h3 className="font-semibold">Forecast</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {weather.forecasts.map((forecast) => (
+              <div key={forecast.date} className="flex flex-col items-center">
+                <p>{forecast.date}</p>
+                <img src={`http://openweathermap.org/img/wn/${forecast.icon}@2x.png`} alt={forecast.description} />
+                <p>{forecast.temp}°C</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      <WeatherOutfitSuggestion 
+        temperature={weather.current.temp} 
+        description={weather.current.description}
+      />
+    </div>
   );
 };
