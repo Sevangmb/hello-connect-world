@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ImageUpload } from "@/components/ui/image-upload";
 import { Loader2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,14 +21,19 @@ export const VirtualTryOnForm = () => {
       if (!user) throw new Error("User not found");
 
       const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from("virtual-tryon")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
+      // Get the full public URL
       const { data: { publicUrl } } = supabase.storage
         .from("virtual-tryon")
         .getPublicUrl(filePath);
@@ -39,6 +43,11 @@ export const VirtualTryOnForm = () => {
       } else {
         setClothingImage(publicUrl);
       }
+
+      toast({
+        title: "Succès",
+        description: "Image téléchargée avec succès",
+      });
     } catch (error: any) {
       console.error("Error uploading image:", error.message);
       toast({
