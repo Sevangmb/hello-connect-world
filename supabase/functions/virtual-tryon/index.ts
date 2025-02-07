@@ -27,12 +27,13 @@ serve(async (req) => {
       clothingImage: typeof clothingImage
     })
 
-    // Using HR-VITON model for virtual try-on
+    // Using the stable diffusion inpainting model
     const result = await hf.imageToImage({
-      model: "hr-viton/hr-viton",
+      model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
         image: personImage,
-        cloth: clothingImage,
+        prompt: "person wearing clothes, high quality, detailed",
+        mask_image: clothingImage
       },
     })
 
