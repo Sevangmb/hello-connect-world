@@ -22,7 +22,7 @@ serve(async (req) => {
 
     console.log('Fetching images from URLs:', { personImage, clothingImage })
 
-    // Fetch the images and convert them to array buffers
+    // Fetch the images and get them as base64
     const [personResponse, clothingResponse] = await Promise.all([
       fetch(personImage),
       fetch(clothingImage)
@@ -32,17 +32,17 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
-    // Convert responses to array buffers
+    // Convert responses to base64
     const [personBuffer, clothingBuffer] = await Promise.all([
       personResponse.arrayBuffer(),
       clothingResponse.arrayBuffer()
     ]);
 
-    console.log('Successfully fetched image data')
+    // Convert array buffers to base64
+    const personBase64 = btoa(String.fromCharCode(...new Uint8Array(personBuffer)));
+    const clothingBase64 = btoa(String.fromCharCode(...new Uint8Array(clothingBuffer)));
 
-    // Create Uint8Array from buffers
-    const personUint8 = new Uint8Array(personBuffer)
-    const clothingUint8 = new Uint8Array(clothingBuffer)
+    console.log('Successfully converted images to base64')
 
     const hf = new HfInference(HF_TOKEN)
 
@@ -51,9 +51,9 @@ serve(async (req) => {
     const result = await hf.imageToImage({
       model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
-        image: personUint8,
+        image: personBase64,
         prompt: "person wearing clothes, high quality, detailed",
-        mask_image: clothingUint8
+        mask_image: clothingBase64
       },
     })
 
