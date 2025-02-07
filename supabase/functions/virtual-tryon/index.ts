@@ -76,7 +76,7 @@ serve(async (req) => {
 
     try {
       const result = await hf.imageToImage({
-        model: "lucataco/show-me-what-you-got",
+        model: "sayakpaul/vton-hd",
         inputs: {
           image: `data:image/jpeg;base64,${personBase64}`,
           cloth: `data:image/jpeg;base64,${clothingBase64}`,
