@@ -27,12 +27,12 @@ serve(async (req) => {
       clothingImage: typeof clothingImage
     })
 
-    // Using Virtual Try-on model
+    // Using HR-VITON model for virtual try-on
     const result = await hf.imageToImage({
-      model: "patrickjohncyh/virtual-try-on",
+      model: "hr-viton/hr-viton",
       inputs: {
-        person_image: personImage,
-        garment_image: clothingImage,
+        image: personImage,
+        cloth: clothingImage,
       },
     })
 
