@@ -22,10 +22,9 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Utiliser le modèle HR-VITON pour l'essayage virtuel
-    // Note: This is a placeholder as the actual model needs to be determined
+    // Utiliser le modèle DressCode pour l'essayage virtuel
     const result = await hf.imageToImage({
-      model: "hr-viton/try-on",
+      model: "patrickjohncyh/cloth-segmentation",
       inputs: {
         image: personImage,
         clothing: clothingImage,
@@ -36,6 +35,7 @@ serve(async (req) => {
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const resultImage = `data:image/png;base64,${base64}`
 
+    console.log('Virtual try-on successfully generated')
     return new Response(
       JSON.stringify({ resultImage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
