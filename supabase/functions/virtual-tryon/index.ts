@@ -22,7 +22,6 @@ serve(async (req) => {
 
     console.log('Fetching images from URLs:', { personImage, clothingImage })
 
-    // Fetch the images and get them as base64
     const [personResponse, clothingResponse] = await Promise.all([
       fetch(personImage),
       fetch(clothingImage)
@@ -32,7 +31,6 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
-    // Convert responses to base64
     const [personBuffer, clothingBuffer] = await Promise.all([
       personResponse.arrayBuffer(),
       clothingResponse.arrayBuffer()
@@ -51,9 +49,9 @@ serve(async (req) => {
     const result = await hf.imageToImage({
       model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
-        image: personBase64,
+        image: `data:image/png;base64,${personBase64}`,
         prompt: "person wearing clothes, high quality, detailed",
-        mask_image: clothingBase64
+        mask_image: `data:image/png;base64,${clothingBase64}`
       },
     })
 
