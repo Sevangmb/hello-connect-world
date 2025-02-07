@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Scissors } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const VirtualTryOnForm = () => {
   const [personImage, setPersonImage] = useState<string | null>(null);
   const [clothingImage, setClothingImage] = useState<string | null>(null);
+  const [extractedClothing, setExtractedClothing] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const { toast } = useToast();
 
   const handleImageUpload = async (file: File, type: 'person' | 'clothing') => {
@@ -46,6 +48,42 @@ export const VirtualTryOnForm = () => {
         title: "Erreur",
         description: "Impossible de télécharger l'image",
       });
+    }
+  };
+
+  const handleExtractClothing = async () => {
+    if (!personImage) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez d'abord sélectionner une photo",
+      });
+      return;
+    }
+
+    try {
+      setExtracting(true);
+      const response = await supabase.functions.invoke('extract-clothing', {
+        body: { image: personImage }
+      });
+
+      if (response.error) throw response.error;
+
+      setExtractedClothing(response.data.maskImage);
+      setClothingImage(response.data.maskImage);
+      toast({
+        title: "Succès",
+        description: "Le vêtement a été extrait avec succès",
+      });
+    } catch (error: any) {
+      console.error("Error extracting clothing:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'extraire le vêtement",
+      });
+    } finally {
+      setExtracting(false);
     }
   };
 
@@ -107,16 +145,29 @@ export const VirtualTryOnForm = () => {
                   alt="Votre photo"
                   className="w-full h-full object-cover rounded-lg"
                 />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute bottom-2 right-2"
-                  asChild
-                >
-                  <label htmlFor="person-upload">
-                    <Upload className="h-4 w-4" />
-                  </label>
-                </Button>
+                <div className="absolute bottom-2 right-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExtractClothing}
+                    disabled={extracting}
+                  >
+                    {extracting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Scissors className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    asChild
+                  >
+                    <label htmlFor="person-upload">
+                      <Upload className="h-4 w-4" />
+                    </label>
+                  </Button>
+                </div>
               </div>
             ) : (
               <Button
@@ -168,7 +219,7 @@ export const VirtualTryOnForm = () => {
                 asChild
               >
                 <label htmlFor="clothing-upload" className="cursor-pointer">
-                  Télécharger un vêtement
+                  Télécharger un vêtement ou extraire d'une photo
                 </label>
               </Button>
             )}
