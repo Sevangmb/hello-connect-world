@@ -71,7 +71,10 @@ export const VirtualTryOnForm = () => {
     try {
       setLoading(true);
       const response = await supabase.functions.invoke('virtual-tryon', {
-        body: { personImage, clothingImage }
+        body: {
+          personImage,
+          clothingImage
+        }
       });
 
       if (response.error) throw response.error;

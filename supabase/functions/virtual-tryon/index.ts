@@ -20,20 +20,27 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
+    // Fetch both images
+    const fetchPersonImage = await fetch(personImage)
+    const fetchClothingImage = await fetch(clothingImage)
+    
+    if (!fetchPersonImage.ok || !fetchClothingImage.ok) {
+      throw new Error('Failed to fetch images')
+    }
+
+    const personImageBlob = await fetchPersonImage.blob()
+    const clothingImageBlob = await fetchClothingImage.blob()
+
     const hf = new HfInference(HF_TOKEN)
 
-    console.log('Starting virtual try-on with images:', {
-      personImage: typeof personImage,
-      clothingImage: typeof clothingImage
-    })
+    console.log('Starting virtual try-on with images')
 
-    // Using the stable diffusion inpainting model
     const result = await hf.imageToImage({
       model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
-        image: personImage,
+        image: personImageBlob,
         prompt: "person wearing clothes, high quality, detailed",
-        mask_image: clothingImage
+        mask_image: clothingImageBlob
       },
     })
 
