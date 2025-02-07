@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
@@ -8,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -20,17 +20,22 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
+    console.log('Starting virtual try-on process...')
+    console.log('Person image:', personImage)
+    console.log('Clothing image:', clothingImage)
+
     const hf = new HfInference(HF_TOKEN)
 
-    // Utiliser le modèle HR-VITON pour l'essayage virtuel
-    // Note: This is a placeholder as the actual model needs to be determined
+    // Using DressCode model for virtual try-on
     const result = await hf.imageToImage({
-      model: "hr-viton/try-on",
+      model: "patrickjohncyh/virtual-try-on",
       inputs: {
         image: personImage,
-        clothing: clothingImage,
+        image2: clothingImage
       },
     })
+
+    console.log('Successfully generated try-on image')
 
     const arrayBuffer = await result.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
@@ -43,7 +48,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in virtual try-on:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: `Failed to generate virtual try-on image: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
