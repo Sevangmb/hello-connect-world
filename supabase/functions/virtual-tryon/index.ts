@@ -19,11 +19,23 @@ serve(async (req) => {
     const HF_TOKEN = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
 
     if (!HF_TOKEN) {
-      throw new Error('Hugging Face token not configured')
+      return new Response(
+        JSON.stringify({ error: 'Hugging Face token not configured' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
     }
 
     if (!personImage || !clothingImage) {
-      throw new Error('Both person and clothing images are required')
+      return new Response(
+        JSON.stringify({ error: 'Both person and clothing images are required' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      )
     }
 
     console.log('Fetching images from URLs:', { personImage, clothingImage })
@@ -94,7 +106,13 @@ serve(async (req) => {
       )
     } catch (error) {
       console.error('Error in HuggingFace API call:', error)
-      throw new Error(`Failed to generate virtual try-on image: ${error.message}`)
+      return new Response(
+        JSON.stringify({ error: `Failed to generate virtual try-on image: ${error.message}` }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
     }
   } catch (error) {
     console.error('Error in virtual try-on:', error)
