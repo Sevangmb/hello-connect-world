@@ -63,12 +63,18 @@ serve(async (req) => {
     console.log('Starting virtual try-on process')
 
     try {
+      // Using InstantID model which is better suited for virtual try-on
       const result = await hf.imageToImage({
-        model: "lllyasviel/control_v11p_sd15_inpaint",
+        model: "InstantX/InstantID",
         inputs: {
-          image: `data:image/png;base64,${personBase64}`,
-          prompt: "person wearing clothes, high quality, detailed",
-          mask_image: `data:image/png;base64,${clothingBase64}`
+          image: `data:image/jpeg;base64,${personBase64}`,
+          prompt: "Generate a realistic image of a person wearing the clothing, maintain facial features, natural lighting, high quality",
+          negative_prompt: "deformed, distorted, unrealistic, poor quality, blurry",
+          seed: Math.floor(Math.random() * 1000000),
+          num_inference_steps: 30,
+          guidance_scale: 7.5,
+          controlnet_conditioning_scale: 1.0,
+          mask_image: `data:image/jpeg;base64,${clothingBase64}`
         },
       })
 
@@ -76,7 +82,7 @@ serve(async (req) => {
 
       const arrayBuffer = await result.arrayBuffer()
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-      const resultImage = `data:image/png;base64,${base64}`
+      const resultImage = `data:image/jpeg;base64,${base64}`
 
       console.log('Successfully encoded result as base64')
 
@@ -88,7 +94,7 @@ serve(async (req) => {
       )
     } catch (error) {
       console.error('Error in HuggingFace API call:', error)
-      throw new Error('Failed to generate virtual try-on image')
+      throw new Error(`Failed to generate virtual try-on image: ${error.message}`)
     }
   } catch (error) {
     console.error('Error in virtual try-on:', error)
