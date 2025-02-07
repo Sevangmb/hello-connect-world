@@ -75,18 +75,12 @@ serve(async (req) => {
     console.log('Starting virtual try-on process')
 
     try {
-      // Using InstantID model which is better suited for virtual try-on
+      // Using HR-VITON which is specifically made for virtual try-on
       const result = await hf.imageToImage({
-        model: "InstantX/InstantID",
+        model: "sayakpaul/hr-viton",
         inputs: {
           image: `data:image/jpeg;base64,${personBase64}`,
-          prompt: "Generate a realistic image of a person wearing the clothing, maintain facial features, natural lighting, high quality",
-          negative_prompt: "deformed, distorted, unrealistic, poor quality, blurry",
-          seed: Math.floor(Math.random() * 1000000),
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
-          controlnet_conditioning_scale: 1.0,
-          mask_image: `data:image/jpeg;base64,${clothingBase64}`
+          cloth: `data:image/jpeg;base64,${clothingBase64}`,
         },
       })
 
