@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,26 +39,6 @@ export const WeatherSection = () => {
     queryFn: async () => {
       try {
         console.log("Fetching weather data...");
-        
-        const { data: secretData, error: secretError } = await supabase
-          .from('secrets')
-          .select('value')
-          .eq('key', 'OPENWEATHER_API_KEY')
-          .maybeSingle();
-
-        console.log("API key fetch result:", { secretData, secretError });
-
-        if (secretError) {
-          console.error("Error fetching API key:", secretError);
-          throw new Error("Failed to fetch OpenWeather API key");
-        }
-
-        if (!secretData?.value) {
-          console.error("No API key found in secrets");
-          throw new Error("OpenWeather API key not found");
-        }
-
-        const OPENWEATHER_API_KEY = secretData.value;
         
         let lat: number;
         let lon: number;
@@ -100,47 +81,17 @@ export const WeatherSection = () => {
           }
         }
 
-        const currentResponse = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
-        );
+        const { data, error: weatherError } = await supabase.functions.invoke('get-weather', {
+          body: { lat, lon }
+        });
 
-        if (!currentResponse.ok) {
-          throw new Error(`Weather API error: ${currentResponse.statusText}`);
+        if (weatherError) {
+          console.error("Error fetching weather:", weatherError);
+          throw weatherError;
         }
 
-        const currentData = await currentResponse.json();
-        console.log("Current weather data:", currentData);
-
-        const forecastResponse = await fetch(
-          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
-        );
-
-        if (!forecastResponse.ok) {
-          throw new Error(`Forecast API error: ${forecastResponse.statusText}`);
-        }
-
-        const forecastData = await forecastResponse.json();
-        console.log("Forecast data:", forecastData);
-
-        return {
-          current: {
-            temp: Math.round(currentData.main.temp),
-            humidity: currentData.main.humidity,
-            windSpeed: Math.round(currentData.wind.speed * 3.6),
-            description: currentData.weather[0].description,
-            icon: currentData.weather[0].icon,
-          },
-          forecasts: forecastData.list.slice(0, 5).map((item: any) => ({
-            date: new Date(item.dt * 1000).toLocaleDateString('fr-FR', { weekday: 'short' }),
-            temp: Math.round(item.main.temp),
-            description: item.weather[0].description,
-            icon: item.weather[0].icon,
-          })),
-          location: {
-            name: currentData.name,
-            country: currentData.sys.country,
-          },
-        };
+        console.log("Weather data:", data);
+        return data as WeatherData;
       } catch (error) {
         console.error("Erreur lors de la récupération de la météo:", error);
         throw error;
