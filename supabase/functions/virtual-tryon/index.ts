@@ -22,9 +22,14 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Utiliser le modèle DressCode pour l'essayage virtuel
+    console.log('Starting virtual try-on with images:', {
+      personImage: typeof personImage,
+      clothingImage: typeof clothingImage
+    })
+
+    // Utiliser le modèle FashionCLIP pour l'essayage virtuel
     const result = await hf.imageToImage({
-      model: "patrickjohncyh/cloth-segmentation",
+      model: "fashionclip/image-to-image",
       inputs: {
         image: personImage,
         clothing: clothingImage,
