@@ -22,41 +22,48 @@ serve(async (req) => {
 
     console.log('Fetching images from URLs:', { personImage, clothingImage })
 
-    // Convert base64 URLs to Blob objects
-    const fetchPersonImage = await fetch(personImage)
-    const fetchClothingImage = await fetch(clothingImage)
-    
-    if (!fetchPersonImage.ok || !fetchClothingImage.ok) {
+    // Fetch the images and convert them to array buffers
+    const [personResponse, clothingResponse] = await Promise.all([
+      fetch(personImage),
+      fetch(clothingImage)
+    ]);
+
+    if (!personResponse.ok || !clothingResponse.ok) {
       throw new Error('Failed to fetch images')
     }
 
-    const personImageBlob = await fetchPersonImage.blob()
-    const clothingImageBlob = await fetchClothingImage.blob()
+    // Convert responses to array buffers
+    const [personBuffer, clothingBuffer] = await Promise.all([
+      personResponse.arrayBuffer(),
+      clothingResponse.arrayBuffer()
+    ]);
 
-    console.log('Successfully converted images to blobs')
+    console.log('Successfully fetched image data')
+
+    // Create Uint8Array from buffers
+    const personUint8 = new Uint8Array(personBuffer)
+    const clothingUint8 = new Uint8Array(clothingBuffer)
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Create File objects from Blobs with specific types
-    const personImageFile = new File([personImageBlob], "person.png", { type: "image/png" })
-    const clothingImageFile = new File([clothingImageBlob], "clothing.png", { type: "image/png" })
-
-    console.log('Starting virtual try-on with files')
+    console.log('Starting virtual try-on process')
 
     const result = await hf.imageToImage({
       model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
-        image: personImageFile,
+        image: personUint8,
         prompt: "person wearing clothes, high quality, detailed",
-        mask_image: clothingImageFile
+        mask_image: clothingUint8
       },
     })
 
-    console.log('Successfully generated result')
+    console.log('Successfully generated result from API')
 
     const arrayBuffer = await result.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const resultImage = `data:image/png;base64,${base64}`
+
+    console.log('Successfully encoded result as base64')
 
     return new Response(
       JSON.stringify({ resultImage }),
