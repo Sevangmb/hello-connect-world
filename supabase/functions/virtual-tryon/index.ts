@@ -20,7 +20,9 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
-    // Fetch both images
+    console.log('Fetching images from URLs:', { personImage, clothingImage })
+
+    // Convert base64 URLs to Blob objects
     const fetchPersonImage = await fetch(personImage)
     const fetchClothingImage = await fetch(clothingImage)
     
@@ -31,24 +33,31 @@ serve(async (req) => {
     const personImageBlob = await fetchPersonImage.blob()
     const clothingImageBlob = await fetchClothingImage.blob()
 
+    console.log('Successfully converted images to blobs')
+
     const hf = new HfInference(HF_TOKEN)
 
-    console.log('Starting virtual try-on with images')
+    // Create File objects from Blobs with specific types
+    const personImageFile = new File([personImageBlob], "person.png", { type: "image/png" })
+    const clothingImageFile = new File([clothingImageBlob], "clothing.png", { type: "image/png" })
+
+    console.log('Starting virtual try-on with files')
 
     const result = await hf.imageToImage({
       model: "lllyasviel/control_v11p_sd15_inpaint",
       inputs: {
-        image: personImageBlob,
+        image: personImageFile,
         prompt: "person wearing clothes, high quality, detailed",
-        mask_image: clothingImageBlob
+        mask_image: clothingImageFile
       },
     })
+
+    console.log('Successfully generated result')
 
     const arrayBuffer = await result.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const resultImage = `data:image/png;base64,${base64}`
 
-    console.log('Virtual try-on successfully generated')
     return new Response(
       JSON.stringify({ resultImage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
