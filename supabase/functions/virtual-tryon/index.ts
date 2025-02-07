@@ -75,9 +75,8 @@ serve(async (req) => {
     console.log('Starting virtual try-on process')
 
     try {
-      // Using HR-VITON which is specifically made for virtual try-on
       const result = await hf.imageToImage({
-        model: "hr-viton/hr-viton-base",
+        model: "digitalhai/virtual-try-on",
         inputs: {
           image: `data:image/jpeg;base64,${personBase64}`,
           cloth: `data:image/jpeg;base64,${clothingBase64}`,
