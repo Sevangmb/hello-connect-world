@@ -42,6 +42,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
+import VirtualTryOn from "@/pages/VirtualTryOn";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -116,6 +117,8 @@ const App = () => {
       <Route path="/profile/settings" element={<Settings />} />
       <Route path="/marketplace" element={<StoresList />} />
       <Route path="/help" element={<HelpAndSupport />} />
+
+      <Route path="/virtual-tryon" element={<VirtualTryOn />} />
 
       {/* Fallback Route */}
       <Route path="*" element={<NotFound />} />

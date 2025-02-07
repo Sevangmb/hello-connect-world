@@ -1,3 +1,4 @@
+
 import {
   ShoppingBag,
   Shirt,
@@ -10,6 +11,7 @@ import {
   ScanLine,
   Upload,
   FileText,
+  Shirt as ShirtIcon,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,16 @@ export const PersonalSection = () => {
           >
             <ShoppingBag className="h-4 w-4" />
             Mes Tenues
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/virtual-tryon",
+            })}
+            onClick={() => navigate("/virtual-tryon")}
+          >
+            <ShirtIcon className="h-4 w-4" />
+            Essayage Virtuel
           </Button>
           <Button
             variant="ghost"
