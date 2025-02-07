@@ -27,12 +27,12 @@ serve(async (req) => {
       clothingImage: typeof clothingImage
     })
 
-    // Utiliser le modèle FashionCLIP pour l'essayage virtuel
+    // Using Fashion-CLIP model for virtual try-on
     const result = await hf.imageToImage({
-      model: "fashionclip/image-to-image",
+      model: "Fashion-CLIP/CLIPFashionRetriever",
       inputs: {
-        image: personImage,
-        clothing: clothingImage,
+        source_image: personImage,
+        target_image: clothingImage,
       },
     })
 
