@@ -14,32 +14,45 @@ serve(async (req) => {
   try {
     const { lat, lon } = await req.json()
     const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY')
-
+    
+    console.log('Attempting to fetch weather data with:')
+    console.log('Latitude:', lat)
+    console.log('Longitude:', lon)
+    console.log('API Key exists:', !!OPENWEATHER_API_KEY)
+    
     if (!OPENWEATHER_API_KEY) {
-      throw new Error('OpenWeather API key not configured')
+      throw new Error('OpenWeather API key not found in environment variables')
     }
 
     // Requête météo actuelle
-    const currentResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
-    )
+    const currentURL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
+    console.log('Fetching current weather...')
+    
+    const currentResponse = await fetch(currentURL)
 
     if (!currentResponse.ok) {
-      throw new Error(`Weather API error: ${currentResponse.statusText}`)
+      const errorText = await currentResponse.text()
+      console.error('Weather API error:', errorText)
+      throw new Error(`Weather API error: ${currentResponse.status} - ${errorText}`)
     }
 
     const currentData = await currentResponse.json()
+    console.log('Current weather data received')
 
     // Requête prévisions
-    const forecastResponse = await fetch(
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
-    )
+    const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=fr`
+    console.log('Fetching forecast...')
+    
+    const forecastResponse = await fetch(forecastURL)
 
     if (!forecastResponse.ok) {
-      throw new Error(`Forecast API error: ${forecastResponse.statusText}`)
+      const errorText = await forecastResponse.text()
+      console.error('Forecast API error:', errorText)
+      throw new Error(`Forecast API error: ${forecastResponse.status} - ${errorText}`)
     }
 
     const forecastData = await forecastResponse.json()
+    console.log('Forecast data received')
 
     return new Response(
       JSON.stringify({
@@ -64,7 +77,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Detailed error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
