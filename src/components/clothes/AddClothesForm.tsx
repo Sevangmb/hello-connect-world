@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, ScanLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
@@ -20,13 +21,77 @@ const CATEGORIES = [
 export const AddClothesForm = () => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     category: "",
     image_url: null as string | null,
+    brand: "",
+    size: "",
+    material: "",
   });
+
+  const scanLabel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setScanning(true);
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error("Vous devez sélectionner une image de l'étiquette");
+      }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not found");
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+
+      // Upload l'image de l'étiquette
+      const { error: uploadError, data } = await supabase.storage
+        .from("clothes")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Obtenir l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from("clothes")
+        .getPublicUrl(filePath);
+
+      // Analyser l'étiquette avec notre fonction Edge
+      const response = await supabase.functions.invoke('scan-label', {
+        body: { imageUrl: publicUrl }
+      });
+
+      if (response.error) throw response.error;
+
+      const { brand, size, material } = response.data;
+
+      // Mettre à jour le formulaire avec les informations extraites
+      setFormData(prev => ({
+        ...prev,
+        brand: brand || prev.brand,
+        size: size || prev.size,
+        material: material || prev.material,
+      }));
+
+      toast({
+        title: "Étiquette analysée",
+        description: "Les informations ont été extraites avec succès",
+      });
+    } catch (error: any) {
+      console.error("Error scanning label:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'analyser l'étiquette",
+      });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -87,6 +152,9 @@ export const AddClothesForm = () => {
           description: formData.description,
           category: formData.category,
           image_url: formData.image_url,
+          brand: formData.brand,
+          size: formData.size,
+          material: formData.material,
         });
 
       if (error) throw error;
@@ -102,6 +170,9 @@ export const AddClothesForm = () => {
         description: "",
         category: "",
         image_url: null,
+        brand: "",
+        size: "",
+        material: "",
       });
     } catch (error: any) {
       console.error("Error adding clothes:", error.message);
@@ -166,8 +237,40 @@ export const AddClothesForm = () => {
           </Select>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="brand">Marque</Label>
+            <Input
+              id="brand"
+              value={formData.brand}
+              onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+              placeholder="Ex: Nike"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="size">Taille</Label>
+            <Input
+              id="size"
+              value={formData.size}
+              onChange={(e) => setFormData(prev => ({ ...prev, size: e.target.value }))}
+              placeholder="Ex: M"
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label>Image</Label>
+          <Label htmlFor="material">Matière</Label>
+          <Input
+            id="material"
+            value={formData.material}
+            onChange={(e) => setFormData(prev => ({ ...prev, material: e.target.value }))}
+            placeholder="Ex: 100% Coton"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Images</Label>
           <div className="flex items-center gap-4">
             {formData.image_url && (
               <img
@@ -176,35 +279,68 @@ export const AddClothesForm = () => {
                 className="w-20 h-20 object-cover rounded-md"
               />
             )}
-            <div>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={uploadImage}
-                disabled={uploading}
-                className="hidden"
-                id="image-upload"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                asChild
-                disabled={uploading}
-              >
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  {uploading ? (
-                    <>
-                      <Loader2 className="animate-spin" />
-                      Chargement...
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-4 h-4" />
-                      {formData.image_url ? "Changer l'image" : "Ajouter une image"}
-                    </>
-                  )}
-                </label>
-              </Button>
+            <div className="flex gap-2">
+              <div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={uploadImage}
+                  disabled={uploading}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  disabled={uploading}
+                >
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Chargement...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 mr-2" />
+                        {formData.image_url ? "Changer l'image" : "Ajouter une image"}
+                      </>
+                    )}
+                  </label>
+                </Button>
+              </div>
+
+              <div>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={scanLabel}
+                  disabled={scanning}
+                  className="hidden"
+                  id="label-scan"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  disabled={scanning}
+                >
+                  <label htmlFor="label-scan" className="cursor-pointer">
+                    {scanning ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyse...
+                      </>
+                    ) : (
+                      <>
+                        <ScanLine className="w-4 h-4 mr-2" />
+                        Scanner l'étiquette
+                      </>
+                    )}
+                  </label>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -212,7 +348,7 @@ export const AddClothesForm = () => {
         <Button type="submit" disabled={loading || !formData.category}>
           {loading ? (
             <>
-              <Loader2 className="animate-spin" />
+              <Loader2 className="animate-spin mr-2" />
               Enregistrement...
             </>
           ) : (
