@@ -26,15 +26,16 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
     
-    // Using a more reliable model for virtual try-on
-    console.log('Attempting virtual try-on with model: huggingface/virtual-try-on')
+    console.log('Attempting virtual try-on with model: CompVis/stable-diffusion-v1-4')
     
-    const result = await hf.imageToImage({
-      model: 'huggingface/virtual-try-on',
-      inputs: {
-        image: personImage,
-        clothing: clothingImage
-      },
+    const result = await hf.textToImage({
+      model: 'CompVis/stable-diffusion-v1-4',
+      inputs: `A photo of a person wearing the clothing from ${clothingImage}, high quality, photorealistic`,
+      parameters: {
+        negative_prompt: "blurry, bad quality, distorted",
+        num_inference_steps: 50,
+        guidance_scale: 7.5
+      }
     })
 
     console.log('Successfully generated try-on image')

@@ -25,12 +25,16 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
     
-    // Using the most reliable model for clothing segmentation
-    console.log('Attempting clothing extraction with model: facebook/sam-vit-base')
+    console.log('Attempting clothing extraction with model: CompVis/stable-diffusion-v1-4')
     
-    const result = await hf.imageSegmentation({
-      model: 'facebook/sam-vit-base',
-      inputs: image
+    const result = await hf.textToImage({
+      model: 'CompVis/stable-diffusion-v1-4',
+      inputs: `Extract and isolate the clothing from this image: ${image}, white background, high quality`,
+      parameters: {
+        negative_prompt: "person, face, body parts, background",
+        num_inference_steps: 50,
+        guidance_scale: 7.5
+      }
     })
 
     console.log('Successfully generated mask')
