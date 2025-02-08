@@ -24,6 +24,17 @@ serve(async (req) => {
     console.log('Person image:', personImage)
     console.log('Clothing image:', clothingImage)
 
+    // Fetch the images
+    const fetchPersonImage = await fetch(personImage)
+    const fetchClothingImage = await fetch(clothingImage)
+    
+    if (!fetchPersonImage.ok || !fetchClothingImage.ok) {
+      throw new Error('Failed to fetch images')
+    }
+
+    const personImageBlob = await fetchPersonImage.blob()
+    const clothingImageBlob = await fetchClothingImage.blob()
+
     const hf = new HfInference(HF_TOKEN)
     
     console.log('Attempting virtual try-on with model: CVPR/try-on-diffusion')
@@ -31,8 +42,8 @@ serve(async (req) => {
     const result = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
-        image: personImage,
-        cloth: clothingImage,
+        image: personImageBlob,
+        cloth: clothingImageBlob,
       },
       parameters: {
         num_inference_steps: 50,
