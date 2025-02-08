@@ -27,7 +27,7 @@ serve(async (req) => {
 
     // Use U2NET model specifically for clothing segmentation
     const result = await hf.imageSegmentation({
-      model: 'xiaomileaf/u2net-cloth-segmentation',
+      model: 'susant/u2net_cloth_segmentation',
       inputs: image
     })
 
@@ -50,3 +50,4 @@ serve(async (req) => {
     )
   }
 })
+
