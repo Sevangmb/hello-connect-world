@@ -39,7 +39,7 @@ serve(async (req) => {
     
     console.log('Attempting virtual try-on with model: CVPR/try-on-diffusion')
     
-    const result = await hf.imageToImage({
+    const response = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
         image: personImageBlob,
@@ -52,15 +52,20 @@ serve(async (req) => {
     })
 
     console.log('Successfully generated try-on image')
+    
+    // Convert response to base64
+    if (response instanceof Blob) {
+      const arrayBuffer = await response.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      const resultImage = `data:image/png;base64,${base64}`
 
-    const arrayBuffer = await result.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-    const resultImage = `data:image/png;base64,${base64}`
-
-    return new Response(
-      JSON.stringify({ resultImage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      return new Response(
+        JSON.stringify({ resultImage }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } else {
+      throw new Error('Unexpected response format from Hugging Face API')
+    }
   } catch (error) {
     console.error('Error in virtual try-on:', error)
     return new Response(
