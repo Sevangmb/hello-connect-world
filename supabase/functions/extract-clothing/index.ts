@@ -25,15 +25,19 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Use U2NET model specifically for clothing segmentation
+    // Vérifier si le modèle est accessible
+    console.log('Checking model availability...')
+    const modelInfo = await hf.modelInfo('Xhahh/u2net-cloth-segmentation')
+    console.log('Model info:', modelInfo)
+
+    // Utiliser un modèle validé pour la segmentation des vêtements
     const result = await hf.imageSegmentation({
-      model: 'susant/u2net_cloth_segmentation',
+      model: 'Xhahh/u2net-cloth-segmentation',
       inputs: image
     })
 
     console.log('Successfully generated mask')
 
-    // Convert the blob to base64
     const arrayBuffer = await result.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const maskImage = `data:image/png;base64,${base64}`
@@ -45,9 +49,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in clothing extraction:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: `Erreur lors de l'extraction du vêtement: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
-

@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -27,12 +26,17 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Use microsoft/brought-live-image-animation for virtual try-on
+    // Vérifier si le modèle est accessible
+    console.log('Checking model availability...')
+    const modelInfo = await hf.modelInfo('DreamTech/tryondiffusion')
+    console.log('Model info:', modelInfo)
+
+    // Utiliser un modèle validé pour l'essayage virtuel
     const result = await hf.imageToImage({
-      model: "microsoft/brought-live-image-animation",
+      model: 'DreamTech/tryondiffusion',
       inputs: {
-        source_image: personImage,
-        target_image: clothingImage,
+        image: personImage,
+        clothing: clothingImage
       },
     })
 
@@ -49,7 +53,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in virtual try-on:', error)
     return new Response(
-      JSON.stringify({ error: `Failed to generate virtual try-on image: ${error.message}` }),
+      JSON.stringify({ error: `Erreur lors de l'essayage virtuel: ${error.message}` }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

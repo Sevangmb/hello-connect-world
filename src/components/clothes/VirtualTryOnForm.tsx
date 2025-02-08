@@ -21,7 +21,7 @@ export const VirtualTryOnForm = () => {
   const handleImageUpload = async (file: File, type: 'person' | 'clothing') => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+      if (!user) throw new Error("Utilisateur non connecté");
 
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
@@ -38,15 +38,18 @@ export const VirtualTryOnForm = () => {
 
       if (type === 'person') {
         setPersonImage(publicUrl);
+        setExtractedClothing(null);
+        setResultImage(null);
       } else {
         setClothingImage(publicUrl);
+        setResultImage(null);
       }
     } catch (error: any) {
-      console.error("Error uploading image:", error.message);
+      console.error("Erreur lors du téléchargement:", error.message);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de télécharger l'image",
+        description: `Impossible de télécharger l'image: ${error.message}`,
       });
     }
   };
@@ -63,11 +66,14 @@ export const VirtualTryOnForm = () => {
 
     try {
       setExtracting(true);
+      console.log('Calling extract-clothing with:', { image: personImage });
+      
       const response = await supabase.functions.invoke('extract-clothing', {
         body: { image: personImage }
       });
 
       if (response.error) throw response.error;
+      console.log('Extract clothing response:', response);
 
       setExtractedClothing(response.data.maskImage);
       setClothingImage(response.data.maskImage);
@@ -76,11 +82,11 @@ export const VirtualTryOnForm = () => {
         description: "Le vêtement a été extrait avec succès",
       });
     } catch (error: any) {
-      console.error("Error extracting clothing:", error);
+      console.error("Erreur lors de l'extraction:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'extraire le vêtement",
+        description: `Impossible d'extraire le vêtement: ${error.message}`,
       });
     } finally {
       setExtracting(false);
@@ -99,11 +105,14 @@ export const VirtualTryOnForm = () => {
 
     try {
       setLoading(true);
+      console.log('Calling virtual-tryon with:', { personImage, clothingImage });
+      
       const response = await supabase.functions.invoke('virtual-tryon', {
         body: { personImage, clothingImage }
       });
 
       if (response.error) throw response.error;
+      console.log('Virtual try-on response:', response);
 
       setResultImage(response.data.resultImage);
       toast({
@@ -111,11 +120,11 @@ export const VirtualTryOnForm = () => {
         description: "L'essayage virtuel a été généré avec succès",
       });
     } catch (error: any) {
-      console.error("Error during virtual try-on:", error);
+      console.error("Erreur lors de l'essayage virtuel:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de générer l'essayage virtuel",
+        description: `Impossible de générer l'essayage virtuel: ${error.message}`,
       });
     } finally {
       setLoading(false);
