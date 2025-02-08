@@ -44,7 +44,9 @@ serve(async (req) => {
       "What is the brand name?",
       "What is the size?",
       "What is the material composition?",
-      "What are the care instructions?"
+      "What are the care instructions?",
+      "What is the main color of the garment?",
+      "What type of clothing item is this (eg: shirt, pants, dress, etc)?",
     ]
 
     console.log('Analyzing label with LayoutLM...')
@@ -68,6 +70,19 @@ serve(async (req) => {
 
     console.log('LayoutLM results:', results)
 
+    // Use image classification for backup category detection
+    console.log('Running additional image classification...')
+    let classificationResult = null
+    try {
+      classificationResult = await hf.imageClassification({
+        model: "patrickjohncyh/fashion-clip",
+        inputs: imageBlob,
+      });
+      console.log('Classification result:', classificationResult)
+    } catch (error) {
+      console.error('Error during classification:', error)
+    }
+
     // Use image captioning as backup
     console.log('Running additional image analysis...')
     const vision = await hf.imageToText({
@@ -77,13 +92,38 @@ serve(async (req) => {
 
     console.log('Vision analysis result:', vision)
 
+    // Map detected clothing type to category
+    const mapToCategory = (item: string): string => {
+      item = item.toLowerCase()
+      if (item.includes('shirt') || item.includes('top') || item.includes('blouse') || item.includes('sweater') || item.includes('t-shirt')) return 'Hauts'
+      if (item.includes('pants') || item.includes('jeans') || item.includes('shorts') || item.includes('skirt')) return 'Bas'
+      if (item.includes('dress')) return 'Robes'
+      if (item.includes('coat') || item.includes('jacket')) return 'Manteaux'
+      if (item.includes('shoes') || item.includes('boots') || item.includes('sneakers')) return 'Chaussures'
+      if (item.includes('hat') || item.includes('scarf') || item.includes('belt') || item.includes('accessory')) return 'Accessoires'
+      return ''
+    }
+
+    // Determine category from various sources
+    let detectedCategory = ''
+    const typeAnswer = results[5]?.answer || ''
+    if (typeAnswer) {
+      detectedCategory = mapToCategory(typeAnswer)
+    }
+    if (!detectedCategory && classificationResult?.[0]?.label) {
+      detectedCategory = mapToCategory(classificationResult[0].label)
+    }
+
     // Extract and structure the information
     const extractedInfo = {
       brand: results[0]?.answer || null,
       size: results[1]?.answer || null,
       material: results[2]?.answer || null,
       careInstructions: results[3]?.answer || null,
-      rawCaption: vision || null
+      color: results[4]?.answer || null,
+      category: detectedCategory || null,
+      rawCaption: vision || null,
+      classificationData: classificationResult
     }
 
     console.log('Extracted information:', extractedInfo)

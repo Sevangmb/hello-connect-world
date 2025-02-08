@@ -31,6 +31,7 @@ export const AddClothesForm = () => {
     brand: "",
     size: "",
     material: "",
+    color: "",
   });
 
   const scanLabel = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +68,7 @@ export const AddClothesForm = () => {
 
       if (response.error) throw response.error;
 
-      const { brand, size, material } = response.data;
+      const { brand, size, material, color, category } = response.data;
 
       // Mettre à jour le formulaire avec les informations extraites
       setFormData(prev => ({
@@ -75,6 +76,8 @@ export const AddClothesForm = () => {
         brand: brand || prev.brand,
         size: size || prev.size,
         material: material || prev.material,
+        color: color || prev.color,
+        category: category || prev.category,
       }));
 
       toast({
@@ -155,6 +158,7 @@ export const AddClothesForm = () => {
           brand: formData.brand,
           size: formData.size,
           material: formData.material,
+          color: formData.color,
         });
 
       if (error) throw error;
@@ -173,6 +177,7 @@ export const AddClothesForm = () => {
         brand: "",
         size: "",
         material: "",
+        color: "",
       });
     } catch (error: any) {
       console.error("Error adding clothes:", error.message);
@@ -259,14 +264,26 @@ export const AddClothesForm = () => {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="material">Matière</Label>
-          <Input
-            id="material"
-            value={formData.material}
-            onChange={(e) => setFormData(prev => ({ ...prev, material: e.target.value }))}
-            placeholder="Ex: 100% Coton"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="material">Matière</Label>
+            <Input
+              id="material"
+              value={formData.material}
+              onChange={(e) => setFormData(prev => ({ ...prev, material: e.target.value }))}
+              placeholder="Ex: 100% Coton"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="color">Couleur</Label>
+            <Input
+              id="color"
+              value={formData.color}
+              onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+              placeholder="Ex: Bleu"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
