@@ -26,12 +26,10 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Vérifier si le modèle est accessible
-    console.log('Checking model availability...')
-    const modelInfo = await hf.modelInfo('DreamTech/tryondiffusion')
-    console.log('Model info:', modelInfo)
-
-    // Utiliser un modèle validé pour l'essayage virtuel
+    // Instead of modelInfo, we'll directly try to use the model
+    // and let any errors be caught by our error handling
+    console.log('Attempting virtual try-on with model: DreamTech/tryondiffusion')
+    
     const result = await hf.imageToImage({
       model: 'DreamTech/tryondiffusion',
       inputs: {

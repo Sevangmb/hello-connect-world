@@ -25,12 +25,9 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Vérifier si le modèle est accessible
-    console.log('Checking model availability...')
-    const modelInfo = await hf.modelInfo('Xhahh/u2net-cloth-segmentation')
-    console.log('Model info:', modelInfo)
-
-    // Utiliser un modèle validé pour la segmentation des vêtements
+    // Remove the modelInfo check and directly use the model
+    console.log('Attempting clothing extraction with model: Xhahh/u2net-cloth-segmentation')
+    
     const result = await hf.imageSegmentation({
       model: 'Xhahh/u2net-cloth-segmentation',
       inputs: image
