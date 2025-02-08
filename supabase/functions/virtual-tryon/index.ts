@@ -27,12 +27,12 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Use DressCode model for virtual try-on
+    // Use updated model for virtual try-on
     const result = await hf.imageToImage({
-      model: "dresscoded/dresscode-intermediate",
+      model: "sayakpaul/segment-anything-adapter",
       inputs: {
-        person: personImage,
-        garment: clothingImage
+        image: personImage,
+        mask_image: clothingImage
       },
     })
 
