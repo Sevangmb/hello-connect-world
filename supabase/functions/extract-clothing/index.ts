@@ -25,17 +25,10 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Use SAM model for clothing segmentation
+    // Use U2NET model specifically for clothing segmentation
     const result = await hf.imageSegmentation({
-      model: 'nielsr/segment-anything',
-      inputs: image,
-      parameters: {
-        points_per_side: 32,
-        points_per_batch: 64,
-        pred_iou_thresh: 0.88,
-        stability_score_thresh: 0.95,
-        min_mask_region_area: 100
-      }
+      model: 'xiaomileaf/u2net-cloth-segmentation',
+      inputs: image
     })
 
     console.log('Successfully generated mask')
