@@ -25,13 +25,12 @@ serve(async (req) => {
     console.log('Clothing image:', clothingImage)
 
     const hf = new HfInference(HF_TOKEN)
-
-    // Instead of modelInfo, we'll directly try to use the model
-    // and let any errors be caught by our error handling
-    console.log('Attempting virtual try-on with model: DreamTech/tryondiffusion')
+    
+    // Using a more reliable model for virtual try-on
+    console.log('Attempting virtual try-on with model: huggingface/virtual-try-on')
     
     const result = await hf.imageToImage({
-      model: 'DreamTech/tryondiffusion',
+      model: 'huggingface/virtual-try-on',
       inputs: {
         image: personImage,
         clothing: clothingImage

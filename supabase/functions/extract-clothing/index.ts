@@ -24,12 +24,12 @@ serve(async (req) => {
     console.log('Input image:', image)
 
     const hf = new HfInference(HF_TOKEN)
-
-    // Remove the modelInfo check and directly use the model
-    console.log('Attempting clothing extraction with model: Xhahh/u2net-cloth-segmentation')
+    
+    // Using the most reliable model for clothing segmentation
+    console.log('Attempting clothing extraction with model: facebook/sam-vit-base')
     
     const result = await hf.imageSegmentation({
-      model: 'Xhahh/u2net-cloth-segmentation',
+      model: 'facebook/sam-vit-base',
       inputs: image
     })
 
