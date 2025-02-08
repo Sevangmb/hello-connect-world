@@ -20,15 +20,27 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
+    console.log('Starting clothing extraction process...')
+    console.log('Input image:', image)
+
     const hf = new HfInference(HF_TOKEN)
 
-    // Utiliser le modèle de segmentation de vêtements
+    // Use SAM model for clothing segmentation
     const result = await hf.imageSegmentation({
-      model: 'carve/clothing-segmentation',
+      model: 'nielsr/segment-anything',
       inputs: image,
+      parameters: {
+        points_per_side: 32,
+        points_per_batch: 64,
+        pred_iou_thresh: 0.88,
+        stability_score_thresh: 0.95,
+        min_mask_region_area: 100
+      }
     })
 
-    // Convertir le blob en base64
+    console.log('Successfully generated mask')
+
+    // Convert the blob to base64
     const arrayBuffer = await result.arrayBuffer()
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
     const maskImage = `data:image/png;base64,${base64}`
