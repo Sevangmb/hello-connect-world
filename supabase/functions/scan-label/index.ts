@@ -32,36 +32,54 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
     
-    // Utiliser Microsoft's Layout-LM pour l'extraction d'informations des étiquettes
+    // Use simpler questions for better accuracy
+    const questions = [
+      "What is the brand name?",
+      "What is the size?",
+      "What is the material composition?",
+      "What are the care instructions?"
+    ]
+
     console.log('Analyzing label with LayoutLM...')
-    const result = await hf.documentQuestionAnswering({
-      model: 'impira/layoutlm-document-qa',
-      inputs: {
-        image: imageBlob,
-        question: "What is the brand, size, material, and care instructions?"
+    
+    // Process each question separately for better accuracy
+    const results = await Promise.all(questions.map(async (question) => {
+      try {
+        const result = await hf.documentQuestionAnswering({
+          model: 'impira/layoutlm-document-qa',
+          inputs: {
+            image: imageBlob,
+            question: question
+          }
+        })
+        return result
+      } catch (error) {
+        console.error(`Error processing question "${question}":`, error)
+        return { answer: '' }
       }
-    })
+    }))
 
-    console.log('Label analysis result:', result)
+    console.log('LayoutLM results:', results)
 
-    // Analyse plus détaillée avec GPT-4-vision pour extraire des informations spécifiques
-    const vision = await hf.visualQuestionAnswering({
-      model: "nlpconnect/vit-gpt2-image-captioning",
-      inputs: {
-        image: imageBlob,
-        question: "What brand, size, and material information can you see on this clothing label?"
-      }
+    // Use image captioning as backup
+    console.log('Running additional image analysis...')
+    const vision = await hf.imageToText({
+      model: "Salesforce/blip-image-captioning-base",
+      inputs: imageBlob,
     })
 
     console.log('Vision analysis result:', vision)
 
-    // Combiner et structurer les résultats
+    // Extract and structure the information
     const extractedInfo = {
-      brand: result.answer.match(/brand:\s*([^,\n]*)/i)?.[1]?.trim() || null,
-      size: result.answer.match(/size:\s*([^,\n]*)/i)?.[1]?.trim() || null,
-      material: result.answer.match(/material:\s*([^,\n]*)/i)?.[1]?.trim() || null,
-      careInstructions: result.answer.match(/care instructions:\s*([^,\n]*)/i)?.[1]?.trim() || null
+      brand: results[0]?.answer || null,
+      size: results[1]?.answer || null,
+      material: results[2]?.answer || null,
+      careInstructions: results[3]?.answer || null,
+      rawCaption: vision || null
     }
+
+    console.log('Extracted information:', extractedInfo)
 
     return new Response(
       JSON.stringify(extractedInfo),
@@ -75,3 +93,4 @@ serve(async (req) => {
     )
   }
 })
+
