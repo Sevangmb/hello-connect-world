@@ -25,15 +25,13 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
     
-    console.log('Attempting clothing extraction with model: CompVis/stable-diffusion-v1-4')
+    console.log('Attempting clothing extraction with model: CVPR/clothes-segmentation')
     
-    const result = await hf.textToImage({
-      model: 'CompVis/stable-diffusion-v1-4',
-      inputs: `Extract and isolate the clothing from this image: ${image}, white background, high quality`,
+    const result = await hf.imageSegmentation({
+      model: 'CVPR/clothes-segmentation',
+      inputs: image,
       parameters: {
-        negative_prompt: "person, face, body parts, background",
-        num_inference_steps: 50,
-        guidance_scale: 7.5
+        threshold: 0.5
       }
     })
 

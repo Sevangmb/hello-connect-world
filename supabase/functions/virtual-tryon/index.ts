@@ -26,15 +26,17 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
     
-    console.log('Attempting virtual try-on with model: CompVis/stable-diffusion-v1-4')
+    console.log('Attempting virtual try-on with model: CVPR/try-on-diffusion')
     
-    const result = await hf.textToImage({
-      model: 'CompVis/stable-diffusion-v1-4',
-      inputs: `A photo of a person wearing the clothing from ${clothingImage}, high quality, photorealistic`,
+    const result = await hf.imageToImage({
+      model: 'CVPR/try-on-diffusion',
+      inputs: {
+        image: personImage,
+        cloth: clothingImage,
+      },
       parameters: {
-        negative_prompt: "blurry, bad quality, distorted",
         num_inference_steps: 50,
-        guidance_scale: 7.5
+        guidance_scale: 7.5,
       }
     })
 
