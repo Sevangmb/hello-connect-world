@@ -23,13 +23,20 @@ serve(async (req) => {
     console.log('Starting clothing extraction process...')
     console.log('Input image:', image)
 
+    // Fetch the image first
+    const response = await fetch(image)
+    if (!response.ok) {
+      throw new Error('Failed to fetch image')
+    }
+    const imageBlob = await response.blob()
+
     const hf = new HfInference(HF_TOKEN)
     
-    console.log('Attempting clothing extraction with model: CVPR/clothes-segmentation')
+    console.log('Attempting clothing extraction with model: mattmdjaga/segformer_b2_clothes')
     
     const result = await hf.imageSegmentation({
-      model: 'CVPR/clothes-segmentation',
-      inputs: image,
+      model: 'mattmdjaga/segformer_b2_clothes',
+      inputs: imageBlob,
       parameters: {
         threshold: 0.5
       }
