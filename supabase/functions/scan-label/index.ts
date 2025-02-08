@@ -20,15 +20,22 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
+    if (!imageUrl) {
+      throw new Error('Image URL is required')
+    }
+
     console.log('Starting label scanning process...')
     console.log('Image URL:', imageUrl)
 
     // Fetch the image
     const imageResponse = await fetch(imageUrl)
     if (!imageResponse.ok) {
-      throw new Error('Failed to fetch image')
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
     }
-    const imageBlob = await imageResponse.blob()
+
+    // Ensure we're getting binary data
+    const arrayBuffer = await imageResponse.arrayBuffer()
+    const imageBlob = new Blob([arrayBuffer], { type: imageResponse.headers.get('content-type') || 'image/jpeg' })
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -93,4 +100,3 @@ serve(async (req) => {
     )
   }
 })
-
