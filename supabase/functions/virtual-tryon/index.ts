@@ -27,12 +27,12 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Use updated model for virtual try-on
+    // Use microsoft/brought-live-image-animation for virtual try-on
     const result = await hf.imageToImage({
-      model: "sayakpaul/segment-anything-adapter",
+      model: "microsoft/brought-live-image-animation",
       inputs: {
-        image: personImage,
-        mask_image: clothingImage
+        source_image: personImage,
+        target_image: clothingImage,
       },
     })
 
