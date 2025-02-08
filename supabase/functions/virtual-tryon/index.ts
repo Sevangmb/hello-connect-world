@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
@@ -26,12 +27,12 @@ serve(async (req) => {
 
     const hf = new HfInference(HF_TOKEN)
 
-    // Using DressCode model for virtual try-on
+    // Use DressCode model for virtual try-on
     const result = await hf.imageToImage({
-      model: "patrickjohncyh/virtual-try-on",
+      model: "dresscoded/dresscode-intermediate",
       inputs: {
-        image: personImage,
-        image2: clothingImage
+        person: personImage,
+        garment: clothingImage
       },
     })
 
