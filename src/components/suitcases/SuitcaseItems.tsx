@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Box, Loader2, Package, Plus, X } from "lucide-react";
+import { Box, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -85,7 +85,7 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
 
   if (isLoadingItems) {
     return (
-      <div className="flex justify-center py-8">
+      <div className="flex justify-center py-4">
         <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
@@ -97,7 +97,6 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Vêtements dans la valise</h3>
         <Dialog open={isAddingOpen} onOpenChange={setIsAddingOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -152,14 +151,11 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
       </div>
 
       {!items?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8">
-          <Package className="h-12 w-12 text-muted-foreground" />
-          <p className="mt-2 text-muted-foreground">
-            Aucun vêtement dans cette valise
-          </p>
-        </div>
+        <p className="text-center text-muted-foreground">
+          Aucun vêtement dans cette valise
+        </p>
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {items.map((item) => (
             <div
               key={item.id}
@@ -196,4 +192,3 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
     </div>
   );
 };
-
