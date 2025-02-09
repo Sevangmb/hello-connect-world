@@ -16,7 +16,12 @@ serve(async (req) => {
   try {
     const { startDate, endDate, destination, currentClothes } = await req.json();
 
-    const hf = new HfInference("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");
+    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
+    if (!hfToken) {
+      throw new Error("Hugging Face token not configured");
+    }
+
+    const hf = new HfInference(hfToken);
 
     const prompt = `En tant que styliste, suggère des vêtements supplémentaires pour un voyage ${destination ? `à ${destination}` : ''} 
     ${startDate ? `du ${startDate}` : ''} ${endDate ? `au ${endDate}` : ''}.
