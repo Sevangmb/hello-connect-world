@@ -27,15 +27,37 @@ serve(async (req) => {
     console.log('Starting label scanning process...')
     console.log('Image URL:', imageUrl)
 
-    // Fetch the image
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
+    // Add additional headers for fetch request
+    const fetchOptions = {
+      headers: {
+        'Accept': 'image/*',
+      },
     }
 
-    // Ensure we're getting binary data
-    const arrayBuffer = await imageResponse.arrayBuffer()
-    const imageBlob = new Blob([arrayBuffer], { type: imageResponse.headers.get('content-type') || 'image/jpeg' })
+    // Fetch the image with better error handling
+    const imageResponse = await fetch(imageUrl, fetchOptions)
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`)
+    }
+
+    // Verify content type
+    const contentType = imageResponse.headers.get('content-type')
+    if (!contentType?.startsWith('image/')) {
+      throw new Error(`Invalid content type: ${contentType}`)
+    }
+
+    // Get the image data as an array buffer
+    const imageBuffer = await imageResponse.arrayBuffer()
+    if (!imageBuffer || imageBuffer.byteLength === 0) {
+      throw new Error('Received empty image data')
+    }
+
+    // Create blob with explicit type
+    const imageBlob = new Blob([imageBuffer], { type: contentType })
+    console.log('Image blob created successfully:', {
+      size: imageBlob.size,
+      type: imageBlob.type
+    })
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -61,6 +83,7 @@ serve(async (req) => {
             question: question
           }
         })
+        console.log(`Question "${question}" result:`, result)
         return result
       } catch (error) {
         console.error(`Error processing question "${question}":`, error)
@@ -85,12 +108,16 @@ serve(async (req) => {
 
     // Use image captioning as backup
     console.log('Running additional image analysis...')
-    const vision = await hf.imageToText({
-      model: "Salesforce/blip-image-captioning-base",
-      inputs: imageBlob,
-    })
-
-    console.log('Vision analysis result:', vision)
+    let vision = null
+    try {
+      vision = await hf.imageToText({
+        model: "Salesforce/blip-image-captioning-base",
+        inputs: imageBlob,
+      })
+      console.log('Vision analysis result:', vision)
+    } catch (error) {
+      console.error('Error during image captioning:', error)
+    }
 
     // Map detected clothing type to category
     const mapToCategory = (item: string): string => {
