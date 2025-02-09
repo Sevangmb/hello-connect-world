@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,10 +16,7 @@ serve(async (req) => {
   try {
     const { startDate, endDate, destination, currentClothes } = await req.json();
 
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
-    }
+    const hf = new HfInference("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");
 
     const prompt = `En tant que styliste, suggère des vêtements supplémentaires pour un voyage ${destination ? `à ${destination}` : ''} 
     ${startDate ? `du ${startDate}` : ''} ${endDate ? `au ${endDate}` : ''}.
@@ -28,23 +26,17 @@ serve(async (req) => {
     Propose une liste de 3-5 vêtements supplémentaires à ajouter, en tenant compte de ceux déjà présents.
     Réponds de manière concise en français, en format liste à puces.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'Tu es un assistant styliste qui fait des suggestions de vêtements concises et pertinentes.' },
-          { role: 'user', content: prompt }
-        ],
-      }),
+    const response = await hf.textGeneration({
+      model: "mistralai/Mixtral-8x7B-v0.1",
+      inputs: prompt,
+      parameters: {
+        max_new_tokens: 250,
+        temperature: 0.7,
+        return_full_text: false,
+      }
     });
 
-    const data = await response.json();
-    return new Response(JSON.stringify({ suggestions: data.choices[0].message.content }), {
+    return new Response(JSON.stringify({ suggestions: response.generated_text }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
