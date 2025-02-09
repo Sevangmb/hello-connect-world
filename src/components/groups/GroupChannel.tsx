@@ -92,11 +92,17 @@ export const GroupChannel = ({ channelId, channelName, groupId }: GroupChannelPr
     if (!newMessage.trim()) return;
 
     try {
+      // Get the current user's ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("Non authentifié");
+
       const { error } = await supabase
         .from('channel_messages')
         .insert({
           channel_id: channelId,
           content: newMessage,
+          sender_id: user.id
         });
 
       if (error) throw error;
