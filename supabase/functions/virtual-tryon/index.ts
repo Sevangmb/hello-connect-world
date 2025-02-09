@@ -34,13 +34,15 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
-    // Convert responses to blob with proper content type
-    const personBlob = new Blob([await personResponse.arrayBuffer()], { 
-      type: personResponse.headers.get('content-type') || 'image/jpeg' 
-    });
-    const clothingBlob = new Blob([await clothingResponse.arrayBuffer()], { 
-      type: clothingResponse.headers.get('content-type') || 'image/jpeg' 
-    });
+    // Get the array buffers
+    const [personBuffer, clothingBuffer] = await Promise.all([
+      personResponse.arrayBuffer(),
+      clothingResponse.arrayBuffer()
+    ]);
+
+    // Create Uint8Array from the buffers
+    const personUint8 = new Uint8Array(personBuffer);
+    const clothingUint8 = new Uint8Array(clothingBuffer);
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -49,8 +51,8 @@ serve(async (req) => {
     const response = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
-        image: personBlob,
-        cloth: clothingBlob,
+        image: personUint8,
+        cloth: clothingUint8,
       },
       parameters: {
         num_inference_steps: 50,
