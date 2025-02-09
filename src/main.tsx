@@ -43,6 +43,7 @@ import AdminHelp from "@/pages/admin/AdminHelp";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 import VirtualTryOn from "@/pages/VirtualTryOn";
+import Suitcases from "@/pages/Suitcases";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -103,6 +104,7 @@ const App = () => {
       <Route path="/clothes" element={<Clothes />} />
       <Route path="/outfits" element={<Outfits />} />
       <Route path="/personal" element={<Personal />} />
+      <Route path="/suitcases" element={<Suitcases />} />
 
       {/* Community Section - Public routes for community interaction (community, messages, groups, notifications, friends) */}
       <Route path="/community" element={<Community />} />

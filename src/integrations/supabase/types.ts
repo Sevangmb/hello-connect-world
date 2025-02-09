@@ -1253,6 +1253,83 @@ export type Database = {
         }
         Relationships: []
       }
+      suitcase_items: {
+        Row: {
+          clothes_id: string
+          created_at: string
+          id: string
+          suitcase_id: string
+        }
+        Insert: {
+          clothes_id: string
+          created_at?: string
+          id?: string
+          suitcase_id: string
+        }
+        Update: {
+          clothes_id?: string
+          created_at?: string
+          id?: string
+          suitcase_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suitcase_items_clothes_id_fkey"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suitcase_items_suitcase_id_fkey"
+            columns: ["suitcase_id"]
+            isOneToOne: false
+            referencedRelation: "suitcases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suitcases: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          name: string
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suitcases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string
