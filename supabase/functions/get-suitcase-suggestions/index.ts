@@ -32,7 +32,7 @@ serve(async (req) => {
     Réponds de manière concise en français, en format liste à puces.`;
 
     const response = await hf.textGeneration({
-      model: "mistralai/Mixtral-8x7B-v0.1",
+      model: "tiiuae/falcon-7b-instruct",
       inputs: prompt,
       parameters: {
         max_new_tokens: 250,
