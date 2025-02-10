@@ -21,7 +21,7 @@ export function SalesSection() {
               clothes (*)
             )
           ),
-          profiles:buyer_id (username)
+          profiles!buyer_id (username)
         `)
         .eq("seller_id", user.id)
         .order('created_at', { ascending: false });
