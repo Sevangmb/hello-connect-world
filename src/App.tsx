@@ -26,6 +26,7 @@ export default function App() {
         <Route path="/shops/:shopId/clothes/:clotheId/edit" element={<EditClothe />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-cancelled" element={<PaymentCancelled />} />
+        <Route path="*" element={<Home />} />
       </Routes>
     </Router>
   );
