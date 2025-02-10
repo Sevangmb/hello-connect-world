@@ -1,0 +1,27 @@
+/* styles.css */
+
+/* Style for the map container */
+#map {
+  height: 100vh; /* Full viewport height */
+  width: 100%;   /* Full width of the parent container */
+  position: relative; /* Relative positioning for child elements */
+}
+```
+
+### Step 4: Review
+- The file meets all the requirements:
+  - The height is set to `100vh`.
+  - The width is set to `100%`.
+  - The `position` is set to `relative`.
+- The code is complete, functional, and adheres to the conventions of the codebase.
+
+### Final Output
+```
+/* styles.css */
+
+/* Style for the map container */
+#map {
+  height: 100vh; /* Full viewport height */
+  width: 100%;   /* Full width of the parent container */
+  position: relative; /* Relative positioning for child elements */
+}
