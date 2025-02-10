@@ -34,15 +34,18 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
+    const personBlob = await personResponse.blob()
+    const clothingBlob = await clothingResponse.blob()
+
     const hf = new HfInference(HF_TOKEN)
     
     console.log('Attempting virtual try-on with model: CVPR/try-on-diffusion')
     
-    const response = await hf.imageToImage({
+    const result = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
-        image: personResponse,
-        cloth: clothingResponse,
+        image: personBlob,
+        cloth: clothingBlob,
       },
       parameters: {
         num_inference_steps: 50,
@@ -53,8 +56,8 @@ serve(async (req) => {
     console.log('Successfully generated try-on image')
     
     // Convert response to base64
-    if (response instanceof Blob) {
-      const arrayBuffer = await response.arrayBuffer()
+    if (result instanceof Blob) {
+      const arrayBuffer = await result.arrayBuffer()
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
       const resultImage = `data:image/png;base64,${base64}`
 
