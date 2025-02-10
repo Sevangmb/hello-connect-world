@@ -34,23 +34,23 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
-    // Get blob data
-    const personBlob = await personResponse.blob()
-    const clothingBlob = await clothingResponse.blob()
+    // Convert responses to array buffers and then to Uint8Arrays
+    const personBuffer = new Uint8Array(await personResponse.arrayBuffer())
+    const clothingBuffer = new Uint8Array(await clothingResponse.arrayBuffer())
 
-    console.log('Images fetched and converted to Blobs')
-    console.log('Person image size:', personBlob.size)
-    console.log('Clothing image size:', clothingBlob.size)
+    console.log('Images converted to Uint8Array format')
+    console.log('Person image size:', personBuffer.length)
+    console.log('Clothing image size:', clothingBuffer.length)
 
     const hf = new HfInference(HF_TOKEN)
     
     console.log('Attempting virtual try-on with model: CVPR/try-on-diffusion')
-    
+
     const result = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
-      inputs: {
-        image: personBlob,
-        cloth: clothingBlob,
+      inputs: personBuffer,
+      data: {
+        cloth: clothingBuffer
       },
       parameters: {
         num_inference_steps: 50,
