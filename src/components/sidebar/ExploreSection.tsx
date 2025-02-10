@@ -1,4 +1,5 @@
-import { Search, Heart, Star, Hash, MapPin, Filter, List, ShoppingBag } from "lucide-react";
+
+import { Search, Heart, Star, Hash, ShoppingBag } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,42 +66,12 @@ export const ExploreSection = () => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/shops",
+              "bg-gray-100": location.pathname === "/boutiques",
             })}
-            onClick={() => navigate("/shops")}
+            onClick={() => navigate("/boutiques")}
           >
             <ShoppingBag className="h-4 w-4" />
             Boutiques
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/stores/map",
-            })}
-            onClick={() => navigate("/stores/map")}
-          >
-            <MapPin className="h-4 w-4" />
-            Carte des Boutiques
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/stores/search",
-            })}
-            onClick={() => navigate("/stores/search")}
-          >
-            <Filter className="h-4 w-4" />
-            Filtrer les Boutiques
-          </Button>
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-gray-100": location.pathname === "/stores/list",
-            })}
-            onClick={() => navigate("/stores/list")}
-          >
-            <List className="h-4 w-4" />
-            Liste des Boutiques
           </Button>
         </div>
       </AccordionContent>

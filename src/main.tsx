@@ -44,6 +44,7 @@ import { AdminRoute } from "@/components/auth/AdminRoute";
 import "./index.css";
 import VirtualTryOn from "@/pages/VirtualTryOn";
 import Suitcases from "@/pages/Suitcases";
+import Boutiques from "@/pages/Boutiques";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -95,11 +96,8 @@ const App = () => {
       <Route path="/trending/outfits" element={<TrendingOutfits />} />
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/explore" element={<Explore />} />
-      <Route path="/shops" element={<Shops />} />
+      <Route path="/boutiques" element={<Boutiques />} />
       <Route path="/shops/create" element={<CreateShop />} />
-      <Route path="/stores/map" element={<StoresMap />} /> {/* Correction de la route */}
-      <Route path="/stores/search" element={<StoresList />} />
-      <Route path="/stores/list" element={<StoresList />} />
 
       <Route path="/clothes" element={<Clothes />} />
       <Route path="/outfits" element={<Outfits />} />
