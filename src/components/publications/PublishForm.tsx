@@ -28,7 +28,7 @@ export const PublishForm = () => {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/login");
+        navigate("/auth");
         throw new Error("Non authentifié");
       }
 
@@ -63,7 +63,7 @@ export const PublishForm = () => {
       setIsPublishing(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/login");
+        navigate("/auth");
         throw new Error("Non authentifié");
       }
 
