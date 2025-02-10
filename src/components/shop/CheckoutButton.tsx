@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
@@ -6,11 +7,14 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface CheckoutButtonProps {
   items: Array<{
+    id: string;
     name: string;
     description?: string;
     price: number;
     image?: string;
     quantity?: number;
+    shop_id?: string;
+    seller_id?: string;
   }>;
 }
 
@@ -22,8 +26,44 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
     try {
       setLoading(true);
       
+      // Récupérer l'utilisateur connecté
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Vous devez être connecté pour effectuer un achat");
+
+      // Créer la commande
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          buyer_id: user.id,
+          seller_id: items[0].seller_id, // Pour l'instant, on suppose que tous les articles viennent du même vendeur
+          total_amount: items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0),
+          status: "pending"
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Créer les éléments de la commande
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        shop_item_id: item.id,
+        quantity: item.quantity || 1,
+        price_at_time: item.price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Initialiser la session de paiement Stripe
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { items }
+        body: { 
+          items,
+          order_id: order.id
+        }
       });
 
       if (error) throw error;
@@ -37,7 +77,7 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
       console.error('Error initiating checkout:', error);
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de l'initialisation du paiement",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de l'initialisation du paiement",
         variant: "destructive",
       });
     } finally {

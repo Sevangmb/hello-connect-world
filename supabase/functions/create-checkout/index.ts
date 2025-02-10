@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import Stripe from 'https://esm.sh/stripe@14.21.0'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
@@ -14,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { items } = await req.json()
+    const { items, order_id } = await req.json()
     
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error('Invalid items provided')
@@ -42,6 +43,9 @@ serve(async (req) => {
     console.log('Creating checkout session...')
     const session = await stripe.checkout.sessions.create({
       customer_email: customerEmail,
+      metadata: {
+        order_id: order_id
+      },
       line_items: items.map((item: any) => ({
         price_data: {
           currency: 'eur',
@@ -55,11 +59,25 @@ serve(async (req) => {
         quantity: item.quantity || 1,
       })),
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/payment-success`,
-      cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
+      success_url: `${req.headers.get('origin')}/payment-success?order_id=${order_id}`,
+      cancel_url: `${req.headers.get('origin')}/payment-cancelled?order_id=${order_id}`,
     })
 
     console.log('Checkout session created:', session.id)
+    
+    // Update order with Stripe session ID
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    
+    await supabaseAdmin
+      .from('orders')
+      .update({ 
+        stripe_session_id: session.id,
+      })
+      .eq('id', order_id)
+
     return new Response(
       JSON.stringify({ url: session.url }),
       { 
