@@ -23,11 +23,12 @@ serve(async (req) => {
     console.log('Starting clothing extraction process...')
     console.log('Input image:', image)
 
-    // Fetch the image
+    // Fetch the image and get the blob
     const response = await fetch(image)
     if (!response.ok) {
       throw new Error('Failed to fetch image')
     }
+    const imageBlob = await response.blob()
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -35,7 +36,7 @@ serve(async (req) => {
     
     const result = await hf.imageSegmentation({
       model: 'mattmdjaga/segformer_b2_clothes',
-      inputs: response,
+      inputs: imageBlob,
       parameters: {
         threshold: 0.5
       }
