@@ -44,8 +44,8 @@ serve(async (req) => {
     const result = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
-        image: personBlob,
-        cloth: clothingBlob,
+        image: await personBlob.arrayBuffer(),
+        cloth: await clothingBlob.arrayBuffer(),
       },
       parameters: {
         num_inference_steps: 50,
