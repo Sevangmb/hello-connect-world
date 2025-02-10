@@ -23,12 +23,11 @@ serve(async (req) => {
     console.log('Starting clothing extraction process...')
     console.log('Input image:', image)
 
-    // Fetch the image first
+    // Fetch the image
     const response = await fetch(image)
     if (!response.ok) {
       throw new Error('Failed to fetch image')
     }
-    const imageBlob = await response.blob()
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -36,7 +35,7 @@ serve(async (req) => {
     
     const result = await hf.imageSegmentation({
       model: 'mattmdjaga/segformer_b2_clothes',
-      inputs: imageBlob,
+      inputs: response,
       parameters: {
         threshold: 0.5
       }
@@ -44,14 +43,18 @@ serve(async (req) => {
 
     console.log('Successfully generated mask')
 
-    const arrayBuffer = await result.arrayBuffer()
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-    const maskImage = `data:image/png;base64,${base64}`
+    if (result instanceof Blob) {
+      const arrayBuffer = await result.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+      const maskImage = `data:image/png;base64,${base64}`
 
-    return new Response(
-      JSON.stringify({ maskImage }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      return new Response(
+        JSON.stringify({ maskImage }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } else {
+      throw new Error('Unexpected response format from Hugging Face API')
+    }
   } catch (error) {
     console.error('Error in clothing extraction:', error)
     return new Response(
