@@ -13,19 +13,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export const PublishForm = () => {
   const [content, setContent] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isPublishing, setIsPublishing] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Fetch available groups for the user
-  const { data: groups } = useQuery({
+  const { data: groups, error: groupsError } = useQuery({
     queryKey: ["user-groups"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
+      if (!user) {
+        navigate("/login");
+        throw new Error("Non authentifié");
+      }
 
       const { data: groups, error } = await supabase
         .from("groups")
@@ -41,6 +46,15 @@ export const PublishForm = () => {
     },
   });
 
+  if (groupsError) {
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: "Vous devez être connecté pour publier",
+    });
+    return null;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || !selectedGroup) return;
@@ -48,7 +62,10 @@ export const PublishForm = () => {
     try {
       setIsPublishing(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
+      if (!user) {
+        navigate("/login");
+        throw new Error("Non authentifié");
+      }
 
       const { error } = await supabase
         .from("publications")
@@ -61,6 +78,7 @@ export const PublishForm = () => {
       if (error) throw error;
 
       setContent("");
+      setSelectedGroup("");
       toast({
         title: "Publication créée",
         description: "Votre message a été publié avec succès",
