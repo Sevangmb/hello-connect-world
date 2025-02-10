@@ -34,8 +34,10 @@ serve(async (req) => {
       throw new Error('Failed to fetch images')
     }
 
-    const personBlob = await personResponse.blob()
-    const clothingBlob = await clothingResponse.blob()
+    const [personBuffer, clothingBuffer] = await Promise.all([
+      personResponse.arrayBuffer(),
+      clothingResponse.arrayBuffer()
+    ]);
 
     const hf = new HfInference(HF_TOKEN)
     
@@ -44,8 +46,8 @@ serve(async (req) => {
     const result = await hf.imageToImage({
       model: 'CVPR/try-on-diffusion',
       inputs: {
-        image: await personBlob.arrayBuffer(),
-        cloth: await clothingBlob.arrayBuffer(),
+        image: new Uint8Array(personBuffer),
+        cloth: new Uint8Array(clothingBuffer),
       },
       parameters: {
         num_inference_steps: 50,
