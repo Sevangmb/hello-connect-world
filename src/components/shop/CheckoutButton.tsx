@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface CheckoutButtonProps {
   items: Array<{
@@ -21,28 +22,42 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ items }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleCheckout = async () => {
     try {
       setLoading(true);
       
-      // Récupérer l'utilisateur connecté
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Vous devez être connecté pour effectuer un achat");
+      // Vérifier si l'utilisateur est connecté
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
+        toast({
+          title: "Connexion requise",
+          description: "Veuillez vous connecter pour continuer vos achats",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
 
       // Créer la commande
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           buyer_id: user.id,
-          seller_id: items[0].seller_id, // Pour l'instant, on suppose que tous les articles viennent du même vendeur
+          seller_id: items[0].seller_id,
           total_amount: items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0),
           status: "pending"
         })
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw new Error("Erreur lors de la création de la commande");
+      }
 
       // Créer les éléments de la commande
       const orderItems = items.map(item => ({
@@ -56,7 +71,10 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
         .from("order_items")
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        throw new Error("Erreur lors de la création des éléments de la commande");
+      }
 
       // Initialiser la session de paiement Stripe
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -66,12 +84,15 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error invoking create-checkout:', error);
+        throw error;
+      }
       
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error('Aucune URL de paiement reçue');
       }
     } catch (error) {
       console.error('Error initiating checkout:', error);
