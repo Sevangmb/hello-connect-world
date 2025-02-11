@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -7,7 +8,7 @@ import NotFound from "@/pages/NotFound";
 import HelpAndSupport from "@/pages/HelpAndSupport";
 import Shops from "@/pages/Shops";
 import CreateShop from "@/pages/CreateShop";
-import StoresMap from "@/pages/StoresMap"; // Mise à jour de l'import
+import StoresMap from "@/pages/StoresMap";
 import StoresList from "@/pages/StoresList";
 import Search from "@/pages/Search";
 import TrendingOutfits from "@/pages/TrendingOutfits";
@@ -41,10 +42,11 @@ import AdminMarketing from "@/pages/admin/AdminMarketing";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-import "./index.css";
 import VirtualTryOn from "@/pages/VirtualTryOn";
 import Suitcases from "@/pages/Suitcases";
 import Boutiques from "@/pages/Boutiques";
+import ShopDetail from "@/pages/ShopDetail";
+import "./index.css";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -97,6 +99,7 @@ const App = () => {
       <Route path="/hashtags" element={<Hashtags />} />
       <Route path="/explore" element={<Explore />} />
       <Route path="/boutiques" element={<Boutiques />} />
+      <Route path="/shops/:id" element={<ShopDetail />} />
       <Route path="/shops/create" element={<CreateShop />} />
 
       <Route path="/clothes" element={<Clothes />} />
@@ -104,7 +107,7 @@ const App = () => {
       <Route path="/personal" element={<Personal />} />
       <Route path="/suitcases" element={<Suitcases />} />
 
-      {/* Community Section - Public routes for community interaction (community, messages, groups, notifications, friends) */}
+      {/* Community Section */}
       <Route path="/community" element={<Community />} />
       <Route path="/messages" element={<Messages />} />
       <Route path="/groups" element={<Groups />} />
@@ -112,7 +115,7 @@ const App = () => {
       <Route path="/friends" element={<Friends />} />
       <Route path="/find-friends" element={<FindFriends />} />
 
-      {/* Profile Section - Public routes for user profile and settings, plus marketplace/help fallback */}
+      {/* Profile Section */}
       <Route path="/profile" element={<Profile />} />
       <Route path="/profile/settings" element={<Settings />} />
       <Route path="/marketplace" element={<StoresList />} />
