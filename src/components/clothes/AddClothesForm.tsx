@@ -162,7 +162,8 @@ export const AddClothesForm = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
 
-      const { error } = await supabase
+      // Insérer le vêtement
+      const { data: clothingData, error: clothingError } = await supabase
         .from("clothes")
         .insert({
           user_id: user.id,
@@ -179,13 +180,40 @@ export const AddClothesForm = () => {
           purchase_date: formData.purchase_date || null,
           is_for_sale: formData.is_for_sale,
           needs_alteration: formData.needs_alteration,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (clothingError) throw clothingError;
+
+      // Si le vêtement est à vendre, l'ajouter à la boutique
+      if (formData.is_for_sale && clothingData) {
+        // Récupérer la boutique de l'utilisateur
+        const { data: shopData, error: shopError } = await supabase
+          .from("shops")
+          .select()
+          .eq("user_id", user.id)
+          .single();
+
+        if (shopError) throw new Error("Vous devez d'abord créer une boutique");
+
+        // Ajouter l'article à la boutique
+        const { error: shopItemError } = await supabase
+          .from("shop_items")
+          .insert({
+            shop_id: shopData.id,
+            clothes_id: clothingData.id,
+            price: parseFloat(formData.price),
+            status: "available"
+          });
+
+        if (shopItemError) throw shopItemError;
+      }
 
       toast({
         title: "Vêtement ajouté",
-        description: "Le vêtement a été ajouté à votre garde-robe",
+        description: "Le vêtement a été ajouté à votre garde-robe" + 
+          (formData.is_for_sale ? " et mis en vente dans votre boutique" : ""),
       });
 
       // Reset form
@@ -209,7 +237,7 @@ export const AddClothesForm = () => {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'ajouter le vêtement",
+        description: error.message,
       });
     } finally {
       setLoading(false);
