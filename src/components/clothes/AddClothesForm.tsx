@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera, Loader2, ScanLine } from "lucide-react";
+import { Camera, Loader2, ScanLine, Euro } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
 
 const CATEGORIES = [
   "Hauts",
@@ -16,6 +17,15 @@ const CATEGORIES = [
   "Manteaux",
   "Chaussures",
   "Accessoires",
+];
+
+const STYLES = [
+  "Casual",
+  "Formel",
+  "Sport",
+  "Soirée",
+  "Vacances",
+  "Business",
 ];
 
 export const AddClothesForm = () => {
@@ -32,6 +42,11 @@ export const AddClothesForm = () => {
     size: "",
     material: "",
     color: "",
+    style: "",
+    price: "",
+    purchase_date: "",
+    is_for_sale: false,
+    needs_alteration: false,
   });
 
   const scanLabel = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,6 +174,11 @@ export const AddClothesForm = () => {
           size: formData.size,
           material: formData.material,
           color: formData.color,
+          style: formData.style,
+          price: formData.price ? parseFloat(formData.price) : null,
+          purchase_date: formData.purchase_date || null,
+          is_for_sale: formData.is_for_sale,
+          needs_alteration: formData.needs_alteration,
         });
 
       if (error) throw error;
@@ -178,6 +198,11 @@ export const AddClothesForm = () => {
         size: "",
         material: "",
         color: "",
+        style: "",
+        price: "",
+        purchase_date: "",
+        is_for_sale: false,
+        needs_alteration: false,
       });
     } catch (error: any) {
       console.error("Error adding clothes:", error.message);
@@ -222,24 +247,45 @@ export const AddClothesForm = () => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="category">Catégorie</Label>
-          <Select
-            value={formData.category}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-            required
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionnez une catégorie" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="category">Catégorie</Label>
+            <Select
+              value={formData.category}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez une catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="style">Style</Label>
+            <Select
+              value={formData.style}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, style: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez un style" />
+              </SelectTrigger>
+              <SelectContent>
+                {STYLES.map((style) => (
+                  <SelectItem key={style} value={style}>
+                    {style}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -283,6 +329,50 @@ export const AddClothesForm = () => {
               onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
               placeholder="Ex: Bleu"
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="purchase_date">Date d'achat</Label>
+            <Input
+              id="purchase_date"
+              type="date"
+              value={formData.purchase_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, purchase_date: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="price">Prix d'achat</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+              placeholder="Ex: 29.99"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between space-x-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="is_for_sale"
+              checked={formData.is_for_sale}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_for_sale: checked }))}
+            />
+            <Label htmlFor="is_for_sale" className="cursor-pointer">À vendre</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="needs_alteration"
+              checked={formData.needs_alteration}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, needs_alteration: checked }))}
+            />
+            <Label htmlFor="needs_alteration" className="cursor-pointer">Nécessite des retouches</Label>
           </div>
         </div>
 
