@@ -9,7 +9,8 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const { data: items, isLoading } = useQuery({
     queryKey: ["shop-items", shopId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // D'abord, vérifier les vêtements directement liés à la boutique
+      const { data: shopItems, error: shopItemsError } = await supabase
         .from('shop_items')
         .select(`
           *,
@@ -26,8 +27,63 @@ export function ShopItems({ shopId }: { shopId: string }) {
         .eq('shop_id', shopId)
         .eq('status', 'available');
 
-      if (error) throw error;
-      return data;
+      if (shopItemsError) throw shopItemsError;
+
+      // Ensuite, vérifier les vêtements marqués à vendre qui ne sont pas encore dans la boutique
+      const { data: availableClothes, error: clothesError } = await supabase
+        .from('clothes')
+        .select(`
+          id,
+          name,
+          description,
+          image_url,
+          price,
+          user_id
+        `)
+        .eq('is_for_sale', true)
+        .eq('shop_id', shopId)
+        .not('id', 'in', shopItems?.map(item => item.clothes_id) || []);
+
+      if (clothesError) throw clothesError;
+
+      // Pour les vêtements qui ne sont pas encore dans shop_items, les ajouter automatiquement
+      if (availableClothes && availableClothes.length > 0) {
+        const { error: insertError } = await supabase
+          .from('shop_items')
+          .insert(
+            availableClothes.map(cloth => ({
+              shop_id: shopId,
+              clothes_id: cloth.id,
+              price: cloth.price,
+              status: 'available'
+            }))
+          );
+
+        if (insertError) {
+          console.error('Error adding clothes to shop:', insertError);
+        }
+      }
+
+      // Refaire la requête pour avoir tous les articles à jour
+      const { data: finalItems, error: finalError } = await supabase
+        .from('shop_items')
+        .select(`
+          *,
+          clothes (
+            name,
+            description,
+            image_url
+          ),
+          shop:shops (
+            name,
+            user_id
+          )
+        `)
+        .eq('shop_id', shopId)
+        .eq('status', 'available');
+
+      if (finalError) throw finalError;
+      return finalItems;
     },
   });
 

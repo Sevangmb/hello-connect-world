@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -196,6 +195,14 @@ export const AddClothesForm = () => {
           .single();
 
         if (shopError) throw new Error("Vous devez d'abord créer une boutique");
+
+        // Mettre à jour le vêtement avec l'ID de la boutique
+        const { error: updateError } = await supabase
+          .from("clothes")
+          .update({ shop_id: shopData.id })
+          .eq("id", clothingData.id);
+
+        if (updateError) throw updateError;
 
         // Ajouter l'article à la boutique
         const { error: shopItemError } = await supabase
