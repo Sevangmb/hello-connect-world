@@ -1,7 +1,5 @@
-
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useStores } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +9,6 @@ const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
 const DEFAULT_ZOOM = 6;
 
 const StoreMap = () => {
-  const [isMounted, setIsMounted] = useState(false);
   const { stores, loading } = useStores();
   const { toast } = useToast();
 
@@ -116,7 +113,6 @@ const StoreMap = () => {
 
         mapRoot = createRoot(mapDiv);
         mapRoot.render(<MapComponent />);
-        setIsMounted(true);
         console.log("Map mounted successfully");
 
       } catch (error) {
@@ -129,7 +125,7 @@ const StoreMap = () => {
       }
     };
 
-    if (!isMounted && !loading) {
+    if (!loading) {
       console.log("Attempting to initialize map, loading state:", loading);
       initializeMap();
     }
@@ -138,17 +134,8 @@ const StoreMap = () => {
       if (mapRoot) {
         mapRoot.unmount();
       }
-      setIsMounted(false);
     };
-  }, [stores, loading, isMounted, toast]);
-
-  if (loading || !isMounted) {
-    return (
-      <div className="h-[600px] rounded-lg overflow-hidden bg-gray-100">
-        <Skeleton className="w-full h-full" />
-      </div>
-    );
-  }
+  }, [stores, loading, toast]);
 
   return (
     <div className="h-[600px] rounded-lg overflow-hidden relative">
