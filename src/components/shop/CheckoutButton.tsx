@@ -62,13 +62,15 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
         return;
       }
 
-      // Créer la commande
+      // Créer la commande avec les nouveaux champs
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           buyer_id: user.id,
           seller_id: items[0].seller_id,
           total_amount: items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0),
+          transaction_type: items[0].shop_id ? 'shop_online' : 'p2p',
+          payment_type: 'online',
           status: "pending"
         })
         .select()

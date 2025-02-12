@@ -48,6 +48,24 @@ serve(async (req) => {
           throw orderError;
         }
 
+        // Récupérer les informations de la commande
+        const { data: order } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('stripe_session_id', session.id)
+          .single();
+
+        if (order) {
+          // Si c'est une commande shop_online, on génère un QR code
+          if (order.transaction_type === 'shop_online') {
+            const qrCode = `${order.id}-${Math.random().toString(36).substring(7)}`;
+            await supabase
+              .from('orders')
+              .update({ qr_code: qrCode })
+              .eq('id', order.id);
+          }
+        }
+
         // Mettre à jour le statut des articles
         const { data: orderItems } = await supabase
           .from('order_items')

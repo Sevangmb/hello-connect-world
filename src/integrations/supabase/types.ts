@@ -699,13 +699,20 @@ export type Database = {
           created_at: string
           delivery_type: string | null
           id: string
+          meeting_location: string | null
+          meeting_time: string | null
+          payment_type: string
           pickup_location: string | null
+          qr_code: string | null
+          reservation_expiry: string | null
           seller_confirmed: boolean | null
           seller_id: string
+          shop_pickup_time: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
           total_amount: number
+          transaction_type: string
         }
         Insert: {
           buyer_confirmed?: boolean | null
@@ -714,13 +721,20 @@ export type Database = {
           created_at?: string
           delivery_type?: string | null
           id?: string
+          meeting_location?: string | null
+          meeting_time?: string | null
+          payment_type?: string
           pickup_location?: string | null
+          qr_code?: string | null
+          reservation_expiry?: string | null
           seller_confirmed?: boolean | null
           seller_id: string
+          shop_pickup_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           total_amount: number
+          transaction_type?: string
         }
         Update: {
           buyer_confirmed?: boolean | null
@@ -729,13 +743,20 @@ export type Database = {
           created_at?: string
           delivery_type?: string | null
           id?: string
+          meeting_location?: string | null
+          meeting_time?: string | null
+          payment_type?: string
           pickup_location?: string | null
+          qr_code?: string | null
+          reservation_expiry?: string | null
           seller_confirmed?: boolean | null
           seller_id?: string
+          shop_pickup_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
           total_amount?: number
+          transaction_type?: string
         }
         Relationships: [
           {
