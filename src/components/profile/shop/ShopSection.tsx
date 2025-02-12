@@ -6,28 +6,58 @@ import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 export function ShopSection() {
   const navigate = useNavigate();
-  const { data: shop, isLoading } = useQuery({
+  const { toast } = useToast();
+  
+  const { data: shop, isLoading, error } = useQuery({
     queryKey: ['myShop'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      console.log("Fetching shop for user:", user.id);
       const { data, error } = await supabase
         .from("shops")
-        .select("*")
+        .select(`
+          *,
+          profiles:user_id (username),
+          shop_items (
+            id
+          )
+        `)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching shop:", error);
+        throw error;
+      }
+
+      console.log("Shop data:", data);
       return data;
+    },
+    retry: false,
+    onError: (error) => {
+      console.error("Query error:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les informations de la boutique",
+        variant: "destructive",
+      });
     }
   });
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return (
+      <Card className="p-6">
+        <div className="text-center">
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </Card>
+    );
   }
 
   if (!shop) {
