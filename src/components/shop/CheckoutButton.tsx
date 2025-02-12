@@ -29,18 +29,23 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
       setLoading(true);
       
       // Vérifier si l'utilisateur est connecté
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (authError || !user) {
-        // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
+      if (sessionError) {
+        throw new Error("Erreur lors de la vérification de l'authentification");
+      }
+      
+      if (!sessionData.session?.user) {
         toast({
           title: "Connexion requise",
           description: "Veuillez vous connecter pour continuer vos achats",
           variant: "destructive",
         });
-        navigate("/login");
+        navigate("/auth");
         return;
       }
+
+      const user = sessionData.session.user;
 
       // Créer la commande
       const { data: order, error: orderError } = await supabase
@@ -77,20 +82,20 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
       }
 
       // Initialiser la session de paiement Stripe
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data: stripeData, error: stripeError } = await supabase.functions.invoke('create-checkout', {
         body: { 
           items,
           order_id: order.id
         }
       });
 
-      if (error) {
-        console.error('Error invoking create-checkout:', error);
-        throw error;
+      if (stripeError) {
+        console.error('Error invoking create-checkout:', stripeError);
+        throw stripeError;
       }
       
-      if (data?.url) {
-        window.location.href = data.url;
+      if (stripeData?.url) {
+        window.location.href = stripeData.url;
       } else {
         throw new Error('Aucune URL de paiement reçue');
       }
