@@ -28,24 +28,39 @@ export function CheckoutButton({ items }: CheckoutButtonProps) {
     try {
       setLoading(true);
       
-      // Vérifier si l'utilisateur est connecté
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      // First check if we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        throw new Error("Erreur lors de la vérification de l'authentification");
+        console.error('Session error:', sessionError);
+        // Try to refresh the session
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('Refresh error:', refreshError);
+          // If refresh fails, redirect to auth
+          toast({
+            title: "Session expirée",
+            description: "Veuillez vous reconnecter pour continuer",
+            variant: "destructive",
+          });
+          await supabase.auth.signOut();
+          navigate("/auth", { state: { from: location.pathname } });
+          return;
+        }
       }
+
+      // Check if we have a user after potential refresh
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!sessionData.session?.user) {
+      if (!user) {
         toast({
           title: "Connexion requise",
           description: "Veuillez vous connecter pour continuer vos achats",
           variant: "destructive",
         });
-        navigate("/auth");
+        navigate("/auth", { state: { from: location.pathname } });
         return;
       }
-
-      const user = sessionData.session.user;
 
       // Créer la commande
       const { data: order, error: orderError } = await supabase
