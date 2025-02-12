@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,11 +40,12 @@ export const useLabelScanner = (onFormChange: (field: keyof ClothesFormData, val
 
       const { brand, size, material, color, category } = response.data;
 
-      onFormChange('brand', brand || '');
-      onFormChange('size', size || '');
-      onFormChange('material', material || '');
-      onFormChange('color', color || '');
-      onFormChange('category', category || '');
+      // Assurez-vous que les valeurs extraites sont définies avant de les utiliser
+      if (brand !== undefined) onFormChange('brand', brand);
+      if (size !== undefined) onFormChange('size', size);
+      if (material !== undefined) onFormChange('material', material);
+      if (color !== undefined) onFormChange('color', color);
+      if (category !== undefined) onFormChange('category', category);
 
       toast({
         title: "Étiquette analysée",

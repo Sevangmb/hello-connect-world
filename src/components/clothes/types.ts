@@ -1,16 +1,17 @@
-
 export interface ClothesFormData {
+  id: string;
   name: string;
   description: string;
   category: string;
-  image_url: string | null;
   brand: string;
-  size: string;
-  material: string;
   color: string;
-  style: string;
-  price: string;
-  purchase_date: string;
+  material: string;
+  size: string; // Ajoutez cette ligne
+  image_url: string;
   is_for_sale: boolean;
   needs_alteration: boolean;
+  archived: boolean;
+  created_at: string;
+  user_id: string;
+  price: number;
 }

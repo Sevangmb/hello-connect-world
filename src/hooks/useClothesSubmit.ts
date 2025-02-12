@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,8 +25,7 @@ export const useClothesSubmit = (onSuccess: () => void) => {
           size: formData.size,
           material: formData.material,
           color: formData.color,
-          style: formData.style,
-          price: formData.price ? parseFloat(formData.price) : null,
+          price: formData.price,
           purchase_date: formData.purchase_date || null,
           is_for_sale: formData.is_for_sale,
           needs_alteration: formData.needs_alteration,
@@ -58,7 +56,7 @@ export const useClothesSubmit = (onSuccess: () => void) => {
           .insert({
             shop_id: shopData.id,
             clothes_id: clothingData.id,
-            price: parseFloat(formData.price),
+            price: formData.price,
             status: "available"
           });
 
