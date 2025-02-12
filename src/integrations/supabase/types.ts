@@ -651,6 +651,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_details"
+            referencedColumns: ["order_id"]
+          },
+          {
             foreignKeyName: "order_items_shop_item_id_fkey"
             columns: ["shop_item_id"]
             isOneToOne: false
@@ -661,9 +668,14 @@ export type Database = {
       }
       orders: {
         Row: {
+          buyer_confirmed: boolean | null
           buyer_id: string
+          commission_amount: number | null
           created_at: string
+          delivery_type: string | null
           id: string
+          pickup_location: string | null
+          seller_confirmed: boolean | null
           seller_id: string
           status: string
           stripe_payment_intent_id: string | null
@@ -671,9 +683,14 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          buyer_confirmed?: boolean | null
           buyer_id: string
+          commission_amount?: number | null
           created_at?: string
+          delivery_type?: string | null
           id?: string
+          pickup_location?: string | null
+          seller_confirmed?: boolean | null
           seller_id: string
           status?: string
           stripe_payment_intent_id?: string | null
@@ -681,9 +698,14 @@ export type Database = {
           total_amount: number
         }
         Update: {
+          buyer_confirmed?: boolean | null
           buyer_id?: string
+          commission_amount?: number | null
           created_at?: string
+          delivery_type?: string | null
           id?: string
+          pickup_location?: string | null
+          seller_confirmed?: boolean | null
           seller_id?: string
           status?: string
           stripe_payment_intent_id?: string | null
@@ -1455,6 +1477,51 @@ export type Database = {
           },
         ]
       }
+      transaction_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          rating: number
+          reviewed_id: string | null
+          reviewer_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating: number
+          reviewed_id?: string | null
+          reviewer_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating?: number
+          reviewed_id?: string | null
+          reviewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_details"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -1517,7 +1584,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      transaction_details: {
+        Row: {
+          buyer_confirmed: boolean | null
+          buyer_username: string | null
+          commission_amount: number | null
+          created_at: string | null
+          delivery_type: string | null
+          order_id: string | null
+          pickup_location: string | null
+          seller_confirmed: boolean | null
+          seller_username: string | null
+          shop_name: string | null
+          status: string | null
+          total_amount: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_and_award_badges: {
