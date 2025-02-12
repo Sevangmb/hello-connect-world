@@ -40,13 +40,14 @@ export function ShopSection() {
       return data;
     },
     retry: false,
-    onError: (error) => {
-      console.error("Query error:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les informations de la boutique",
-        variant: "destructive",
-      });
+    meta: {
+      onError: () => {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les informations de la boutique",
+          variant: "destructive",
+        });
+      }
     }
   });
 
