@@ -651,13 +651,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "transaction_details"
-            referencedColumns: ["order_id"]
-          },
-          {
             foreignKeyName: "order_items_shop_item_id_fkey"
             columns: ["shop_item_id"]
             isOneToOne: false
@@ -1513,13 +1506,6 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "transaction_reviews_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "transaction_details"
-            referencedColumns: ["order_id"]
-          },
         ]
       }
       user_badges: {
@@ -1584,23 +1570,7 @@ export type Database = {
       }
     }
     Views: {
-      transaction_details: {
-        Row: {
-          buyer_confirmed: boolean | null
-          buyer_username: string | null
-          commission_amount: number | null
-          created_at: string | null
-          delivery_type: string | null
-          order_id: string | null
-          pickup_location: string | null
-          seller_confirmed: boolean | null
-          seller_username: string | null
-          shop_name: string | null
-          status: string | null
-          total_amount: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       check_and_award_badges: {
