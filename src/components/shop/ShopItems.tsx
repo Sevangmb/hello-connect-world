@@ -7,6 +7,9 @@ import { CheckoutButton } from "./CheckoutButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { ShoppingCart, Heart } from "lucide-react";
+import { formatPrice } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ShopItem {
   id: string;
@@ -19,6 +22,7 @@ interface ShopItem {
   category?: string;
   size?: string;
   brand?: string;
+  original_price?: number;
 }
 
 export function ShopItems({ shopId }: { shopId: string }) {
@@ -28,7 +32,6 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const { data: items, isLoading } = useQuery({
     queryKey: ["shop-items", shopId, sortBy, searchQuery],
     queryFn: async () => {
-      // D'abord, vérifier les vêtements directement liés à la boutique
       const { data: shopItems, error: shopItemsError } = await supabase
         .from('shop_items')
         .select(`
@@ -39,7 +42,8 @@ export function ShopItems({ shopId }: { shopId: string }) {
             image_url,
             category,
             size,
-            brand
+            brand,
+            original_price
           ),
           shop:shops (
             name,
@@ -89,21 +93,22 @@ export function ShopItems({ shopId }: { shopId: string }) {
     seller_id: item.shop.user_id,
     category: item.clothes.category,
     size: item.clothes.size,
-    brand: item.clothes.brand
+    brand: item.clothes.brand,
+    original_price: item.clothes.original_price
   }));
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-lg shadow-sm">
         <Input
           type="search"
           placeholder="Rechercher des articles..."
-          className="max-w-xs"
+          className="max-w-xs border-gray-300"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] border-gray-300">
             <SelectValue placeholder="Trier par" />
           </SelectTrigger>
           <SelectContent>
@@ -114,49 +119,59 @@ export function ShopItems({ shopId }: { shopId: string }) {
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {processedItems.map((item) => (
           <Card 
             key={item.id} 
-            className="group overflow-hidden border border-gray-200 hover:shadow-md transition-shadow"
+            className="group overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow"
           >
             {item.image && (
-              <div className="relative aspect-square overflow-hidden">
+              <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity" />
+                <button className="absolute top-3 right-3 p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
+                  <Heart className="w-5 h-5 text-gray-600" />
+                </button>
               </div>
             )}
             <div className="p-4">
-              <div className="mb-2">
+              <div className="mb-3">
                 <h3 className="font-medium text-sm mb-1 line-clamp-1">{item.name}</h3>
-                <p className="text-lg font-semibold">{item.price}€</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold">{formatPrice(item.price)}</span>
+                  {item.original_price && item.original_price > item.price && (
+                    <span className="text-sm text-gray-500 line-through">
+                      {formatPrice(item.original_price)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-4">
                 {item.size && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="secondary" className="text-xs font-normal">
                     {item.size}
                   </Badge>
                 )}
                 {item.brand && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="outline" className="text-xs font-normal">
                     {item.brand}
                   </Badge>
                 )}
               </div>
+              <Button 
+                className="w-full bg-black hover:bg-gray-900 text-white"
+                size="sm"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Ajouter au panier
+              </Button>
             </div>
           </Card>
         ))}
       </div>
-      
-      {processedItems.length > 0 && (
-        <div className="mt-6">
-          <CheckoutButton items={processedItems} />
-        </div>
-      )}
     </div>
   );
 }
