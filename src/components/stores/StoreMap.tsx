@@ -1,10 +1,10 @@
+
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { useStores } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
 import { useToast } from "@/hooks/use-toast";
 
-// Centre de la France
 const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
 const DEFAULT_ZOOM = 6;
 

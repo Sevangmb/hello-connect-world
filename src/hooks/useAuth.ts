@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,17 +17,13 @@ export const useAuth = () => {
       setUser(session?.session?.user ?? null);
       setLoading(false);
 
-      const { data: authListener, error: authListenerError } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (authListenerError) {
-          console.error("Error with auth listener:", authListenerError);
-          return;
-        }
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
         setLoading(false);
       });
 
       return () => {
-        authListener?.subscription.unsubscribe();
+        subscription?.unsubscribe();
       };
     };
 

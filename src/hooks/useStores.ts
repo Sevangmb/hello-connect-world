@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,9 +28,7 @@ export interface FilterState {
 
 export function useStores() {
   const [stores, setStores] = useState<Store[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
     category: "all",
@@ -37,37 +36,9 @@ export function useStores() {
     style: "all",
   });
 
-  useEffect(() => {
-    fetchUserAndData();
-  }, []);
-
-  const fetchUserAndData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log("No user found");
-        setLoading(false);
-        return;
-      }
-
-      setUserId(user.id);
-      await Promise.all([fetchStores(), fetchFavorites()]);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la récupération de l'utilisateur",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchStores = async () => {
     try {
-      console.log("Fetching stores list...");
+      setLoading(true);
       let query = supabase
         .from('shops')
         .select(`
@@ -87,7 +58,6 @@ export function useStores() {
 
       if (error) throw error;
 
-      console.log("Stores fetched:", data);
       setStores(data || []);
     } catch (error) {
       console.error('Error:', error);
@@ -96,84 +66,20 @@ export function useStores() {
         description: "Une erreur est survenue lors de la récupération des boutiques",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchFavorites = async () => {
-    if (!userId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('favorite_shops')
-        .select('shop_id')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      setFavorites(data.map(fav => fav.shop_id));
-    } catch (error) {
-      console.error('Error fetching favorites:', error);
-    }
-  };
-
-  const toggleFavorite = async (shopId: string) => {
-    if (!userId) {
-      toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour ajouter des favoris",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      if (favorites.includes(shopId)) {
-        const { error } = await supabase
-          .from('favorite_shops')
-          .delete()
-          .eq('shop_id', shopId)
-          .eq('user_id', userId);
-
-        if (error) throw error;
-
-        setFavorites(favorites.filter(id => id !== shopId));
-        toast({
-          title: "Succès",
-          description: "La boutique a été retirée de vos favoris",
-        });
-      } else {
-        const { error } = await supabase
-          .from('favorite_shops')
-          .insert({ 
-            shop_id: shopId,
-            user_id: userId
-          });
-
-        if (error) throw error;
-
-        setFavorites([...favorites, shopId]);
-        toast({
-          title: "Succès",
-          description: "La boutique a été ajoutée à vos favoris",
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour les favoris",
-        variant: "destructive",
-      });
-    }
-  };
+  useEffect(() => {
+    fetchStores();
+  }, [filters]);
 
   return {
     stores,
-    favorites,
     loading,
     filters,
     setFilters,
-    toggleFavorite,
     fetchStores
   };
 }

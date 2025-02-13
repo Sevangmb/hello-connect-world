@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, List, MapPin, Filter } from "lucide-react";
+import { Plus, List, MapPin } from "lucide-react";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
