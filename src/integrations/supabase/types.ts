@@ -259,6 +259,7 @@ export type Database = {
           material: string | null
           name: string
           needs_alteration: boolean | null
+          original_price: number | null
           price: number | null
           purchase_date: string | null
           shop_id: string | null
@@ -281,6 +282,7 @@ export type Database = {
           material?: string | null
           name: string
           needs_alteration?: boolean | null
+          original_price?: number | null
           price?: number | null
           purchase_date?: string | null
           shop_id?: string | null
@@ -303,6 +305,7 @@ export type Database = {
           material?: string | null
           name?: string
           needs_alteration?: boolean | null
+          original_price?: number | null
           price?: number | null
           purchase_date?: string | null
           shop_id?: string | null
