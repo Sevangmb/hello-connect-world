@@ -1,14 +1,9 @@
+
 import { useState, useEffect } from "react";
 import StoreMap from "./StoreMap";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Store {
-  id: string;
-  name: string;
-  description: string;
-  // Ajoutez d'autres propriétés nécessaires ici
-}
+import type { Store } from "@/hooks/useStores";
 
 const Boutiques = () => {
   const [stores, setStores] = useState<Store[]>([]);
@@ -20,18 +15,21 @@ const Boutiques = () => {
     const fetchStores = async () => {
       try {
         const { data, error } = await supabase
-          .from("stores")
+          .from("shops")
           .select("*");
 
         if (error) throw error;
 
-        if (isMounted) {
-          const filteredData = data.filter((item: any) => item.name && item.description);
+        if (isMounted && data) {
+          const filteredData = data.filter((item): item is Store => 
+            typeof item.name === 'string' && 
+            (item.description === null || typeof item.description === 'string')
+          );
           setStores(filteredData);
         }
       } catch (error: any) {
         if (isMounted) {
-          console.error("Error fetching stores:", error.message);
+          console.error("Error fetching shops:", error.message);
           toast({
             variant: "destructive",
             title: "Erreur",

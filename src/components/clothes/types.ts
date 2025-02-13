@@ -1,5 +1,6 @@
 
 export interface ClothesFormData {
+  id?: string;
   name: string;
   description: string;
   category: string;
@@ -9,7 +10,7 @@ export interface ClothesFormData {
   material: string;
   color: string;
   style: string;
-  price: string;
+  price: number;
   purchase_date: string;
   is_for_sale: boolean;
   needs_alteration: boolean;

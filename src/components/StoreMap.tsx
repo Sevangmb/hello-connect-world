@@ -1,13 +1,8 @@
+
 import React, { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Store {
-  id: string;
-  name: string;
-  description: string;
-  // Ajoutez d'autres propriétés nécessaires ici
-}
+import type { Store } from "@/hooks/useStores";
 
 interface StoreMapProps {
   store: Store;
@@ -22,7 +17,7 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
     const fetchData = async () => {
       try {
         const { data, error } = await supabase
-          .from("stores")
+          .from("shops")
           .select("*");
 
         if (error) throw error;
@@ -32,7 +27,7 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
         }
       } catch (error: any) {
         if (isMounted) {
-          console.error("Error fetching stores:", error.message);
+          console.error("Error fetching shops:", error.message);
           toast({
             variant: "destructive",
             title: "Erreur",
@@ -53,7 +48,6 @@ const StoreMap: React.FC<StoreMapProps> = ({ store }) => {
     <div>
       <h2>{store.name}</h2>
       <p>{store.description}</p>
-      {/* Ajoutez d'autres éléments d'affichage ici */}
     </div>
   );
 };

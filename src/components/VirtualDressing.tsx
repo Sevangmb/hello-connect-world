@@ -1,14 +1,22 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ClothesFormData } from "@/components/clothes/types";
+import type { ClothesFormData } from "@/components/clothes/types";
 
 interface VirtualDressingProps {
   userId: string;
 }
 
+interface ClothesData extends ClothesFormData {
+  id: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const VirtualDressing = ({ userId }: VirtualDressingProps) => {
-  const [clothes, setClothes] = useState<ClothesFormData[]>([]);
+  const [clothes, setClothes] = useState<ClothesData[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,7 +29,7 @@ export const VirtualDressing = ({ userId }: VirtualDressingProps) => {
 
         if (error) throw error;
 
-        setClothes(data);
+        setClothes(data as ClothesData[]);
       } catch (error: any) {
         console.error("Error fetching clothes:", error.message);
         toast({
@@ -41,7 +49,7 @@ export const VirtualDressing = ({ userId }: VirtualDressingProps) => {
       <div className="clothes-grid">
         {clothes.map((item) => (
           <div key={item.id} className="clothes-item">
-            <img src={item.image_url} alt={item.name} />
+            <img src={item.image_url || ''} alt={item.name} />
             <p>{item.name}</p>
           </div>
         ))}

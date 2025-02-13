@@ -1,3 +1,4 @@
+
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
@@ -8,11 +9,9 @@ import { useStores } from "@/hooks/useStores";
 const StoresMap = () => {
   const {
     stores,
-    favorites,
     loading,
     filters,
     setFilters,
-    toggleFavorite,
   } = useStores();
 
   return (
