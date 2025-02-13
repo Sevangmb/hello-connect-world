@@ -1231,6 +1231,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_shop_items_clothes"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_shop_items_shop"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shop_items_clothes_id_fkey"
             columns: ["clothes_id"]
             isOneToOne: false
