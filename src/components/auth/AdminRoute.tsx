@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 
-export function AdminRoute({ children }: { children: React.ReactNode }) {
+const useAdminCheck = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
@@ -75,6 +75,12 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
     checkAdminStatus();
   }, [toast]);
+
+  return { loading, isAdmin };
+};
+
+export function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { loading, isAdmin } = useAdminCheck();
 
   if (loading) {
     return (

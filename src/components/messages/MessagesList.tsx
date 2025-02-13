@@ -40,7 +40,6 @@ export const MessagesList = () => {
         return;
       }
 
-      // Group messages by conversation partner
       const conversationsMap = new Map();
       data?.forEach(message => {
         const partner = message.sender.id === user.id ? message.receiver : message.sender;

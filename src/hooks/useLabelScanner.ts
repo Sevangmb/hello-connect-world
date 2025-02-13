@@ -40,7 +40,6 @@ export const useLabelScanner = (onFormChange: (field: keyof ClothesFormData, val
 
       const { brand, size, material, color, category } = response.data;
 
-      // Assurez-vous que les valeurs extraites sont définies avant de les utiliser
       if (brand !== undefined) onFormChange('brand', brand);
       if (size !== undefined) onFormChange('size', size);
       if (material !== undefined) onFormChange('material', material);

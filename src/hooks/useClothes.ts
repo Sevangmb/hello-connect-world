@@ -60,7 +60,6 @@ export const useClothes = (filters: ClothesFilters = {}) => {
       if (filters.showArchived !== undefined) {
         query = query.eq("archived", filters.showArchived);
       } else {
-        // Par défaut, on ne montre pas les vêtements archivés
         query = query.eq("archived", false);
       }
 

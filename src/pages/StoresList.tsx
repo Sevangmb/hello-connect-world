@@ -1,7 +1,7 @@
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { ShopCard } from "@/components/shops/ShopCard";
+import { ShopCard } from "@/components/shop/ShopCard";
 import { StoreFilters } from "@/components/stores/StoreFilters";
 import { useStores } from "@/hooks/useStores";
 

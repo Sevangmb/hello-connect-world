@@ -1,4 +1,3 @@
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VirtualTryOnForm } from "./VirtualTryOnForm";
 import { ExtractClothingForm } from "./ExtractClothingForm";

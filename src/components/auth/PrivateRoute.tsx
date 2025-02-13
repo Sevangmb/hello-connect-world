@@ -1,14 +1,12 @@
-
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-export function PrivateRoute({ children }: { children: React.ReactNode }) {
+const useAuthCheck = () => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
-  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -25,10 +23,8 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
           });
           setAuthenticated(false);
           
-          // Attempt to refresh the session
           const { error: refreshError } = await supabase.auth.refreshSession();
           if (refreshError) {
-            // If refresh fails, sign out to clear any invalid tokens
             await supabase.auth.signOut();
           }
         } else {
@@ -42,10 +38,8 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Initial auth check
     checkAuth();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       
@@ -55,7 +49,6 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
-        // Clear any local auth state
         setAuthenticated(false);
       }
 
@@ -68,6 +61,13 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
     };
   }, [toast]);
 
+  return { loading, authenticated };
+};
+
+export function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { loading, authenticated } = useAuthCheck();
+  const location = useLocation();
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -77,7 +77,6 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!authenticated) {
-    // Save the current location they were trying to go to
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

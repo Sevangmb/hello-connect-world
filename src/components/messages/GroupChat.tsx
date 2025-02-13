@@ -37,7 +37,6 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel("group_messages")
       .on(

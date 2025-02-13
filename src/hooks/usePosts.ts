@@ -9,7 +9,6 @@ export const usePosts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
-      // Fetch posts with author information
       const { data: posts, error: postsError } = await supabase
         .from("posts")
         .select(`
@@ -26,15 +25,12 @@ export const usePosts = () => {
 
       if (postsError) throw postsError;
 
-      // For each post, fetch likes count, liked status, and comments
       const enrichedPosts = await Promise.all(posts.map(async (post) => {
-        // Get likes count
         const { count: likesCount } = await supabase
           .from("outfit_likes")
           .select("*", { count: "exact" })
           .eq("outfit_id", post.id);
 
-        // Check if current user liked the post
         const { data: likedByUser } = await supabase
           .from("outfit_likes")
           .select("id")
@@ -42,7 +38,6 @@ export const usePosts = () => {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        // Get comments
         const { data: comments } = await supabase
           .from("outfit_comments")
           .select(`

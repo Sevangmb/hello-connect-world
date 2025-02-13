@@ -7,11 +7,20 @@ export const useAuth = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: session } = await supabase.auth.getSession();
+      const { data: session, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error fetching session:", error);
+        setLoading(false);
+        return;
+      }
       setUser(session?.session?.user ?? null);
       setLoading(false);
 
-      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data: authListener, error: authListenerError } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (authListenerError) {
+          console.error("Error with auth listener:", authListenerError);
+          return;
+        }
         setUser(session?.user ?? null);
         setLoading(false);
       });
@@ -27,14 +36,23 @@ export const useAuth = () => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error("Error signing in:", error);
+      setLoading(false);
+      throw error;
+    }
     setUser(user);
     setLoading(false);
-    if (error) throw error;
   };
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error);
+      setLoading(false);
+      throw error;
+    }
     setUser(null);
     setLoading(false);
   };

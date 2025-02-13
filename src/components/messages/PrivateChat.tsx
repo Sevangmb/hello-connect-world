@@ -37,7 +37,6 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel("private_messages")
       .on(

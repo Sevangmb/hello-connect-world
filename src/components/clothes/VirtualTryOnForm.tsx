@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ImageUpload } from "@/components/ui/image-upload";
 import { Loader2, Upload, Scissors } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
