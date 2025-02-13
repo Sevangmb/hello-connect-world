@@ -1,19 +1,24 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface Store {
   id: string;
+  user_id: string;
   name: string;
   description: string | null;
   address: string | null;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   status: string;
   phone: string | null;
   website: string | null;
   average_rating: number | null;
+  created_at: string;
+  updated_at: string;
+  opening_hours: Json | null;
+  categories: string[] | null;
   profiles: {
     username: string | null;
   } | null;

@@ -16,16 +16,12 @@ const Boutiques = () => {
       try {
         const { data, error } = await supabase
           .from("shops")
-          .select("*");
+          .select("*, profiles:user_id (username), shop_items (id)");
 
         if (error) throw error;
 
         if (isMounted && data) {
-          const filteredData = data.filter((item): item is Store => 
-            typeof item.name === 'string' && 
-            (item.description === null || typeof item.description === 'string')
-          );
-          setStores(filteredData);
+          setStores(data as Store[]);
         }
       } catch (error: any) {
         if (isMounted) {
@@ -59,3 +55,4 @@ const Boutiques = () => {
 };
 
 export default Boutiques;
+
