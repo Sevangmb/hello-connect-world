@@ -695,12 +695,16 @@ export type Database = {
         Row: {
           buyer_confirmed: boolean | null
           buyer_id: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
           commission_amount: number | null
+          confirmed_at: string | null
           created_at: string
           delivery_type: string | null
           id: string
           meeting_location: string | null
           meeting_time: string | null
+          payment_status: string
           payment_type: string
           pickup_location: string | null
           qr_code: string | null
@@ -708,6 +712,7 @@ export type Database = {
           seller_confirmed: boolean | null
           seller_id: string
           shop_pickup_time: string | null
+          shop_validation_time: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -717,12 +722,16 @@ export type Database = {
         Insert: {
           buyer_confirmed?: boolean | null
           buyer_id: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           commission_amount?: number | null
+          confirmed_at?: string | null
           created_at?: string
           delivery_type?: string | null
           id?: string
           meeting_location?: string | null
           meeting_time?: string | null
+          payment_status?: string
           payment_type?: string
           pickup_location?: string | null
           qr_code?: string | null
@@ -730,6 +739,7 @@ export type Database = {
           seller_confirmed?: boolean | null
           seller_id: string
           shop_pickup_time?: string | null
+          shop_validation_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -739,12 +749,16 @@ export type Database = {
         Update: {
           buyer_confirmed?: boolean | null
           buyer_id?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           commission_amount?: number | null
+          confirmed_at?: string | null
           created_at?: string
           delivery_type?: string | null
           id?: string
           meeting_location?: string | null
           meeting_time?: string | null
+          payment_status?: string
           payment_type?: string
           pickup_location?: string | null
           qr_code?: string | null
@@ -752,6 +766,7 @@ export type Database = {
           seller_confirmed?: boolean | null
           seller_id?: string
           shop_pickup_time?: string | null
+          shop_validation_time?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
