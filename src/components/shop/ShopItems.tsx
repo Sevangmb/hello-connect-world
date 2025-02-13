@@ -4,10 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { CheckoutButton } from "./CheckoutButton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
+
+interface ShopItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image: string | null;
+  shop_id: string;
+  seller_id: string;
+  category?: string;
+  size?: string;
+  brand?: string;
+}
 
 export function ShopItems({ shopId }: { shopId: string }) {
+  const [sortBy, setSortBy] = useState<string>("recent");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   const { data: items, isLoading } = useQuery({
-    queryKey: ["shop-items", shopId],
+    queryKey: ["shop-items", shopId, sortBy, searchQuery],
     queryFn: async () => {
       // D'abord, vérifier les vêtements directement liés à la boutique
       const { data: shopItems, error: shopItemsError } = await supabase
@@ -17,7 +36,10 @@ export function ShopItems({ shopId }: { shopId: string }) {
           clothes (
             name,
             description,
-            image_url
+            image_url,
+            category,
+            size,
+            brand
           ),
           shop:shops (
             name,
@@ -25,108 +47,112 @@ export function ShopItems({ shopId }: { shopId: string }) {
           )
         `)
         .eq('shop_id', shopId)
-        .eq('status', 'available');
+        .eq('status', 'available')
+        .order('created_at', sortBy === 'recent' ? { ascending: false } : undefined)
+        .order('price', sortBy === 'price_asc' ? { ascending: true } : sortBy === 'price_desc' ? { ascending: false } : undefined);
 
       if (shopItemsError) throw shopItemsError;
 
-      // Ensuite, vérifier les vêtements marqués à vendre qui ne sont pas encore dans la boutique
-      const { data: availableClothes, error: clothesError } = await supabase
-        .from('clothes')
-        .select(`
-          id,
-          name,
-          description,
-          image_url,
-          price,
-          user_id
-        `)
-        .eq('is_for_sale', true)
-        .eq('shop_id', shopId)
-        .not('id', 'in', shopItems?.map(item => item.clothes_id) || []);
+      const filteredItems = shopItems.filter(item => 
+        !searchQuery || 
+        item.clothes.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.clothes.description && item.clothes.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
 
-      if (clothesError) throw clothesError;
-
-      // Pour les vêtements qui ne sont pas encore dans shop_items, les ajouter automatiquement
-      if (availableClothes && availableClothes.length > 0) {
-        const { error: insertError } = await supabase
-          .from('shop_items')
-          .insert(
-            availableClothes.map(cloth => ({
-              shop_id: shopId,
-              clothes_id: cloth.id,
-              price: cloth.price,
-              status: 'available'
-            }))
-          );
-
-        if (insertError) {
-          console.error('Error adding clothes to shop:', insertError);
-        }
-      }
-
-      // Refaire la requête pour avoir tous les articles à jour
-      const { data: finalItems, error: finalError } = await supabase
-        .from('shop_items')
-        .select(`
-          *,
-          clothes (
-            name,
-            description,
-            image_url
-          ),
-          shop:shops (
-            name,
-            user_id
-          )
-        `)
-        .eq('shop_id', shopId)
-        .eq('status', 'available');
-
-      if (finalError) throw finalError;
-      return finalItems;
+      return filteredItems;
     },
   });
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return (
+      <div className="text-center py-8 text-gray-600">
+        Chargement des articles...
+      </div>
+    );
   }
 
   if (!items?.length) {
-    return <div>Aucun article en vente dans cette boutique</div>;
+    return (
+      <div className="text-center py-8 text-gray-600">
+        Aucun article en vente dans cette boutique
+      </div>
+    );
   }
 
-  const processedItems = items.map(item => ({
+  const processedItems: ShopItem[] = items.map(item => ({
     id: item.id,
     name: item.clothes.name,
     description: item.clothes.description,
     price: item.price,
     image: item.clothes.image_url,
     shop_id: item.shop_id,
-    seller_id: item.shop.user_id
+    seller_id: item.shop.user_id,
+    category: item.clothes.category,
+    size: item.clothes.size,
+    brand: item.clothes.brand
   }));
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <Card key={item.id} className="p-4">
-            {item.clothes.image_url && (
-              <img
-                src={item.clothes.image_url}
-                alt={item.clothes.name}
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <Input
+          type="search"
+          placeholder="Rechercher des articles..."
+          className="max-w-xs"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Trier par" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Plus récents</SelectItem>
+            <SelectItem value="price_asc">Prix croissant</SelectItem>
+            <SelectItem value="price_desc">Prix décroissant</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {processedItems.map((item) => (
+          <Card 
+            key={item.id} 
+            className="group overflow-hidden border border-gray-200 hover:shadow-md transition-shadow"
+          >
+            {item.image && (
+              <div className="relative aspect-square overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity" />
+              </div>
             )}
-            <h3 className="font-semibold text-lg">{item.clothes.name}</h3>
-            <p className="text-sm text-gray-600 mb-2">{item.clothes.description}</p>
-            <div className="flex justify-between items-center">
-              <Badge variant="secondary">{item.price}€</Badge>
+            <div className="p-4">
+              <div className="mb-2">
+                <h3 className="font-medium text-sm mb-1 line-clamp-1">{item.name}</h3>
+                <p className="text-lg font-semibold">{item.price}€</p>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {item.size && (
+                  <Badge variant="outline" className="text-xs">
+                    {item.size}
+                  </Badge>
+                )}
+                {item.brand && (
+                  <Badge variant="secondary" className="text-xs">
+                    {item.brand}
+                  </Badge>
+                )}
+              </div>
             </div>
           </Card>
         ))}
       </div>
       
-      {items.length > 0 && (
+      {processedItems.length > 0 && (
         <div className="mt-6">
           <CheckoutButton items={processedItems} />
         </div>
