@@ -10,6 +10,10 @@ import { useState } from "react";
 import { ShoppingCart, Heart } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface ShopItem {
   id: string;
@@ -26,6 +30,10 @@ interface ShopItem {
 }
 
 export function ShopItems({ shopId }: { shopId: string }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { addToCart, loading: addingToCart } = useCart();
   const [sortBy, setSortBy] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -66,6 +74,23 @@ export function ShopItems({ shopId }: { shopId: string }) {
       return filteredItems;
     },
   });
+
+  const handleAddToCart = async (item: any) => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Vous devez être connecté pour ajouter des articles au panier",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    addToCart.mutate({
+      shopItemId: item.id,
+      quantity: 1
+    });
+  };
 
   if (isLoading) {
     return (
@@ -164,6 +189,8 @@ export function ShopItems({ shopId }: { shopId: string }) {
               <Button 
                 className="w-full bg-black hover:bg-gray-900 text-white"
                 size="sm"
+                onClick={() => handleAddToCart(item)}
+                disabled={addingToCart}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Ajouter au panier
