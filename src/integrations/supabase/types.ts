@@ -262,6 +262,7 @@ export type Database = {
           original_price: number | null
           price: number | null
           purchase_date: string | null
+          sale_price: number | null
           shop_id: string | null
           size: string | null
           style: string | null
@@ -285,6 +286,7 @@ export type Database = {
           original_price?: number | null
           price?: number | null
           purchase_date?: string | null
+          sale_price?: number | null
           shop_id?: string | null
           size?: string | null
           style?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           original_price?: number | null
           price?: number | null
           purchase_date?: string | null
+          sale_price?: number | null
           shop_id?: string | null
           size?: string | null
           style?: string | null
@@ -1206,6 +1209,7 @@ export type Database = {
           clothes_id: string
           created_at: string
           id: string
+          original_price: number | null
           price: number
           shop_id: string
           status: string
@@ -1215,6 +1219,7 @@ export type Database = {
           clothes_id: string
           created_at?: string
           id?: string
+          original_price?: number | null
           price: number
           shop_id: string
           status?: string
@@ -1224,6 +1229,7 @@ export type Database = {
           clothes_id?: string
           created_at?: string
           id?: string
+          original_price?: number | null
           price?: number
           shop_id?: string
           status?: string
