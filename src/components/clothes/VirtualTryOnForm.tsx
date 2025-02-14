@@ -141,9 +141,7 @@ export const VirtualTryOnForm = () => {
             {personImage ? <div className="relative aspect-square">
                 <img src={personImage} alt="Votre photo" className="w-full h-full object-cover rounded-lg" />
                 <div className="absolute bottom-2 right-2 flex gap-2">
-                  <Button variant="outline" size="icon" onClick={handleExtractClothing} disabled={extracting}>
-                    {extracting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
-                  </Button>
+                  
                   <Button variant="outline" size="icon" asChild>
                     <label htmlFor="person-upload">
                       <Upload className="h-4 w-4" />
