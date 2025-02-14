@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,8 +49,8 @@ export function useStores() {
         .from('shops')
         .select(`
           *,
-          profiles:user_id (username),
-          shop_items (
+          profiles!user_id (username),
+          shop_items!shop_id (
             id
           )
         `)
@@ -63,7 +64,7 @@ export function useStores() {
 
       if (error) throw error;
 
-      setStores(data || []);
+      setStores(data as Store[] || []);
     } catch (error) {
       console.error('Error:', error);
       toast({

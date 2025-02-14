@@ -36,7 +36,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
         .from('shop_items')
         .select(`
           *,
-          clothes (
+          clothes!clothes_id (
             name,
             description,
             image_url,
@@ -45,7 +45,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
             brand,
             original_price
           ),
-          shop:shops (
+          shop:shops!shop_id (
             name,
             user_id
           )
