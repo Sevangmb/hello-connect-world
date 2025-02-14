@@ -64,9 +64,7 @@ export const PersonalSection = () => {
             Publier un Look
           </Button>
           <AccordionItem value="add-clothes" className="border-none">
-            <AccordionTrigger className="py-2">
-              
-            </AccordionTrigger>
+            
             <AccordionContent>
               <div className="flex flex-col gap-1 pl-6">
                 <Button variant="ghost" className={cn("w-full justify-start gap-2", {
