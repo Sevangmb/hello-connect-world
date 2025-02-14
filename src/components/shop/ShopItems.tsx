@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckoutButton } from "./CheckoutButton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -37,14 +36,20 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const [sortBy, setSortBy] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  console.log("ShopItems - shopId:", shopId); // Debug
+
   const { data: items, isLoading } = useQuery({
     queryKey: ["shop-items", shopId, sortBy, searchQuery],
     queryFn: async () => {
-      const { data: shopItems, error: shopItemsError } = await supabase
+      const { data, error } = await supabase
         .from('shop_items')
         .select(`
-          *,
-          clothes!clothes_id (
+          id,
+          price,
+          original_price,
+          status,
+          created_at,
+          clothes:clothes_id (
             name,
             description,
             image_url,
@@ -54,24 +59,46 @@ export function ShopItems({ shopId }: { shopId: string }) {
             original_price
           ),
           shop:shops!shop_id (
+            id,
             name,
             user_id
           )
         `)
         .eq('shop_id', shopId)
-        .eq('status', 'available')
-        .order('created_at', sortBy === 'recent' ? { ascending: false } : undefined)
-        .order('price', sortBy === 'price_asc' ? { ascending: true } : sortBy === 'price_desc' ? { ascending: false } : undefined);
+        .eq('status', 'available');
 
-      if (shopItemsError) throw shopItemsError;
+      console.log("Query results:", { data, error }); // Debug
 
-      const filteredItems = shopItems.filter(item => 
+      if (error) {
+        console.error("Error fetching shop items:", error);
+        throw error;
+      }
+
+      if (!data) {
+        console.log("No data returned");
+        return [];
+      }
+
+      // Filter based on search query
+      const filteredItems = data.filter(item => 
         !searchQuery || 
         item.clothes.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.clothes.description && item.clothes.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
 
-      return filteredItems;
+      // Apply sorting
+      return filteredItems.sort((a, b) => {
+        if (sortBy === 'recent') {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        if (sortBy === 'price_asc') {
+          return a.price - b.price;
+        }
+        if (sortBy === 'price_desc') {
+          return b.price - a.price;
+        }
+        return 0;
+      });
     },
   });
 
@@ -114,12 +141,12 @@ export function ShopItems({ shopId }: { shopId: string }) {
     description: item.clothes.description,
     price: item.price,
     image: item.clothes.image_url,
-    shop_id: item.shop_id,
+    shop_id: item.shop.id,
     seller_id: item.shop.user_id,
     category: item.clothes.category,
     size: item.clothes.size,
     brand: item.clothes.brand,
-    original_price: item.clothes.original_price
+    original_price: item.original_price || item.clothes.original_price
   }));
 
   return (
