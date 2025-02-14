@@ -26,7 +26,7 @@ export default function PaymentSuccess() {
             *,
             shop_items (
               *,
-              clothes (*)
+              clothes!clothes_id (*)
             )
           ),
           profiles!seller_id (username)

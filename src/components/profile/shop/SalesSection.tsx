@@ -18,7 +18,7 @@ export function SalesSection() {
             *,
             shop_items (
               *,
-              clothes (*)
+              clothes!clothes_id (*)
             )
           ),
           profiles!buyer_id (username)
