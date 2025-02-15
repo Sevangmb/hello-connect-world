@@ -36,8 +36,6 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const [sortBy, setSortBy] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  console.log("ShopItems - shopId:", shopId); // Debug
-
   const { data: items, isLoading } = useQuery({
     queryKey: ["shop-items", shopId, sortBy, searchQuery],
     queryFn: async () => {
@@ -49,7 +47,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
           original_price,
           status,
           created_at,
-          clothes:clothes_id (
+          clothes!clothes_id (
             name,
             description,
             image_url,
@@ -58,7 +56,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
             brand,
             original_price
           ),
-          shop:shops!shop_id (
+          shop:shop_id (
             id,
             name,
             user_id
