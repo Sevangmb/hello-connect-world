@@ -63,7 +63,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
           original_price,
           status,
           created_at,
-          clothes!clothes_id (
+          clothes!shop_items_clothes_id_fkey (
             name,
             description,
             image_url,
