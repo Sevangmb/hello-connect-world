@@ -42,44 +42,30 @@ serve(async (req) => {
       throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
     }
 
-    const contentType = response.headers.get('content-type')
-    console.log('Image content type:', contentType)
-    
-    if (!contentType?.startsWith('image/')) {
-      console.error('Invalid content type:', contentType)
-      throw new Error('URL does not point to a valid image')
-    }
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
 
-    // Get the image data as an ArrayBuffer first
-    const arrayBuffer = await response.arrayBuffer()
-    console.log('Image size:', arrayBuffer.byteLength, 'bytes')
-
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      console.error('Empty image data')
-      throw new Error('Empty image data')
-    }
-
-    // Convert ArrayBuffer to Blob with explicit MIME type
-    const imageBlob = new Blob([arrayBuffer], { type: contentType })
-    console.log('Created Blob:', {
+    // Get the image directly as a Blob with the correct type
+    const imageBlob = await response.blob()
+    console.log('Image blob:', {
       size: imageBlob.size,
       type: imageBlob.type
     })
 
+    if (!imageBlob || imageBlob.size === 0) {
+      console.error('Empty image blob')
+      throw new Error('Empty image data')
+    }
+
     const hf = new HfInference(HF_TOKEN)
-    
     console.log('Starting image segmentation with model: mattmdjaga/segformer_b2_clothes')
+    
     try {
       const result = await hf.imageSegmentation({
         model: 'mattmdjaga/segformer_b2_clothes',
         inputs: imageBlob,
-        parameters: {
-          threshold: 0.5
-        }
       })
 
-      console.log('Segmentation completed, result type:', typeof result)
-
+      console.log('Segmentation result type:', typeof result)
       if (result instanceof Blob) {
         const maskArrayBuffer = await result.arrayBuffer()
         const base64 = btoa(String.fromCharCode(...new Uint8Array(maskArrayBuffer)))
