@@ -50,39 +50,52 @@ serve(async (req) => {
       throw new Error('URL does not point to a valid image')
     }
 
-    const imageBlob = await response.blob()
-    console.log('Image blob size:', imageBlob.size, 'bytes')
+    // Get the image data as an ArrayBuffer first
+    const arrayBuffer = await response.arrayBuffer()
+    console.log('Image size:', arrayBuffer.byteLength, 'bytes')
 
-    if (!imageBlob || imageBlob.size === 0) {
-      console.error('Empty image blob')
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+      console.error('Empty image data')
       throw new Error('Empty image data')
     }
+
+    // Convert ArrayBuffer to Blob with explicit MIME type
+    const imageBlob = new Blob([arrayBuffer], { type: contentType })
+    console.log('Created Blob:', {
+      size: imageBlob.size,
+      type: imageBlob.type
+    })
 
     const hf = new HfInference(HF_TOKEN)
     
     console.log('Starting image segmentation with model: mattmdjaga/segformer_b2_clothes')
-    const result = await hf.imageSegmentation({
-      model: 'mattmdjaga/segformer_b2_clothes',
-      inputs: imageBlob,
-      parameters: {
-        threshold: 0.5
+    try {
+      const result = await hf.imageSegmentation({
+        model: 'mattmdjaga/segformer_b2_clothes',
+        inputs: imageBlob,
+        parameters: {
+          threshold: 0.5
+        }
+      })
+
+      console.log('Segmentation completed, result type:', typeof result)
+
+      if (result instanceof Blob) {
+        const maskArrayBuffer = await result.arrayBuffer()
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(maskArrayBuffer)))
+        const maskImage = `data:image/png;base64,${base64}`
+
+        return new Response(
+          JSON.stringify({ maskImage }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } else {
+        console.error('Unexpected result format:', result)
+        throw new Error('Unexpected response format from Hugging Face API')
       }
-    })
-
-    console.log('Segmentation completed, processing result')
-
-    if (result instanceof Blob) {
-      const arrayBuffer = await result.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
-      const maskImage = `data:image/png;base64,${base64}`
-
-      return new Response(
-        JSON.stringify({ maskImage }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    } else {
-      console.error('Unexpected result format:', result)
-      throw new Error('Unexpected response format from Hugging Face API')
+    } catch (e) {
+      console.error('Error during Hugging Face API call:', e)
+      throw new Error(`Hugging Face API error: ${e.message}`)
     }
   } catch (error) {
     console.error('Error in clothing extraction:', error)
