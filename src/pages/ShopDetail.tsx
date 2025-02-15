@@ -34,7 +34,7 @@ export default function ShopDetail() {
         .select(`
           *,
           profiles:user_id (username),
-          shop_items (
+          shop_items!shop_items_shop_id_fkey (
             id
           )
         `)
