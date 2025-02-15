@@ -20,15 +20,29 @@ serve(async (req) => {
       throw new Error('Hugging Face token not configured')
     }
 
+    if (!image || typeof image !== 'string') {
+      console.error('Invalid or missing image URL:', image)
+      throw new Error('Image URL is required and must be a string')
+    }
+
     console.log('Starting clothing extraction process...')
-    console.log('Input image:', image)
+    console.log('Input image URL:', image)
 
     // Fetch the image and get the blob
     const response = await fetch(image)
     if (!response.ok) {
+      console.error('Failed to fetch image:', response.status, response.statusText)
       throw new Error('Failed to fetch image')
     }
+    
     const imageBlob = await response.blob()
+    if (!imageBlob || imageBlob.size === 0) {
+      console.error('Invalid image blob:', imageBlob)
+      throw new Error('Invalid image data')
+    }
+
+    console.log('Successfully fetched image, size:', imageBlob.size, 'bytes')
+    console.log('Image type:', imageBlob.type)
 
     const hf = new HfInference(HF_TOKEN)
     
