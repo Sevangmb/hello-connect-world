@@ -39,6 +39,22 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const { data: items, isLoading } = useQuery({
     queryKey: ["shop-items", shopId, sortBy, searchQuery],
     queryFn: async () => {
+      console.log("[ShopItems] Fetching items for shop:", shopId);
+
+      // D'abord, vérifions que le shop existe
+      const { data: shop, error: shopError } = await supabase
+        .from('shops')
+        .select('id, name')
+        .eq('id', shopId)
+        .single();
+
+      if (shopError) {
+        console.error("[ShopItems] Error fetching shop:", shopError);
+        throw shopError;
+      }
+
+      console.log("[ShopItems] Shop found:", shop);
+
       const { data, error } = await supabase
         .from('shop_items')
         .select(`
@@ -65,15 +81,15 @@ export function ShopItems({ shopId }: { shopId: string }) {
         .eq('shop_id', shopId)
         .eq('status', 'available');
 
-      console.log("Query results:", { data, error }); // Debug
+      console.log("[ShopItems] Query results:", { data, error }); 
 
       if (error) {
-        console.error("Error fetching shop items:", error);
+        console.error("[ShopItems] Error fetching shop items:", error);
         throw error;
       }
 
       if (!data) {
-        console.log("No data returned");
+        console.log("[ShopItems] No data returned");
         return [];
       }
 
@@ -83,6 +99,8 @@ export function ShopItems({ shopId }: { shopId: string }) {
         item.clothes.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.clothes.description && item.clothes.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
+
+      console.log("[ShopItems] Filtered items:", filteredItems);
 
       // Apply sorting
       return filteredItems.sort((a, b) => {
