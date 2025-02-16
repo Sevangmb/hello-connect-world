@@ -63,13 +63,6 @@ export type Database = {
             referencedRelation: "shop_items"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_cart_items_shop_items"
-            columns: ["shop_item_id"]
-            isOneToOne: false
-            referencedRelation: "shop_items"
-            referencedColumns: ["id"]
-          },
         ]
       }
       challenge_participants: {
