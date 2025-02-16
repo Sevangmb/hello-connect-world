@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,6 +13,7 @@ import CreateClothe from "./pages/CreateClothe";
 import EditClothe from "./pages/EditClothe";
 import PaymentSuccess from "./pages/payment-success";
 import PaymentCancelled from "./pages/payment-cancelled";
+import { CartSidebar } from "./components/cart/CartSidebar";
 
 export default function App() {
   return (
@@ -27,6 +29,7 @@ export default function App() {
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/payment-cancelled" element={<PaymentCancelled />} />
       </Routes>
+      <CartSidebar />
     </Router>
   );
 }
