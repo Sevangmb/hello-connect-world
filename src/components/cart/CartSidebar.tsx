@@ -6,7 +6,11 @@ import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/utils";
 
-export function CartSidebar() {
+interface CartSidebarProps {
+  onClose: () => void;
+}
+
+export function CartSidebar({ onClose }: CartSidebarProps) {
   const { cartItems, isCartLoading, updateQuantity, removeFromCart } = useCart();
 
   const total = cartItems?.reduce((sum, item) => 
@@ -15,14 +19,14 @@ export function CartSidebar() {
 
   if (isCartLoading) {
     return (
-      <div className="fixed right-0 top-0 bottom-0 w-80 border-l bg-white pt-16 flex items-center justify-center">
+      <div className="fixed right-0 top-0 bottom-0 w-80 border-l bg-white pt-16 flex items-center justify-center z-50">
         Chargement du panier...
       </div>
     );
   }
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-80 border-l bg-white pt-16">
+    <div className="fixed right-0 top-0 bottom-0 w-80 border-l bg-white pt-16 z-50">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
@@ -34,6 +38,9 @@ export function CartSidebar() {
               </Badge>
             )}
           </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {!cartItems?.length ? (
