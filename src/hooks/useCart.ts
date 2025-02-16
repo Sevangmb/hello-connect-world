@@ -35,7 +35,7 @@ export function useCart() {
         .from('cart_items')
         .select(`
           *,
-          shop_items (
+          shop_items!shop_item_id (
             id,
             price,
             clothes!clothes_id (
