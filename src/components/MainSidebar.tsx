@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
@@ -8,8 +9,15 @@ import { PersonalSection } from "./sidebar/PersonalSection";
 import { CommunitySection } from "./sidebar/CommunitySection";
 import { ProfileSection } from "./sidebar/ProfileSection";
 import { AdminSection } from "./sidebar/AdminSection";
+import { X } from "lucide-react";
+import { Button } from "./ui/button";
 
-export default function MainSidebar() {
+interface MainSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function MainSidebar({ isOpen, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -34,17 +42,37 @@ export default function MainSidebar() {
   }, []);
 
   return (
-    <nav className="fixed left-0 top-0 bottom-0 hidden w-64 border-r bg-white pt-16 md:block">
-      <ScrollArea className="h-full px-4 py-6">
-        <Accordion type="single" collapsible>
-          <HomeSection />
-          <ExploreSection />
-          <PersonalSection />
-          <CommunitySection />
-          <ProfileSection />
-          {isAdmin && <AdminSection />}
-        </Accordion>
-      </ScrollArea>
-    </nav>
+    <>
+      {/* Overlay sur mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <nav 
+        className={`fixed left-0 top-0 bottom-0 w-64 border-r bg-white pt-16 z-50 transform transition-transform duration-200 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        <div className="flex justify-end p-2 md:hidden">
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <ScrollArea className="h-full px-4 py-6">
+          <Accordion type="single" collapsible>
+            <HomeSection />
+            <ExploreSection />
+            <PersonalSection />
+            <CommunitySection />
+            <ProfileSection />
+            {isAdmin && <AdminSection />}
+          </Accordion>
+        </ScrollArea>
+      </nav>
+    </>
   );
 }
