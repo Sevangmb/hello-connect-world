@@ -90,6 +90,17 @@ export function SiteSettings() {
     }
   }, {});
 
+  // Nouveau useEffect pour mettre à jour le thème de l'application
+  useEffect(() => {
+    if (settings?.theme) {
+      document.documentElement.style.setProperty('--color-primary', settings.theme.primary || "#69d2e7");
+      document.documentElement.style.setProperty('--color-secondary', settings.theme.secondary || "#a7dbd8");
+      document.documentElement.style.setProperty('--color-accent', settings.theme.accent || "#f38630");
+      document.documentElement.style.setProperty('--color-background', settings.theme.background || "#ffffff");
+      document.documentElement.style.setProperty('--color-text', settings.theme.text || "#333333");
+    }
+  }, [settings?.theme]);
+
   const { data: categories, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ["site-categories"],
     queryFn: async () => {
