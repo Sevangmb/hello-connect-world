@@ -9,6 +9,8 @@ import { useToast } from "@/components/ui/use-toast";
 const AuthForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
@@ -20,7 +22,7 @@ const AuthForm = () => {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        await signUp(email, password, { username, full_name: fullName });
         toast({
           title: "Compte créé avec succès",
           description: "Veuillez vérifier votre email pour confirmer votre compte.",
@@ -38,6 +40,8 @@ const AuthForm = () => {
         errorMessage = "Veuillez confirmer votre email avant de vous connecter";
       } else if (err.message.includes("already registered")) {
         errorMessage = "Cet email est déjà enregistré";
+      } else if (err.message.includes("username already exists")) {
+        errorMessage = "Ce nom d'utilisateur existe déjà";
       }
       
       toast({
@@ -58,6 +62,28 @@ const AuthForm = () => {
             {isSignUp ? "Créer un compte" : "Se connecter"}
           </h2>
         </div>
+        {isSignUp && (
+          <>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Nom d'utilisateur"
+                required={isSignUp}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Nom complet"
+                required={isSignUp}
+              />
+            </div>
+          </>
+        )}
         <div className="space-y-2">
           <Input
             type="email"
