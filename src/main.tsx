@@ -1,8 +1,9 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PrivateRoute } from "@/components/auth/PrivateRoute";
+import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import HelpAndSupport from "@/pages/HelpAndSupport";
@@ -61,9 +62,24 @@ const queryClient = new QueryClient({
 const App = () => {
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/landing" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <Index />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Redirect root to landing for non-authenticated users */}
+      <Route path="/" element={<Navigate to="/landing" replace />} />
 
       {/* Admin Section */}
       <Route
@@ -86,42 +102,48 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {/* Home Section */}
-      <Route path="/" element={<Index />} />
-      <Route path="/suggestions" element={<Suggestions />} />
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/challenges" element={<Challenges />} />
-      <Route path="/challenge/:id" element={<Challenge />} />
-
-      {/* Explore Section */}
-      <Route path="/search" element={<Search />} />
-      <Route path="/trending/outfits" element={<TrendingOutfits />} />
-      <Route path="/hashtags" element={<Hashtags />} />
-      <Route path="/explore" element={<Explore />} />
-      <Route path="/boutiques" element={<Boutiques />} />
-      <Route path="/shops/:id" element={<ShopDetail />} />
-      <Route path="/shops/create" element={<CreateShop />} />
-
-      <Route path="/clothes" element={<Clothes />} />
-      <Route path="/outfits" element={<Outfits />} />
-      <Route path="/personal" element={<Personal />} />
-      <Route path="/suitcases" element={<Suitcases />} />
-
-      {/* Community Section */}
-      <Route path="/community" element={<Community />} />
-      <Route path="/messages" element={<Messages />} />
-      <Route path="/groups" element={<Groups />} />
-      <Route path="/notifications" element={<Notifications />} />
-      <Route path="/friends" element={<Friends />} />
-      <Route path="/find-friends" element={<FindFriends />} />
-
-      {/* Profile Section */}
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/profile/settings" element={<Settings />} />
-      <Route path="/marketplace" element={<StoresList />} />
-      <Route path="/help" element={<HelpAndSupport />} />
-
-      <Route path="/virtual-tryon" element={<VirtualTryOn />} />
+      {/* Protected routes */}
+      {[
+        "/suggestions",
+        "/feed",
+        "/challenges",
+        "/challenge/:id",
+        "/search",
+        "/trending/outfits",
+        "/hashtags",
+        "/explore",
+        "/boutiques",
+        "/shops/:id",
+        "/shops/create",
+        "/clothes",
+        "/outfits",
+        "/personal",
+        "/suitcases",
+        "/community",
+        "/messages",
+        "/groups",
+        "/notifications",
+        "/friends",
+        "/find-friends",
+        "/profile",
+        "/profile/settings",
+        "/marketplace",
+        "/help",
+        "/virtual-tryon"
+      ].map((path) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <PrivateRoute>
+              {React.createElement(
+                // Dynamically import the component based on the path
+                require(`@/pages${path.replace(':id', '[id]')}`).default
+              )}
+            </PrivateRoute>
+          }
+        />
+      ))}
 
       {/* Fallback Route */}
       <Route path="*" element={<NotFound />} />
