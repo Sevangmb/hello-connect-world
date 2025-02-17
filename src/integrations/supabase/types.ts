@@ -1317,7 +1317,9 @@ export type Database = {
           name: string
           opening_hours: Json | null
           phone: string | null
+          rating_count: number | null
           status: string
+          total_ratings: number | null
           updated_at: string
           user_id: string
           website: string | null
@@ -1334,7 +1336,9 @@ export type Database = {
           name: string
           opening_hours?: Json | null
           phone?: string | null
+          rating_count?: number | null
           status?: string
+          total_ratings?: number | null
           updated_at?: string
           user_id: string
           website?: string | null
@@ -1351,7 +1355,9 @@ export type Database = {
           name?: string
           opening_hours?: Json | null
           phone?: string | null
+          rating_count?: number | null
           status?: string
+          total_ratings?: number | null
           updated_at?: string
           user_id?: string
           website?: string | null
