@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { CheckoutButton } from "./CheckoutButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { ShopItem } from "./ShopItem";
 
 const ShopPage = () => {
   const [items, setItems] = useState([]);
@@ -23,27 +24,6 @@ const ShopPage = () => {
     fetchCartItems();
   }, []);
 
-  const addItemToCart = async (item) => {
-    const { error } = await supabase
-      .from("cart")
-      .insert(item);
-
-    if (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter l'article au panier",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Succès",
-        description: "Article ajouté au panier",
-        variant: "success",
-      });
-      setItems([...items, item]);
-    }
-  };
-
   return (
     <div>
       <h1>Mon panier</h1>
@@ -52,13 +32,10 @@ const ShopPage = () => {
       ) : (
         <ul>
           {items.map((item) => (
-            <li key={item.id}>{item.name}</li>
+            <ShopItem key={item.id} item={item} setItems={setItems} items={items} />
           ))}
         </ul>
       )}
-      <button onClick={() => addItemToCart({ id: "1", name: "Article 1" })}>
-        Ajouter un article
-      </button>
       <CheckoutButton items={items} />
     </div>
   );
