@@ -55,4 +55,3 @@ const Boutiques = () => {
 };
 
 export default Boutiques;
-

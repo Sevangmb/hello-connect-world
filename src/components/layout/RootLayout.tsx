@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Menu, ShoppingCart } from "lucide-react";
-import { Button } from "./ui/button";
-import MainSidebar from "./MainSidebar";
-import { CartSidebar } from "./cart/CartSidebar";
+import { Button } from "../components/ui/button";
+import MainSidebar from "../components/MainSidebar";
+import { CartSidebar } from "../components/cart/CartSidebar";
 
 export function RootLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

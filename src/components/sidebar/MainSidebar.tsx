@@ -78,4 +78,3 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
     </>
   );
 }
-
