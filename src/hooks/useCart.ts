@@ -57,17 +57,38 @@ export function useCart() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase
+      // First check if the item already exists in the cart
+      const { data: existingItem } = await supabase
         .from('cart_items')
-        .upsert({
-          user_id: user.id,
-          shop_item_id: shopItemId,
-          quantity
-        })
-        .select();
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('shop_item_id', shopItemId)
+        .single();
 
-      if (error) throw error;
-      return data;
+      if (existingItem) {
+        // Update existing item quantity
+        const { data, error } = await supabase
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id)
+          .select();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert new item
+        const { data, error } = await supabase
+          .from('cart_items')
+          .insert({
+            user_id: user.id,
+            shop_item_id: shopItemId,
+            quantity
+          })
+          .select();
+
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
