@@ -20,6 +20,7 @@ const Boutiques = () => {
 
         if (error) throw error;
 
+        console.debug("Données reçues :", data);
         if (isMounted && data) {
           setStores(data as Store[]);
 
@@ -30,6 +31,7 @@ const Boutiques = () => {
           }, 0);
           const avgItems = totalShops > 0 ? totalItems / totalShops : 0;
           setStats({ totalShops, avgItems });
+          console.debug("Statistiques :", { totalShops, avgItems });
         }
       } catch (error: any) {
         if (isMounted) {
@@ -58,11 +60,15 @@ const Boutiques = () => {
         <p>Total de boutiques: {stats.totalShops}</p>
         <p>Moyenne d&apos;items par boutique: {stats.avgItems.toFixed(2)}</p>
       </div>
-      <div>
-        {stores.map((store) => (
-          <StoreMap key={store.id} store={store} />
-        ))}
-      </div>
+      {stores.length > 0 ? (
+        <div>
+          {stores.map((store) => (
+            <StoreMap key={store.id} store={store} />
+          ))}
+        </div>
+      ) : (
+        <p>Aucun magasin disponible.</p>
+      )}
     </div>
   );
 };
