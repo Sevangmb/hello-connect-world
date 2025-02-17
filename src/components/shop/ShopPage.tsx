@@ -23,6 +23,16 @@ const ShopPage = () => {
 
   return (
     <div>
+      <h1>Mon panier</h1>
+      {items.length === 0 ? (
+        <p>Votre panier est vide</p>
+      ) : (
+        <ul>
+          {items.map((item) => (
+            <li key={item.id}>{item.name}</li>
+          ))}
+        </ul>
+      )}
       <CheckoutButton items={items} />
     </div>
   );
