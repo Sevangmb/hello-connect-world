@@ -11,6 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 
+const ShopList = ({ shops, isLoading }) => (
+  isLoading ? (
+    <div className="text-center py-8">Chargement...</div>
+  ) : (
+    <div className="grid gap-4 md:grid-cols-2">
+      {shops?.map((shop) => (
+        <ShopCard key={shop.id} shop={shop} />
+      ))}
+    </div>
+  )
+);
+
+const SearchBar = ({ searchQuery, setSearchQuery }) => (
+  <div className="mb-6">
+    <Input
+      type="search"
+      placeholder="Rechercher une boutique..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="max-w-md"
+    />
+  </div>
+);
+
 export default function Shops() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
@@ -78,25 +102,8 @@ export default function Shops() {
             </Button>
           </div>
 
-          <div className="mb-6">
-            <Input
-              type="search"
-              placeholder="Rechercher une boutique..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-md"
-            />
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-8">Chargement...</div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {shops?.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} />
-              ))}
-            </div>
-          )}
+          <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <ShopList shops={shops} isLoading={isLoading} />
         </div>
       </main>
       <BottomNav />
