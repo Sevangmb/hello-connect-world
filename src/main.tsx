@@ -8,7 +8,7 @@ import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 
 // Layouts
-import { RootLayout } from "./components/RootLayout";
+import { RootLayout } from "@/components/RootLayout"; // modifié
 import { AdminLayout } from "@/components/admin/AdminLayout";
 
 // Pages issues de main.tsx
