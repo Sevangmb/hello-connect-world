@@ -1,57 +1,71 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { User, AuthError } from "@supabase/supabase-js";
 
 export const useAuth = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: session, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error("Error fetching session:", error);
+    // Get initial session
+    const initializeAuth = async () => {
+      try {
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error getting user:", error);
+          await supabase.auth.signOut();
+        }
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error in auth initialization:", error);
+      } finally {
         setLoading(false);
-        return;
       }
-      setUser(session?.session?.user ?? null);
-      setLoading(false);
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      });
-
-      return () => {
-        subscription?.unsubscribe();
-      };
     };
 
-    fetchData();
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error("Error signing in:", error);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      setUser(data.user);
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error("Error signing in:", authError);
+      throw authError;
+    } finally {
       setLoading(false);
-      throw error;
     }
-    setUser(user);
-    setLoading(false);
   };
 
   const signOut = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error signing out:", error);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error("Error signing out:", authError);
+      throw authError;
+    } finally {
       setLoading(false);
-      throw error;
     }
-    setUser(null);
-    setLoading(false);
   };
 
   return { user, loading, signIn, signOut };

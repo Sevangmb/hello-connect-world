@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -59,6 +60,36 @@ const queryClient = new QueryClient({
   },
 });
 
+// Route to component mapping
+const routeComponents = {
+  '/suggestions': Suggestions,
+  '/feed': Feed,
+  '/challenges': Challenges,
+  '/challenge/:id': Challenge,
+  '/search': Search,
+  '/trending/outfits': TrendingOutfits,
+  '/hashtags': Hashtags,
+  '/explore': Explore,
+  '/boutiques': Boutiques,
+  '/shops/:id': ShopDetail,
+  '/shops/create': CreateShop,
+  '/clothes': Clothes,
+  '/outfits': Outfits,
+  '/personal': Personal,
+  '/suitcases': Suitcases,
+  '/community': Community,
+  '/messages': Messages,
+  '/groups': Groups,
+  '/notifications': Notifications,
+  '/friends': Friends,
+  '/find-friends': FindFriends,
+  '/profile': Profile,
+  '/profile/settings': Settings,
+  '/marketplace': Shops,
+  '/help': HelpAndSupport,
+  '/virtual-tryon': VirtualTryOn
+};
+
 const App = () => {
   return (
     <Routes>
@@ -103,43 +134,13 @@ const App = () => {
       </Route>
 
       {/* Protected routes */}
-      {[
-        "/suggestions",
-        "/feed",
-        "/challenges",
-        "/challenge/:id",
-        "/search",
-        "/trending/outfits",
-        "/hashtags",
-        "/explore",
-        "/boutiques",
-        "/shops/:id",
-        "/shops/create",
-        "/clothes",
-        "/outfits",
-        "/personal",
-        "/suitcases",
-        "/community",
-        "/messages",
-        "/groups",
-        "/notifications",
-        "/friends",
-        "/find-friends",
-        "/profile",
-        "/profile/settings",
-        "/marketplace",
-        "/help",
-        "/virtual-tryon"
-      ].map((path) => (
+      {Object.entries(routeComponents).map(([path, Component]) => (
         <Route
           key={path}
           path={path}
           element={
             <PrivateRoute>
-              {React.createElement(
-                // Dynamically import the component based on the path
-                require(`@/pages${path.replace(':id', '[id]')}`).default
-              )}
+              <Component />
             </PrivateRoute>
           }
         />
