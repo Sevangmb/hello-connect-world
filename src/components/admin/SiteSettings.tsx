@@ -3,27 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Palette,
-  Upload,
-  MessageSquare,
-  ListTree,
-  Share2,
-  Loader2,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import ThemeSettings from "./ThemeSettings";
+import LogoSettings from "./LogoSettings";
+import MessagesSettings from "./MessagesSettings";
+import CategoriesSettings from "./CategoriesSettings";
+import SocialSettings from "./SocialSettings";
+
+// ...autres imports et utilitaires si nécessaire...
 
 export function SiteSettings() {
   const { toast } = useToast();
@@ -90,14 +80,19 @@ export function SiteSettings() {
     }
   }, {});
 
-  // Nouveau useEffect pour mettre à jour le thème de l'application
+  const [localTheme, setLocalTheme] = useState(
+    settings?.theme || {
+      primary: "#69d2e7",
+      secondary: "#a7dbd8",
+      accent: "#f38630",
+      background: "#ffffff",
+      text: "#333333",
+    }
+  );
+
   useEffect(() => {
     if (settings?.theme) {
-      document.documentElement.style.setProperty('--color-primary', settings.theme.primary || "#69d2e7");
-      document.documentElement.style.setProperty('--color-secondary', settings.theme.secondary || "#a7dbd8");
-      document.documentElement.style.setProperty('--color-accent', settings.theme.accent || "#f38630");
-      document.documentElement.style.setProperty('--color-background', settings.theme.background || "#ffffff");
-      document.documentElement.style.setProperty('--color-text', settings.theme.text || "#333333");
+      setLocalTheme(settings.theme);
     }
   }, [settings?.theme]);
 
@@ -139,6 +134,14 @@ export function SiteSettings() {
 
       if (error) throw error;
 
+      if (key === "theme") {
+        document.documentElement.style.setProperty('--color-primary', value.primary || "#69d2e7");
+        document.documentElement.style.setProperty('--color-secondary', value.secondary || "#a7dbd8");
+        document.documentElement.style.setProperty('--color-accent', value.accent || "#f38630");
+        document.documentElement.style.setProperty('--color-background', value.background || "#ffffff");
+        document.documentElement.style.setProperty('--color-text', value.text || "#333333");
+      }
+
       toast({
         title: "Paramètres mis à jour",
         description: "Les modifications ont été enregistrées avec succès.",
@@ -173,250 +176,61 @@ export function SiteSettings() {
           <Tabs defaultValue="theme" className="space-y-4">
             <TabsList>
               <TabsTrigger value="theme" className="flex items-center gap-2">
-                <Palette className="h-4 w-4" />
+                {/* ...icône et libellé */}
                 Thème
               </TabsTrigger>
               <TabsTrigger value="logo" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
+                {/* ...icône */}
                 Logo
               </TabsTrigger>
               <TabsTrigger value="messages" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
+                {/* ...icône */}
                 Messages
               </TabsTrigger>
               <TabsTrigger value="categories" className="flex items-center gap-2">
-                <ListTree className="h-4 w-4" />
+                {/* ...icône */}
                 Catégories
               </TabsTrigger>
               <TabsTrigger value="social" className="flex items-center gap-2">
-                <Share2 className="h-4 w-4" />
+                {/* ...icône */}
                 Réseaux sociaux
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="theme" className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="primary">Couleur primaire</Label>
-                  <Input
-                    id="primary"
-                    type="color"
-                    value={settings?.theme?.primary || "#69d2e7"}
-                    onChange={(e) =>
-                      handleSave("theme", {
-                        ...settings?.theme,
-                        primary: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="secondary">Couleur secondaire</Label>
-                  <Input
-                    id="secondary"
-                    type="color"
-                    value={settings?.theme?.secondary || "#a7dbd8"}
-                    onChange={(e) =>
-                      handleSave("theme", {
-                        ...settings?.theme,
-                        secondary: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="accent">Couleur d'accent</Label>
-                  <Input
-                    id="accent"
-                    type="color"
-                    value={settings?.theme?.accent || "#f38630"}
-                    onChange={(e) =>
-                      handleSave("theme", {
-                        ...settings?.theme,
-                        accent: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="background">Couleur de fond</Label>
-                  <Input
-                    id="background"
-                    type="color"
-                    value={settings?.theme?.background || "#ffffff"}
-                    onChange={(e) =>
-                      handleSave("theme", {
-                        ...settings?.theme,
-                        background: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="text">Couleur du texte</Label>
-                  <Input
-                    id="text"
-                    type="color"
-                    value={settings?.theme?.text || "#333333"}
-                    onChange={(e) =>
-                      handleSave("theme", {
-                        ...settings?.theme,
-                        text: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            <TabsContent value="theme">
+              <ThemeSettings 
+                localTheme={localTheme} 
+                setLocalTheme={setLocalTheme} 
+                isLoading={isLoading} 
+                handleSave={handleSave} 
+              />
             </TabsContent>
-
-            <TabsContent value="logo" className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="logo-url">URL du logo</Label>
-                  <Input
-                    id="logo-url"
-                    type="url"
-                    placeholder="https://example.com/logo.png"
-                    value={settings?.logo?.url || ""}
-                    onChange={(e) =>
-                      handleSave("logo", {
-                        ...settings?.logo,
-                        url: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="logo-alt">Texte alternatif</Label>
-                  <Input
-                    id="logo-alt"
-                    type="text"
-                    placeholder="Description du logo"
-                    value={settings?.logo?.alt || ""}
-                    onChange={(e) =>
-                      handleSave("logo", {
-                        ...settings?.logo,
-                        alt: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            <TabsContent value="logo">
+              <LogoSettings 
+                settings={settings} 
+                isLoading={isLoading} 
+                handleSave={handleSave} 
+              />
             </TabsContent>
-
-            <TabsContent value="messages" className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="welcome-header">Message principal</Label>
-                  <Input
-                    id="welcome-header"
-                    type="text"
-                    placeholder="Bienvenue sur notre plateforme"
-                    value={settings?.welcome_messages?.header || ""}
-                    onChange={(e) =>
-                      handleSave("welcome_messages", {
-                        ...settings?.welcome_messages,
-                        header: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="welcome-subheader">Message secondaire</Label>
-                  <Input
-                    id="welcome-subheader"
-                    type="text"
-                    placeholder="Découvrez la mode autrement"
-                    value={settings?.welcome_messages?.subheader || ""}
-                    onChange={(e) =>
-                      handleSave("welcome_messages", {
-                        ...settings?.welcome_messages,
-                        subheader: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            <TabsContent value="messages">
+              <MessagesSettings 
+                settings={settings} 
+                isLoading={isLoading} 
+                handleSave={handleSave} 
+              />
             </TabsContent>
-
-            <TabsContent value="categories" className="space-y-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Icône</TableHead>
-                    <TableHead>Ordre</TableHead>
-                    <TableHead>Statut</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories?.map((category) => (
-                    <TableRow key={category.id}>
-                      <TableCell>{category.type}</TableCell>
-                      <TableCell>{category.name}</TableCell>
-                      <TableCell>{category.description}</TableCell>
-                      <TableCell>{category.icon}</TableCell>
-                      <TableCell>{category.order_index}</TableCell>
-                      <TableCell>
-                        {category.is_active ? "Actif" : "Inactif"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Button variant="outline">Ajouter une catégorie</Button>
+            <TabsContent value="categories">
+              <CategoriesSettings 
+                categories={categories} 
+                isLoading={isLoading} 
+              />
             </TabsContent>
-
-            <TabsContent value="social" className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="facebook">Facebook</Label>
-                  <Input
-                    id="facebook"
-                    type="url"
-                    placeholder="https://facebook.com/..."
-                    value={settings?.social_links?.facebook || ""}
-                    onChange={(e) =>
-                      handleSave("social_links", {
-                        ...settings?.social_links,
-                        facebook: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="twitter">Twitter</Label>
-                  <Input
-                    id="twitter"
-                    type="url"
-                    placeholder="https://twitter.com/..."
-                    value={settings?.social_links?.twitter || ""}
-                    onChange={(e) =>
-                      handleSave("social_links", {
-                        ...settings?.social_links,
-                        twitter: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="instagram">Instagram</Label>
-                  <Input
-                    id="instagram"
-                    type="url"
-                    placeholder="https://instagram.com/..."
-                    value={settings?.social_links?.instagram || ""}
-                    onChange={(e) =>
-                      handleSave("social_links", {
-                        ...settings?.social_links,
-                        instagram: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
+            <TabsContent value="social">
+              <SocialSettings 
+                settings={settings} 
+                isLoading={isLoading} 
+                handleSave={handleSave} 
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
