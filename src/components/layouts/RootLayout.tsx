@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Menu, ShoppingCart } from "lucide-react";
 import { Button } from "../ui/button";
-import MainSidebar from "../MainSidebar";
+import MainSidebar from "../MainSidebar"; // Correction du chemin
 import { CartSidebar } from "../cart/CartSidebar";
 
 export function RootLayout() {
