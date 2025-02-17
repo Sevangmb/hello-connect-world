@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import StoreMap from "./StoreMap";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +6,7 @@ import type { Store } from "@/hooks/useStores";
 
 const Boutiques = () => {
   const [stores, setStores] = useState<Store[]>([]);
+  const [stats, setStats] = useState({ totalShops: 0, avgItems: 0 });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -22,6 +22,14 @@ const Boutiques = () => {
 
         if (isMounted && data) {
           setStores(data as Store[]);
+
+          // Calcul des statistiques : nombre total de magasins et moyenne des items par magasin
+          const totalShops = data.length;
+          const totalItems = data.reduce((acc: number, shop: any) => {
+            return acc + (shop.shop_items ? shop.shop_items.length : 0);
+          }, 0);
+          const avgItems = totalShops > 0 ? totalItems / totalShops : 0;
+          setStats({ totalShops, avgItems });
         }
       } catch (error: any) {
         if (isMounted) {
@@ -45,6 +53,11 @@ const Boutiques = () => {
   return (
     <div>
       <h1>Boutiques</h1>
+      <div>
+        <h2>Statistiques</h2>
+        <p>Total de boutiques: {stats.totalShops}</p>
+        <p>Moyenne d&apos;items par boutique: {stats.avgItems.toFixed(2)}</p>
+      </div>
       <div>
         {stores.map((store) => (
           <StoreMap key={store.id} store={store} />
