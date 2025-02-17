@@ -53,6 +53,27 @@ export const useAuth = () => {
     }
   };
 
+  const signUp = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error("Error signing up:", authError);
+      throw authError;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     try {
@@ -68,5 +89,5 @@ export const useAuth = () => {
     }
   };
 
-  return { user, loading, signIn, signOut };
+  return { user, loading, signIn, signUp, signOut };
 };

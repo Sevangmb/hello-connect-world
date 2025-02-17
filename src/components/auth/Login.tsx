@@ -1,64 +1,111 @@
+
 import { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
-const LoginForm = ({ onSubmit, loading }: { onSubmit: (email: string, password: string) => void, loading: boolean }) => {
+const AuthForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setLoading(true);
+
     try {
-      await onSubmit(email, password);
+      if (isSignUp) {
+        await signUp(email, password);
+        toast({
+          title: "Compte créé avec succès",
+          description: "Veuillez vérifier votre email pour confirmer votre compte.",
+          duration: 5000,
+        });
+      } else {
+        await signIn(email, password);
+      }
     } catch (err: any) {
-      setError(err.message);
+      let errorMessage = "Une erreur est survenue";
+      
+      if (err.message === "Invalid login credentials") {
+        errorMessage = "Email ou mot de passe incorrect";
+      } else if (err.message.includes("Email not confirmed")) {
+        errorMessage = "Veuillez confirmer votre email avant de vous connecter";
+      } else if (err.message.includes("already registered")) {
+        errorMessage = "Cet email est déjà enregistré";
+      }
+      
+      toast({
+        title: "Erreur",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          required
-        />
-      </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-          required
-        />
-      </div>
-      {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
-      <button
-        type="submit"
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        disabled={loading}
-      >
-        {loading ? "Connexion en cours..." : "Se connecter"}
-      </button>
-    </form>
+    <Card className="p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold mb-4">
+            {isSignUp ? "Créer un compte" : "Se connecter"}
+          </h2>
+        </div>
+        <div className="space-y-2">
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Mot de passe"
+            required
+          />
+        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loading}
+        >
+          {loading
+            ? "Chargement..."
+            : isSignUp
+            ? "S'inscrire"
+            : "Se connecter"}
+        </Button>
+        <p className="text-center text-sm text-gray-600">
+          {isSignUp ? "Déjà inscrit ?" : "Pas encore de compte ?"}{" "}
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-blue-600 hover:underline"
+          >
+            {isSignUp ? "Se connecter" : "S'inscrire"}
+          </button>
+        </p>
+      </form>
+    </Card>
   );
 };
 
-const Login = () => {
-  const { signIn, loading } = useAuth();
-
+export default function Login() {
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h1 className="text-2xl font-bold mb-6">Connexion</h1>
-      <LoginForm onSubmit={signIn} loading={loading} />
+    <div className="max-w-md w-full mx-auto">
+      <AuthForm />
     </div>
   );
-};
-
-export default Login;
+}
