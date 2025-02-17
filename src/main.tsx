@@ -48,6 +48,7 @@ import VirtualTryOn from "@/pages/VirtualTryOn";
 import Suitcases from "@/pages/Suitcases";
 import Boutiques from "@/pages/Boutiques";
 import ShopDetail from "@/pages/ShopDetail";
+import Cart from "@/pages/Cart";
 import "./index.css";
 
 // Create a client
@@ -87,7 +88,8 @@ const routeComponents = {
   '/profile/settings': Settings,
   '/marketplace': Shops,
   '/help': HelpAndSupport,
-  '/virtual-tryon': VirtualTryOn
+  '/virtual-tryon': VirtualTryOn,
+  '/cart': Cart
 };
 
 const App = () => {
