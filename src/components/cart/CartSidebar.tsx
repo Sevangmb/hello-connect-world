@@ -1,69 +1,76 @@
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useEffect } from "react";
+import { ShoppingCart, X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CartItemType } from "@/types";
-import { Button } from "@/components/ui/button";
-import { CartItem } from "./CartItem";
+import { Button } from "@/components/ui/Button";
+import { CartList } from "./CartList";
+import { CartSummary } from "./CartSummary";
 import { useCart } from "@/hooks/useCart";
-import { ShoppingBag } from "lucide-react";
 
-interface CartSidebarProps {
+export interface CartSidebarProps {
   open: boolean;
   onClose: () => void;
 }
 
 export function CartSidebar({ open, onClose }: CartSidebarProps) {
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, isLoading, updateQuantity, removeFromCart } = useCart();
 
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.shop_items.price * item.quantity,
-    0
-  );
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    updateQuantity.mutate({ itemId, quantity });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    removeFromCart.mutate(itemId);
+  };
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent>
-        <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between py-4 border-b">
-            <h2 className="text-lg font-semibold">Mon panier</h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ShoppingBag className="h-5 w-5" />
-            </Button>
-          </div>
+      <SheetContent className="w-full sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5" />
+            Mon Panier
+          </SheetTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </SheetHeader>
 
-          {cartItems.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <div className="mt-8">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              Chargement...
+            </div>
+          ) : !cartItems?.length ? (
+            <div className="text-center py-8 text-muted-foreground">
               Votre panier est vide
             </div>
           ) : (
-            <>
-              <ScrollArea className="flex-1 px-4">
-                <div className="space-y-4 py-4">
-                  {cartItems.map((item) => (
-                    <CartItem
-                      key={item.id}
-                      item={item}
-                      onUpdateQuantity={(itemId, quantity) => 
-                        updateQuantity.mutate({ itemId, quantity })
-                      }
-                      onRemove={(itemId) => removeFromCart.mutate(itemId)}
-                    />
-                  ))}
-                </div>
-              </ScrollArea>
-
-              <div className="border-t p-4">
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Total</span>
-                    <span>{total.toFixed(2)} €</span>
-                  </div>
-                  <Button className="w-full">
-                    Procéder au paiement
-                  </Button>
-                </div>
-              </div>
-            </>
+            <ScrollArea className="h-[calc(100vh-200px)]">
+              <CartList
+                items={cartItems}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveItem}
+              />
+              <CartSummary items={cartItems} />
+            </ScrollArea>
           )}
         </div>
       </SheetContent>

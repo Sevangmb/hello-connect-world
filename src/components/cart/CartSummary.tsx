@@ -1,14 +1,17 @@
+
 import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/utils";
 
-export default function CartSummary() {
-  const { cartItems } = useCart();
+export interface CartSummaryProps {
+  items: CartItemType[];
+}
 
-  const total = cartItems?.reduce((sum, item) => 
+export function CartSummary({ items }: CartSummaryProps) {
+  const total = items?.reduce((sum, item) => 
     sum + (item.shop_items.price * item.quantity), 0
   ) ?? 0;
 
-  const itemCount = cartItems?.reduce((count, item) => 
+  const itemCount = items?.reduce((count, item) => 
     count + item.quantity, 0
   ) ?? 0;
 
