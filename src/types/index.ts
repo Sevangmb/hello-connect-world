@@ -1,6 +1,7 @@
 
 export interface CartItemType {
   id: string;
+  quantity: number;
   shop_items: {
     id: string;
     price: number;
@@ -9,7 +10,12 @@ export interface CartItemType {
       image_url: string;
     };
   };
-  quantity: number;
+}
+
+export interface CartItemProps {
+  item: CartItemType;
+  onUpdateQuantity: (itemId: string, quantity: number) => void;
+  onRemove: (itemId: string) => void;
 }
 
 export interface Cart {

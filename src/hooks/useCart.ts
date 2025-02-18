@@ -1,6 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CartItemType } from "@/types";
@@ -12,20 +11,24 @@ export function useCart() {
   const { data: cartItems, isLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
           id,
           quantity,
-          shop_items (
+          shop_items!cart_items_shop_item_id_fkey (
             id,
             price,
-            clothes (
+            clothes!shop_items_clothes_id_fkey (
               name,
               image_url
             )
           )
-        `);
+        `)
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error fetching cart:', error);
@@ -38,11 +41,14 @@ export function useCart() {
 
   const addToCart = useMutation({
     mutationFn: async ({ shopItemId, quantity }: { shopItemId: string, quantity: number }) => {
-      console.log('Adding to cart:', { shopItemId, quantity });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       const { data: existingItem, error: checkError } = await supabase
         .from('cart_items')
         .select('*')
         .eq('shop_item_id', shopItemId)
+        .eq('user_id', user.id)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') {
@@ -53,7 +59,7 @@ export function useCart() {
         const { data, error } = await supabase
           .from('cart_items')
           .update({ quantity: existingItem.quantity + quantity })
-          .eq('shop_item_id', shopItemId)
+          .eq('id', existingItem.id)
           .select()
           .single();
 
@@ -63,7 +69,7 @@ export function useCart() {
         const { data, error } = await supabase
           .from('cart_items')
           .insert([
-            { shop_item_id: shopItemId, quantity }
+            { shop_item_id: shopItemId, quantity, user_id: user.id }
           ])
           .select()
           .single();
