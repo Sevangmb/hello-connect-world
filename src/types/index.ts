@@ -1,6 +1,8 @@
-export interface CartItem {
+
+export interface CartItemType {
   id: string;
   shop_items: {
+    id: string;
     price: number;
     clothes: {
       name: string;
@@ -11,13 +13,14 @@ export interface CartItem {
 }
 
 export interface Cart {
-  items: CartItem[];
+  items: CartItemType[];
   total: number;
 }
 
 export interface UseCart {
-  cartItems: CartItem[];
-  isCartLoading: boolean;
-  updateQuantity: (id: string, quantity: number) => void;
-  removeFromCart: (id: string) => void;
+  cartItems: CartItemType[];
+  isLoading: boolean;
+  addToCart: any;
+  updateQuantity: any;
+  removeFromCart: any;
 }

@@ -13,7 +13,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { addToCart, loading: addingToCart } = useCart();
+  const { addToCart } = useCart();
   const [sortBy, setSortBy] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -85,7 +85,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
             key={item.id}
             item={item}
             onAddToCart={handleAddToCart}
-            isAddingToCart={addingToCart}
+            isAddingToCart={addToCart.isPending}
           />
         ))}
       </div>

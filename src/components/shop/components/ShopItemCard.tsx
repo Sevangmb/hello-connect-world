@@ -58,7 +58,7 @@ export function ShopItemCard({ item, onAddToCart, isAddingToCart }: ShopItemCard
           disabled={isAddingToCart}
         >
           <ShoppingCart className="w-4 h-4 mr-2" />
-          Ajouter au panier
+          {isAddingToCart ? 'Ajout en cours...' : 'Ajouter au panier'}
         </Button>
       </div>
     </Card>
