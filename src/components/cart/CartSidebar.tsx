@@ -1,62 +1,89 @@
 
-import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { CartItem } from "./CartItem";
+import { CartItemType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatPrice } from "@/lib/utils";
+import { ShoppingBag, X } from "lucide-react";
 
-export function CartSidebar() {
-  const [open, setOpen] = useState(false);
+interface CartSidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function CartSidebar({ open, onClose }: CartSidebarProps) {
+  const navigate = useNavigate();
   const { cartItems, isLoading, updateQuantity, removeFromCart } = useCart();
 
-  const total = cartItems.reduce((acc, item) => {
-    return acc + item.quantity * item.shop_items.price;
-  }, 0);
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [open]);
 
-  if (isLoading) {
-    return null;
-  }
+  const calculateTotal = (items: CartItemType[]) => {
+    return items.reduce((total, item) => {
+      return total + (item.shop_items.price * item.quantity);
+    }, 0);
+  };
+
+  if (!open) return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Mon Panier ({cartItems.length})</SheetTitle>
-        </SheetHeader>
-        
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-y-0 right-0 w-full border-l bg-background p-6 shadow-lg sm:max-w-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Mon Panier</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-6 w-6" />
+          </Button>
+        </div>
+
         {cartItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <p className="text-muted-foreground">Votre panier est vide</p>
+          <div className="flex h-[400px] flex-col items-center justify-center space-y-4">
+            <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+            <p className="text-lg text-muted-foreground">Votre panier est vide</p>
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <ScrollArea className="h-[400px] py-4">
               <div className="space-y-4">
                 {cartItems.map((item) => (
                   <CartItem
                     key={item.id}
                     item={item}
-                    onUpdateQuantity={(quantity) => updateQuantity.mutate({ itemId: item.id, quantity })}
-                    onRemove={() => removeFromCart.mutate(item.id)}
+                    onUpdateQuantity={updateQuantity.mutate}
+                    onRemove={removeFromCart.mutate}
                   />
                 ))}
               </div>
             </ScrollArea>
-            
-            <div className="mt-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Total</span>
-                <span className="font-bold">{formatPrice(total)}</span>
+
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center justify-between text-lg font-semibold">
+                <span>Total</span>
+                <span>{calculateTotal(cartItems).toFixed(2)} €</span>
               </div>
-              <Button className="w-full">
-                Passer commande
+              <Button 
+                className="w-full" 
+                onClick={() => {
+                  navigate("/cart");
+                  onClose();
+                }}
+              >
+                Voir le panier
               </Button>
             </div>
           </>
         )}
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
 }
