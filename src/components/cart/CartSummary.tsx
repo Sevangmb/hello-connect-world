@@ -1,6 +1,7 @@
 
 import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/utils";
+import { CartItemType } from "@/types";
 
 export interface CartSummaryProps {
   items: CartItemType[];
