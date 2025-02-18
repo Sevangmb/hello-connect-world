@@ -1,7 +1,7 @@
 
-import { CartItem } from "./CartItem";
-import { useCart } from "@/hooks/useCart";
 import { CartItemType } from "@/types";
+import { CartItem } from "@/components/cart/CartItem";
+import { useCart } from "@/hooks/useCart";
 
 interface CartListProps {
   items: CartItemType[];
@@ -16,9 +16,7 @@ export function CartList({ items }: CartListProps) {
         <CartItem
           key={item.id}
           item={item}
-          onUpdateQuantity={(itemId, quantity) => 
-            updateQuantity.mutate({ itemId, quantity })
-          }
+          onUpdateQuantity={(itemId, quantity) => updateQuantity.mutate({ itemId, quantity })}
           onRemove={(itemId) => removeFromCart.mutate(itemId)}
         />
       ))}

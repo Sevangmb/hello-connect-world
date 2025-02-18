@@ -1,8 +1,8 @@
 
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
-import { CartList } from "@/components/Cart/CartList";
-import { CartSummary } from "@/components/Cart/CartSummary";
+import { CartList } from "@/components/cart/CartList";
+import { CartSummary } from "@/components/cart/CartSummary";
 
 export default function Cart() {
   const { cartItems, isLoading } = useCart();
