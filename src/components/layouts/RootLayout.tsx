@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { CartSidebar } from "@/components/cart/CartSidebar";
 import MainSidebar from "@/components/MainSidebar";
 
@@ -20,3 +20,4 @@ export function RootLayout() {
     </div>
   );
 }
+

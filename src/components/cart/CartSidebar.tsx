@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { ShoppingCart, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { CartList } from "./CartList";
 import { CartSummary } from "./CartSummary";
 import { useCart } from "@/hooks/useCart";
@@ -77,3 +77,4 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
     </Sheet>
   );
 }
+
