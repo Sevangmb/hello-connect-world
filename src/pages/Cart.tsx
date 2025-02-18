@@ -1,12 +1,13 @@
+
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { CartList } from "@/components/Cart/CartList";
 import { CartSummary } from "@/components/Cart/CartSummary";
 
 export default function Cart() {
-  const { cartItems, isCartLoading } = useCart();
+  const { cartItems, isLoading } = useCart();
 
-  if (isCartLoading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center">
         Chargement du panier...
