@@ -1,7 +1,7 @@
 
-import { Minus, Plus, Trash2 } from "lucide-react";
 import { CartItemType } from "@/types";
 import { Button } from "@/components/ui/Button";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 interface CartItemProps {
@@ -12,48 +12,49 @@ interface CartItemProps {
 
 export function CartItem({ item, onUpdateQuantity, onRemove }: CartItemProps) {
   return (
-    <div className="flex items-start space-x-4 py-4">
-      <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border">
+    <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow">
+      {item.shop_items.clothes?.image_url && (
         <img
           src={item.shop_items.clothes.image_url}
           alt={item.shop_items.clothes.name}
-          className="h-full w-full object-cover"
+          className="w-20 h-20 object-cover rounded-md"
         />
+      )}
+      
+      <div className="flex-1">
+        <h3 className="font-medium">{item.shop_items.clothes?.name}</h3>
+        <p className="text-sm text-muted-foreground">
+          {formatPrice(item.shop_items.price)}
+        </p>
       </div>
 
-      <div className="flex flex-1 flex-col">
-        <div className="flex justify-between">
-          <div>
-            <h3 className="text-sm font-medium">{item.shop_items.clothes.name}</h3>
-            <p className="mt-1 text-sm text-gray-500">Prix: {formatPrice(item.shop_items.price)}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600"
-            onClick={() => onRemove(item.id)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => onUpdateQuantity(item.id, Math.max(0, item.quantity - 1))}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        
+        <span className="w-8 text-center">{item.quantity}</span>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
 
-        <div className="mt-4 flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="min-w-8 text-center">{item.quantity}</span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+          onClick={() => onRemove(item.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );

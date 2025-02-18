@@ -5,7 +5,7 @@ import { CartList } from "@/components/cart/CartList";
 import { CartSummary } from "@/components/cart/CartSummary";
 
 export default function Cart() {
-  const { cartItems, isLoading } = useCart();
+  const { cartItems, isLoading, updateQuantity, removeFromCart } = useCart();
 
   if (isLoading) {
     return (
@@ -14,6 +14,14 @@ export default function Cart() {
       </div>
     );
   }
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    updateQuantity.mutate({ itemId, quantity });
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    removeFromCart.mutate(itemId);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -27,10 +35,18 @@ export default function Cart() {
           Votre panier est vide
         </div>
       ) : (
-        <>
-          <CartList items={cartItems} />
-          <CartSummary items={cartItems} />
-        </>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <CartList 
+              items={cartItems} 
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemove={handleRemoveItem}
+            />
+          </div>
+          <div>
+            <CartSummary items={cartItems} />
+          </div>
+        </div>
       )}
     </div>
   );
