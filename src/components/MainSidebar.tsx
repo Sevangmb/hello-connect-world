@@ -1,27 +1,19 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { HomeSection } from "./sidebar/HomeSection";
-import { ExploreSection } from "./sidebar/ExploreSection";
-import { PersonalSection } from "./sidebar/PersonalSection";
-import { CommunitySection } from "./sidebar/CommunitySection";
-import { ProfileSection } from "./sidebar/ProfileSection";
-import { AdminSection } from "./sidebar/AdminSection";
-import {
-  Menu,
-  X,
-  Settings,
-  LogOut
-} from "lucide-react";
+import { HomeSection } from "@/components/sidebar/HomeSection";
+import { ExploreSection } from "@/components/sidebar/ExploreSection";
+import { PersonalSection } from "@/components/sidebar/PersonalSection";
+import { CommunitySection } from "@/components/sidebar/CommunitySection";
+import { ProfileSection } from "@/components/sidebar/ProfileSection";
+import { AdminSection } from "@/components/sidebar/AdminSection";
+import { Menu, X, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSidebar } from "@/contexts/SidebarContext";
 
-interface MainSidebarProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (value: boolean) => void;
-}
-
-export default function MainSidebar({ isCollapsed, setIsCollapsed }: MainSidebarProps) {
+export default function MainSidebar() {
   const navigate = useNavigate();
+  const { isCollapsed, setIsCollapsed } = useSidebar();
 
   return (
     <>
