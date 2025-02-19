@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +23,11 @@ export interface Store {
     username: string | null;
   } | null;
   shop_items: { id: string }[];
+  cover_image?: string;
+  is_verified?: boolean;
+  logo?: string;
+  rating?: number;
+  location?: string;
 }
 
 export interface FilterState {

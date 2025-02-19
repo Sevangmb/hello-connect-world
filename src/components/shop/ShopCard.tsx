@@ -1,3 +1,4 @@
+
 import { Store } from "@/hooks/useStores";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
             className="h-full w-full object-cover"
           />
           {shop.is_verified && (
-            <Badge className="absolute right-2 top-2" variant="success">
+            <Badge className="absolute right-2 top-2" variant="secondary">
               Vérifié
             </Badge>
           )}
@@ -43,7 +44,7 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
           </div>
           <div className="flex items-center text-yellow-500">
             <Star className="h-4 w-4 fill-current" />
-            <span className="ml-1 text-sm">{shop.rating || "N/A"}</span>
+            <span className="ml-1 text-sm">{shop.rating || shop.average_rating || "N/A"}</span>
           </div>
         </div>
         <div className="mt-4 space-y-2">
@@ -55,7 +56,7 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
             <div className="flex items-center">
               <MapPin className="mr-1 h-4 w-4" />
-              <span>{shop.location || "Non spécifié"}</span>
+              <span>{shop.location || shop.address || "Non spécifié"}</span>
             </div>
             <div className="flex items-center">
               <Package className="mr-1 h-4 w-4" />
