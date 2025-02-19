@@ -1,55 +1,69 @@
-
-import { Users, MessageSquare, Store, Bell } from "lucide-react";
+import { Users, MessageSquare, Bell, UserPlus } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
-export function CommunitySection() {
+export const CommunitySection = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
-  
+
   return (
-    <div className="space-y-1">
-      <Button
-        variant="ghost"
-        className="w-full justify-start"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <Users className="mr-2 h-5 w-5" />
-        Communauté
-      </Button>
-      
-      {isExpanded && (
-        <div className="ml-6 space-y-1">
+    <AccordionItem value="community" className="border-none">
+      <AccordionTrigger className="py-2">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Communauté
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="flex flex-col gap-1 pl-6">
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/messages",
+            })}
             onClick={() => navigate("/messages")}
           >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
+            <MessageSquare className="h-4 w-4" />
+            Messagerie
           </Button>
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/shops")}
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/groups",
+            })}
+            onClick={() => navigate("/groups")}
           >
-            <Store className="mr-2 h-4 w-4" />
-            Boutiques
+            <Users className="h-4 w-4" />
+            Groupes
           </Button>
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/notifications",
+            })}
             onClick={() => navigate("/notifications")}
           >
-            <Bell className="mr-2 h-4 w-4" />
+            <Bell className="h-4 w-4" />
             Notifications
           </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/find-friends",
+            })}
+            onClick={() => navigate("/find-friends")}
+          >
+            <UserPlus className="h-4 w-4" />
+            Trouver des amis
+          </Button>
         </div>
-      )}
-    </div>
+      </AccordionContent>
+    </AccordionItem>
   );
-}
+};

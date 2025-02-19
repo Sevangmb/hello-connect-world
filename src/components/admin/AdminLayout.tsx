@@ -1,12 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import MainSidebar from "@/components/MainSidebar";
 import { LogOut } from "lucide-react";
-import { SidebarProvider } from "@/contexts/SidebarContext";
 
 export function AdminLayout() {
   const [adminRole, setAdminRole] = useState<boolean>(false);
@@ -63,26 +61,26 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <SidebarProvider>
-        <MainSidebar>
-          <div className="flex-1 ml-64">
-            <div className="p-8">
-              <div className="mb-8 flex justify-between items-center">
-                <h1 className="text-2xl font-bold">FRING! Admin</h1>
-                <Button
-                  variant="ghost"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-5 w-5" />
-                  Déconnexion
-                </Button>
-              </div>
-              <Outlet />
-            </div>
+      <MainSidebar />
+      
+      {/* Main content */}
+      <div className="flex-1 ml-64">
+        <div className="p-8">
+          <div className="mb-8 flex justify-between items-center">
+            <h1 className="text-2xl font-bold">FRING! Admin</h1>
+            <Button
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-5 w-5" />
+              Déconnexion
+            </Button>
           </div>
-        </MainSidebar>
-      </SidebarProvider>
+          
+          <Outlet />
+        </div>
+      </div>
     </div>
   );
 }

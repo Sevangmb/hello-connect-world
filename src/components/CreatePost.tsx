@@ -1,61 +1,74 @@
-
-import { useState } from "react";
+import { Image } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-export function CreatePost() {
+export const CreatePost = () => {
   const [content, setContent] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!content.trim()) return;
 
-    setIsLoading(true);
     try {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Non authentifié");
 
       const { error } = await supabase
-        .from('posts')
-        .insert([{ content, user_id: user.id }]);
+        .from("posts")
+        .insert({
+          content: content.trim(),
+          user_id: user.id,
+        });
 
       if (error) throw error;
 
       setContent("");
       toast({
         title: "Publication créée",
-        description: "Votre publication a été créée avec succès",
+        description: "Votre message a été publié avec succès",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la création du post:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de créer la publication",
         variant: "destructive",
+        title: "Erreur",
+        description: error.message,
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardContent className="pt-4">
+    <Card className="p-4">
+      <form onSubmit={handleSubmit}>
         <Textarea
-          placeholder="Quoi de neuf ?"
+          placeholder="Que voulez-vous partager ?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-[100px]"
+          className="mb-4 resize-none"
         />
-      </CardContent>
-      <CardFooter className="justify-end">
-        <Button onClick={handleSubmit} disabled={isLoading || !content.trim()}>
-          Publier
-        </Button>
-      </CardFooter>
+        <div className="flex items-center justify-between">
+          <Button type="button" variant="outline" className="gap-2">
+            <Image className="h-5 w-5" />
+            Photo
+          </Button>
+          <Button 
+            type="submit" 
+            className="bg-facebook-primary hover:bg-facebook-hover"
+            disabled={loading || !content.trim()}
+          >
+            {loading ? "Publication en cours..." : "Publier"}
+          </Button>
+        </div>
+      </form>
     </Card>
   );
-}
+};

@@ -32,42 +32,6 @@ interface EditClothesFormProps {
   onSuccess: () => void;
 }
 
-const FormField = ({ id, label, value, onChange, placeholder, type = "text" }: { id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder?: string, type?: string }) => (
-  <div className="space-y-2">
-    <Label htmlFor={id}>{label}</Label>
-    <Input
-      id={id}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      type={type}
-      required
-    />
-  </div>
-);
-
-const FormSelect = ({ id, label, value, onChange, options }: { id: string, label: string, value: string, onChange: (value: string) => void, options: string[] }) => (
-  <div className="space-y-2">
-    <Label htmlFor={id}>{label}</Label>
-    <Select
-      value={value}
-      onValueChange={onChange}
-      required
-    >
-      <SelectTrigger>
-        <SelectValue placeholder={`Sélectionnez ${label.toLowerCase()}`} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option} value={option}>
-            {option}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-);
-
 export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditClothesFormProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -113,13 +77,16 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <FormField
-        id="name"
-        label="Nom"
-        value={formData.name}
-        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-        placeholder="Ex: T-shirt blanc"
-      />
+      <div className="space-y-2">
+        <Label htmlFor="name">Nom</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Ex: T-shirt blanc"
+          required
+        />
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
@@ -131,13 +98,25 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
         />
       </div>
 
-      <FormSelect
-        id="category"
-        label="Catégorie"
-        value={formData.category}
-        onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-        options={CATEGORIES}
-      />
+      <div className="space-y-2">
+        <Label htmlFor="category">Catégorie</Label>
+        <Select
+          value={formData.category}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez une catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <ImageUpload
         currentImageUrl={formData.image_url}

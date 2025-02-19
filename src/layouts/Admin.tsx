@@ -4,39 +4,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import MainSidebar from "@/components/MainSidebar";
-import { LogOut } from "lucide-react";
+import {
+  LogOut
+} from "lucide-react";
 
-export function AdminLayout() {
+export function Admin() {
   const [adminRole, setAdminRole] = useState<boolean>(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const checkAdminRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          navigate('/');
-          return;
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-
-        if (!profile?.is_admin) {
-          navigate('/');
-          return;
-        }
-
-        setAdminRole(profile?.is_admin || false);
-      } catch (error) {
-        console.error("Error checking admin role:", error);
-        navigate('/');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth/login');
+        return;
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.is_admin) {
+        navigate('/');
+        return;
+      }
+
+      setAdminRole(profile?.is_admin || false);
     };
 
     checkAdminRole();
@@ -49,7 +45,7 @@ export function AdminLayout() {
         title: "Déconnexion réussie",
         description: "Vous avez été déconnecté avec succès",
       });
-      navigate("/auth");
+      navigate("/auth/login");
     } catch (error) {
       console.error("Logout error:", error);
       toast({
@@ -62,10 +58,7 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <MainSidebar 
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setIsSidebarCollapsed}
-      />
+      <MainSidebar />
       
       {/* Main content */}
       <div className="flex-1 ml-64">

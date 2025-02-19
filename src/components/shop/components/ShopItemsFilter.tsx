@@ -20,12 +20,12 @@ export function ShopItemsFilter({
       <Input
         type="search"
         placeholder="Rechercher des articles..."
-        className="max-w-xs"
+        className="max-w-xs border-gray-300"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />
       <Select value={sortBy} onValueChange={setSortBy}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] border-gray-300">
           <SelectValue placeholder="Trier par" />
         </SelectTrigger>
         <SelectContent>

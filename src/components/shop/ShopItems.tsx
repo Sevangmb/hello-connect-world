@@ -13,7 +13,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { addToCart } = useCart();
+  const { addToCart, loading: addingToCart } = useCart();
   const [sortBy, setSortBy] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -67,8 +67,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
     category: item.clothes.category || undefined,
     size: item.clothes.size || undefined,
     brand: item.clothes.brand || undefined,
-    original_price: item.original_price || item.clothes.original_price || undefined,
-    status: item.status
+    original_price: item.original_price || item.clothes.original_price || undefined
   }));
 
   return (
@@ -86,7 +85,7 @@ export function ShopItems({ shopId }: { shopId: string }) {
             key={item.id}
             item={item}
             onAddToCart={handleAddToCart}
-            isAddingToCart={addToCart.isPending}
+            isAddingToCart={addingToCart}
           />
         ))}
       </div>

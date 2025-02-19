@@ -1,28 +1,44 @@
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { CartItemType } from "@/types";
+
+export interface CartItem {
+  id: string;
+  user_id: string;
+  shop_item_id: string;
+  quantity: number;
+  created_at: string;
+  shop_items: {
+    id: string;
+    price: number;
+    clothes: {
+      name: string;
+      image_url: string | null;
+    };
+  };
+}
 
 export function useCart() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
 
-  const { data: cartItems, isLoading } = useQuery({
+  const { data: cartItems, isLoading: isCartLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) throw new Error("Not authenticated");
 
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
-          id,
-          quantity,
-          shop_items!cart_items_shop_item_id_fkey (
+          *,
+          shop_items!shop_item_id (
             id,
             price,
-            clothes!shop_items_clothes_id_fkey (
+            clothes!clothes_id (
               name,
               image_url
             )
@@ -30,49 +46,45 @@ export function useCart() {
         `)
         .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error fetching cart:', error);
-        throw error;
-      }
-
-      return data as CartItemType[];
+      if (error) throw error;
+      return data as CartItem[];
     }
   });
 
   const addToCart = useMutation({
     mutationFn: async ({ shopItemId, quantity }: { shopItemId: string, quantity: number }) => {
+      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) throw new Error("Not authenticated");
 
-      const { data: existingItem, error: checkError } = await supabase
+      // First check if the item already exists in the cart
+      const { data: existingItem } = await supabase
         .from('cart_items')
         .select('*')
-        .eq('shop_item_id', shopItemId)
         .eq('user_id', user.id)
+        .eq('shop_item_id', shopItemId)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
       if (existingItem) {
+        // Update existing item quantity
         const { data, error } = await supabase
           .from('cart_items')
           .update({ quantity: existingItem.quantity + quantity })
           .eq('id', existingItem.id)
-          .select()
-          .single();
+          .select();
 
         if (error) throw error;
         return data;
       } else {
+        // Insert new item
         const { data, error } = await supabase
           .from('cart_items')
-          .insert([
-            { shop_item_id: shopItemId, quantity, user_id: user.id }
-          ])
-          .select()
-          .single();
+          .insert({
+            user_id: user.id,
+            shop_item_id: shopItemId,
+            quantity
+          })
+          .select();
 
         if (error) throw error;
         return data;
@@ -92,29 +104,40 @@ export function useCart() {
         description: "Impossible d'ajouter l'article au panier",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      setLoading(false);
     }
   });
 
   const updateQuantity = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string, quantity: number }) => {
+    mutationFn: async ({ cartItemId, quantity }: { cartItemId: string, quantity: number }) => {
       const { error } = await supabase
         .from('cart_items')
         .update({ quantity })
-        .eq('id', itemId);
+        .eq('id', cartItemId);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+    },
+    onError: (error) => {
+      console.error('Error updating quantity:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la quantité",
+        variant: "destructive",
+      });
     }
   });
 
   const removeFromCart = useMutation({
-    mutationFn: async (itemId: string) => {
+    mutationFn: async (cartItemId: string) => {
       const { error } = await supabase
         .from('cart_items')
         .delete()
-        .eq('id', itemId);
+        .eq('id', cartItemId);
 
       if (error) throw error;
     },
@@ -124,12 +147,21 @@ export function useCart() {
         title: "Article retiré",
         description: "L'article a été retiré de votre panier",
       });
+    },
+    onError: (error) => {
+      console.error('Error removing from cart:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de retirer l'article du panier",
+        variant: "destructive",
+      });
     }
   });
 
   return {
-    cartItems: cartItems || [],
-    isLoading,
+    cartItems,
+    isCartLoading,
+    loading,
     addToCart,
     updateQuantity,
     removeFromCart

@@ -11,7 +11,6 @@ export interface ShopItem {
   size?: string;
   brand?: string;
   original_price?: number;
-  status: string;
 }
 
 export interface RawShopItem {

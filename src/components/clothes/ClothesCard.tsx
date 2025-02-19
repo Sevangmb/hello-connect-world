@@ -30,45 +30,6 @@ type ClothesCardProps = {
   isUpdating: boolean;
 };
 
-const Image = ({ imageUrl, name }: { imageUrl: string, name: string }) => (
-  <img
-    src={imageUrl}
-    alt={name}
-    className="w-full h-48 object-cover rounded-t-lg"
-  />
-);
-
-const CardBadges = ({ archived, needsAlteration }: { archived: boolean, needsAlteration: boolean }) => (
-  <div className="flex flex-wrap gap-1">
-    {archived && <Badge variant="secondary">Archivé</Badge>}
-    {needsAlteration && <Badge variant="destructive">À retoucher</Badge>}
-  </div>
-);
-
-const CardDetails = ({ cloth }: { cloth: ClothesCardProps['cloth'] }) => (
-  <div className="grid grid-cols-2 gap-2 text-sm">
-    {cloth.brand && <div><span className="font-medium">Marque:</span> {cloth.brand}</div>}
-    {cloth.size && <div><span className="font-medium">Taille:</span> {cloth.size}</div>}
-    {cloth.color && <div><span className="font-medium">Couleur:</span> {cloth.color}</div>}
-    {cloth.material && <div><span className="font-medium">Matière:</span> {cloth.material}</div>}
-    {cloth.style && <div><span className="font-medium">Style:</span> {cloth.style}</div>}
-    {cloth.price && <div><span className="font-medium">Prix:</span> {formatPrice(cloth.price)}</div>}
-    {cloth.purchase_date && <div><span className="font-medium">Acheté le:</span> {new Date(cloth.purchase_date).toLocaleDateString()}</div>}
-  </div>
-);
-
-const ActionButton = ({ onClick, disabled, title, icon: Icon, className }: { onClick: () => void, disabled: boolean, title: string, icon: any, className?: string }) => (
-  <Button
-    variant="outline"
-    size="icon"
-    onClick={onClick}
-    disabled={disabled}
-    title={title}
-  >
-    <Icon className={`h-4 w-4 ${className}`} />
-  </Button>
-);
-
 export const ClothesCard = ({ 
   cloth, 
   onDelete, 
@@ -79,12 +40,25 @@ export const ClothesCard = ({
 }: ClothesCardProps) => {
   return (
     <Card className={cloth.archived ? "opacity-75" : ""}>
-      {cloth.image_url && <Image imageUrl={cloth.image_url} name={cloth.name} />}
+      {cloth.image_url && (
+        <img
+          src={cloth.image_url}
+          alt={cloth.name}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+      )}
       <CardHeader>
         <CardTitle className="flex justify-between items-start">
           <div className="space-y-1">
             <span>{cloth.name}</span>
-            <CardBadges archived={cloth.archived} needsAlteration={cloth.needs_alteration} />
+            <div className="flex flex-wrap gap-1">
+              {cloth.archived && (
+                <Badge variant="secondary">Archivé</Badge>
+              )}
+              {cloth.needs_alteration && (
+                <Badge variant="destructive">À retoucher</Badge>
+              )}
+            </div>
           </div>
           <span className="text-sm font-normal text-muted-foreground">
             {cloth.category}
@@ -93,24 +67,67 @@ export const ClothesCard = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {cloth.description && <p className="text-muted-foreground">{cloth.description}</p>}
-        <CardDetails cloth={cloth} />
+        {cloth.description && (
+          <p className="text-muted-foreground">{cloth.description}</p>
+        )}
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {cloth.brand && (
+            <div>
+              <span className="font-medium">Marque:</span> {cloth.brand}
+            </div>
+          )}
+          {cloth.size && (
+            <div>
+              <span className="font-medium">Taille:</span> {cloth.size}
+            </div>
+          )}
+          {cloth.color && (
+            <div>
+              <span className="font-medium">Couleur:</span> {cloth.color}
+            </div>
+          )}
+          {cloth.material && (
+            <div>
+              <span className="font-medium">Matière:</span> {cloth.material}
+            </div>
+          )}
+          {cloth.style && (
+            <div>
+              <span className="font-medium">Style:</span> {cloth.style}
+            </div>
+          )}
+          {cloth.price && (
+            <div>
+              <span className="font-medium">Prix:</span> {formatPrice(cloth.price)}
+            </div>
+          )}
+          {cloth.purchase_date && (
+            <div>
+              <span className="font-medium">Acheté le:</span>{" "}
+              {new Date(cloth.purchase_date).toLocaleDateString()}
+            </div>
+          )}
+        </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <ActionButton
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onAlterationToggle(cloth.id, !cloth.needs_alteration)}
           disabled={isUpdating}
           title={cloth.needs_alteration ? "Marquer comme retouché" : "Marquer à retoucher"}
-          icon={Scissors}
-          className={cloth.needs_alteration ? "text-destructive" : ""}
-        />
-        <ActionButton
+        >
+          <Scissors className={`h-4 w-4 ${cloth.needs_alteration ? "text-destructive" : ""}`} />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => onArchive(cloth.id, !cloth.archived)}
           disabled={isUpdating}
           title={cloth.archived ? "Désarchiver" : "Archiver"}
-          icon={Archive}
-          className={cloth.archived ? "text-muted-foreground" : ""}
-        />
+        >
+          <Archive className={`h-4 w-4 ${cloth.archived ? "text-muted-foreground" : ""}`} />
+        </Button>
         <EditClothesDialog 
           clothes={cloth}
           trigger={
@@ -119,12 +136,18 @@ export const ClothesCard = ({
             </Button>
           }
         />
-        <ActionButton
+        <Button 
+          variant="outline" 
+          size="icon"
           onClick={() => onDelete(cloth.id)}
           disabled={isDeleting}
-          title="Supprimer"
-          icon={Trash2}
-        />
+        >
+          {isDeleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
       </CardFooter>
     </Card>
   );

@@ -1,55 +1,69 @@
-
-import { Home, List, Heart, Star } from "lucide-react";
+import { Home, Cloud, Sparkles, Newspaper, Trophy } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
-export function HomeSection() {
+export const HomeSection = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
-  
+
   return (
-    <div className="space-y-1">
-      <Button
-        variant="ghost"
-        className="w-full justify-start"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <Home className="mr-2 h-5 w-5" />
-        Accueil
-      </Button>
-      
-      {isExpanded && (
-        <div className="ml-6 space-y-1">
+    <AccordionItem value="home" className="border-none" defaultValue="home">
+      <AccordionTrigger className="py-2">
+        <div className="flex items-center gap-2">
+          <Home className="h-4 w-4" />
+          Accueil
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="!mt-0">
+        <div className="flex flex-col gap-1 pl-6">
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/",
+            })}
+            onClick={() => navigate("/")}
+          >
+            <Cloud className="h-4 w-4" />
+            Météo du Jour
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/suggestions",
+            })}
+            onClick={() => navigate("/suggestions")}
+          >
+            <Sparkles className="h-4 w-4" />
+            Suggestions IA
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/feed",
+            })}
             onClick={() => navigate("/feed")}
           >
-            <List className="mr-2 h-4 w-4" />
-            Fil d'actualité
+            <Newspaper className="h-4 w-4" />
+            Fil d'Actualité
           </Button>
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/favorites")}
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/challenges",
+            })}
+            onClick={() => navigate("/challenges")}
           >
-            <Heart className="mr-2 h-4 w-4" />
-            Favoris
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/trending")}
-          >
-            <Star className="mr-2 h-4 w-4" />
-            Tendances
+            <Trophy className="h-4 w-4" />
+            Défis Mode
           </Button>
         </div>
-      )}
-    </div>
+      </AccordionContent>
+    </AccordionItem>
   );
-}
+};

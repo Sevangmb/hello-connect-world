@@ -1,55 +1,87 @@
-
-import { UserCircle, Settings, HelpCircle, MessageCircle } from "lucide-react";
+import { User, UserCheck, Settings, ShoppingCart, HelpCircle, LogOut } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { supabase } from "@/integrations/supabase/client";
 
-export function ProfileSection() {
+export const ProfileSection = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
-  
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/auth');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
-    <div className="space-y-1">
-      <Button
-        variant="ghost"
-        className="w-full justify-start"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <UserCircle className="mr-2 h-5 w-5" />
-        Profil
-      </Button>
-      
-      {isExpanded && (
-        <div className="ml-6 space-y-1">
+    <AccordionItem value="profile" className="border-none">
+      <AccordionTrigger className="py-2">
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4" />
+          Profil
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="flex flex-col gap-1 pl-6">
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/profile/settings")}
+            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/profile",
+            })}
+            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /profile"); } navigate("/profile"); }}
           >
-            <Settings className="mr-2 h-4 w-4" />
-            Paramètres du profil
+            <UserCheck className="h-4 w-4" />
+            Mon Profil
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/help")}
+            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/profile/settings",
+            })}
+            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /profile/settings"); } navigate("/profile/settings"); }}
           >
-            <HelpCircle className="mr-2 h-4 w-4" />
-            Aide
+            <Settings className="h-4 w-4" />
+            Paramètres
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start"
-            onClick={() => navigate("/support")}
+            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/marketplace",
+            })}
+            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /marketplace"); } navigate("/marketplace"); }}
           >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Support
+            <ShoppingCart className="h-4 w-4" />
+            Vide-Dressing
+          </Button>
+          <Button
+            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            className={cn("w-full justify-start gap-2", {
+              "bg-gray-100": location.pathname === "/help",
+            })}
+            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /help"); } navigate("/help"); }}
+          >
+            <HelpCircle className="h-4 w-4" />
+            Aide & Support
+          </Button>
+          <Button
+            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            className={cn("w-full justify-start gap-2")}
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Déconnexion
           </Button>
         </div>
-      )}
-    </div>
+      </AccordionContent>
+    </AccordionItem>
   );
-}
+};
