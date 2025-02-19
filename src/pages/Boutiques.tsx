@@ -1,6 +1,4 @@
-
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Plus, List, MapPin } from "lucide-react";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
@@ -20,11 +18,15 @@ export default function Boutiques() {
     filters,
     setFilters,
   } = useStores();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
-      <MainSidebar />
+      <MainSidebar 
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
       <main className="pt-24 px-4 md:pl-72">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

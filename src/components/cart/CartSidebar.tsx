@@ -4,8 +4,8 @@ import { ShoppingCart, X } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { CartList } from "./CartList";
-import { CartSummary } from "./CartSummary";
+import { CartList } from "@/components/cart/CartList";
+import { CartSummary } from "@/components/cart/CartSummary";
 import { useCart } from "@/hooks/useCart";
 
 export interface CartSidebarProps {

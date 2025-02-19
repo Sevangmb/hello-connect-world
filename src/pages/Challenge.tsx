@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
@@ -6,11 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Challenge() {
   const { id } = useParams();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
-      <MainSidebar />
+      <MainSidebar 
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
       <main className="pt-24 pb-8 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto">
           <Card>
