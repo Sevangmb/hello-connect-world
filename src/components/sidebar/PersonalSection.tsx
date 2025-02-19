@@ -1,5 +1,5 @@
 
-import { User, ShoppingBag, Suitcase, Heart } from "lucide-react";
+import { User, ShoppingBag, Luggage, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -36,7 +36,7 @@ export function PersonalSection() {
             className="w-full justify-start"
             onClick={() => navigate("/suitcases")}
           >
-            <Suitcase className="mr-2 h-4 w-4" />
+            <Luggage className="mr-2 h-4 w-4" />
             Mes valises
           </Button>
           <Button

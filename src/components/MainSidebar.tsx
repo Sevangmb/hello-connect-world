@@ -71,7 +71,7 @@ export default function MainSidebar({ children, isCollapsed, setIsCollapsed }: M
               variant="ghost"
               className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={() => {
-                // Gérer la déconnexion
+                // Handle logout
               }}
             >
               <LogOut className="mr-2 h-5 w-5" />

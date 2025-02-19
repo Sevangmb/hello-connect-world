@@ -2,7 +2,7 @@
 import { Shield, Users, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export function AdminSection() {
@@ -10,8 +10,7 @@ export function AdminSection() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Vérifier si l'utilisateur est admin
-  useState(() => {
+  useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
