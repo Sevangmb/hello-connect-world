@@ -39,8 +39,8 @@ export default function AddShopItem() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -235,6 +235,7 @@ export default function AddShopItem() {
             <ClothesImageUpload
               onImageUrlChange={setImageUrl}
               onUploadStateChange={setUploading}
+              imageUrl={imageUrl}
             />
 
             <div className="flex justify-end gap-4">
