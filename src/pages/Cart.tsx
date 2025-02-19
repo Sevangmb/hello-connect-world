@@ -38,7 +38,7 @@ export default function Cart() {
           <div className="lg:col-span-2">
             <CartList 
               items={cartItems} 
-              onUpdateQuantity={updateQuantity.mutate}
+              onUpdateQuantity={(itemId, quantity) => updateQuantity.mutate({ itemId, quantity })}
               onRemove={removeFromCart.mutate}
             />
           </div>
