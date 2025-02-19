@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -8,7 +9,7 @@ import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 
 // Layouts
-import { RootLayout } from "@/components/layouts/RootLayout"; // Correction du chemin
+import { RootLayout } from "@/components/layouts/RootLayout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 
 // Pages issues de main.tsx
@@ -17,7 +18,6 @@ import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
 import NotFound from "@/pages/NotFound";
 import HelpAndSupport from "@/pages/HelpAndSupport";
-import Shops from "@/pages/Shops";
 import CreateShop from "@/pages/CreateShop";
 import StoresMap from "@/pages/StoresMap";
 import StoresList from "@/pages/StoresList";
@@ -48,7 +48,6 @@ import Cart from "@/pages/Cart";
 
 // Pages issues de App.tsx
 import Home from "./pages/Home";
-import Shop from "./pages/Shop";
 import EditShop from "./pages/EditShop";
 import CreateClothe from "./pages/CreateClothe";
 import EditClothe from "./pages/EditClothe";
@@ -89,7 +88,6 @@ const mainRouteComponents = {
   "/hashtags": Hashtags,
   "/explore": Explore,
   "/boutiques": Boutiques,
-  // La route "/shops/:id" est ignorée au profit de "/shops/:shopId"
   "/clothes": Clothes,
   "/outfits": Outfits,
   "/personal": Personal,
@@ -101,7 +99,7 @@ const mainRouteComponents = {
   "/friends": Friends,
   "/find-friends": FindFriends,
   "/profile/settings": Settings,
-  "/marketplace": Shops,
+  "/marketplace": Boutiques,
   "/help": HelpAndSupport,
   "/virtual-tryon": VirtualTryOn,
   "/cart": Cart
@@ -143,7 +141,7 @@ const AppRoutes = () => {
         {/* Routes d'App.tsx */}
         <Route path="/" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
-        <Route path="/shops/:shopId" element={<Shop />} />
+        <Route path="/shops/:shopId" element={<ShopDetail />} />
         <Route path="/shops/create" element={<CreateShop />} />
         <Route path="/shops/:shopId/edit" element={<EditShop />} />
         <Route path="/shops/:shopId/clothes/create" element={<CreateClothe />} />
@@ -180,3 +178,4 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <App />
   </React.StrictMode>
 );
+
