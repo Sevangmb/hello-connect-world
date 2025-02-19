@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { HomeSection } from "@/components/sidebar/HomeSection";
 import { ExploreSection } from "@/components/sidebar/ExploreSection";
 import { PersonalSection } from "@/components/sidebar/PersonalSection";
@@ -11,7 +11,11 @@ import { Menu, X, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/contexts/SidebarContext";
 
-export default function MainSidebar() {
+export interface MainSidebarProps {
+  children?: React.ReactNode;
+}
+
+export default function MainSidebar({ children }: MainSidebarProps) {
   const navigate = useNavigate();
   const { isCollapsed, setIsCollapsed } = useSidebar();
 
@@ -70,6 +74,7 @@ export default function MainSidebar() {
           </div>
         </div>
       </aside>
+      {children}
     </>
   );
 }

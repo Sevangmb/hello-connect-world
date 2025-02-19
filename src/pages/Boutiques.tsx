@@ -5,7 +5,7 @@ import { PageLayout } from "@/components/layouts/PageLayout";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { StoreFilters } from "@/components/stores/StoreFilters";
 import StoreMap from "@/components/stores/StoreMap";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStores } from "@/hooks/useStores";
 
@@ -52,7 +52,11 @@ export default function Boutiques() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 mt-6">
                 {stores.map((store) => (
-                  <ShopCard key={store.id} shop={store} />
+                  <ShopCard 
+                    key={store.id} 
+                    shop={store}
+                    onAction={() => navigate(`/shops/${store.id}`)}
+                  />
                 ))}
               </div>
             )}
