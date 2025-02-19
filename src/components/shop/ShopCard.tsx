@@ -3,28 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { MapPin, Store, ShoppingBag } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { Store as StoreType } from "@/hooks/useStores";
 
-interface ShopCardProps {
-  shop: {
-    id: string;
-    name: string;
-    description: string | null;
-    address: string | null;
-    status: string;
-    shop_items: { id: string }[];
-    profiles: {
-      username: string | null;
-    } | null;
-  };
+export interface ShopCardProps {
+  shop: StoreType;
+  onAction?: () => void;
 }
 
-export function ShopCard({ shop }: ShopCardProps) {
+export function ShopCard({ shop, onAction }: ShopCardProps) {
   const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onAction) {
+      onAction();
+    } else {
+      navigate(`/shops/${shop.id}`);
+    }
+  };
 
   return (
     <Card 
       className="hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => navigate(`/shops/${shop.id}`)}
+      onClick={handleClick}
     >
       <CardHeader>
         <div className="flex items-start justify-between">
