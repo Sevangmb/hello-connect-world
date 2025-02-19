@@ -1,6 +1,6 @@
 
 import { CartItemType } from "@/types";
-import { CartItem } from "@/components/cart/CartItem";
+import { CartItem } from "./CartItem";
 
 interface CartListProps {
   items: CartItemType[];
@@ -9,20 +9,17 @@ interface CartListProps {
 }
 
 export function CartList({ items, onUpdateQuantity, onRemove }: CartListProps) {
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    onUpdateQuantity(itemId, quantity);
-  };
-
   return (
     <div className="space-y-4">
       {items.map((item) => (
         <CartItem
           key={item.id}
           item={item}
-          onUpdateQuantity={handleUpdateQuantity}
+          onUpdateQuantity={onUpdateQuantity}
           onRemove={onRemove}
         />
       ))}
     </div>
   );
 }
+

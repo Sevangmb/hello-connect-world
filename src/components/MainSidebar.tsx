@@ -1,18 +1,18 @@
-
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { HomeSection } from "@/components/sidebar/HomeSection";
+import { ExploreSection } from "@/components/sidebar/ExploreSection";
+import { PersonalSection } from "@/components/sidebar/PersonalSection";
+import { CommunitySection } from "@/components/sidebar/CommunitySection";
+import { ProfileSection } from "@/components/sidebar/ProfileSection";
+import { AdminSection } from "@/components/sidebar/AdminSection";
 import {
-  Home,
-  Search,
-  ShoppingBag,
-  Users,
-  User,
-  Settings,
-  LogOut,
   Menu,
-  X
+  X,
+  Settings,
+  LogOut
 } from "lucide-react";
 
 interface MainSidebarProps {
@@ -20,43 +20,8 @@ interface MainSidebarProps {
   setIsCollapsed: (value: boolean) => void;
 }
 
-const MENU_ITEMS = [
-  {
-    label: "Accueil",
-    icon: Home,
-    path: "/",
-    description: "Météo et suggestions"
-  },
-  {
-    label: "Explorer",
-    icon: Search,
-    path: "/explore",
-    description: "Recherche et tendances"
-  },
-  {
-    label: "Mon Univers",
-    icon: ShoppingBag,
-    path: "/personal",
-    description: "Garde-robe et tenues",
-    isMain: true
-  },
-  {
-    label: "Social",
-    icon: Users,
-    path: "/friends",
-    description: "Amis et groupes"
-  },
-  {
-    label: "Profil",
-    icon: User,
-    path: "/profile",
-    description: "Mon profil et paramètres"
-  }
-];
-
 export default function MainSidebar({ isCollapsed, setIsCollapsed }: MainSidebarProps) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   return (
     <>
@@ -83,23 +48,12 @@ export default function MainSidebar({ isCollapsed, setIsCollapsed }: MainSidebar
           </div>
 
           <nav className="flex-1 space-y-1 p-4">
-            {MENU_ITEMS.map((item) => (
-              <Button
-                key={item.path}
-                variant={location.pathname === item.path ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start",
-                  item.isMain && "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
-                onClick={() => {
-                  navigate(item.path);
-                  setIsCollapsed(true);
-                }}
-              >
-                <item.icon className="mr-2 h-5 w-5" />
-                {item.label}
-              </Button>
-            ))}
+            <HomeSection />
+            <ExploreSection />
+            <PersonalSection />
+            <CommunitySection />
+            <ProfileSection />
+            <AdminSection />
           </nav>
 
           <div className="border-t p-4">
