@@ -1,11 +1,14 @@
 
+import { useState } from "react";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { CartList } from "@/components/cart/CartList";
 import { CartSummary } from "@/components/cart/CartSummary";
+import MainSidebar from "@/components/MainSidebar";
 
 export default function Cart() {
   const { cartItems, isLoading, updateQuantity, removeFromCart } = useCart();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (isLoading) {
     return (
@@ -15,16 +18,12 @@ export default function Cart() {
     );
   }
 
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    updateQuantity.mutate({ itemId, quantity });
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    removeFromCart.mutate(itemId);
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
+      <MainSidebar 
+        isCollapsed={isSidebarCollapsed} 
+        setIsCollapsed={setIsSidebarCollapsed} 
+      />
       <div className="flex items-center gap-2 mb-8">
         <ShoppingCart className="h-6 w-6" />
         <h1 className="text-2xl font-semibold">Mon panier</h1>
@@ -39,8 +38,8 @@ export default function Cart() {
           <div className="lg:col-span-2">
             <CartList 
               items={cartItems} 
-              onUpdateQuantity={handleUpdateQuantity}
-              onRemove={handleRemoveItem}
+              onUpdateQuantity={updateQuantity.mutate}
+              onRemove={removeFromCart.mutate}
             />
           </div>
           <div>
