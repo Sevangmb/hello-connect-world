@@ -1,14 +1,12 @@
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Camera, ScanLine } from "lucide-react";
-import { ClothesFormData } from "../types";
-import { useLabelScanner } from "@/hooks/useLabelScanner";
-import { useImageUpload } from "@/hooks/useImageUpload";
 
 interface ClothesImageUploadProps {
-  formData: ClothesFormData;
-  onFormChange: (field: keyof ClothesFormData, value: any) => void;
+  onImageUrlChange: (url: string | null) => void;
+  onUploadStateChange: (uploading: boolean) => void;
 }
 
 const ImagePreview = ({ imageUrl }: { imageUrl: string }) => (
@@ -85,18 +83,33 @@ const ScanButton = ({ scanning, onChange }: { scanning: boolean, onChange: (e: R
   </div>
 );
 
-export const ClothesImageUpload = ({ formData, onFormChange }: ClothesImageUploadProps) => {
-  const { scanLabel, scanning } = useLabelScanner(onFormChange);
-  const { uploadImage, uploading } = useImageUpload((url) => onFormChange('image_url', url));
+export const ClothesImageUpload = ({ onImageUrlChange, onUploadStateChange }: ClothesImageUploadProps) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    onUploadStateChange(true);
+    // Simulate image upload
+    setTimeout(() => {
+      onImageUrlChange("https://example.com/placeholder.jpg");
+      onUploadStateChange(false);
+    }, 1000);
+  };
+
+  const handleScanLabel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    onUploadStateChange(true);
+    // Simulate label scanning
+    setTimeout(() => {
+      onUploadStateChange(false);
+    }, 1000);
+  };
 
   return (
     <div className="space-y-2">
       <Label>Images</Label>
       <div className="flex items-center gap-4">
-        {formData.image_url && <ImagePreview imageUrl={formData.image_url} />}
         <div className="flex gap-2">
-          <UploadButton uploading={uploading} onChange={uploadImage} />
-          <ScanButton scanning={scanning} onChange={scanLabel} />
+          <UploadButton uploading={false} onChange={handleImageUpload} />
+          <ScanButton scanning={false} onChange={handleScanLabel} />
         </div>
       </div>
     </div>

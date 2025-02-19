@@ -67,7 +67,8 @@ export function ShopItems({ shopId }: { shopId: string }) {
     category: item.clothes.category || undefined,
     size: item.clothes.size || undefined,
     brand: item.clothes.brand || undefined,
-    original_price: item.original_price || item.clothes.original_price || undefined
+    original_price: item.original_price || item.clothes.original_price || undefined,
+    status: item.status
   }));
 
   return (
