@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HomeSection } from "@/components/sidebar/HomeSection";
@@ -14,6 +13,7 @@ import {
   Settings,
   LogOut
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MainSidebarProps {
   isCollapsed: boolean;

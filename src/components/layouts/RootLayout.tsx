@@ -7,7 +7,7 @@ import { CartSidebar } from "@/components/cart/CartSidebar";
 
 export function RootLayout() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   return (
     <div className="min-h-screen bg-gray-50">
