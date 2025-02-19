@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Menu, ShoppingCart } from "lucide-react";
-import { Button } from "../ui/button";
-import MainSidebar from "../sidebar/MainSidebar"; // Correction du chemin
-import { CartSidebar } from "../cart/CartSidebar";
+import MainSidebar from "@/components/MainSidebar";
+import { CartSidebar } from "@/components/cart/CartSidebar";
 
 export function RootLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,17 +12,15 @@ export function RootLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Menu button sur mobile */}
       <Button
         variant="ghost"
         size="icon"
         className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setIsSidebarOpen(true)}
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
       >
         <Menu className="h-6 w-6" />
       </Button>
 
-      {/* Cart button */}
       <Button
         variant="outline"
         size="default"
@@ -33,23 +32,18 @@ export function RootLayout() {
       </Button>
 
       <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        isCollapsed={isSidebarOpen} 
+        setIsCollapsed={setIsSidebarOpen} 
       />
 
       <div className="md:pl-64 pt-16">
         <Outlet />
       </div>
 
-      {isCartOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setIsCartOpen(false)}
-          />
-          <CartSidebar onClose={() => setIsCartOpen(false)} />
-        </>
-      )}
+      <CartSidebar 
+        open={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+      />
     </div>
   );
 }

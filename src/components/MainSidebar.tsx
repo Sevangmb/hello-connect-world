@@ -15,6 +15,11 @@ import {
   X
 } from "lucide-react";
 
+interface MainSidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (value: boolean) => void;
+}
+
 const MENU_ITEMS = [
   {
     label: "Accueil",
@@ -49,8 +54,7 @@ const MENU_ITEMS = [
   }
 ];
 
-export default function MainSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export default function MainSidebar({ isCollapsed, setIsCollapsed }: MainSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
 

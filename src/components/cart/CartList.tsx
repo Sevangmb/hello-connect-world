@@ -1,7 +1,6 @@
 
 import { CartItemType } from "@/types";
 import { CartItem } from "./CartItem";
-import { useCart } from "@/hooks/useCart";
 
 interface CartListProps {
   items: CartItemType[];
