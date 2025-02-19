@@ -1,26 +1,36 @@
 
-import { useCart } from "@/hooks/useCart";
-import { formatPrice } from "@/lib/utils";
 import { CartItemType } from "@/types";
+import { formatPrice } from "@/lib/utils";
 
-export interface CartSummaryProps {
+interface CartSummaryProps {
   items: CartItemType[];
 }
 
 export function CartSummary({ items }: CartSummaryProps) {
-  const total = items?.reduce((sum, item) => 
-    sum + (item.shop_items.price * item.quantity), 0
-  ) ?? 0;
-
-  const itemCount = items?.reduce((count, item) => 
-    count + item.quantity, 0
-  ) ?? 0;
+  const total = items.reduce(
+    (sum, item) => sum + item.shop_items.price * item.quantity,
+    0
+  );
 
   return (
-    <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-      <h2 className="text-lg font-semibold">Résumé de la commande</h2>
-      <p className="mt-2">Nombre d'articles: {itemCount}</p>
-      <p className="mt-2 font-bold">Total: {formatPrice(total)}</p>
+    <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+      <h2 className="text-lg font-semibold mb-4">Résumé de la commande</h2>
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span>Sous-total</span>
+          <span>{formatPrice(total)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Frais de livraison</span>
+          <span>Calculés à l'étape suivante</span>
+        </div>
+        <div className="border-t pt-2 mt-2">
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,12 +1,12 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { HomeSection } from "@/components/sidebar/HomeSection";
-import { ExploreSection } from "@/components/sidebar/ExploreSection";
-import { PersonalSection } from "@/components/sidebar/PersonalSection";
-import { CommunitySection } from "@/components/sidebar/CommunitySection";
-import { ProfileSection } from "@/components/sidebar/ProfileSection";
-import { AdminSection } from "@/components/sidebar/AdminSection";
+import { HomeSection } from "./sidebar/HomeSection";
+import { ExploreSection } from "./sidebar/ExploreSection";
+import { PersonalSection } from "./sidebar/PersonalSection";
+import { CommunitySection } from "./sidebar/CommunitySection";
+import { ProfileSection } from "./sidebar/ProfileSection";
+import { AdminSection } from "./sidebar/AdminSection";
 import {
   Menu,
   X,
