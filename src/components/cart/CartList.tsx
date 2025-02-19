@@ -22,4 +22,3 @@ export function CartList({ items, onUpdateQuantity, onRemove }: CartListProps) {
     </div>
   );
 }
-
