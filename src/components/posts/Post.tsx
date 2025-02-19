@@ -1,4 +1,3 @@
-
 import { Heart, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ interface PostProps {
   author: {
     id: string;
     username: string;
-    avatar_url?: string;
+    avatar_url: string;
   };
   content: string;
   created_at: string;
@@ -24,11 +23,12 @@ interface PostProps {
   comments: Array<{
     id: string;
     content: string;
-    author: {
-      username: string;
-      avatar_url?: string;
-    };
     created_at: string;
+    author: {
+      id: string;
+      username: string;
+      avatar_url: string;
+    };
   }>;
 }
 
@@ -93,6 +93,7 @@ export const Post = ({ id, author, content, created_at, likes: initialLikes, lik
           content,
           created_at,
           profiles:user_id (
+            id,
             username,
             avatar_url
           )
@@ -106,6 +107,7 @@ export const Post = ({ id, author, content, created_at, likes: initialLikes, lik
         content: data.content,
         created_at: data.created_at,
         author: {
+          id: data.profiles.id,
           username: data.profiles.username,
           avatar_url: data.profiles.avatar_url,
         },

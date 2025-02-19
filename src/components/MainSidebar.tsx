@@ -23,7 +23,7 @@ export default function MainSidebar() {
         className="fixed top-4 left-4 z-50 md:hidden"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        {isCollapsed ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isCollapsed ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
       </Button>
 
       <aside
