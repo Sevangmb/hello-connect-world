@@ -62,8 +62,8 @@ export function AdminLayout() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
+      <SidebarProvider>
         <MainSidebar>
           <div className="flex-1 ml-64">
             <div className="p-8">
@@ -82,7 +82,7 @@ export function AdminLayout() {
             </div>
           </div>
         </MainSidebar>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }
