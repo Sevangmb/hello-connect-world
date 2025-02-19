@@ -13,11 +13,17 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 export interface MainSidebarProps {
   children?: React.ReactNode;
+  isCollapsed?: boolean;
+  setIsCollapsed?: (collapsed: boolean) => void;
 }
 
-export default function MainSidebar({ children }: MainSidebarProps) {
+export default function MainSidebar({ children, isCollapsed, setIsCollapsed }: MainSidebarProps) {
   const navigate = useNavigate();
-  const { isCollapsed, setIsCollapsed } = useSidebar();
+  const sidebarContext = useSidebar();
+  
+  // Use props if provided, otherwise fall back to context
+  const collapsed = isCollapsed ?? sidebarContext.isCollapsed;
+  const setCollapsed = setIsCollapsed ?? sidebarContext.setIsCollapsed;
 
   return (
     <>
@@ -25,15 +31,15 @@ export default function MainSidebar({ children }: MainSidebarProps) {
         variant="ghost"
         size="icon"
         className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => setCollapsed(!collapsed)}
       >
-        {isCollapsed ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
+        {collapsed ? <Menu className="h-6 w-6" /> : <X className="h-6 w-6" />}
       </Button>
 
       <aside
         className={cn(
           "fixed left-0 top-0 z-40 h-screen w-64 -translate-x-full border-r bg-background transition-transform md:translate-x-0",
-          !isCollapsed && "translate-x-0"
+          !collapsed && "translate-x-0"
         )}
       >
         <div className="flex h-full flex-col">
