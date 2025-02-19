@@ -7,6 +7,7 @@ import { Loader2, Camera, ScanLine } from "lucide-react";
 interface ClothesImageUploadProps {
   onImageUrlChange: (url: string | null) => void;
   onUploadStateChange: (uploading: boolean) => void;
+  imageUrl: string | null;
 }
 
 const ImagePreview = ({ imageUrl }: { imageUrl: string }) => (
@@ -83,7 +84,7 @@ const ScanButton = ({ scanning, onChange }: { scanning: boolean, onChange: (e: R
   </div>
 );
 
-export const ClothesImageUpload = ({ onImageUrlChange, onUploadStateChange }: ClothesImageUploadProps) => {
+export const ClothesImageUpload = ({ onImageUrlChange, onUploadStateChange, imageUrl }: ClothesImageUploadProps) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     onUploadStateChange(true);
@@ -111,6 +112,7 @@ export const ClothesImageUpload = ({ onImageUrlChange, onUploadStateChange }: Cl
           <UploadButton uploading={false} onChange={handleImageUpload} />
           <ScanButton scanning={false} onChange={handleScanLabel} />
         </div>
+        {imageUrl && <ImagePreview imageUrl={imageUrl} />}
       </div>
     </div>
   );

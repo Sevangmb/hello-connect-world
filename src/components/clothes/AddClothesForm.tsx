@@ -45,6 +45,7 @@ const initialFormData: ClothesFormData = {
 
 export const AddClothesForm = () => {
   const [formData, setFormData] = useState<ClothesFormData>(initialFormData);
+  const [isUploading, setIsUploading] = useState(false);
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -87,11 +88,12 @@ export const AddClothesForm = () => {
         />
 
         <ClothesImageUpload
-          formData={formData}
-          onFormChange={handleFormChange}
+          onImageUrlChange={(url) => handleFormChange('image_url', url)}
+          onUploadStateChange={setIsUploading}
+          imageUrl={formData.image_url}
         />
 
-        <Button type="submit" disabled={loading || !formData.category}>
+        <Button type="submit" disabled={loading || !formData.category || isUploading}>
           {loading ? (
             <>
               <Loader2 className="animate-spin mr-2" />
