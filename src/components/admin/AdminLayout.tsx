@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,7 @@ import { LogOut } from "lucide-react";
 
 export function AdminLayout() {
   const [adminRole, setAdminRole] = useState<boolean>(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -61,7 +63,10 @@ export function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <MainSidebar />
+      <MainSidebar 
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
       
       {/* Main content */}
       <div className="flex-1 ml-64">
