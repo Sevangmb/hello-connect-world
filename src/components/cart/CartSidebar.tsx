@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/utils";
+import { CheckoutButton } from "@/components/shop/CheckoutButton";
 
 interface CartSidebarProps {
   onClose: () => void;
@@ -116,12 +117,13 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-              <Button className="w-full" onClick={() => {
-                // TODO: Implement checkout
-                console.log("Proceed to checkout");
-              }}>
-                Passer la commande
-              </Button>
+              <CheckoutButton 
+                cartItems={cartItems.map(item => ({ 
+                  id: item.id, 
+                  quantity: item.quantity 
+                }))}
+                isLoading={isCartLoading}
+              />
             </div>
           </>
         )}

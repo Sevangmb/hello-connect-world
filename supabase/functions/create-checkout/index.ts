@@ -1,98 +1,129 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
-import Stripe from 'https://esm.sh/stripe@14.21.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { stripe } from 'https://esm.sh/stripe@13.10.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { items, order_id } = await req.json()
-    
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      throw new Error('Invalid items provided')
-    }
-
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripe = new stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
       apiVersion: '2023-10-16',
     })
 
-    // Get user information if logged in
-    let customerEmail = undefined
-    const authHeader = req.headers.get('Authorization')
-    if (authHeader) {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      )
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user } } = await supabaseClient.auth.getUser(token)
-      if (user?.email) {
-        customerEmail = user.email
-      }
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase environment variables')
     }
 
-    console.log('Creating checkout session...')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const { cartItems, userId } = await req.json()
+
+    if (!cartItems?.length || !userId) {
+      throw new Error('Missing required parameters')
+    }
+
+    // Fetch details for all cart items
+    const { data: items, error: itemsError } = await supabase
+      .from('cart_items')
+      .select(`
+        quantity,
+        shop_items!inner (
+          id,
+          price,
+          shop_id,
+          clothes!inner (
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('user_id', userId)
+
+    if (itemsError) {
+      throw itemsError
+    }
+
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
-      customer_email: customerEmail,
-      metadata: {
-        order_id: order_id
-      },
-      line_items: items.map((item: any) => ({
+      payment_method_types: ['card'],
+      line_items: items.map((item) => ({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: item.name,
-            description: item.description,
-            images: item.image ? [item.image] : undefined,
+            name: item.shop_items.clothes.name,
+            images: item.shop_items.clothes.image_url ? [item.shop_items.clothes.image_url] : [],
           },
-          unit_amount: Math.round(item.price * 100), // Stripe expects amounts in cents
+          unit_amount: Math.round(item.shop_items.price * 100), // Convert to cents
         },
-        quantity: item.quantity || 1,
+        quantity: item.quantity,
       })),
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/payment-success?order_id=${order_id}`,
-      cancel_url: `${req.headers.get('origin')}/payment-cancelled?order_id=${order_id}`,
+      success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
+      metadata: {
+        userId,
+      },
     })
 
-    console.log('Checkout session created:', session.id)
-    
-    // Update order with Stripe session ID
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-    
-    await supabaseAdmin
+    // Create order in database
+    const { data: order, error: orderError } = await supabase
       .from('orders')
-      .update({ 
+      .insert({
+        buyer_id: userId,
+        seller_id: items[0].shop_items.shop_id, // For simplicity, using first item's shop
+        total_amount: items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0),
         stripe_session_id: session.id,
+        status: 'pending',
+        payment_status: 'pending',
       })
-      .eq('id', order_id)
+      .select()
+      .single()
+
+    if (orderError) {
+      throw orderError
+    }
+
+    // Create order items
+    const orderItems = items.map((item) => ({
+      order_id: order.id,
+      shop_item_id: item.shop_items.id,
+      quantity: item.quantity,
+      price_at_time: item.shop_items.price,
+    }))
+
+    const { error: orderItemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems)
+
+    if (orderItemsError) {
+      throw orderItemsError
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     )
   } catch (error) {
-    console.error('Error creating checkout session:', error)
+    console.error('Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+        status: 400,
+      },
     )
   }
 })

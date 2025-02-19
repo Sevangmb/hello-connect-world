@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CheckoutButton } from "@/components/shop/CheckoutButton";
 
 export default function Cart() {
   const { cartItems, isCartLoading, updateQuantity, removeFromCart } = useCart();
@@ -106,12 +107,13 @@ export default function Cart() {
                 <span className="font-medium">Total</span>
                 <span className="font-bold">{formatPrice(total)}</span>
               </div>
-              <Button className="w-full" onClick={() => {
-                // TODO: Implement checkout
-                console.log("Proceed to checkout");
-              }}>
-                Passer la commande
-              </Button>
+              <CheckoutButton 
+                cartItems={cartItems?.map(item => ({ 
+                  id: item.id, 
+                  quantity: item.quantity 
+                })) ?? []}
+                isLoading={isCartLoading}
+              />
             </div>
           </div>
         </div>
