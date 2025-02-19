@@ -5,19 +5,19 @@ import { useCart } from "@/hooks/useCart";
 
 interface CartListProps {
   items: CartItemType[];
+  onUpdateQuantity: (itemId: string, quantity: number) => void;
+  onRemove: (itemId: string) => void;
 }
 
-export function CartList({ items }: CartListProps) {
-  const { updateQuantity, removeFromCart } = useCart();
-
+export function CartList({ items, onUpdateQuantity, onRemove }: CartListProps) {
   return (
     <div className="space-y-4">
       {items.map((item) => (
         <CartItem
           key={item.id}
           item={item}
-          onUpdateQuantity={(itemId, quantity) => updateQuantity.mutate({ itemId, quantity })}
-          onRemove={(itemId) => removeFromCart.mutate(itemId)}
+          onUpdateQuantity={onUpdateQuantity}
+          onRemove={onRemove}
         />
       ))}
     </div>

@@ -27,14 +27,6 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  const handleUpdateQuantity = (itemId: string, quantity: number) => {
-    updateQuantity.mutate({ itemId, quantity });
-  };
-
-  const handleRemoveItem = (itemId: string) => {
-    removeFromCart.mutate(itemId);
-  };
-
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-lg">
@@ -66,8 +58,8 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
             <ScrollArea className="h-[calc(100vh-200px)]">
               <CartList
                 items={cartItems}
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemove={handleRemoveItem}
+                onUpdateQuantity={(itemId, quantity) => updateQuantity.mutate({ itemId, quantity })}
+                onRemove={(itemId) => removeFromCart.mutate(itemId)}
               />
               <CartSummary items={cartItems} />
             </ScrollArea>
@@ -77,4 +69,3 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
     </Sheet>
   );
 }
-
