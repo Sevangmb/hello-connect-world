@@ -5,12 +5,16 @@ import { PageLayout } from "@/components/layouts/PageLayout";
 import { ShopCard } from "@/components/shop/ShopCard";
 import { StoreFilters } from "@/components/stores/StoreFilters";
 import StoreMap from "@/components/stores/StoreMap";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStores } from "@/hooks/useStores";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Boutiques() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const {
     stores,
     loading,
@@ -18,12 +22,30 @@ export default function Boutiques() {
     setFilters,
   } = useStores();
 
+  const handleCreateShop = () => {
+    if (!user) {
+      toast({
+        title: "Connexion requise",
+        description: "Vous devez être connecté pour créer une boutique",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+    navigate("/shops/create");
+  };
+
   return (
     <PageLayout>
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Boutiques</h1>
-          <Button onClick={() => navigate("/shops/create")}>
+          <div>
+            <h1 className="text-2xl font-bold">Boutiques</h1>
+            <p className="text-sm text-muted-foreground">
+              Découvrez les boutiques de vêtements de seconde main
+            </p>
+          </div>
+          <Button onClick={handleCreateShop}>
             <Plus className="h-4 w-4 mr-2" />
             Ouvrir ma boutique
           </Button>
@@ -49,6 +71,10 @@ export default function Boutiques() {
           <TabsContent value="list">
             {loading ? (
               <div className="text-center py-8">Chargement...</div>
+            ) : stores?.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Aucune boutique trouvée
+              </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 mt-6">
                 {stores.map((store) => (
@@ -63,7 +89,7 @@ export default function Boutiques() {
           </TabsContent>
           
           <TabsContent value="map">
-            <div className="mt-6">
+            <div className="mt-6 h-[500px]">
               <StoreMap />
             </div>
           </TabsContent>

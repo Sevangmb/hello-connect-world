@@ -13,7 +13,7 @@ interface ShopCardProps {
 
 export function ShopCard({ shop, onAction }: ShopCardProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <CardHeader className="p-0">
         <div className="relative h-48 w-full">
           <img
@@ -21,7 +21,7 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
             alt={shop.name}
             className="h-full w-full object-cover"
           />
-          {shop.is_verified && (
+          {shop.status === "approved" && (
             <Badge className="absolute right-2 top-2" variant="secondary">
               Vérifié
             </Badge>
@@ -33,7 +33,7 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               <AvatarImage src={shop.logo || "/placeholder-logo.jpg"} alt={shop.name} />
-              <AvatarFallback>{shop.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback>{shop.name.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold">{shop.name}</h3>
@@ -42,10 +42,12 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center text-yellow-500">
-            <Star className="h-4 w-4 fill-current" />
-            <span className="ml-1 text-sm">{shop.rating || shop.average_rating || "N/A"}</span>
-          </div>
+          {shop.average_rating > 0 && (
+            <div className="flex items-center text-yellow-500">
+              <Star className="h-4 w-4 fill-current" />
+              <span className="ml-1 text-sm">{shop.average_rating.toFixed(1)}</span>
+            </div>
+          )}
         </div>
         <div className="mt-4 space-y-2">
           {shop.description && (
@@ -54,10 +56,12 @@ export function ShopCard({ shop, onAction }: ShopCardProps) {
             </p>
           )}
           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center">
-              <MapPin className="mr-1 h-4 w-4" />
-              <span>{shop.location || shop.address || "Non spécifié"}</span>
-            </div>
+            {(shop.address || (shop.latitude && shop.longitude)) && (
+              <div className="flex items-center">
+                <MapPin className="mr-1 h-4 w-4" />
+                <span>{shop.address || "Voir sur la carte"}</span>
+              </div>
+            )}
             <div className="flex items-center">
               <Package className="mr-1 h-4 w-4" />
               <span>{shop.shop_items?.length || 0} articles</span>
