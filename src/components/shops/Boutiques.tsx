@@ -1,76 +1,74 @@
-import { useState, useEffect } from "react";
-import StoreMap from "./StoreMap";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import type { Store } from "@/hooks/useStores";
 
-const Boutiques = () => {
-  const [stores, setStores] = useState<Store[]>([]);
-  const [stats, setStats] = useState({ totalShops: 0, avgItems: 0 });
-  const { toast } = useToast();
+import { useNavigate } from "react-router-dom";
+import { Plus, List, MapPin } from "lucide-react";
+import { PageLayout } from "@/components/layouts/PageLayout";
+import { ShopCard } from "@/components/shop/ShopCard";
+import { StoreFilters } from "@/components/stores/StoreFilters";
+import StoreMap from "@/components/stores/StoreMap";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useStores } from "@/hooks/useStores";
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchStores = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("shops")
-          .select("*, profiles:user_id (username), shop_items (id)");
-
-        if (error) throw error;
-
-        console.debug("Données reçues :", data);
-        if (isMounted && data) {
-          setStores(data as Store[]);
-
-          // Calcul des statistiques : nombre total de magasins et moyenne des items par magasin
-          const totalShops = data.length;
-          const totalItems = data.reduce((acc: number, shop: any) => {
-            return acc + (shop.shop_items ? shop.shop_items.length : 0);
-          }, 0);
-          const avgItems = totalShops > 0 ? totalItems / totalShops : 0;
-          setStats({ totalShops, avgItems });
-          console.debug("Statistiques :", { totalShops, avgItems });
-        }
-      } catch (error: any) {
-        if (isMounted) {
-          console.error("Error fetching shops:", error.message);
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Impossible de récupérer les magasins",
-          });
-        }
-      }
-    };
-
-    fetchStores();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [toast]);
+export default function Boutiques() {
+  const navigate = useNavigate();
+  const {
+    stores,
+    loading,
+    filters,
+    setFilters,
+  } = useStores();
 
   return (
-    <div>
-      <h1>Boutiques</h1>
-      <div>
-        <h2>Statistiques</h2>
-        <p>Total de boutiques: {stats.totalShops}</p>
-        <p>Moyenne d&apos;items par boutique: {stats.avgItems.toFixed(2)}</p>
-      </div>
-      {stores.length > 0 ? (
-        <div>
-          {stores.map((store) => (
-            <StoreMap key={store.id} store={store} />
-          ))}
+    <PageLayout>
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Boutiques</h1>
+          <Button onClick={() => navigate("/shops/create")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Ouvrir ma boutique
+          </Button>
         </div>
-      ) : (
-        <p>Aucun magasin disponible.</p>
-      )}
-    </div>
-  );
-};
 
-export default Boutiques;
+        <StoreFilters 
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+
+        <Tabs defaultValue="list" className="mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Liste
+            </TabsTrigger>
+            <TabsTrigger value="map" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Carte
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="list">
+            {loading ? (
+              <div className="text-center py-8">Chargement...</div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 mt-6">
+                {stores.map((store) => (
+                  <ShopCard 
+                    key={store.id} 
+                    shop={store}
+                    onAction={() => navigate(`/shops/${store.id}`)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="map">
+            <div className="mt-6">
+              <StoreMap />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </PageLayout>
+  );
+}

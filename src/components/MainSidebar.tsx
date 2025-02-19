@@ -1,6 +1,6 @@
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { HomeSection } from "@/components/sidebar/HomeSection";
 import { ExploreSection } from "@/components/sidebar/ExploreSection";
 import { PersonalSection } from "@/components/sidebar/PersonalSection";
