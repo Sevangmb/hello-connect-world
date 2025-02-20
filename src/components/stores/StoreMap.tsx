@@ -1,16 +1,36 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useStores } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
 import { useToast } from "@/hooks/use-toast";
 
+const DEFAULT_ZOOM = 13;
 const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
-const DEFAULT_ZOOM = 6;
 
 const StoreMap = () => {
   const { stores, loading } = useStores();
   const { toast } = useToast();
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    // Obtenir la position de l'utilisateur
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.error("Erreur de géolocalisation:", error);
+          toast({
+            title: "Erreur de localisation",
+            description: "Impossible d'obtenir votre position. Affichage de la carte par défaut.",
+            variant: "destructive",
+          });
+        }
+      );
+    }
+  }, [toast]);
 
   useEffect(() => {
     let mapRoot: any = null;
@@ -49,8 +69,8 @@ const StoreMap = () => {
 
         const MapComponent = () => (
           <MapContainer
-            center={FRANCE_CENTER}
-            zoom={DEFAULT_ZOOM}
+            center={userLocation || FRANCE_CENTER}
+            zoom={userLocation ? DEFAULT_ZOOM : 6}
             style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={true}
             className="z-10"
@@ -60,6 +80,18 @@ const StoreMap = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               className="map-tiles"
             />
+
+            {/* Marqueur pour la position de l'utilisateur */}
+            {userLocation && (
+              <Marker position={userLocation}>
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-semibold">Votre position</h3>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
+
             {validStores.map((store) => (
               <Marker
                 key={store.id}
@@ -135,7 +167,7 @@ const StoreMap = () => {
         mapRoot.unmount();
       }
     };
-  }, [stores, loading, toast]);
+  }, [stores, loading, toast, userLocation]);
 
   return (
     <div className="h-[600px] rounded-lg overflow-hidden relative">
