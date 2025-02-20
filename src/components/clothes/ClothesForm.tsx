@@ -79,4 +79,3 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
     </div>
   );
 };
-

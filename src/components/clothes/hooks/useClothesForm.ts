@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ClothesFormData } from "../types";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const initialFormData: ClothesFormData = {
   name: "",
@@ -30,6 +31,7 @@ interface UseClothesFormProps {
 export const useClothesForm = ({ clothesId, initialData, onSuccess }: UseClothesFormProps) => {
   const [formData, setFormData] = useState<ClothesFormData>(initialData || initialFormData);
   const { toast } = useToast();
+  const { user } = useAuth();
   const isEditing = Boolean(clothesId);
 
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
@@ -41,6 +43,10 @@ export const useClothesForm = ({ clothesId, initialData, onSuccess }: UseClothes
     e.preventDefault();
     
     try {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
       if (isEditing) {
         const priceValue = formData.price ? Number(formData.price) : null;
         
@@ -77,6 +83,7 @@ export const useClothesForm = ({ clothesId, initialData, onSuccess }: UseClothes
         const { error } = await supabase
           .from("clothes")
           .insert({
+            user_id: user.id,
             name: formData.name,
             description: formData.description,
             category: formData.category,
@@ -120,4 +127,3 @@ export const useClothesForm = ({ clothesId, initialData, onSuccess }: UseClothes
     isEditing,
   };
 };
-
