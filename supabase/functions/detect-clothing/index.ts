@@ -14,25 +14,31 @@ serve(async (req) => {
 
   try {
     const { imageUrl } = await req.json()
-    console.log("Received image URL:", imageUrl);
+    console.log("Received image URL:", imageUrl)
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
 
+    // Définir les catégories possibles pour la classification
+    const clothingCategories = ['top', 'dress', 'pants', 'outerwear', 'shoes', 'accessories']
+
     // Classify the image with Hugging Face's API
-    const classification = await hf.imageClassification({
-      model: 'patrickjohncyh/fashion-clip',
-      data: imageUrl,
+    const classification = await hf.zeroShotImageClassification({
+      model: 'facebook/nllb-200-distilled-600M',
+      inputs: imageUrl,
+      parameters: {
+        candidate_labels: clothingCategories,
+      },
     })
-    console.log("Classification results:", classification);
+    console.log("Classification results:", classification)
 
     // Detect color using another model
     const colorDetection = await hf.imageClassification({
       model: 'nateraw/color-detection',
       data: imageUrl,
     })
-    console.log("Color detection results:", colorDetection);
+    console.log("Color detection results:", colorDetection)
 
-    const category = classification[0]?.label || ''
+    const category = classification?.labels?.[0] || ''
     const color = colorDetection[0]?.label || ''
 
     // Map the detected category to our application's categories
@@ -49,7 +55,7 @@ serve(async (req) => {
       category: categoryMap[category.toLowerCase()] || category,
       color: color
     }
-    console.log("Sending response:", result);
+    console.log("Sending response:", result)
 
     return new Response(
       JSON.stringify(result),
