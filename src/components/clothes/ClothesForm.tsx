@@ -173,9 +173,9 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
             formData={formData}
             onFormChange={handleFormChange}
           />
-          
+
           {formData.image_url && (
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
