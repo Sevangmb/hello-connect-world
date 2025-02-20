@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,8 +52,8 @@ serve(async (req) => {
   }
 
   try {
-    const { image_url } = await req.json();
-    console.log("Processing image URL:", image_url);
+    const { imageUrl } = await req.json();
+    console.log("Processing image URL:", imageUrl);
 
     const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
     if (!hfToken) {
@@ -67,7 +66,12 @@ serve(async (req) => {
       {
         headers: { Authorization: `Bearer ${hfToken}` },
         method: "POST",
-        body: JSON.stringify({ url: image_url }),
+        body: JSON.stringify({
+          inputs: imageUrl,
+          parameters: {
+            candidate_labels: Object.keys(CATEGORY_MAPPING).join(','),
+          }
+        }),
       }
     );
 
@@ -91,7 +95,12 @@ serve(async (req) => {
       {
         headers: { Authorization: `Bearer ${hfToken}` },
         method: "POST",
-        body: JSON.stringify({ url: image_url }),
+        body: JSON.stringify({
+          inputs: imageUrl,
+          parameters: {
+            candidate_labels: Object.keys(COLOR_MAPPING).join(','),
+          }
+        }),
       }
     );
 
@@ -127,7 +136,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // On renvoie 200 même en cas d'erreur pour permettre l'affichage du toast
+        status: 200
       }
     );
   }
