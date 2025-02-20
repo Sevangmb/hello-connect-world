@@ -18,6 +18,7 @@ type Clothes = {
   purchase_date: string | null;
   is_for_sale: boolean;
   needs_alteration: boolean;
+  weather_categories: string[];
 };
 
 type EditClothesDialogProps = {
@@ -53,6 +54,7 @@ export const EditClothesDialog = ({ clothes, trigger }: EditClothesDialogProps) 
             purchase_date: clothes.purchase_date || "",
             is_for_sale: clothes.is_for_sale,
             needs_alteration: clothes.needs_alteration,
+            weather_categories: clothes.weather_categories || [],
           }}
           onSuccess={() => setOpen(false)}
         />
@@ -60,3 +62,4 @@ export const EditClothesDialog = ({ clothes, trigger }: EditClothesDialogProps) 
     </Dialog>
   );
 };
+
