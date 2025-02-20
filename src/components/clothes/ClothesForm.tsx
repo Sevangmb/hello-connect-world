@@ -31,6 +31,15 @@ const STYLES = [
   "Business",
 ];
 
+const WEATHER_CATEGORIES = [
+  "Été",
+  "Hiver",
+  "Mi-saison",
+  "Pluie",
+  "Soleil",
+  "Intérieur",
+];
+
 const initialFormData: ClothesFormData = {
   name: "",
   description: "",
@@ -45,6 +54,7 @@ const initialFormData: ClothesFormData = {
   purchase_date: "",
   is_for_sale: false,
   needs_alteration: false,
+  weather_categories: [],
 };
 
 interface ClothesFormProps {
@@ -131,6 +141,7 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
             is_for_sale: formData.is_for_sale,
             needs_alteration: formData.needs_alteration,
             image_url: formData.image_url,
+            weather_categories: formData.weather_categories,
             updated_at: new Date().toISOString(),
           })
           .eq("id", clothesId);
@@ -224,6 +235,7 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
           onFormChange={handleFormChange}
           categories={CATEGORIES}
           styles={STYLES}
+          weatherCategories={WEATHER_CATEGORIES}
         />
 
         <ClothesDetails
@@ -250,3 +262,4 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
     </div>
   );
 };
+

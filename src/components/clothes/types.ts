@@ -15,4 +15,6 @@ export interface ClothesFormData {
   purchase_date: string;
   is_for_sale: boolean;
   needs_alteration: boolean;
+  weather_categories: string[];
 }
+

@@ -5,12 +5,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClothesFormData } from "../types";
 import { useEffect } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ClothesBasicInfoProps {
   formData: ClothesFormData;
   onFormChange: (field: keyof ClothesFormData, value: any) => void;
   categories: string[];
   styles: string[];
+  weatherCategories: string[];
 }
 
 const SUBCATEGORIES = {
@@ -22,13 +24,19 @@ const SUBCATEGORIES = {
   "Accessoires": ["Sac", "Bijoux", "Ceinture", "Écharpe"]
 };
 
-export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }: ClothesBasicInfoProps) => {
-  // Mettre à jour la sous-catégorie quand la catégorie change
+export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles, weatherCategories }: ClothesBasicInfoProps) => {
   useEffect(() => {
     if (formData.category && !formData.subcategory && SUBCATEGORIES[formData.category]) {
       onFormChange('subcategory', SUBCATEGORIES[formData.category][0]);
     }
   }, [formData.category]);
+
+  const handleWeatherCategoryChange = (category: string) => {
+    const updatedCategories = formData.weather_categories.includes(category)
+      ? formData.weather_categories.filter(c => c !== category)
+      : [...formData.weather_categories, category];
+    onFormChange('weather_categories', updatedCategories);
+  };
 
   return (
     <>
@@ -60,7 +68,6 @@ export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }:
             value={formData.category}
             onValueChange={(value) => {
               onFormChange('category', value);
-              // Réinitialiser la sous-catégorie
               if (SUBCATEGORIES[value]) {
                 onFormChange('subcategory', SUBCATEGORIES[value][0]);
               }
@@ -121,6 +128,25 @@ export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }:
           </Select>
         </div>
       </div>
+
+      <div className="space-y-2">
+        <Label>Catégories météo</Label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {weatherCategories.map((category) => (
+            <div key={category} className="flex items-center space-x-2">
+              <Checkbox
+                id={`weather-${category}`}
+                checked={formData.weather_categories.includes(category)}
+                onCheckedChange={() => handleWeatherCategoryChange(category)}
+              />
+              <Label htmlFor={`weather-${category}`} className="cursor-pointer">
+                {category}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
     </>
   );
 };
+
