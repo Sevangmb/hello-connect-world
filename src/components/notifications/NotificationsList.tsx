@@ -77,8 +77,7 @@ export const NotificationsList = () => {
         throw error;
       }
 
-      // Type assertion to ensure the response matches our Notification type
-      return (data || []) as Notification[];
+      return (data as Notification[]) || [];
     },
   });
 
