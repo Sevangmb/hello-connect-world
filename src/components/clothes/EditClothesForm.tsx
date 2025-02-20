@@ -52,6 +52,9 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
     try {
       setLoading(true);
       
+      // Convert price to number for database
+      const priceValue = formData.price ? Number(formData.price) : null;
+      
       const { error } = await supabase
         .from("clothes")
         .update({
@@ -63,7 +66,7 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
           material: formData.material,
           color: formData.color,
           style: formData.style,
-          price: formData.price,
+          price: priceValue,
           purchase_date: formData.purchase_date,
           is_for_sale: formData.is_for_sale,
           needs_alteration: formData.needs_alteration,

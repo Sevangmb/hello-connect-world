@@ -10,7 +10,7 @@ export interface ClothesFormData {
   material: string;
   color: string;
   style: string;
-  price: string | number;
+  price: number | null;
   purchase_date: string;
   is_for_sale: boolean;
   needs_alteration: boolean;

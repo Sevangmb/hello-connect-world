@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ type ClothesCardProps = {
     image_url: string | null;
     archived: boolean;
     needs_alteration: boolean;
+    is_for_sale: boolean;
   };
   onDelete: (id: string) => Promise<void>;
   onArchive: (id: string, archived: boolean) => Promise<void>;
