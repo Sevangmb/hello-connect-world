@@ -1,140 +1,72 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { ImageUpload } from "@/components/ui/image-upload";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
 import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
 import { ClothesDetails } from "./forms/ClothesDetails";
 import { ClothesOptions } from "./forms/ClothesOptions";
 import { ClothesImageUpload } from "./forms/ClothesImageUpload";
+import { ClothesDetectionButtons } from "./components/ClothesDetectionButtons";
 import { ClothesFormData } from "./types";
-
-const CATEGORIES = [
-  "Hauts",
-  "Bas",
-  "Robes",
-  "Manteaux",
-  "Chaussures",
-  "Accessoires",
-];
-
-const STYLES = [
-  "Casual",
-  "Formel",
-  "Sport",
-  "Soirée",
-  "Plage",
-  "Business",
-];
+import { CATEGORIES, STYLES, WEATHER_CATEGORIES } from "./constants/categories";
 
 interface EditClothesFormProps {
   clothesId: string;
-  initialData: ClothesFormData;
-  onSuccess: () => void;
+  formData: ClothesFormData;
+  onFormChange: (field: keyof ClothesFormData, value: any) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
-export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditClothesFormProps) => {
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [formData, setFormData] = useState<ClothesFormData>(initialData);
-
-  const handleFormChange = (field: keyof ClothesFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    try {
-      setLoading(true);
-      
-      // Convert price to number for database
-      const priceValue = formData.price ? Number(formData.price) : null;
-      
-      const { error } = await supabase
-        .from("clothes")
-        .update({
-          name: formData.name,
-          description: formData.description,
-          category: formData.category,
-          brand: formData.brand,
-          size: formData.size,
-          material: formData.material,
-          color: formData.color,
-          style: formData.style,
-          price: priceValue,
-          purchase_date: formData.purchase_date,
-          is_for_sale: formData.is_for_sale,
-          needs_alteration: formData.needs_alteration,
-          image_url: formData.image_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", clothesId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Vêtement modifié",
-        description: "Le vêtement a été modifié avec succès",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["clothes"] });
-      onSuccess();
-    } catch (error: any) {
-      console.error("Error updating clothes:", error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de modifier le vêtement",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export const EditClothesForm = ({ 
+  clothesId,
+  formData,
+  onFormChange,
+  onSubmit
+}: EditClothesFormProps) => {
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <ClothesBasicInfo
-        formData={formData}
-        onFormChange={handleFormChange}
-        categories={CATEGORIES}
-        styles={STYLES}
-      />
-
-      <ClothesDetails
-        formData={formData}
-        onFormChange={handleFormChange}
-      />
-
-      <ClothesOptions
-        formData={formData}
-        onFormChange={handleFormChange}
-      />
-
-      <ClothesImageUpload
-        formData={formData}
-        onFormChange={handleFormChange}
-      />
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onSuccess}>
-          Annuler
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin mr-2" />
-              Enregistrement...
-            </>
-          ) : (
-            "Enregistrer"
-          )}
-        </Button>
+    <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-bold">Modifier le vêtement</h2>
+        <p className="text-muted-foreground">
+          Modifiez les informations du vêtement
+        </p>
       </div>
-    </form>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-4">
+          <ClothesImageUpload
+            formData={formData}
+            onFormChange={onFormChange}
+          />
+
+          {formData.image_url && (
+            <ClothesDetectionButtons
+              imageUrl={formData.image_url}
+              onFormChange={onFormChange}
+            />
+          )}
+        </div>
+
+        <ClothesBasicInfo
+          formData={formData}
+          onFormChange={onFormChange}
+          categories={CATEGORIES}
+          styles={STYLES}
+          weatherCategories={WEATHER_CATEGORIES}
+        />
+
+        <ClothesDetails
+          formData={formData}
+          onFormChange={onFormChange}
+        />
+
+        <ClothesOptions
+          formData={formData}
+          onFormChange={onFormChange}
+        />
+
+        <Button type="submit">
+          Enregistrer les modifications
+        </Button>
+      </form>
+    </div>
   );
 };
