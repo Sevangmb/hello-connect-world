@@ -24,6 +24,7 @@ type ClothesCardProps = {
     archived: boolean;
     needs_alteration: boolean;
     is_for_sale: boolean;
+    weather_categories: string[];
   };
   onDelete: (id: string) => Promise<void>;
   onArchive: (id: string, archived: boolean) => Promise<void>;

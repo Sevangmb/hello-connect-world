@@ -73,7 +73,7 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
-const memoryState: State = { toasts: [] }
+let memoryState: State = { toasts: [] }
 
 const listeners: Array<(state: State) => void> = []
 
