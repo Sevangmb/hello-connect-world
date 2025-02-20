@@ -69,13 +69,11 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
     }
   };
 
-  const isDisabled = externalLoading || isProcessing || !cartItems.length;
-
   return (
     <Button
       className="w-full"
       onClick={handleCheckout}
-      disabled={isDisabled}
+      disabled={externalLoading || isProcessing || !cartItems.length}
     >
       <ShoppingBag className="mr-2 h-4 w-4" />
       {isProcessing ? "Traitement en cours..." : "Passer la commande"}
