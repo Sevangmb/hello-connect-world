@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type WeatherOutfitSuggestionProps = {
@@ -13,12 +13,12 @@ type WeatherOutfitSuggestionProps = {
 const getWeatherCategories = (temperature: number, description: string): string[] => {
   const categories: string[] = [];
   
-  // Catégories basées sur la saison/température
-  if (temperature < 5) {
+  // Catégories basées sur la température
+  if (temperature <= 10) {
     categories.push("Hiver");
-  } else if (temperature < 15) {
+  } else if (temperature <= 20) {
     categories.push("Mi-saison");
-  } else if (temperature < 25) {
+  } else {
     categories.push("Été");
   }
 
@@ -29,7 +29,7 @@ const getWeatherCategories = (temperature: number, description: string): string[
   } else if (lowerDescription.includes("soleil") || lowerDescription.includes("sun") || lowerDescription.includes("clear")) {
     categories.push("Soleil");
   } else {
-    categories.push("Intérieur"); // Par défaut, suggestion pour l'intérieur
+    categories.push("Intérieur");
   }
 
   return categories;
@@ -60,7 +60,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           .eq('user_id', user.id)
           .eq('archived', false)
           .eq('category', 'Hauts')
-          .overlaps('weather_categories', weatherCategories)
+          .contains('weather_categories', weatherCategories)
           .limit(3);
 
         const { data: bottoms, error: bottomsError } = await supabase
@@ -69,7 +69,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           .eq('user_id', user.id)
           .eq('archived', false)
           .eq('category', 'Bas')
-          .overlaps('weather_categories', weatherCategories)
+          .contains('weather_categories', weatherCategories)
           .limit(3);
 
         const { data: shoes, error: shoesError } = await supabase
@@ -78,7 +78,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           .eq('user_id', user.id)
           .eq('archived', false)
           .eq('category', 'Chaussures')
-          .overlaps('weather_categories', weatherCategories)
+          .contains('weather_categories', weatherCategories)
           .limit(3);
 
         if (topsError || bottomsError || shoesError) {
@@ -89,26 +89,26 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         console.log("Found clothes:", { tops, bottoms, shoes });
 
         if ((!tops || tops.length === 0) && (!bottoms || bottoms.length === 0) && (!shoes || shoes.length === 0)) {
-          return `Je n'ai pas trouvé de vêtements adaptés pour une température de ${temperature}°C et un temps ${description}.\n\nPensez à mettre à jour les catégories météo de vos vêtements pour obtenir des suggestions plus pertinentes !`;
+          return `Pour une température de ${temperature}°C et un temps ${description}, je n'ai pas trouvé de vêtements adaptés dans votre garde-robe.\n\nAssurez-vous d'avoir des vêtements avec les catégories météo appropriées : ${weatherCategories.join(", ")}`;
         }
 
         // Formatage de la suggestion
-        let suggestion = `Pour une température de ${temperature}°C et un temps ${description}, voici ce que je vous suggère:\n\n`;
+        let suggestion = `Pour une température de ${temperature}°C et un temps ${description}, voici ce que je vous suggère parmi vos vêtements :\n\n`;
 
         if (tops && tops.length > 0) {
-          suggestion += "Hauts :\n";
+          suggestion += "Hauts recommandés :\n";
           suggestion += tops.map(top => `- ${top.name}${top.brand ? ` (${top.brand})` : ''}`).join('\n');
           suggestion += "\n\n";
         }
 
         if (bottoms && bottoms.length > 0) {
-          suggestion += "Bas :\n";
+          suggestion += "Bas recommandés :\n";
           suggestion += bottoms.map(bottom => `- ${bottom.name}${bottom.brand ? ` (${bottom.brand})` : ''}`).join('\n');
           suggestion += "\n\n";
         }
 
         if (shoes && shoes.length > 0) {
-          suggestion += "Chaussures :\n";
+          suggestion += "Chaussures recommandées :\n";
           suggestion += shoes.map(shoe => `- ${shoe.name}${shoe.brand ? ` (${shoe.brand})` : ''}`).join('\n');
         }
 
@@ -160,4 +160,3 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
     </Card>
   );
 };
-
