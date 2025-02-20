@@ -28,9 +28,11 @@ export function useCart() {
   const { data: cartItems, isLoading: isCartLoading } = useQuery({
     queryKey: ['cart'],
     queryFn: async () => {
+      console.log("Fetching cart items...");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      console.log("User ID:", user.id);
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
@@ -38,7 +40,7 @@ export function useCart() {
           shop_items!shop_item_id (
             id,
             price,
-            clothes!clothes_id (
+            clothes!shop_items_clothes_id_fkey (
               name,
               image_url
             )
@@ -46,7 +48,12 @@ export function useCart() {
         `)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching cart items:", error);
+        throw error;
+      }
+
+      console.log("Cart items fetched:", data);
       return data as CartItem[];
     }
   });
