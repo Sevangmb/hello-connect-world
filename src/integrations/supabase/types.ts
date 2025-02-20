@@ -1681,13 +1681,21 @@ export type Database = {
         }
         Returns: boolean
       }
-      process_order_payment: {
-        Args: {
-          order_id: number
-          payment_method_id: string
-        }
-        Returns: undefined
-      }
+      process_order_payment:
+        | {
+            Args: {
+              order_id: number
+              payment_method_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              order_id: string
+              payment_method_id: string
+            }
+            Returns: undefined
+          }
       update_shop_average_rating: {
         Args: {
           shop_id: string
