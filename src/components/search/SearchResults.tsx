@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,7 @@ export const SearchResults = () => {
           archived,
           needs_alteration,
           is_for_sale,
+          weather_categories,
           profiles!clothes_user_id_profiles_fkey(username, avatar_url)
         `)
         .limit(10);
@@ -61,6 +63,7 @@ export const SearchResults = () => {
           style: cloth.style || '',
           price: cloth.price || 0,
           purchase_date: cloth.purchase_date || '',
+          weather_categories: cloth.weather_categories || [],
         })) || [],
         users: users || [],
       };
