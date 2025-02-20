@@ -35,6 +35,43 @@ const getWeatherCategories = (temperature: number, description: string): string[
   return categories;
 };
 
+async function getClothesForCategory(userId: string, category: string, weatherCategories: string[]) {
+  // D'abord, essayer de trouver des vêtements correspondant aux catégories météo
+  let { data: clothes, error } = await supabase
+    .from('clothes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('archived', false)
+    .eq('category', category)
+    .contains('weather_categories', weatherCategories)
+    .limit(3);
+
+  if (error) {
+    console.error(`Error fetching ${category}:`, error);
+    return null;
+  }
+
+  // Si aucun vêtement correspondant n'est trouvé, retourner des vêtements par défaut
+  if (!clothes || clothes.length === 0) {
+    const { data: defaultClothes, error: defaultError } = await supabase
+      .from('clothes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('archived', false)
+      .eq('category', category)
+      .limit(3);
+
+    if (defaultError) {
+      console.error(`Error fetching default ${category}:`, defaultError);
+      return null;
+    }
+
+    return { clothes: defaultClothes, isWeatherSpecific: false };
+  }
+
+  return { clothes, isWeatherSpecific: true };
+}
+
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
   const { data: suggestion, isLoading, error } = useQuery({
     queryKey: ["outfit-suggestion", temperature, description],
@@ -53,63 +90,33 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         const weatherCategories = getWeatherCategories(temperature, description);
         console.log("Weather categories:", weatherCategories);
 
-        // Récupérer les vêtements appropriés par catégorie
-        const { data: tops, error: topsError } = await supabase
-          .from('clothes')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('archived', false)
-          .eq('category', 'Hauts')
-          .contains('weather_categories', weatherCategories)
-          .limit(3);
+        // Récupérer les vêtements pour chaque catégorie
+        const topsResult = await getClothesForCategory(user.id, 'Hauts', weatherCategories);
+        const bottomsResult = await getClothesForCategory(user.id, 'Bas', weatherCategories);
+        const shoesResult = await getClothesForCategory(user.id, 'Chaussures', weatherCategories);
 
-        const { data: bottoms, error: bottomsError } = await supabase
-          .from('clothes')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('archived', false)
-          .eq('category', 'Bas')
-          .contains('weather_categories', weatherCategories)
-          .limit(3);
-
-        const { data: shoes, error: shoesError } = await supabase
-          .from('clothes')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('archived', false)
-          .eq('category', 'Chaussures')
-          .contains('weather_categories', weatherCategories)
-          .limit(3);
-
-        if (topsError || bottomsError || shoesError) {
-          console.error("Error fetching clothes:", { topsError, bottomsError, shoesError });
+        if (!topsResult && !bottomsResult && !shoesResult) {
           return "Une erreur est survenue lors de la récupération de vos vêtements";
         }
 
-        console.log("Found clothes:", { tops, bottoms, shoes });
-
-        if ((!tops || tops.length === 0) && (!bottoms || bottoms.length === 0) && (!shoes || shoes.length === 0)) {
-          return `Pour une température de ${temperature}°C et un temps ${description}, je n'ai pas trouvé de vêtements adaptés dans votre garde-robe.\n\nAssurez-vous d'avoir des vêtements avec les catégories météo appropriées : ${weatherCategories.join(", ")}`;
-        }
-
         // Formatage de la suggestion
-        let suggestion = `Pour une température de ${temperature}°C et un temps ${description}, voici ce que je vous suggère parmi vos vêtements :\n\n`;
+        let suggestion = `Pour une température de ${temperature}°C et un temps ${description}, voici ce que je vous suggère :\n\n`;
 
-        if (tops && tops.length > 0) {
-          suggestion += "Hauts recommandés :\n";
-          suggestion += tops.map(top => `- ${top.name}${top.brand ? ` (${top.brand})` : ''}`).join('\n');
+        if (topsResult?.clothes && topsResult.clothes.length > 0) {
+          suggestion += `Hauts${topsResult.isWeatherSpecific ? ' (adaptés à la météo)' : ''} :\n`;
+          suggestion += topsResult.clothes.map(top => `- ${top.name}${top.brand ? ` (${top.brand})` : ''}`).join('\n');
           suggestion += "\n\n";
         }
 
-        if (bottoms && bottoms.length > 0) {
-          suggestion += "Bas recommandés :\n";
-          suggestion += bottoms.map(bottom => `- ${bottom.name}${bottom.brand ? ` (${bottom.brand})` : ''}`).join('\n');
+        if (bottomsResult?.clothes && bottomsResult.clothes.length > 0) {
+          suggestion += `Bas${bottomsResult.isWeatherSpecific ? ' (adaptés à la météo)' : ''} :\n`;
+          suggestion += bottomsResult.clothes.map(bottom => `- ${bottom.name}${bottom.brand ? ` (${bottom.brand})` : ''}`).join('\n');
           suggestion += "\n\n";
         }
 
-        if (shoes && shoes.length > 0) {
-          suggestion += "Chaussures recommandées :\n";
-          suggestion += shoes.map(shoe => `- ${shoe.name}${shoe.brand ? ` (${shoe.brand})` : ''}`).join('\n');
+        if (shoesResult?.clothes && shoesResult.clothes.length > 0) {
+          suggestion += `Chaussures${shoesResult.isWeatherSpecific ? ' (adaptées à la météo)' : ''} :\n`;
+          suggestion += shoesResult.clothes.map(shoe => `- ${shoe.name}${shoe.brand ? ` (${shoe.brand})` : ''}`).join('\n');
         }
 
         console.log("Generated suggestion:", suggestion);
@@ -160,3 +167,4 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
     </Card>
   );
 };
+
