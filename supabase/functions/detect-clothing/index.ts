@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { imageUrl } = await req.json()
+    console.log("Received image URL:", imageUrl);
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
 
@@ -22,12 +23,14 @@ serve(async (req) => {
       model: 'patrickjohncyh/fashion-clip',
       data: imageUrl,
     })
+    console.log("Classification results:", classification);
 
     // Detect color using another model
     const colorDetection = await hf.imageClassification({
       model: 'nateraw/color-detection',
       data: imageUrl,
     })
+    console.log("Color detection results:", colorDetection);
 
     const category = classification[0]?.label || ''
     const color = colorDetection[0]?.label || ''
@@ -42,11 +45,14 @@ serve(async (req) => {
       'accessories': 'Accessoires'
     }
 
+    const result = {
+      category: categoryMap[category.toLowerCase()] || category,
+      color: color
+    }
+    console.log("Sending response:", result);
+
     return new Response(
-      JSON.stringify({
-        category: categoryMap[category.toLowerCase()] || category,
-        color: color
-      }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

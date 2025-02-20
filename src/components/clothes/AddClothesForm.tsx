@@ -50,7 +50,7 @@ export const AddClothesForm = () => {
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    console.log("Form data updated:", field, value); // Debug log
+    console.log("Form data updated:", field, value);
   };
 
   const handleDetectFeatures = async () => {
@@ -58,15 +58,20 @@ export const AddClothesForm = () => {
       return;
     }
 
-    console.log("Detecting features for image:", formData.image_url); // Debug log
+    console.log("Detecting features for image:", formData.image_url);
     const data = await detectClothing(formData.image_url);
     if (data) {
-      console.log("Detection results:", data); // Debug log
-      setFormData(prev => ({
-        ...prev,
-        category: data.category || prev.category,
-        color: data.color || prev.color,
-      }));
+      console.log("Detection results:", data);
+      
+      // Mettre à jour le state avec les nouvelles valeurs
+      const updatedFormData = {
+        ...formData,
+        category: data.category || formData.category,
+        color: data.color || formData.color
+      };
+      
+      console.log("Updating form data to:", updatedFormData);
+      setFormData(updatedFormData);
     }
   };
 
@@ -79,7 +84,7 @@ export const AddClothesForm = () => {
     await submitClothes(formData);
   };
 
-  console.log("Current form data:", formData); // Debug log
+  console.log("Current form data:", formData);
 
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
