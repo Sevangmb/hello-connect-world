@@ -18,16 +18,10 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
 
-    // Définir les catégories possibles pour la classification
-    const clothingCategories = ['top', 'dress', 'pants', 'outerwear', 'shoes', 'accessories']
-
     // Classify the image with Hugging Face's API
-    const classification = await hf.zeroShotImageClassification({
-      model: 'facebook/nllb-200-distilled-600M',
-      inputs: imageUrl,
-      parameters: {
-        candidate_labels: clothingCategories,
-      },
+    const classification = await hf.imageClassification({
+      model: 'apple/mobilenet-v3-small',
+      data: imageUrl,
     })
     console.log("Classification results:", classification)
 
@@ -38,17 +32,25 @@ serve(async (req) => {
     })
     console.log("Color detection results:", colorDetection)
 
-    const category = classification?.labels?.[0] || ''
+    const category = classification[0]?.label || ''
     const color = colorDetection[0]?.label || ''
 
     // Map the detected category to our application's categories
     const categoryMap: Record<string, string> = {
-      'top': 'Hauts',
+      'tshirt': 'Hauts',
+      'shirt': 'Hauts',
+      'sweater': 'Hauts',
       'dress': 'Robes',
       'pants': 'Bas',
-      'outerwear': 'Manteaux',
+      'jeans': 'Bas',
+      'coat': 'Manteaux',
+      'jacket': 'Manteaux',
       'shoes': 'Chaussures',
-      'accessories': 'Accessoires'
+      'sneakers': 'Chaussures',
+      'boots': 'Chaussures',
+      'necklace': 'Accessoires',
+      'hat': 'Accessoires',
+      'bag': 'Accessoires'
     }
 
     const result = {
