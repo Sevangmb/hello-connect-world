@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ShoppingBag } from "lucide-react";
+import { useState } from "react";
 
 interface CheckoutButtonProps {
   cartItems: {
@@ -12,16 +13,28 @@ interface CheckoutButtonProps {
   isLoading?: boolean;
 }
 
-export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
+export function CheckoutButton({ cartItems, isLoading: externalLoading }: CheckoutButtonProps) {
   const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = async () => {
     try {
+      setIsProcessing(true);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
-          title: "Erreur",
+          title: "Connexion requise",
           description: "Vous devez être connecté pour effectuer un achat",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!cartItems.length) {
+        toast({
+          title: "Panier vide",
+          description: "Votre panier est vide",
           variant: "destructive",
         });
         return;
@@ -45,21 +58,25 @@ export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast({
-        title: "Erreur",
+        title: "Erreur de paiement",
         description: "Impossible de procéder au paiement. Veuillez réessayer.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
+
+  const isDisabled = externalLoading || isProcessing || !cartItems.length;
 
   return (
     <Button
       className="w-full"
       onClick={handleCheckout}
-      disabled={isLoading || !cartItems.length}
+      disabled={isDisabled}
     >
       <ShoppingBag className="mr-2 h-4 w-4" />
-      Passer la commande
+      {isProcessing ? "Traitement en cours..." : "Passer la commande"}
     </Button>
   );
 }

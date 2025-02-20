@@ -33,7 +33,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get request body
+    // Validate request body
     const { cartItems, userId } = await req.json();
     console.log('Received request:', { cartItems, userId });
 
