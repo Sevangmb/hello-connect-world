@@ -67,7 +67,7 @@ export const NotificationsList = () => {
         .from("notifications")
         .select(`
           *,
-          actor:profiles!notifications_actor_id_fkey(username, avatar_url),
+          actor:actor_id(username, avatar_url),
           post:posts(content)
         `)
         .order("created_at", { ascending: false });
