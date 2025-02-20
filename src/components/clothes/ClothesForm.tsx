@@ -1,16 +1,17 @@
 
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { ClothesFormData } from "./types";
+import { Loader2, Wand2, ScanLine } from "lucide-react";
+import { useClothesSubmit } from "@/hooks/useClothesSubmit";
+import { useClothingDetection } from "@/hooks/useClothingDetection";
+import { useLabelScanner } from "@/hooks/useLabelScanner";
 import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
 import { ClothesDetails } from "./forms/ClothesDetails";
 import { ClothesOptions } from "./forms/ClothesOptions";
 import { ClothesImageUpload } from "./forms/ClothesImageUpload";
-import { useClothesSubmit } from "@/hooks/useClothesSubmit";
-import { useClothingDetection } from "@/hooks/useClothingDetection";
-import { useLabelScanner } from "@/hooks/useLabelScanner";
-import { Loader2, Wand2, ScanLine } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ClothesFormData } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIES = [
   "Hauts",
@@ -46,11 +47,18 @@ const initialFormData: ClothesFormData = {
   needs_alteration: false,
 };
 
-export const AddClothesForm = () => {
-  const [formData, setFormData] = useState<ClothesFormData>(initialFormData);
+interface ClothesFormProps {
+  clothesId?: string;
+  initialData?: ClothesFormData;
+  onSuccess: () => void;
+}
+
+export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormProps) => {
+  const [formData, setFormData] = useState<ClothesFormData>(initialData || initialFormData);
   const { detectClothing, detecting } = useClothingDetection();
   const { scanLabel, scanning } = useLabelScanner((field, value) => handleFormChange(field, value));
   const { toast } = useToast();
+  const isEditing = Boolean(clothesId);
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -95,21 +103,67 @@ export const AddClothesForm = () => {
     }
   };
 
-  const { submitClothes, loading } = useClothesSubmit(() => {
+  const { submitClothes, loading: submitLoading } = useClothesSubmit(() => {
     setFormData(initialFormData);
+    onSuccess();
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await submitClothes(formData);
+    
+    try {
+      if (isEditing) {
+        const priceValue = formData.price ? Number(formData.price) : null;
+        
+        const { error } = await supabase
+          .from("clothes")
+          .update({
+            name: formData.name,
+            description: formData.description,
+            category: formData.category,
+            brand: formData.brand,
+            size: formData.size,
+            material: formData.material,
+            color: formData.color,
+            style: formData.style,
+            price: priceValue,
+            purchase_date: formData.purchase_date,
+            is_for_sale: formData.is_for_sale,
+            needs_alteration: formData.needs_alteration,
+            image_url: formData.image_url,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", clothesId);
+
+        if (error) throw error;
+
+        toast({
+          title: "Vêtement modifié",
+          description: "Le vêtement a été modifié avec succès",
+        });
+
+        onSuccess();
+      } else {
+        await submitClothes(formData);
+      }
+    } catch (error: any) {
+      console.error("Error submitting clothes:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: isEditing ? "Impossible de modifier le vêtement" : "Impossible d'ajouter le vêtement",
+      });
+    }
   };
 
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Ajouter un vêtement</h2>
+        <h2 className="text-2xl font-bold">
+          {isEditing ? "Modifier le vêtement" : "Ajouter un vêtement"}
+        </h2>
         <p className="text-muted-foreground">
-          Ajoutez un nouveau vêtement à votre garde-robe
+          {isEditing ? "Modifiez les informations du vêtement" : "Ajoutez un nouveau vêtement à votre garde-robe"}
         </p>
       </div>
 
@@ -182,14 +236,14 @@ export const AddClothesForm = () => {
           onFormChange={handleFormChange}
         />
 
-        <Button type="submit" disabled={loading || !formData.category}>
-          {loading ? (
+        <Button type="submit" disabled={submitLoading || (!isEditing && !formData.category)}>
+          {submitLoading ? (
             <>
               <Loader2 className="animate-spin mr-2" />
-              Enregistrement...
+              {isEditing ? "Enregistrement..." : "Ajout en cours..."}
             </>
           ) : (
-            "Ajouter le vêtement"
+            isEditing ? "Enregistrer les modifications" : "Ajouter le vêtement"
           )}
         </Button>
       </form>

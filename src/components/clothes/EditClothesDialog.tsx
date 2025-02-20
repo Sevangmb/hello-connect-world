@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { EditClothesForm } from "./EditClothesForm";
+import { ClothesForm } from "./ClothesForm";
 
 type Clothes = {
   id: string;
@@ -37,7 +37,7 @@ export const EditClothesDialog = ({ clothes, trigger }: EditClothesDialogProps) 
         <DialogHeader>
           <DialogTitle>Modifier le vêtement</DialogTitle>
         </DialogHeader>
-        <EditClothesForm
+        <ClothesForm
           clothesId={clothes.id}
           initialData={{
             name: clothes.name,
