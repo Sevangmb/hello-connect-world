@@ -17,7 +17,11 @@ serve(async (req) => {
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      throw new Error('STRIPE_SECRET_KEY is not set');
+      console.error('STRIPE_SECRET_KEY is not set');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const stripe = new Stripe(stripeKey, {
@@ -28,7 +32,11 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
+      console.error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -38,6 +46,7 @@ serve(async (req) => {
     console.log('Received request:', { cartItems, userId });
 
     if (!cartItems?.length || !userId) {
+      console.error('Missing required parameters:', { cartItems, userId });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -48,7 +57,7 @@ serve(async (req) => {
     const { data: items, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
-        quantity,
+        *,
         shop_items!inner (
           id,
           shop_id,
@@ -71,6 +80,7 @@ serve(async (req) => {
     }
 
     if (!items?.length) {
+      console.error('No items found for cart:', cartItems);
       return new Response(
         JSON.stringify({ error: 'No items found' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -82,6 +92,8 @@ serve(async (req) => {
     // Calculate total amount and get seller ID
     const totalAmount = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
     const sellerId = items[0].shop_items.shop_id; // Assuming all items are from the same shop
+
+    console.log('Creating Stripe session with amount:', totalAmount);
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -102,7 +114,10 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
       metadata: {
         userId,
-        cartItems: JSON.stringify(cartItems),
+        cartItems: JSON.stringify(cartItems.map(item => ({ 
+          id: item.id, 
+          quantity: item.quantity 
+        }))),
       },
     });
 
@@ -154,17 +169,7 @@ serve(async (req) => {
       );
     }
 
-    // Clear the user's cart
-    const { error: clearCartError } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('user_id', userId);
-
-    if (clearCartError) {
-      console.error('Error clearing cart:', clearCartError);
-      // Don't throw here as the order has been created successfully
-    }
-
+    // Return the Stripe checkout URL
     return new Response(
       JSON.stringify({ url: session.url }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

@@ -40,6 +40,7 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
         return;
       }
 
+      console.log("Calling create-checkout with:", { cartItems, userId: user.id });
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { cartItems, userId: user.id }
       });
@@ -50,11 +51,13 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       }
 
       if (!data?.url) {
+        console.error('No checkout URL returned:', data);
         throw new Error('No checkout URL returned from server');
       }
 
-      // Redirect to Stripe Checkout
+      console.log("Redirecting to:", data.url);
       window.location.href = data.url;
+      
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast({
