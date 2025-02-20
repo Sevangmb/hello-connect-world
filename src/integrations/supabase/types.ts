@@ -909,6 +909,41 @@ export type Database = {
           },
         ]
       }
+      outfit_weather_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          outfit_id: string
+          temperature: number | null
+          user_id: string
+          weather_description: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          outfit_id: string
+          temperature?: number | null
+          user_id: string
+          weather_description?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          outfit_id?: string
+          temperature?: number | null
+          user_id?: string
+          weather_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_weather_suggestions_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outfits: {
         Row: {
           bottom_id: string | null
