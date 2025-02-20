@@ -1,10 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { corsHeaders } from "../_shared/cors.ts";
 import Stripe from 'https://esm.sh/stripe@12.4.0?target=deno';
 
-console.log("Hello from Create Checkout Function!");
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+console.log("Create Checkout Function Started");
 
 serve(async (req) => {
   try {
@@ -20,6 +24,8 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    console.log("Received request:", { cartItems, userId });
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -34,21 +40,22 @@ serve(async (req) => {
       .single();
 
     if (secretError || !secretData?.value) {
+      console.error('Error getting Stripe secret:', secretError);
       throw new Error('Could not retrieve Stripe secret key');
     }
 
     const stripe = new Stripe(secretData.value);
 
-    // Fetch detailed cart items
+    // Fetch detailed cart items with explicit join specification
     const { data: items, error: itemsError } = await supabaseClient
       .from('cart_items')
       .select(`
         id,
         quantity,
-        shop_items (
+        shop_items!inner (
           id,
           price,
-          clothes (
+          clothes!shop_items_clothes_id_fkey (
             name,
             image_url
           )
@@ -62,8 +69,11 @@ serve(async (req) => {
     }
 
     if (!items?.length) {
+      console.error('No items found in cart');
       throw new Error('No items found in cart');
     }
+
+    console.log("Retrieved cart items:", items);
 
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => {
@@ -108,6 +118,8 @@ serve(async (req) => {
       throw orderItemsError;
     }
 
+    console.log("Creating Stripe session...");
+
     // Create Stripe session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -150,7 +162,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in create-checkout:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
