@@ -38,7 +38,10 @@ serve(async (req) => {
     console.log('Received request:', { cartItems, userId });
 
     if (!cartItems?.length || !userId) {
-      throw new Error('Missing required parameters');
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     // Fetch detailed cart items information
@@ -48,6 +51,7 @@ serve(async (req) => {
         quantity,
         shop_items!inner (
           id,
+          shop_id,
           price,
           clothes!inner (
             name,
@@ -60,17 +64,24 @@ serve(async (req) => {
 
     if (itemsError) {
       console.error('Error fetching items:', itemsError);
-      throw itemsError;
+      return new Response(
+        JSON.stringify({ error: 'Error fetching cart items' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     if (!items?.length) {
-      throw new Error('No items found');
+      return new Response(
+        JSON.stringify({ error: 'No items found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      );
     }
 
     console.log('Fetched items:', items);
 
-    // Calculate total amount
+    // Calculate total amount and get seller ID
     const totalAmount = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
+    const sellerId = items[0].shop_items.shop_id; // Assuming all items are from the same shop
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -91,6 +102,7 @@ serve(async (req) => {
       cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
       metadata: {
         userId,
+        cartItems: JSON.stringify(cartItems),
       },
     });
 
@@ -101,6 +113,7 @@ serve(async (req) => {
       .from('orders')
       .insert({
         buyer_id: userId,
+        seller_id: sellerId,
         total_amount: totalAmount,
         stripe_session_id: session.id,
         status: 'pending',
@@ -113,7 +126,10 @@ serve(async (req) => {
 
     if (orderError) {
       console.error('Error creating order:', orderError);
-      throw orderError;
+      return new Response(
+        JSON.stringify({ error: 'Error creating order' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     console.log('Created order:', order);
@@ -132,10 +148,13 @@ serve(async (req) => {
 
     if (orderItemsError) {
       console.error('Error creating order items:', orderItemsError);
-      throw orderItemsError;
+      return new Response(
+        JSON.stringify({ error: 'Error creating order items' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    // Clear the user's cart after successful checkout
+    // Clear the user's cart
     const { error: clearCartError } = await supabase
       .from('cart_items')
       .delete()
@@ -148,19 +167,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ url: session.url }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
+
   } catch (error) {
     console.error('Error in create-checkout:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
