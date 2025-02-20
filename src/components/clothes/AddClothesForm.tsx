@@ -57,37 +57,39 @@ export const AddClothesForm = () => {
 
   const handleDetectFeatures = async () => {
     if (!formData.image_url) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez d'abord ajouter une image",
+      });
       return;
     }
 
     console.log("Detecting features for image:", formData.image_url);
     const data = await detectClothing(formData.image_url);
+    
     if (data) {
       console.log("Detection results:", data);
       
-      const detectionMessage = `Détection réussie ! \n${data.category ? `Catégorie : ${data.category}` : ""} ${data.color ? `\nCouleur : ${data.color}` : ""}`;
-      
-      toast({
-        title: "Résultats de la détection",
-        description: detectionMessage,
-      });
+      const updatedFormData = { ...formData };
+      let changes = false;
 
-      const updatedFormData = {
-        ...formData,
-      };
-
-      if (data.category) {
+      if (data.category && CATEGORIES.includes(data.category)) {
         console.log("Setting category to:", data.category);
         updatedFormData.category = data.category;
+        changes = true;
       }
 
       if (data.color) {
         console.log("Setting color to:", data.color);
         updatedFormData.color = data.color;
+        changes = true;
       }
       
-      console.log("Updating form data to:", updatedFormData);
-      setFormData(updatedFormData);
+      if (changes) {
+        console.log("Updating form data to:", updatedFormData);
+        setFormData(updatedFormData);
+      }
     }
   };
 
@@ -99,8 +101,6 @@ export const AddClothesForm = () => {
     e.preventDefault();
     await submitClothes(formData);
   };
-
-  console.log("Current form data:", formData);
 
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">

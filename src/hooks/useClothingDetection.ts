@@ -18,23 +18,33 @@ export const useClothingDetection = () => {
 
       if (error) {
         console.error("Detection error:", error);
-        throw error;
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la détection",
+        });
+        return null;
       }
 
       console.log("Detection succeeded:", data);
       
-      if (data?.category || data?.color) {
-        toast({
-          title: "Détection réussie",
-          description: "Les caractéristiques du vêtement ont été détectées",
-        });
-      } else {
+      if (!data?.category && !data?.color) {
         console.log("No features detected in the response");
         toast({
-          title: "Détection partielle",
-          description: "Certaines caractéristiques n'ont pas pu être détectées",
+          title: "Aucune détection",
+          description: "Aucune caractéristique n'a pu être détectée sur cette image",
         });
+        return null;
       }
+
+      let description = "Détection réussie !";
+      if (data.category) description += `\nCatégorie : ${data.category}`;
+      if (data.color) description += `\nCouleur : ${data.color}`;
+
+      toast({
+        title: "Détection réussie",
+        description: description,
+      });
 
       return data;
     } catch (error: any) {
