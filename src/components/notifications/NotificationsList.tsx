@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageSquare, Heart, UserPlus, Check, AtSign } from "lucide-react";
+import { Bell, MessageSquare, Heart, UserPlus, Check, AtSign, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,37 @@ export const NotificationsList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Configure realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('Realtime notification update:', payload);
+          queryClient.invalidateQueries({ queryKey: ["notifications"] });
+
+          // Show toast for new notifications
+          if (payload.eventType === 'INSERT') {
+            toast({
+              title: "Nouvelle notification",
+              description: "Vous avez reçu une nouvelle notification",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, toast]);
+
   const { data: notifications, isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
@@ -35,7 +67,7 @@ export const NotificationsList = () => {
         .from("notifications")
         .select(`
           *,
-          actor:profiles!notifications_actor_id_profiles_fkey(username, avatar_url),
+          actor:profiles!notifications_actor_id_fkey(username, avatar_url),
           post:posts(content)
         `)
         .order("created_at", { ascending: false });
@@ -91,6 +123,11 @@ export const NotificationsList = () => {
           icon: <AtSign className="h-4 w-4 text-indigo-500" />,
           message: `${notification.actor?.username || "Quelqu'un"} vous a mentionné`,
         };
+      case "order_update":
+        return {
+          icon: <ShoppingBag className="h-4 w-4 text-purple-500" />,
+          message: `Mise à jour de votre commande`,
+        };
       case "private_message":
         return {
           icon: <MessageSquare className="h-4 w-4 text-cyan-500" />,
@@ -124,9 +161,7 @@ export const NotificationsList = () => {
           return (
             <Card
               key={notification.id}
-              className={`p-4 ${
-                !notification.read ? "border-l-4 border-l-primary" : ""
-              }`}
+              className={`p-4 ${!notification.read ? "border-l-4 border-l-primary" : ""}`}
             >
               <div className="flex items-center gap-4">
                 <Avatar className="h-10 w-10">
