@@ -39,16 +39,16 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Fetch detailed cart items with correct joins
+    // Modifier la requête pour utiliser la bonne relation
     const { data: items, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
         id,
         quantity,
-        shop_items!shop_item_id (
+        shop_items (
           id,
           price,
-          clothes!clothes_id (
+          clothes (
             name,
             image_url
           )
@@ -68,12 +68,6 @@ serve(async (req) => {
       throw new Error('No items found in cart');
     }
 
-    const totalAmount = items.reduce((sum, item) => {
-      return sum + (item.shop_items.price * item.quantity);
-    }, 0);
-
-    console.log('Creating Stripe session with amount:', totalAmount);
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item) => ({
@@ -83,7 +77,7 @@ serve(async (req) => {
             name: item.shop_items.clothes.name,
             images: item.shop_items.clothes.image_url ? [item.shop_items.clothes.image_url] : [],
           },
-          unit_amount: Math.round(item.shop_items.price * 100), // Convert to cents
+          unit_amount: Math.round(item.shop_items.price * 100), // Convertir en centimes
         },
         quantity: item.quantity,
       })),
@@ -98,7 +92,11 @@ serve(async (req) => {
 
     console.log('Created Stripe session:', session.id);
 
-    // Create order in database
+    // Créer la commande dans la base de données
+    const totalAmount = items.reduce((sum, item) => {
+      return sum + (item.shop_items.price * item.quantity);
+    }, 0);
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -119,7 +117,7 @@ serve(async (req) => {
 
     console.log('Created order:', order);
 
-    // Create order items
+    // Créer les lignes de commande
     const orderItems = items.map((item) => ({
       order_id: order.id,
       shop_item_id: item.shop_items.id,
