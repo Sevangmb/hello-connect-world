@@ -16,5 +16,5 @@ export interface ClothesFormData {
   is_for_sale: boolean;
   needs_alteration: boolean;
   weather_categories: string[];
+  hashtags?: string[];
 }
-

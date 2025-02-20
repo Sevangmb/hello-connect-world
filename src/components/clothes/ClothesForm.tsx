@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
@@ -9,6 +8,7 @@ import { ClothesDetectionButtons } from "./components/ClothesDetectionButtons";
 import { ClothesFormData } from "./types";
 import { CATEGORIES, STYLES, WEATHER_CATEGORIES } from "./constants/categories";
 import { useClothesForm } from "./hooks/useClothesForm";
+import { ClothesHashtags } from "./forms/ClothesHashtags";
 
 interface ClothesFormProps {
   clothesId?: string;
@@ -67,6 +67,11 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
         <ClothesOptions
           formData={formData}
           onFormChange={handleFormChange}
+        />
+        
+        <ClothesHashtags
+          initialHashtags={formData.hashtags}
+          onHashtagsChange={(hashtags) => handleFormChange("hashtags", hashtags)}
         />
 
         <Button 
