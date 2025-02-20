@@ -10,6 +10,29 @@ type WeatherOutfitSuggestionProps = {
   description: string;
 };
 
+const getWeatherCategory = (temperature: number, description: string): string[] => {
+  const categories: string[] = [];
+  
+  // Catégories basées sur la température
+  if (temperature < 10) {
+    categories.push("froid");
+  } else if (temperature < 20) {
+    categories.push("tempéré");
+  } else {
+    categories.push("chaud");
+  }
+
+  // Catégories basées sur la description météo
+  const lowerDescription = description.toLowerCase();
+  if (lowerDescription.includes("pluie") || lowerDescription.includes("rain")) {
+    categories.push("pluie");
+  } else if (lowerDescription.includes("neige") || lowerDescription.includes("snow")) {
+    categories.push("neige");
+  }
+
+  return categories;
+};
+
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
   const { data: suggestion, isLoading, error } = useQuery({
     queryKey: ["outfit-suggestion", temperature, description],
@@ -21,15 +44,31 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Vous devez être connecté pour obtenir des suggestions de tenues");
 
-        const { data: { url } } = await supabase.functions.invoke('get-weather-outfit', {
-          body: { 
-            temperature, 
-            weather: description 
-          }
-        });
-        
-        console.log("Received outfit suggestion:", url);
-        return url;
+        // Déterminer les catégories météo appropriées
+        const weatherCategories = getWeatherCategory(temperature, description);
+        console.log("Weather categories:", weatherCategories);
+
+        // Récupérer les vêtements appropriés
+        const { data: clothes, error: clothesError } = await supabase
+          .from('clothes')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('archived', false)
+          .overlaps('weather_categories', weatherCategories)
+          .limit(5);
+
+        if (clothesError) throw clothesError;
+
+        if (!clothes || clothes.length === 0) {
+          return "Je n'ai pas trouvé de vêtements adaptés à cette météo dans votre garde-robe. Pensez à mettre à jour les catégories météo de vos vêtements !";
+        }
+
+        // Formatage de la suggestion
+        const suggestion = `Pour une température de ${temperature}°C et un temps ${description}, voici ce que je vous suggère:\n\n` +
+          clothes.map(cloth => `- ${cloth.name} (${cloth.category})`).join('\n');
+
+        console.log("Generated suggestion:", suggestion);
+        return suggestion;
       } catch (error) {
         console.error("Error fetching outfit suggestion:", error);
         throw error;
