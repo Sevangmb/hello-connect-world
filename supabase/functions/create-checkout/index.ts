@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,11 +16,7 @@ serve(async (req) => {
   try {
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      console.error('STRIPE_SECRET_KEY is not set');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      throw new Error('STRIPE_SECRET_KEY is not set');
     }
 
     const stripe = new Stripe(stripeKey, {
@@ -32,38 +27,28 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      throw new Error('Missing Supabase credentials');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate request body
     const { cartItems, userId } = await req.json();
     console.log('Received request:', { cartItems, userId });
 
     if (!cartItems?.length || !userId) {
-      console.error('Missing required parameters:', { cartItems, userId });
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+      throw new Error('Missing required parameters');
     }
 
-    // Fetch detailed cart items information
+    // Fetch detailed cart items with correct joins
     const { data: items, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
         id,
         quantity,
-        shop_items (
+        shop_items!shop_item_id (
           id,
-          shop_id,
           price,
-          clothes (
+          clothes!clothes_id (
             name,
             image_url
           )
@@ -73,30 +58,22 @@ serve(async (req) => {
       .in('id', cartItems.map(item => item.id));
 
     if (itemsError) {
-      console.error('Error fetching items:', itemsError);
-      return new Response(
-        JSON.stringify({ error: 'Error fetching cart items' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      console.error('Error fetching cart items:', itemsError);
+      throw new Error('Error fetching cart items');
     }
+
+    console.log('Fetched cart items:', items);
 
     if (!items?.length) {
-      console.error('No items found for cart:', cartItems);
-      return new Response(
-        JSON.stringify({ error: 'No items found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+      throw new Error('No items found in cart');
     }
 
-    console.log('Fetched items:', items);
-
-    // Calculate total amount and get seller ID
-    const totalAmount = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
-    const sellerId = items[0].shop_items.shop_id;
+    const totalAmount = items.reduce((sum, item) => {
+      return sum + (item.shop_items.price * item.quantity);
+    }, 0);
 
     console.log('Creating Stripe session with amount:', totalAmount);
 
-    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item) => ({
@@ -112,13 +89,10 @@ serve(async (req) => {
       })),
       mode: 'payment',
       success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
+      cancel_url: `${req.headers.get('origin')}/cart`,
       metadata: {
         userId,
-        cartItems: JSON.stringify(cartItems.map(item => ({ 
-          id: item.id, 
-          quantity: item.quantity 
-        }))),
+        cartItems: JSON.stringify(cartItems),
       },
     });
 
@@ -129,23 +103,18 @@ serve(async (req) => {
       .from('orders')
       .insert({
         buyer_id: userId,
-        seller_id: sellerId,
         total_amount: totalAmount,
         stripe_session_id: session.id,
         status: 'pending',
         payment_status: 'pending',
         payment_type: 'online',
-        transaction_type: 'p2p'
       })
       .select()
       .single();
 
     if (orderError) {
       console.error('Error creating order:', orderError);
-      return new Response(
-        JSON.stringify({ error: 'Error creating order' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      throw new Error('Error creating order');
     }
 
     console.log('Created order:', order);
@@ -164,23 +133,24 @@ serve(async (req) => {
 
     if (orderItemsError) {
       console.error('Error creating order items:', orderItemsError);
-      return new Response(
-        JSON.stringify({ error: 'Error creating order items' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      throw new Error('Error creating order items');
     }
 
-    // Return the Stripe checkout URL
     return new Response(
       JSON.stringify({ url: session.url }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in create-checkout:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'An unknown error occurred' 
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      }
     );
   }
 });

@@ -51,7 +51,6 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       }
 
       if (!data?.url) {
-        console.error('No checkout URL returned:', data);
         throw new Error('No checkout URL returned from server');
       }
 
@@ -59,7 +58,7 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       window.location.href = data.url;
       
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('Error in checkout process:', error);
       toast({
         title: "Erreur de paiement",
         description: "Impossible de procéder au paiement. Veuillez réessayer.",
