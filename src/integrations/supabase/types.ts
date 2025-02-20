@@ -269,6 +269,7 @@ export type Database = {
           subcategory: string | null
           updated_at: string
           user_id: string
+          weather_categories: string[] | null
         }
         Insert: {
           archived?: boolean | null
@@ -293,6 +294,7 @@ export type Database = {
           subcategory?: string | null
           updated_at?: string
           user_id: string
+          weather_categories?: string[] | null
         }
         Update: {
           archived?: boolean | null
@@ -317,6 +319,7 @@ export type Database = {
           subcategory?: string | null
           updated_at?: string
           user_id?: string
+          weather_categories?: string[] | null
         }
         Relationships: [
           {
