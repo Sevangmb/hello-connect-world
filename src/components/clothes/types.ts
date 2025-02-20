@@ -15,4 +15,3 @@ export interface ClothesFormData {
   is_for_sale: boolean;
   needs_alteration: boolean;
 }
-

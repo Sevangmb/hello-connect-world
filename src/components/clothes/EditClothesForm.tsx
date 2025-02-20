@@ -1,14 +1,16 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
+import { ClothesDetails } from "./forms/ClothesDetails";
+import { ClothesOptions } from "./forms/ClothesOptions";
+import { ClothesImageUpload } from "./forms/ClothesImageUpload";
+import { ClothesFormData } from "./types";
 
 const CATEGORIES = [
   "Hauts",
@@ -19,12 +21,14 @@ const CATEGORIES = [
   "Accessoires",
 ];
 
-interface ClothesFormData {
-  name: string;
-  description: string;
-  category: string;
-  image_url: string | null;
-}
+const STYLES = [
+  "Casual",
+  "Formel",
+  "Sport",
+  "Soirée",
+  "Plage",
+  "Business",
+];
 
 interface EditClothesFormProps {
   clothesId: string;
@@ -36,19 +40,33 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState(initialData);
+  const [formData, setFormData] = useState<ClothesFormData>(initialData);
+
+  const handleFormChange = (field: keyof ClothesFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     try {
       setLoading(true);
+      
       const { error } = await supabase
         .from("clothes")
         .update({
           name: formData.name,
           description: formData.description,
           category: formData.category,
+          brand: formData.brand,
+          size: formData.size,
+          material: formData.material,
+          color: formData.color,
+          style: formData.style,
+          price: formData.price,
+          purchase_date: formData.purchase_date,
+          is_for_sale: formData.is_for_sale,
+          needs_alteration: formData.needs_alteration,
           image_url: formData.image_url,
           updated_at: new Date().toISOString(),
         })
@@ -76,52 +94,27 @@ export const EditClothesForm = ({ clothesId, initialData, onSuccess }: EditCloth
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nom</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Ex: T-shirt blanc"
-          required
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <ClothesBasicInfo
+        formData={formData}
+        onFormChange={handleFormChange}
+        categories={CATEGORIES}
+        styles={STYLES}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          placeholder="Description du vêtement..."
-        />
-      </div>
+      <ClothesDetails
+        formData={formData}
+        onFormChange={handleFormChange}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="category">Catégorie</Label>
-        <Select
-          value={formData.category}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionnez une catégorie" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <ClothesOptions
+        formData={formData}
+        onFormChange={handleFormChange}
+      />
 
-      <ImageUpload
-        currentImageUrl={formData.image_url}
-        onImageUploaded={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
-        bucket="clothes"
+      <ClothesImageUpload
+        formData={formData}
+        onFormChange={handleFormChange}
       />
 
       <div className="flex justify-end gap-2">
