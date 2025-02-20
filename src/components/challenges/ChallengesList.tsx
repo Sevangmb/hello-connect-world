@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -35,8 +36,7 @@ export const ChallengesList = () => {
           votes:challenge_votes(count)
         `)
         .order("created_at", { ascending: false })
-        .eq("status", "active")
-        .gte("end_date", new Date().toISOString());
+        .in("status", ["active", "completed"]);
 
       if (error) {
         console.error("Error fetching challenges:", error);
@@ -65,37 +65,76 @@ export const ChallengesList = () => {
   if (!challenges?.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Aucun défi actif en ce moment
+        Aucun défi trouvé
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {challenges.map((challenge: Challenge) => (
-        <div
-          key={challenge.id}
-          className="bg-white p-4 rounded-lg shadow space-y-4"
-        >
-          <ChallengeHeader 
-            challenge={challenge} 
-            onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
-            onVote={(participantId) => handleVote(participantId, challenge.id)}
-          />
-          
-          {challenge.description && (
-            <p className="text-sm text-gray-600">{challenge.description}</p>
-          )}
+  const activeChallenges = challenges.filter(challenge => challenge.status === "active");
+  const completedChallenges = challenges.filter(challenge => challenge.status === "completed");
 
-          <ChallengeMetadata challenge={challenge} />
-          
-          <ParticipantsList 
-            participants={challenge.participants} 
-            onVote={handleVote}
-            challengeId={challenge.id}
-          />
+  return (
+    <div className="space-y-8">
+      {activeChallenges.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Défis actifs</h2>
+          {activeChallenges.map((challenge: Challenge) => (
+            <div
+              key={challenge.id}
+              className="bg-white p-4 rounded-lg shadow space-y-4"
+            >
+              <ChallengeHeader 
+                challenge={challenge} 
+                onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
+                onVote={(participantId) => handleVote(participantId, challenge.id)}
+              />
+              
+              {challenge.description && (
+                <p className="text-sm text-gray-600">{challenge.description}</p>
+              )}
+
+              <ChallengeMetadata challenge={challenge} />
+              
+              <ParticipantsList 
+                participants={challenge.participants} 
+                onVote={handleVote}
+                challengeId={challenge.id}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+
+      {completedChallenges.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Défis terminés</h2>
+          {completedChallenges.map((challenge: Challenge) => (
+            <div
+              key={challenge.id}
+              className="bg-white p-4 rounded-lg shadow space-y-4 opacity-80"
+            >
+              <ChallengeHeader 
+                challenge={challenge} 
+                onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
+                onVote={(participantId) => handleVote(participantId, challenge.id)}
+              />
+              
+              {challenge.description && (
+                <p className="text-sm text-gray-600">{challenge.description}</p>
+              )}
+
+              <ChallengeMetadata challenge={challenge} />
+              
+              <ParticipantsList 
+                participants={challenge.participants} 
+                onVote={handleVote}
+                challengeId={challenge.id}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
