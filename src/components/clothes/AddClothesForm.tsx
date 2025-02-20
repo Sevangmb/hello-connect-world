@@ -7,7 +7,8 @@ import { ClothesDetails } from "./forms/ClothesDetails";
 import { ClothesOptions } from "./forms/ClothesOptions";
 import { ClothesImageUpload } from "./forms/ClothesImageUpload";
 import { useClothesSubmit } from "@/hooks/useClothesSubmit";
-import { Loader2 } from "lucide-react";
+import { useClothingDetection } from "@/hooks/useClothingDetection";
+import { Loader2, Wand2 } from "lucide-react";
 
 const CATEGORIES = [
   "Hauts",
@@ -45,9 +46,25 @@ const initialFormData: ClothesFormData = {
 
 export const AddClothesForm = () => {
   const [formData, setFormData] = useState<ClothesFormData>(initialFormData);
+  const { detectClothing, detecting } = useClothingDetection();
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDetectFeatures = async () => {
+    if (!formData.image_url) {
+      return;
+    }
+
+    const data = await detectClothing(formData.image_url);
+    if (data) {
+      setFormData(prev => ({
+        ...prev,
+        category: data.category || prev.category,
+        color: data.color || prev.color,
+      }));
+    }
   };
 
   const { submitClothes, loading } = useClothesSubmit(() => {
@@ -69,6 +86,35 @@ export const AddClothesForm = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-4">
+          <ClothesImageUpload
+            formData={formData}
+            onFormChange={handleFormChange}
+          />
+          
+          {formData.image_url && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDetectFeatures}
+              disabled={detecting || !formData.image_url}
+              className="w-full"
+            >
+              {detecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Détection en cours...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Détecter les caractéristiques
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
         <ClothesBasicInfo
           formData={formData}
           onFormChange={handleFormChange}
@@ -82,11 +128,6 @@ export const AddClothesForm = () => {
         />
 
         <ClothesOptions
-          formData={formData}
-          onFormChange={handleFormChange}
-        />
-
-        <ClothesImageUpload
           formData={formData}
           onFormChange={handleFormChange}
         />
