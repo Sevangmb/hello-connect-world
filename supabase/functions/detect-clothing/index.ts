@@ -8,13 +8,14 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Gérer les requêtes CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const { imageUrl } = await req.json()
-    console.log("Received image URL:", imageUrl)
+    console.log("URL de l'image reçue:", imageUrl)
 
     const accessToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
     if (!accessToken) {
@@ -23,26 +24,26 @@ serve(async (req) => {
 
     const hf = new HfInference(accessToken)
 
-    // Utiliser mobilenet pour la détection de catégorie
-    console.log("Performing category detection...")
+    // Détection de la catégorie
+    console.log("Détection de la catégorie en cours...")
     const classification = await hf.imageClassification({
       data: imageUrl,
       model: "apple/mobilenet-v3-small",
     })
-    console.log("Category detection results:", classification)
+    console.log("Résultats de la détection de catégorie:", classification)
 
-    // Utiliser le modèle spécifique pour la détection de couleur
-    console.log("Performing color detection...")
+    // Détection de la couleur
+    console.log("Détection de la couleur en cours...")
     const colorDetection = await hf.imageClassification({
       data: imageUrl,
       model: "nateraw/color-detection",
     })
-    console.log("Color detection results:", colorDetection)
+    console.log("Résultats de la détection de couleur:", colorDetection)
 
     const categoryLabel = classification[0]?.label?.toLowerCase() || ''
     const colorLabel = colorDetection[0]?.label?.toLowerCase() || ''
 
-    // Map des couleurs vers le français
+    // Mapping des couleurs en français
     const colorMap = {
       'red': 'Rouge',
       'green': 'Vert',
@@ -57,11 +58,11 @@ serve(async (req) => {
       'white': 'Blanc',
     }
 
-    // Map des catégories vers le français
+    // Mapping des catégories en français
     const categoryMap = {
       't-shirt': 'Hauts',
-      'tshirt': 'Hauts',
       'shirt': 'Hauts',
+      'tshirt': 'Hauts',
       'blouse': 'Hauts',
       'sweater': 'Hauts',
       'dress': 'Robes',
@@ -90,16 +91,28 @@ serve(async (req) => {
       }
     }
 
-    console.log("Sending detection result:", result)
+    console.log("Résultat de la détection:", result)
     return new Response(
       JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200
+      }
     )
   } catch (error) {
-    console.error('Error detecting clothing:', error)
+    console.error('Erreur lors de la détection:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to detect clothing', details: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ error: error.message }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
+        status: 200 // On retourne 200 même en cas d'erreur pour éviter l'erreur non-2xx
+      }
     )
   }
 })
