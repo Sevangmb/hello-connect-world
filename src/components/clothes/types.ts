@@ -4,6 +4,7 @@ export interface ClothesFormData {
   name: string;
   description: string;
   category: string;
+  subcategory?: string;
   image_url: string | null;
   brand: string;
   size: string;

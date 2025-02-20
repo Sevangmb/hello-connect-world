@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClothesFormData } from "../types";
+import { useEffect } from "react";
 
 interface ClothesBasicInfoProps {
   formData: ClothesFormData;
@@ -12,7 +13,23 @@ interface ClothesBasicInfoProps {
   styles: string[];
 }
 
+const SUBCATEGORIES = {
+  "Hauts": ["T-shirt", "Chemise", "Pull", "Sweat", "Top"],
+  "Bas": ["Pantalon", "Jean", "Short", "Jupe"],
+  "Robes": ["Robe courte", "Robe longue", "Robe de soirée"],
+  "Manteaux": ["Manteau", "Veste", "Blazer", "Imperméable"],
+  "Chaussures": ["Baskets", "Bottes", "Sandales", "Escarpins"],
+  "Accessoires": ["Sac", "Bijoux", "Ceinture", "Écharpe"]
+};
+
 export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }: ClothesBasicInfoProps) => {
+  // Mettre à jour la sous-catégorie quand la catégorie change
+  useEffect(() => {
+    if (formData.category && !formData.subcategory && SUBCATEGORIES[formData.category]) {
+      onFormChange('subcategory', SUBCATEGORIES[formData.category][0]);
+    }
+  }, [formData.category]);
+
   return (
     <>
       <div className="space-y-2">
@@ -28,7 +45,7 @@ export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }:
 
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea
+        <Textarea 
           id="description"
           value={formData.description}
           onChange={(e) => onFormChange('description', e.target.value)}
@@ -41,7 +58,13 @@ export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }:
           <Label htmlFor="category">Catégorie</Label>
           <Select
             value={formData.category}
-            onValueChange={(value) => onFormChange('category', value)}
+            onValueChange={(value) => {
+              onFormChange('category', value);
+              // Réinitialiser la sous-catégorie
+              if (SUBCATEGORIES[value]) {
+                onFormChange('subcategory', SUBCATEGORIES[value][0]);
+              }
+            }}
             required
           >
             <SelectTrigger>
@@ -56,6 +79,28 @@ export const ClothesBasicInfo = ({ formData, onFormChange, categories, styles }:
             </SelectContent>
           </Select>
         </div>
+
+        {formData.category && SUBCATEGORIES[formData.category] && (
+          <div className="space-y-2">
+            <Label htmlFor="subcategory">Sous-catégorie</Label>
+            <Select
+              value={formData.subcategory || ''}
+              onValueChange={(value) => onFormChange('subcategory', value)}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                {SUBCATEGORIES[formData.category].map((subcat) => (
+                  <SelectItem key={subcat} value={subcat}>
+                    {subcat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="style">Style</Label>
