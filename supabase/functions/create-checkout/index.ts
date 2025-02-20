@@ -1,21 +1,26 @@
 
-import { stripe } from 'npm:stripe@14.16.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import Stripe from 'npm:stripe@14.16.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Processing checkout request...");
-    
-    const stripeClient = new stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
     });
 
@@ -23,13 +28,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing environment variables');
+      throw new Error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { cartItems, userId } = await req.json();
 
-    console.log("Received request with:", { cartItems, userId });
+    // Get request body
+    const { cartItems, userId } = await req.json();
+    console.log('Received request:', { cartItems, userId });
 
     if (!cartItems?.length || !userId) {
       throw new Error('Missing required parameters');
@@ -53,18 +59,18 @@ Deno.serve(async (req) => {
       .in('id', cartItems.map(item => item.id));
 
     if (itemsError) {
-      console.error("Error fetching items:", itemsError);
+      console.error('Error fetching items:', itemsError);
       throw itemsError;
     }
-
-    console.log("Fetched items:", items);
 
     if (!items?.length) {
       throw new Error('No items found');
     }
 
+    console.log('Fetched items:', items);
+
     // Create Stripe checkout session
-    const session = await stripeClient.checkout.sessions.create({
+    const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: items.map((item) => ({
         price_data: {
@@ -85,7 +91,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    console.log("Created Stripe session:", session.id);
+    console.log('Created Stripe session:', session.id);
 
     // Create order in database
     const { data: order, error: orderError } = await supabase
@@ -100,11 +106,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (orderError) {
-      console.error("Error creating order:", orderError);
+      console.error('Error creating order:', orderError);
       throw orderError;
     }
 
-    console.log("Created order:", order);
+    console.log('Created order:', order);
 
     // Create order items
     const orderItems = items.map((item) => ({
@@ -119,7 +125,7 @@ Deno.serve(async (req) => {
       .insert(orderItems);
 
     if (orderItemsError) {
-      console.error("Error creating order items:", orderItemsError);
+      console.error('Error creating order items:', orderItemsError);
       throw orderItemsError;
     }
 
