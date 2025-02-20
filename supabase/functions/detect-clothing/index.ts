@@ -35,7 +35,22 @@ serve(async (req) => {
     const category = classification[0]?.label || ''
     const color = colorDetection[0]?.label || ''
 
-    // Map the detected category to our application's categories
+    // Map des couleurs détectées vers le français
+    const colorMap: Record<string, string> = {
+      'red': 'Rouge',
+      'green': 'Vert',
+      'blue': 'Bleu',
+      'yellow': 'Jaune',
+      'orange': 'Orange',
+      'purple': 'Violet',
+      'pink': 'Rose',
+      'brown': 'Marron',
+      'gray': 'Gris',
+      'black': 'Noir',
+      'white': 'Blanc',
+    }
+
+    // Map des catégories vers le français
     const categoryMap: Record<string, string> = {
       'tshirt': 'Hauts',
       'shirt': 'Hauts',
@@ -54,8 +69,8 @@ serve(async (req) => {
     }
 
     const result = {
-      category: categoryMap[category.toLowerCase()] || category,
-      color: color
+      category: categoryMap[category.toLowerCase()] || '',
+      color: colorMap[color.toLowerCase()] || color
     }
     console.log("Sending response:", result)
 
