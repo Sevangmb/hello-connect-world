@@ -63,12 +63,19 @@ export const AddClothesForm = () => {
     if (data) {
       console.log("Detection results:", data);
       
-      // Mettre à jour le state avec les nouvelles valeurs
       const updatedFormData = {
         ...formData,
-        category: data.category || formData.category,
-        color: data.color || formData.color
       };
+
+      if (data.category) {
+        console.log("Setting category to:", data.category);
+        updatedFormData.category = data.category;
+      }
+
+      if (data.color) {
+        console.log("Setting color to:", data.color);
+        updatedFormData.color = data.color;
+      }
       
       console.log("Updating form data to:", updatedFormData);
       setFormData(updatedFormData);

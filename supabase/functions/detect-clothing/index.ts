@@ -18,24 +18,24 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
 
-    // Classify the image with Hugging Face's API
+    // Détecter la catégorie avec un modèle plus précis
     const classification = await hf.imageClassification({
       model: 'apple/mobilenet-v3-small',
       data: imageUrl,
     })
     console.log("Classification results:", classification)
 
-    // Detect color using another model
+    // Détecter la couleur avec un modèle spécialisé
     const colorDetection = await hf.imageClassification({
       model: 'nateraw/color-detection',
       data: imageUrl,
     })
     console.log("Color detection results:", colorDetection)
 
-    const category = classification[0]?.label || ''
-    const color = colorDetection[0]?.label || ''
+    const categoryLabel = classification[0]?.label?.toLowerCase() || ''
+    const colorLabel = colorDetection[0]?.label?.toLowerCase() || ''
 
-    // Map des couleurs détectées vers le français
+    // Map des couleurs vers le français
     const colorMap: Record<string, string> = {
       'red': 'Rouge',
       'green': 'Vert',
@@ -52,34 +52,40 @@ serve(async (req) => {
 
     // Map des catégories vers le français
     const categoryMap: Record<string, string> = {
+      't-shirt': 'Hauts',
       'tshirt': 'Hauts',
       'shirt': 'Hauts',
+      'blouse': 'Hauts',
       'sweater': 'Hauts',
       'dress': 'Robes',
       'pants': 'Bas',
+      'trousers': 'Bas',
       'jeans': 'Bas',
+      'skirt': 'Bas',
       'coat': 'Manteaux',
       'jacket': 'Manteaux',
       'shoes': 'Chaussures',
       'sneakers': 'Chaussures',
       'boots': 'Chaussures',
       'necklace': 'Accessoires',
+      'earrings': 'Accessoires',
       'hat': 'Accessoires',
-      'bag': 'Accessoires'
+      'bag': 'Accessoires',
+      'scarf': 'Accessoires',
     }
 
     const result = {
-      category: categoryMap[category.toLowerCase()] || '',
-      color: colorMap[color.toLowerCase()] || color
+      category: categoryMap[categoryLabel] || null,
+      color: colorMap[colorLabel] || colorLabel.charAt(0).toUpperCase() + colorLabel.slice(1),
     }
-    console.log("Sending response:", result)
 
+    console.log("Sending detection result:", result)
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error detecting clothing:', error)
     return new Response(
       JSON.stringify({ error: 'Failed to detect clothing', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
