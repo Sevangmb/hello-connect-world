@@ -37,7 +37,7 @@ const initialFormData: ClothesFormData = {
   material: "",
   color: "",
   style: "",
-  price: "",
+  price: null,
   purchase_date: "",
   is_for_sale: false,
   needs_alteration: false,

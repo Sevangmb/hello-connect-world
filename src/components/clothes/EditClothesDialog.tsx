@@ -49,7 +49,7 @@ export const EditClothesDialog = ({ clothes, trigger }: EditClothesDialogProps) 
             material: clothes.material || "",
             color: clothes.color || "",
             style: clothes.style || "",
-            price: clothes.price || "",
+            price: clothes.price,
             purchase_date: clothes.purchase_date || "",
             is_for_sale: clothes.is_for_sale,
             needs_alteration: clothes.needs_alteration,

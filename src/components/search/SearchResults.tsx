@@ -36,6 +36,7 @@ export const SearchResults = () => {
           user_id,
           archived,
           needs_alteration,
+          is_for_sale,
           profiles!clothes_user_id_profiles_fkey(username, avatar_url)
         `)
         .limit(10);
@@ -51,6 +52,7 @@ export const SearchResults = () => {
           ...cloth,
           archived: cloth.archived || false,
           needs_alteration: cloth.needs_alteration || false,
+          is_for_sale: cloth.is_for_sale || false,
           subcategory: cloth.subcategory || '',
           brand: cloth.brand || '',
           size: cloth.size || '',
