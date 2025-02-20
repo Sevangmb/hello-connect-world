@@ -69,6 +69,9 @@ serve(async (req) => {
 
     console.log('Fetched items:', items);
 
+    // Calculate total amount
+    const totalAmount = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -97,10 +100,13 @@ serve(async (req) => {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: userId,
-        total_amount: items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0),
+        buyer_id: userId,
+        total_amount: totalAmount,
         stripe_session_id: session.id,
         status: 'pending',
+        payment_status: 'pending',
+        payment_type: 'online',
+        transaction_type: 'p2p'
       })
       .select()
       .single();
@@ -127,6 +133,17 @@ serve(async (req) => {
     if (orderItemsError) {
       console.error('Error creating order items:', orderItemsError);
       throw orderItemsError;
+    }
+
+    // Clear the user's cart after successful checkout
+    const { error: clearCartError } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', userId);
+
+    if (clearCartError) {
+      console.error('Error clearing cart:', clearCartError);
+      // Don't throw here as the order has been created successfully
     }
 
     return new Response(
