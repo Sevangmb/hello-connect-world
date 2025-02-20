@@ -73,7 +73,8 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
-let memoryState: State = { toasts: [] }
+const initialState: State = { toasts: [] }
+let memoryState: State = initialState
 
 const listeners: Array<(state: State) => void> = []
 
@@ -84,7 +85,7 @@ function dispatch(action: Action) {
   })
 }
 
-export const reducer = (state: State, action: Action): State => {
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
       return {

@@ -1,19 +1,18 @@
 
 "use client"
 
-import React from 'react';
+import * as React from 'react';
 import { Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const useAuthCheck = () => {
-  const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [authenticated, setAuthenticated] = React.useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
