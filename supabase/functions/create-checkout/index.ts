@@ -46,16 +46,16 @@ serve(async (req) => {
 
     const stripe = new Stripe(secretData.value);
 
-    // Fetch detailed cart items with explicit join specification
+    // Fetch detailed cart items with correct relationship specification
     const { data: items, error: itemsError } = await supabaseClient
       .from('cart_items')
       .select(`
         id,
         quantity,
-        shop_items!inner (
+        shop_items!shop_item_id (
           id,
           price,
-          clothes!shop_items_clothes_id_fkey (
+          clothes!clothes_id (
             name,
             image_url
           )
