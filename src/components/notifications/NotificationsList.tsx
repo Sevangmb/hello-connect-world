@@ -77,7 +77,8 @@ export const NotificationsList = () => {
         throw error;
       }
 
-      return (data as Notification[]) || [];
+      // Cast to unknown first, then to Notification[] to avoid type issues
+      return (data as unknown as Notification[]) || [];
     },
   });
 
@@ -198,3 +199,4 @@ export const NotificationsList = () => {
     </div>
   );
 };
+
