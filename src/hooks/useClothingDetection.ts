@@ -10,6 +10,12 @@ export const useClothingDetection = () => {
   const detectClothing = async (imageUrl: string) => {
     try {
       setDetecting(true);
+      
+      toast({
+        title: "Détection en cours",
+        description: "Analyse de l'image en cours...",
+      });
+      
       console.log("Attempting to detect features for image:", imageUrl);
       
       const { data, error } = await supabase.functions.invoke('detect-clothing', {
@@ -38,8 +44,10 @@ export const useClothingDetection = () => {
       }
 
       let description = "Détection réussie !";
-      if (data.category) description += `\nCatégorie : ${data.category}`;
-      if (data.color) description += `\nCouleur : ${data.color}`;
+      const detectedFeatures = [];
+      if (data.category) detectedFeatures.push(`Catégorie : ${data.category}`);
+      if (data.color) detectedFeatures.push(`Couleur : ${data.color}`);
+      description += "\n" + detectedFeatures.join("\n");
 
       toast({
         title: "Détection réussie",
