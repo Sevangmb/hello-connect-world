@@ -31,7 +31,14 @@ export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
         body: { cartItems, userId: user.id }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating checkout session:', error);
+        throw error;
+      }
+
+      if (!data?.url) {
+        throw new Error('No checkout URL returned from server');
+      }
 
       // Redirect to Stripe Checkout
       window.location.href = data.url;
@@ -39,7 +46,7 @@ export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
       console.error('Error creating checkout session:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de procéder au paiement",
+        description: "Impossible de procéder au paiement. Veuillez réessayer.",
         variant: "destructive",
       });
     }

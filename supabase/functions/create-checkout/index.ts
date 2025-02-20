@@ -87,8 +87,8 @@ serve(async (req) => {
         quantity: item.quantity,
       })),
       mode: 'payment',
-      success_url: `${new URL(req.url).origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${new URL(req.url).origin}/payment-cancelled`,
+      success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
       metadata: {
         userId,
       },
