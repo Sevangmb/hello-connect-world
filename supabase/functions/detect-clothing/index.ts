@@ -1,118 +1,134 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+const CATEGORY_MAPPING = {
+  "shirt": "Hauts",
+  "t-shirt": "Hauts",
+  "sweater": "Hauts",
+  "top": "Hauts",
+  "blouse": "Hauts",
+  "jacket": "Manteaux",
+  "coat": "Manteaux",
+  "blazer": "Manteaux",
+  "pants": "Bas",
+  "jeans": "Bas",
+  "shorts": "Bas",
+  "skirt": "Bas",
+  "dress": "Robes",
+  "shoes": "Chaussures",
+  "sneakers": "Chaussures",
+  "boots": "Chaussures",
+  "sandals": "Chaussures",
+  "accessories": "Accessoires",
+  "bag": "Accessoires",
+  "jewelry": "Accessoires",
+  "scarf": "Accessoires",
+  "belt": "Accessoires"
+};
+
+const COLOR_MAPPING = {
+  "red": "Rouge",
+  "blue": "Bleu",
+  "green": "Vert",
+  "yellow": "Jaune",
+  "orange": "Orange",
+  "purple": "Violet",
+  "pink": "Rose",
+  "brown": "Marron",
+  "gray": "Gris",
+  "black": "Noir",
+  "white": "Blanc"
+};
 
 serve(async (req) => {
-  // Gérer les requêtes CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageUrl } = await req.json()
-    console.log("URL de l'image reçue:", imageUrl)
+    const { image_url } = await req.json();
+    console.log("Processing image URL:", image_url);
 
-    const accessToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
-    if (!accessToken) {
-      throw new Error('HUGGING_FACE_ACCESS_TOKEN is not set')
+    const hfToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN');
+    if (!hfToken) {
+      throw new Error("Hugging Face token not configured");
     }
-
-    const hf = new HfInference(accessToken)
 
     // Détection de la catégorie
-    console.log("Détection de la catégorie en cours...")
-    const classification = await hf.imageClassification({
-      data: imageUrl,
-      model: "apple/mobilenet-v3-small",
-    })
-    console.log("Résultats de la détection de catégorie:", classification)
+    const categoryResponse = await fetch(
+      "https://api-inference.huggingface.co/models/apple/mobilenet-v3-small",
+      {
+        headers: { Authorization: `Bearer ${hfToken}` },
+        method: "POST",
+        body: JSON.stringify({ url: image_url }),
+      }
+    );
+
+    const categoryData = await categoryResponse.json();
+    console.log("Category detection results:", categoryData);
+
+    let detectedCategory = null;
+    if (categoryData && Array.isArray(categoryData) && categoryData.length > 0) {
+      const label = categoryData[0].label.toLowerCase();
+      for (const [key, value] of Object.entries(CATEGORY_MAPPING)) {
+        if (label.includes(key)) {
+          detectedCategory = value;
+          break;
+        }
+      }
+    }
 
     // Détection de la couleur
-    console.log("Détection de la couleur en cours...")
-    const colorDetection = await hf.imageClassification({
-      data: imageUrl,
-      model: "nateraw/color-detection",
-    })
-    console.log("Résultats de la détection de couleur:", colorDetection)
-
-    const categoryLabel = classification[0]?.label?.toLowerCase() || ''
-    const colorLabel = colorDetection[0]?.label?.toLowerCase() || ''
-
-    // Mapping des couleurs en français
-    const colorMap = {
-      'red': 'Rouge',
-      'green': 'Vert',
-      'blue': 'Bleu',
-      'yellow': 'Jaune',
-      'orange': 'Orange',
-      'purple': 'Violet',
-      'pink': 'Rose',
-      'brown': 'Marron',
-      'gray': 'Gris',
-      'black': 'Noir',
-      'white': 'Blanc',
-    }
-
-    // Mapping des catégories en français
-    const categoryMap = {
-      't-shirt': 'Hauts',
-      'shirt': 'Hauts',
-      'tshirt': 'Hauts',
-      'blouse': 'Hauts',
-      'sweater': 'Hauts',
-      'dress': 'Robes',
-      'pants': 'Bas',
-      'trousers': 'Bas',
-      'jeans': 'Bas',
-      'skirt': 'Bas',
-      'coat': 'Manteaux',
-      'jacket': 'Manteaux',
-      'shoes': 'Chaussures',
-      'sneakers': 'Chaussures',
-      'boots': 'Chaussures',
-      'necklace': 'Accessoires',
-      'earrings': 'Accessoires',
-      'hat': 'Accessoires',
-      'bag': 'Accessoires',
-      'scarf': 'Accessoires',
-    }
-
-    const result = {
-      category: categoryMap[categoryLabel] || null,
-      color: colorMap[colorLabel] || colorLabel.charAt(0).toUpperCase() + colorLabel.slice(1),
-      confidence: {
-        category: classification[0]?.score || 0,
-        color: colorDetection[0]?.score || 0
+    const colorResponse = await fetch(
+      "https://api-inference.huggingface.co/models/nateraw/color-detection",
+      {
+        headers: { Authorization: `Bearer ${hfToken}` },
+        method: "POST",
+        body: JSON.stringify({ url: image_url }),
       }
+    );
+
+    const colorData = await colorResponse.json();
+    console.log("Color detection results:", colorData);
+
+    let detectedColor = null;
+    if (colorData && Array.isArray(colorData) && colorData.length > 0) {
+      const colorLabel = colorData[0].label.toLowerCase();
+      detectedColor = COLOR_MAPPING[colorLabel] || null;
     }
 
-    console.log("Résultat de la détection:", result)
+    console.log("Final results:", { category: detectedCategory, color: detectedColor });
+
     return new Response(
-      JSON.stringify(result),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+      JSON.stringify({
+        category: detectedCategory,
+        color: detectedColor
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
-    )
+    );
+
   } catch (error) {
-    console.error('Erreur lors de la détection:', error)
+    console.error("Error in detect-clothing:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
-        status: 200 // On retourne 200 même en cas d'erreur pour éviter l'erreur non-2xx
+      JSON.stringify({ 
+        error: error.message,
+        category: null,
+        color: null 
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200 // On renvoie 200 même en cas d'erreur pour permettre l'affichage du toast
       }
-    )
+    );
   }
-})
+});
