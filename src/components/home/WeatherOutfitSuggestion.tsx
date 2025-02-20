@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type WeatherOutfitSuggestionProps = {
@@ -12,10 +12,12 @@ type WeatherOutfitSuggestionProps = {
 const getWeatherCategories = (temperature: number, description: string): string[] => {
   const categories: string[] = [];
   
-  if (temperature <= 10) {
+  if (temperature <= 5) {
     categories.push("Hiver");
-  } else if (temperature <= 20) {
+  } else if (temperature <= 15) {
     categories.push("Mi-saison");
+  } else if (temperature <= 22) {
+    categories.push("Mi-saison", "Été");
   } else {
     categories.push("Été");
   }
@@ -25,8 +27,6 @@ const getWeatherCategories = (temperature: number, description: string): string[
     categories.push("Pluie");
   } else if (lowerDescription.includes("soleil") || lowerDescription.includes("sun") || lowerDescription.includes("clear")) {
     categories.push("Soleil");
-  } else {
-    categories.push("Intérieur");
   }
 
   return categories;
@@ -48,23 +48,39 @@ async function getSingleClothingItem(userId: string, category: string, weatherCa
   }
 
   if (!clothes || clothes.length === 0) {
-    const { data: defaultClothes, error: defaultError } = await supabase
-      .from('clothes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('archived', false)
-      .eq('category', category)
-      .limit(1);
+    const mainCategory = weatherCategories.find(cat => ["Été", "Hiver", "Mi-saison"].includes(cat));
+    if (mainCategory) {
+      const { data: seasonalClothes, error: seasonalError } = await supabase
+        .from('clothes')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('archived', false)
+        .eq('category', category)
+        .contains('weather_categories', [mainCategory])
+        .limit(1);
 
-    if (defaultError) {
-      console.error(`Error fetching default ${category}:`, defaultError);
-      return null;
+      if (!seasonalError && seasonalClothes && seasonalClothes.length > 0) {
+        return seasonalClothes[0];
+      }
     }
-
-    return defaultClothes?.[0] || null;
+  } else {
+    return clothes[0];
   }
 
-  return clothes[0];
+  const { data: defaultClothes, error: defaultError } = await supabase
+    .from('clothes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('archived', false)
+    .eq('category', category)
+    .limit(1);
+
+  if (defaultError) {
+    console.error(`Error fetching default ${category}:`, defaultError);
+    return null;
+  }
+
+  return defaultClothes?.[0] || null;
 }
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
