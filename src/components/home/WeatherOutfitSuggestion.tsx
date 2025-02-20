@@ -42,7 +42,10 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         
         // Vérifier l'authentification
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Vous devez être connecté pour obtenir des suggestions de tenues");
+        if (!user) {
+          console.log("User not authenticated");
+          return "Vous devez être connecté pour obtenir des suggestions de tenues";
+        }
 
         // Déterminer les catégories météo appropriées
         const weatherCategories = getWeatherCategory(temperature, description);
@@ -57,7 +60,12 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           .overlaps('weather_categories', weatherCategories)
           .limit(5);
 
-        if (clothesError) throw clothesError;
+        if (clothesError) {
+          console.error("Error fetching clothes:", clothesError);
+          return "Une erreur est survenue lors de la récupération de vos vêtements";
+        }
+
+        console.log("Found clothes:", clothes);
 
         if (!clothes || clothes.length === 0) {
           return "Je n'ai pas trouvé de vêtements adaptés à cette météo dans votre garde-robe. Pensez à mettre à jour les catégories météo de vos vêtements !";
@@ -70,8 +78,8 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         console.log("Generated suggestion:", suggestion);
         return suggestion;
       } catch (error) {
-        console.error("Error fetching outfit suggestion:", error);
-        throw error;
+        console.error("Error in outfit suggestion query:", error);
+        return "Une erreur est survenue lors de la génération de la suggestion";
       }
     },
     enabled: !!temperature && !!description,
