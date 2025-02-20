@@ -4,11 +4,8 @@ import { ClothesList } from "@/components/clothes/ClothesList";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { useClothes } from "@/hooks/useClothes";
 
 const Clothes = () => {
-  const { data: clothes, isLoading } = useClothes({ source: "mine" });
-
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
@@ -22,7 +19,7 @@ const Clothes = () => {
           
           <div>
             <h2 className="text-2xl font-bold mb-4">Mes vêtements</h2>
-            <ClothesList clothes={clothes || []} isLoading={isLoading} />
+            <ClothesList />
           </div>
         </div>
       </main>

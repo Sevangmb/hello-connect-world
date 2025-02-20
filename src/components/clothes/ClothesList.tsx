@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useClothes, ClothesFilters } from "@/hooks/useClothes";
 import { Loader2 } from "lucide-react";
@@ -7,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ClothesFiltersComponent } from "./ClothesFilters";
 import { ClothesCard } from "./ClothesCard";
 
+// We don't need to pass clothes and isLoading as props anymore since we're fetching inside the component
 export const ClothesList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
