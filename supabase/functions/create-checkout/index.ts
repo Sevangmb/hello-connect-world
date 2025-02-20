@@ -57,12 +57,13 @@ serve(async (req) => {
     const { data: items, error: itemsError } = await supabase
       .from('cart_items')
       .select(`
-        *,
-        shop_items!inner (
+        id,
+        quantity,
+        shop_items (
           id,
           shop_id,
           price,
-          clothes!inner (
+          clothes (
             name,
             image_url
           )
@@ -91,7 +92,7 @@ serve(async (req) => {
 
     // Calculate total amount and get seller ID
     const totalAmount = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
-    const sellerId = items[0].shop_items.shop_id; // Assuming all items are from the same shop
+    const sellerId = items[0].shop_items.shop_id;
 
     console.log('Creating Stripe session with amount:', totalAmount);
 
