@@ -9,6 +9,7 @@ import { ClothesImageUpload } from "./forms/ClothesImageUpload";
 import { useClothesSubmit } from "@/hooks/useClothesSubmit";
 import { useClothingDetection } from "@/hooks/useClothingDetection";
 import { Loader2, Wand2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [
   "Hauts",
@@ -47,6 +48,7 @@ const initialFormData: ClothesFormData = {
 export const AddClothesForm = () => {
   const [formData, setFormData] = useState<ClothesFormData>(initialFormData);
   const { detectClothing, detecting } = useClothingDetection();
+  const { toast } = useToast();
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -63,6 +65,13 @@ export const AddClothesForm = () => {
     if (data) {
       console.log("Detection results:", data);
       
+      const detectionMessage = `Détection réussie ! \n${data.category ? `Catégorie : ${data.category}` : ""} ${data.color ? `\nCouleur : ${data.color}` : ""}`;
+      
+      toast({
+        title: "Résultats de la détection",
+        description: detectionMessage,
+      });
+
       const updatedFormData = {
         ...formData,
       };
