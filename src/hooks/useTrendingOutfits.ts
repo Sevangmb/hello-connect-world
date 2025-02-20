@@ -39,7 +39,10 @@ export const useTrendingOutfits = () => {
           top:clothes!outfits_top_id_fkey(*),
           bottom:clothes!outfits_bottom_id_fkey(*),
           shoes:clothes!outfits_shoes_id_fkey(*),
-          user:profiles!outfits_user_id_profiles_fkey(username, avatar_url)
+          user:profiles!outfits_user_id_profiles_fkey(username, avatar_url),
+          hashtags:outfits_hashtags(
+            hashtag:hashtags(*)
+          )
         `)
         .in('id', sortedOutfitIds);
 
@@ -50,7 +53,11 @@ export const useTrendingOutfits = () => {
 
       const orderedOutfits = sortedOutfitIds
         .map(id => outfits?.find(outfit => outfit.id === id))
-        .filter(outfit => outfit !== undefined);
+        .filter(outfit => outfit !== undefined)
+        .map(outfit => ({
+          ...outfit,
+          hashtags: outfit.hashtags?.map(h => h.hashtag)
+        }));
 
       console.log("Fetched trending outfits:", orderedOutfits);
       return orderedOutfits;

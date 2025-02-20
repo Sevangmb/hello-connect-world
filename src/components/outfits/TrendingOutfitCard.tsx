@@ -1,14 +1,17 @@
 
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Shirt, PenSquare, Footprints } from "lucide-react";
+import { Shirt, PenSquare, Footprints, Hash } from "lucide-react";
 import { OutfitInteractions } from "@/components/outfits/OutfitInteractions";
 import type { Outfit } from "@/types/outfits";
+import { useNavigate } from "react-router-dom";
 
 interface TrendingOutfitCardProps {
   outfit: Outfit;
 }
 
 export const TrendingOutfitCard = ({ outfit }: TrendingOutfitCardProps) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
@@ -27,6 +30,20 @@ export const TrendingOutfitCard = ({ outfit }: TrendingOutfitCardProps) => {
         </div>
         {outfit.description && (
           <p className="text-sm text-muted-foreground mt-2">{outfit.description}</p>
+        )}
+        {outfit.hashtags && outfit.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {outfit.hashtags.map((hashtag) => (
+              <button
+                key={hashtag.id}
+                onClick={() => navigate(`/hashtag/${hashtag.name}`)}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-muted rounded-full text-sm hover:bg-muted/80 transition-colors"
+              >
+                <Hash className="h-3 w-3" />
+                {hashtag.name}
+              </button>
+            ))}
+          </div>
         )}
       </CardHeader>
       <CardContent>

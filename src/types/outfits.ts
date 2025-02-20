@@ -11,6 +11,11 @@ export interface Profile {
   avatar_url?: string;
 }
 
+export interface Hashtag {
+  id: string;
+  name: string;
+}
+
 export interface Outfit {
   id: string;
   name: string;
@@ -19,4 +24,5 @@ export interface Outfit {
   bottom?: Clothing;
   shoes?: Clothing;
   user?: Profile;
+  hashtags?: Hashtag[];
 }

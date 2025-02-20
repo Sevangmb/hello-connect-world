@@ -65,6 +65,42 @@ export type Database = {
           },
         ]
       }
+      challenge_hashtags: {
+        Row: {
+          challenge_id: string | null
+          created_at: string
+          hashtag_id: string | null
+          id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string
+          hashtag_id?: string | null
+          id?: string
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string
+          hashtag_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_hashtags_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "challenge_hashtags_hashtag_id_fkey"
+            columns: ["hashtag_id"]
+            isOneToOne: false
+            referencedRelation: "hashtags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
