@@ -50,6 +50,7 @@ export const AddClothesForm = () => {
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    console.log("Form data updated:", field, value); // Debug log
   };
 
   const handleDetectFeatures = async () => {
@@ -57,8 +58,10 @@ export const AddClothesForm = () => {
       return;
     }
 
+    console.log("Detecting features for image:", formData.image_url); // Debug log
     const data = await detectClothing(formData.image_url);
     if (data) {
+      console.log("Detection results:", data); // Debug log
       setFormData(prev => ({
         ...prev,
         category: data.category || prev.category,
@@ -75,6 +78,8 @@ export const AddClothesForm = () => {
     e.preventDefault();
     await submitClothes(formData);
   };
+
+  console.log("Current form data:", formData); // Debug log
 
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
@@ -97,7 +102,7 @@ export const AddClothesForm = () => {
               type="button"
               variant="outline"
               onClick={handleDetectFeatures}
-              disabled={detecting || !formData.image_url}
+              disabled={detecting}
               className="w-full"
             >
               {detecting ? (
