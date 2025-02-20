@@ -16,19 +16,26 @@ serve(async (req) => {
     const { imageUrl } = await req.json()
     console.log("Received image URL:", imageUrl)
 
-    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
+    const accessToken = Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')
+    if (!accessToken) {
+      throw new Error('HUGGING_FACE_ACCESS_TOKEN is not set')
+    }
 
-    // Détecter la catégorie avec un modèle plus précis
+    const hf = new HfInference(accessToken)
+
+    // Utiliser mobilenet pour la détection de catégorie
+    console.log("Performing category detection...")
     const classification = await hf.imageClassification({
-      model: 'apple/mobilenet-v3-small',
       data: imageUrl,
+      model: "apple/mobilenet-v3-small",
     })
-    console.log("Classification results:", classification)
+    console.log("Category detection results:", classification)
 
-    // Détecter la couleur avec un modèle spécialisé
+    // Utiliser le modèle spécifique pour la détection de couleur
+    console.log("Performing color detection...")
     const colorDetection = await hf.imageClassification({
-      model: 'nateraw/color-detection',
       data: imageUrl,
+      model: "nateraw/color-detection",
     })
     console.log("Color detection results:", colorDetection)
 
@@ -36,7 +43,7 @@ serve(async (req) => {
     const colorLabel = colorDetection[0]?.label?.toLowerCase() || ''
 
     // Map des couleurs vers le français
-    const colorMap: Record<string, string> = {
+    const colorMap = {
       'red': 'Rouge',
       'green': 'Vert',
       'blue': 'Bleu',
@@ -51,7 +58,7 @@ serve(async (req) => {
     }
 
     // Map des catégories vers le français
-    const categoryMap: Record<string, string> = {
+    const categoryMap = {
       't-shirt': 'Hauts',
       'tshirt': 'Hauts',
       'shirt': 'Hauts',
@@ -77,6 +84,10 @@ serve(async (req) => {
     const result = {
       category: categoryMap[categoryLabel] || null,
       color: colorMap[colorLabel] || colorLabel.charAt(0).toUpperCase() + colorLabel.slice(1),
+      confidence: {
+        category: classification[0]?.score || 0,
+        color: colorDetection[0]?.score || 0
+      }
     }
 
     console.log("Sending detection result:", result)
