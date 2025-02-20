@@ -8,7 +8,8 @@ import { ClothesOptions } from "./forms/ClothesOptions";
 import { ClothesImageUpload } from "./forms/ClothesImageUpload";
 import { useClothesSubmit } from "@/hooks/useClothesSubmit";
 import { useClothingDetection } from "@/hooks/useClothingDetection";
-import { Loader2, Wand2 } from "lucide-react";
+import { useLabelScanner } from "@/hooks/useLabelScanner";
+import { Loader2, Wand2, ScanLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [
@@ -48,6 +49,7 @@ const initialFormData: ClothesFormData = {
 export const AddClothesForm = () => {
   const [formData, setFormData] = useState<ClothesFormData>(initialFormData);
   const { detectClothing, detecting } = useClothingDetection();
+  const { scanLabel, scanning } = useLabelScanner((field, value) => handleFormChange(field, value));
   const { toast } = useToast();
   
   const handleFormChange = (field: keyof ClothesFormData, value: any) => {
@@ -119,25 +121,47 @@ export const AddClothesForm = () => {
           />
           
           {formData.image_url && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDetectFeatures}
-              disabled={detecting}
-              className="w-full"
-            >
-              {detecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Détection en cours...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4 mr-2" />
-                  Détecter les caractéristiques
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDetectFeatures}
+                disabled={detecting}
+                className="flex-1"
+              >
+                {detecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Détection en cours...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Détecter les caractéristiques
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => scanLabel(formData.image_url!)}
+                disabled={scanning}
+                className="flex-1"
+              >
+                {scanning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Scan en cours...
+                  </>
+                ) : (
+                  <>
+                    <ScanLine className="w-4 h-4 mr-2" />
+                    Scanner l'étiquette
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </div>
 

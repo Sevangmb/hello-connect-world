@@ -1,61 +1,71 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ClothesFormData } from "@/components/clothes/types";
 
-export const useLabelScanner = (onFormChange: (field: keyof ClothesFormData, value: any) => void) => {
+export const useLabelScanner = (onFieldUpdate: (field: keyof ClothesFormData, value: any) => void) => {
   const [scanning, setScanning] = useState(false);
   const { toast } = useToast();
 
-  const scanLabel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const scanLabel = async (imageUrl: string) => {
     try {
       setScanning(true);
+      console.log("Starting label scan for image:", imageUrl);
       
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error("Vous devez sélectionner une image de l'étiquette");
+      toast({
+        title: "Scan en cours",
+        description: "Analyse de l'étiquette en cours...",
+      });
+
+      const { data, error } = await supabase.functions.invoke('scan-label', {
+        body: { imageUrl }
+      });
+
+      if (error) {
+        console.error("Scan error:", error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Une erreur est survenue lors du scan de l'étiquette",
+        });
+        return;
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+      console.log("Scan succeeded:", data);
 
-      const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
+      if (!data) {
+        toast({
+          title: "Aucune information détectée",
+          description: "Aucune information n'a pu être extraite de l'étiquette",
+        });
+        return;
+      }
 
-      const { error: uploadError, data } = await supabase.storage
-        .from("clothes")
-        .upload(filePath, file);
+      // Mise à jour des champs du formulaire
+      const fields: (keyof ClothesFormData)[] = ['brand', 'size', 'material', 'color', 'category'];
+      let detectedFields = [];
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("clothes")
-        .getPublicUrl(filePath);
-
-      const response = await supabase.functions.invoke('scan-label', {
-        body: { imageUrl: publicUrl }
+      fields.forEach(field => {
+        if (data[field]) {
+          onFieldUpdate(field, data[field]);
+          detectedFields.push(`${field}: ${data[field]}`);
+        }
       });
 
-      if (response.error) throw response.error;
+      if (detectedFields.length > 0) {
+        toast({
+          title: "Scan réussi",
+          description: "Informations détectées :\n" + detectedFields.join("\n"),
+        });
+      }
 
-      const { brand, size, material, color, category } = response.data;
-
-      if (brand !== undefined) onFormChange('brand', brand);
-      if (size !== undefined) onFormChange('size', size);
-      if (material !== undefined) onFormChange('material', material);
-      if (color !== undefined) onFormChange('color', color);
-      if (category !== undefined) onFormChange('category', category);
-
-      toast({
-        title: "Étiquette analysée",
-        description: "Les informations ont été extraites avec succès",
-      });
     } catch (error: any) {
-      console.error("Error scanning label:", error);
+      console.error("Error in scanLabel:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'analyser l'étiquette",
+        description: "Impossible de scanner l'étiquette",
       });
     } finally {
       setScanning(false);
