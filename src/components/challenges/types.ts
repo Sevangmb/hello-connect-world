@@ -1,3 +1,4 @@
+
 type ClothingItem = {
   name: string;
   image_url: string | null;
@@ -26,7 +27,9 @@ export type Challenge = {
   start_date: string;
   end_date: string;
   creator_id: string;
+  status: 'active' | 'completed';
   profiles: { username: string | null };
   participants: Participant[];
   votes: { count: number }[];
 };
+
