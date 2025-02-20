@@ -63,7 +63,7 @@ export const NotificationsList = () => {
     queryKey: ["notifications"],
     queryFn: async () => {
       console.log("Fetching notifications...");
-      const { data: notifications, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
         .select(`
           *,
@@ -76,8 +76,9 @@ export const NotificationsList = () => {
         console.error("Error fetching notifications:", error);
         throw error;
       }
-      console.log("Notifications fetched:", notifications);
-      return notifications as Notification[];
+
+      // Type assertion to ensure the response matches our Notification type
+      return (data || []) as Notification[];
     },
   });
 
