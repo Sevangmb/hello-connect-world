@@ -12,7 +12,7 @@ import { ParticipantsList } from "@/components/challenges/ParticipantsList";
 import { useChallengeActions } from "@/components/challenges/ChallengeActions";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Challenge } from "@/components/challenges/types";
+import type { Challenge } from "@/components/challenges/types";
 
 export default function Challenge() {
   const { id } = useParams();
