@@ -32,24 +32,8 @@ import Profile from "@/pages/Profile";
 import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
+import Calendar from "@/pages/Calendar";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import AdminDashboard from "@/pages/AdminDashboard";
-import AdminUsers from "@/pages/admin/AdminUsers";
-import AdminShops from "@/pages/admin/AdminShops";
-import AdminMarketplace from "@/pages/admin/AdminMarketplace";
-import AdminContent from "@/pages/admin/AdminContent";
-import AdminStats from "@/pages/admin/AdminStats";
-import AdminMarketing from "@/pages/admin/AdminMarketing";
-import AdminSettings from "@/pages/admin/AdminSettings";
-import AdminHelp from "@/pages/admin/AdminHelp";
-import { AdminRoute } from "@/components/auth/AdminRoute";
-import VirtualTryOn from "@/pages/VirtualTryOn";
-import Suitcases from "@/pages/Suitcases";
-import Boutiques from "@/pages/Boutiques";
-import ShopDetail from "@/pages/ShopDetail";
-import Cart from "@/pages/Cart";
-import Favorites from "@/pages/Favorites";
-import "./index.css";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -90,7 +74,8 @@ const routeComponents = {
   '/help': HelpAndSupport,
   '/virtual-tryon': VirtualTryOn,
   '/cart': Cart,
-  '/favorites': Favorites
+  '/favorites': Favorites,
+  '/calendar': Calendar,
 };
 
 const App = () => {
