@@ -215,7 +215,7 @@ export type Database = {
           end_date: string
           id: string
           start_date: string
-          status: Database["public"]["Enums"]["challenge_status"] | null
+          status: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at: string
         }
@@ -226,7 +226,7 @@ export type Database = {
           end_date: string
           id?: string
           start_date: string
-          status?: Database["public"]["Enums"]["challenge_status"] | null
+          status?: Database["public"]["Enums"]["challenge_status"]
           title: string
           updated_at?: string
         }
@@ -237,7 +237,7 @@ export type Database = {
           end_date?: string
           id?: string
           start_date?: string
-          status?: Database["public"]["Enums"]["challenge_status"] | null
+          status?: Database["public"]["Enums"]["challenge_status"]
           title?: string
           updated_at?: string
         }

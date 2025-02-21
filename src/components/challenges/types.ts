@@ -18,6 +18,10 @@ export type Participant = {
   comment: string | null;
   outfits: Outfit | null;
   profiles: { username: string | null };
+  moderated_at: string | null;
+  moderated_by: string | null;
+  moderation_status: string | null;
+  moderation_reason: string | null;
 };
 
 export type Challenge = {
