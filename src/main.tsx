@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -51,9 +50,9 @@ import AdminStats from "@/pages/admin/AdminStats";
 import AdminMarketing from "@/pages/admin/AdminMarketing";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
+import Checkout from "@/pages/Checkout";
 import "./index.css";
 
-// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -63,7 +62,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Route to component mapping
 const routeComponents = {
   '/suggestions': Suggestions,
   '/feed': Feed,
@@ -92,6 +90,7 @@ const routeComponents = {
   '/help': HelpAndSupport,
   '/virtual-tryon': VirtualTryOn,
   '/cart': Cart,
+  '/checkout': Checkout,
   '/favorites': Favorites,
   '/calendar': Calendar,
 };
@@ -99,13 +98,11 @@ const routeComponents = {
 const App = () => {
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/landing" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
 
-      {/* Protected routes */}
       <Route
         path="/"
         element={
@@ -115,10 +112,8 @@ const App = () => {
         }
       />
 
-      {/* Redirect root to landing for non-authenticated users */}
       <Route path="/" element={<Navigate to="/landing" replace />} />
 
-      {/* Admin Section */}
       <Route
         path="/admin"
         element={
@@ -139,7 +134,6 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {/* Protected routes */}
       {Object.entries(routeComponents).map(([path, Component]) => (
         <Route
           key={path}
@@ -152,7 +146,6 @@ const App = () => {
         />
       ))}
 
-      {/* Fallback Route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
