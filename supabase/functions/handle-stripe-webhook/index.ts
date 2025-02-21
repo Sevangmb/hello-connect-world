@@ -1,76 +1,102 @@
-import { stripe } from 'https://esm.sh/stripe@13.10.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { stripe } from '../_shared/stripe.ts';
+import { corsHeaders } from '../_shared/cors.ts';
+
+console.log('Stripe Webhook Handler Started');
 
 Deno.serve(async (req) => {
-  const signature = req.headers.get('stripe-signature')
-  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
-
-  if (!signature || !webhookSecret) {
-    return new Response('Missing signature or webhook secret', { status: 400 })
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const stripe = new stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
-      apiVersion: '2023-10-16',
-    })
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    const body = await req.text()
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase environment variables')
+    // Get the stripe signature from headers
+    const signature = req.headers.get('stripe-signature');
+    if (!signature) {
+      throw new Error('No Stripe signature found');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const body = await req.text();
+    console.log('Received webhook payload');
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      throw new Error('Stripe webhook secret not configured');
+    }
 
-        // Update order status
-        const { error: orderError } = await supabase
+    // Verify the event
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      webhookSecret
+    );
+
+    console.log('Webhook event type:', event.type);
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const orderIds = JSON.parse(session.metadata.order_ids);
+      const userId = session.metadata.user_id;
+
+      console.log('Processing completed checkout for orders:', orderIds);
+
+      // Update all associated orders
+      for (const orderId of orderIds) {
+        const { error: orderError } = await supabaseClient
           .from('orders')
           .update({
-            payment_status: 'paid',
-            status: 'processing',
-            stripe_payment_intent_id: session.payment_intent,
+            status: 'paid',
+            payment_status: 'completed',
+            stripe_payment_intent_id: session.payment_intent
           })
-          .eq('stripe_session_id', session.id)
+          .eq('id', orderId);
 
         if (orderError) {
-          throw orderError
+          console.error(`Error updating order ${orderId}:`, orderError);
+          continue;
         }
 
-        // Clear user's cart
-        const { error: cartError } = await supabase
+        // Update shipment status
+        const { error: shipmentError } = await supabaseClient
+          .from('order_shipments')
+          .update({ status: 'preparing' })
+          .eq('order_id', orderId);
+
+        if (shipmentError) {
+          console.error(`Error updating shipment for order ${orderId}:`, shipmentError);
+        }
+
+        // Clear cart items for the user
+        const { error: cartError } = await supabaseClient
           .from('cart_items')
           .delete()
-          .eq('user_id', session.metadata.userId)
+          .eq('user_id', userId);
 
         if (cartError) {
-          throw cartError
+          console.error('Error clearing cart:', cartError);
         }
-
-        break
       }
-      // Add more event handlers as needed
     }
 
     return new Response(JSON.stringify({ received: true }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    })
+    });
+
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in webhook handler:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    )
+      JSON.stringify({ error: error.message }), 
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      }
+    );
   }
-})
+});

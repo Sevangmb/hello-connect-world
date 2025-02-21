@@ -9,6 +9,7 @@ interface CartItem {
   shop_items: {
     id: string;
     price: number;
+    seller_id: string;
     clothes: {
       name: string;
     };
@@ -29,6 +30,8 @@ interface RequestBody {
   shippingDetails: ShippingDetails;
 }
 
+console.log('Create Checkout Function Started');
+
 Deno.serve(async (req) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -43,6 +46,7 @@ Deno.serve(async (req) => {
 
     // Get request body
     const { cartItems, shippingDetails } = await req.json() as RequestBody;
+    console.log('Received request:', { cartItems, shippingDetails });
 
     // Get session to identify user
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
@@ -51,6 +55,76 @@ Deno.serve(async (req) => {
 
     if (authError || !user) {
       throw new Error('Not authenticated');
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // Group items by seller
+    const itemsBySeller = cartItems.reduce((acc, item) => {
+      const sellerId = item.shop_items.seller_id;
+      if (!acc[sellerId]) {
+        acc[sellerId] = [];
+      }
+      acc[sellerId].push(item);
+      return acc;
+    }, {} as Record<string, CartItem[]>);
+
+    // Create order records first
+    const orderIds = [];
+    for (const [sellerId, items] of Object.entries(itemsBySeller)) {
+      const orderTotal = items.reduce((sum, item) => sum + (item.shop_items.price * item.quantity), 0);
+      
+      const { data: orderData, error: orderError } = await supabaseClient
+        .from('orders')
+        .insert({
+          buyer_id: user.id,
+          seller_id: sellerId,
+          total_amount: orderTotal,
+          status: 'pending',
+          payment_status: 'pending'
+        })
+        .select('id')
+        .single();
+
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw new Error('Failed to create order');
+      }
+
+      console.log('Created order:', orderData.id);
+      orderIds.push(orderData.id);
+
+      // Create order items
+      const orderItems = items.map(item => ({
+        order_id: orderData.id,
+        shop_item_id: item.shop_items.id,
+        quantity: item.quantity,
+        price: item.shop_items.price
+      }));
+
+      const { error: itemsError } = await supabaseClient
+        .from('order_items')
+        .insert(orderItems);
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        throw new Error('Failed to create order items');
+      }
+
+      // Create shipping record
+      const { error: shipmentError } = await supabaseClient
+        .from('order_shipments')
+        .insert({
+          order_id: orderData.id,
+          shipping_method: shippingDetails.carrierName,
+          shipping_cost: shippingDetails.basePrice,
+          status: 'pending'
+        });
+
+      if (shipmentError) {
+        console.error('Error creating shipment:', shipmentError);
+        throw new Error('Failed to create shipment record');
+      }
     }
 
     // Create line items for Stripe
@@ -65,7 +139,7 @@ Deno.serve(async (req) => {
       quantity: item.quantity,
     }));
 
-    // Add shipping as a line item
+    // Add shipping as a line item if there's a cost
     if (shippingDetails.basePrice > 0) {
       lineItems.push({
         price_data: {
@@ -79,23 +153,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log('Creating Stripe checkout session with line items:', lineItems);
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       customer_email: user.email,
       line_items: lineItems,
       mode: 'payment',
       success_url: `${req.headers.get('Origin')}/payment-success`,
-      cancel_url: `${req.headers.get('Origin')}/payment-cancelled`,
+      cancel_url: `${req.headers.get('Origin')}/cart`,
       metadata: {
         user_id: user.id,
-        cart_items: JSON.stringify(cartItems.map(item => ({
-          id: item.id,
-          shop_item_id: item.shop_items.id,
-          quantity: item.quantity
-        }))),
-        shipping_details: JSON.stringify(shippingDetails)
+        order_ids: JSON.stringify(orderIds)
       }
     });
+
+    console.log('Stripe session created:', session.id);
+
+    // Update orders with Stripe session ID
+    for (const orderId of orderIds) {
+      const { error: updateError } = await supabaseClient
+        .from('orders')
+        .update({ stripe_session_id: session.id })
+        .eq('id', orderId);
+
+      if (updateError) {
+        console.error(`Error updating order ${orderId} with Stripe session:`, updateError);
+      }
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),
@@ -106,7 +191,7 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in create-checkout:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
