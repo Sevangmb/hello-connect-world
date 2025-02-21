@@ -8,10 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Outfits = () => {
   return (
-    <div className="h-screen overflow-hidden bg-gray-100 pb-16 md:pb-0">
+    <div className="h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
       <MainSidebar />
-      <main className="h-[calc(100vh-6rem)] pt-24 px-4 md:pl-72 overflow-y-auto">
+      <main className="h-[calc(100vh-6rem)] pt-24 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto space-y-8">
           <Tabs defaultValue="list" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
