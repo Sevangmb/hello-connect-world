@@ -12,7 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrderRow } from "./components/OrderRow";
-import type { Order, ShippingAddress, statusLabels } from "./types/orders";
+import { Order, ShippingAddress, statusLabels } from "./types/orders";
+import { isValidShippingAddress } from "./utils/shipping";
 
 export default function AdminOrders() {
   const { toast } = useToast();
@@ -57,7 +58,14 @@ export default function AdminOrders() {
         status: validateOrderStatus(order.status),
         order_shipments: order.order_shipments.map(shipment => ({
           ...shipment,
-          shipping_address: shipment.shipping_address as ShippingAddress
+          shipping_address: isValidShippingAddress(shipment.shipping_address) 
+            ? shipment.shipping_address 
+            : {
+                street: '',
+                city: '',
+                postal_code: '',
+                country: ''
+              }
         }))
       }));
     }
