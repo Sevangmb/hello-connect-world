@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,80 +9,6 @@ type WeatherOutfitSuggestionProps = {
   temperature: number;
   description: string;
 };
-
-const getWeatherCategories = (temperature: number, description: string): string[] => {
-  const categories: string[] = [];
-  
-  if (temperature <= 5) {
-    categories.push("Hiver");
-  } else if (temperature <= 15) {
-    categories.push("Mi-saison");
-  } else if (temperature <= 22) {
-    categories.push("Mi-saison", "Été");
-  } else {
-    categories.push("Été");
-  }
-
-  const lowerDescription = description.toLowerCase();
-  if (lowerDescription.includes("pluie") || lowerDescription.includes("rain")) {
-    categories.push("Pluie");
-  } else if (lowerDescription.includes("soleil") || lowerDescription.includes("sun") || lowerDescription.includes("clear")) {
-    categories.push("Soleil");
-  }
-
-  return categories;
-};
-
-async function getSingleClothingItem(userId: string, category: string, weatherCategories: string[]) {
-  let { data: clothes, error } = await supabase
-    .from('clothes')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('archived', false)
-    .eq('category', category)
-    .contains('weather_categories', weatherCategories)
-    .limit(1);
-
-  if (error) {
-    console.error(`Error fetching ${category}:`, error);
-    return null;
-  }
-
-  if (!clothes || clothes.length === 0) {
-    const mainCategory = weatherCategories.find(cat => ["Été", "Hiver", "Mi-saison"].includes(cat));
-    if (mainCategory) {
-      const { data: seasonalClothes, error: seasonalError } = await supabase
-        .from('clothes')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('archived', false)
-        .eq('category', category)
-        .contains('weather_categories', [mainCategory])
-        .limit(1);
-
-      if (!seasonalError && seasonalClothes && seasonalClothes.length > 0) {
-        return seasonalClothes[0];
-      }
-    }
-  } else {
-    return clothes[0];
-  }
-
-  const { data: defaultClothes, error: defaultError } = await supabase
-    .from('clothes')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('archived', false)
-    .eq('category', category)
-    .limit(1);
-
-  if (defaultError) {
-    console.error(`Error fetching default ${category}:`, defaultError);
-    return null;
-  }
-
-  return defaultClothes?.[0] || null;
-}
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
   const { data: suggestion, isLoading, error } = useQuery({
@@ -96,20 +23,48 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           return null;
         }
 
-        const weatherCategories = getWeatherCategories(temperature, description);
-        console.log("Weather categories:", weatherCategories);
+        // Get all user's clothes first
+        const { data: clothes, error: clothesError } = await supabase
+          .from('clothes')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('archived', false);
 
-        const top = await getSingleClothingItem(user.id, 'Hauts', weatherCategories);
-        const bottom = await getSingleClothingItem(user.id, 'Bas', weatherCategories);
-        const shoes = await getSingleClothingItem(user.id, 'Chaussures', weatherCategories);
+        if (clothesError) throw clothesError;
 
-        return {
-          top,
-          bottom,
-          shoes,
-          temperature,
-          description
-        };
+        // Get AI suggestion based on weather and available clothes
+        const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
+          'generate-outfit-suggestion',
+          {
+            body: {
+              temperature,
+              description,
+              clothes
+            }
+          }
+        );
+
+        if (aiError) throw aiError;
+
+        // If we have a suggestion, fetch the complete clothes details
+        if (aiSuggestion?.suggestion) {
+          const { top, bottom, shoes } = aiSuggestion.suggestion;
+          
+          const topDetails = clothes?.find(c => c.id === top) || null;
+          const bottomDetails = clothes?.find(c => c.id === bottom) || null;
+          const shoesDetails = clothes?.find(c => c.id === shoes) || null;
+
+          return {
+            top: topDetails,
+            bottom: bottomDetails,
+            shoes: shoesDetails,
+            explanation: aiSuggestion.explanation,
+            temperature,
+            description
+          };
+        }
+
+        return null;
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
         return null;
@@ -153,6 +108,12 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
       <p className="text-muted-foreground mb-4">
         Pour une température de {suggestion.temperature}°C et un temps {suggestion.description}
       </p>
+      
+      {suggestion.explanation && (
+        <p className="mb-6 text-sm bg-muted p-4 rounded-lg">
+          {suggestion.explanation}
+        </p>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {suggestion.top && (
