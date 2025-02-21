@@ -11,7 +11,7 @@ export const useClothesCalendar = (
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: wearHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
+  const { data: wearHistory, isLoading: isHistoryLoading, refetch: queryRefetch } = useQuery({
     queryKey: ["clothes-wear-history", selectedFriend?.id],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,6 +81,10 @@ export const useClothesCalendar = (
         description: "Impossible d'ajouter le vêtement à l'historique.",
       });
     }
+  };
+
+  const refetchHistory = async (): Promise<void> => {
+    await queryRefetch();
   };
 
   return {
