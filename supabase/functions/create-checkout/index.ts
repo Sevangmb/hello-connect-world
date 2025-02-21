@@ -142,7 +142,7 @@ serve(async (req) => {
       }
     });
 
-    // Clear cart after successful order creation
+    // Clear cart after successful session creation
     const { error: clearCartError } = await supabaseClient
       .from('cart_items')
       .delete()
