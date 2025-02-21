@@ -14,6 +14,7 @@ serve(async (req) => {
 
   try {
     const { temperature, description, clothes } = await req.json()
+    console.log("Received request with:", { temperature, description, clothesCount: clothes?.length })
 
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!)
     const model = genAI.getGenerativeModel({ model: "gemini-pro" })
@@ -37,9 +38,11 @@ serve(async (req) => {
       "explanation": "Explication du choix de la tenue"
     }`
 
+    console.log("Sending prompt to Gemini")
     const result = await model.generateContent(prompt)
     const response = result.response
     const text = response.text()
+    console.log("Received response from Gemini:", text)
     
     // Parse the JSON from the response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
@@ -48,6 +51,7 @@ serve(async (req) => {
     }
     
     const suggestionData = JSON.parse(jsonMatch[0])
+    console.log("Parsed suggestion data:", suggestionData)
 
     return new Response(
       JSON.stringify(suggestionData),

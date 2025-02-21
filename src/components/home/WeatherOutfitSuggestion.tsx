@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type WeatherOutfitSuggestionProps = {
   temperature: number;
@@ -11,6 +12,8 @@ type WeatherOutfitSuggestionProps = {
 };
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
+  const { toast } = useToast();
+
   const { data: suggestion, isLoading, error } = useQuery({
     queryKey: ["outfit-suggestion", temperature, description],
     queryFn: async () => {
@@ -20,6 +23,11 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           console.log("User not authenticated");
+          toast({
+            variant: "destructive",
+            title: "Non connecté",
+            description: "Vous devez être connecté pour voir les suggestions de tenues."
+          });
           return null;
         }
 
@@ -30,7 +38,21 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           .eq('user_id', user.id)
           .eq('archived', false);
 
-        if (clothesError) throw clothesError;
+        if (clothesError) {
+          console.error("Error fetching clothes:", clothesError);
+          throw clothesError;
+        }
+
+        console.log("Found clothes:", clothes?.length);
+
+        if (!clothes || clothes.length === 0) {
+          toast({
+            variant: "destructive",
+            title: "Aucun vêtement",
+            description: "Vous devez d'abord ajouter des vêtements à votre garde-robe."
+          });
+          return null;
+        }
 
         // Get AI suggestion based on weather and available clothes
         const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
@@ -44,7 +66,12 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           }
         );
 
-        if (aiError) throw aiError;
+        if (aiError) {
+          console.error("AI suggestion error:", aiError);
+          throw aiError;
+        }
+
+        console.log("Received AI suggestion:", aiSuggestion);
 
         // If we have a suggestion, fetch the complete clothes details
         if (aiSuggestion?.suggestion) {
@@ -67,7 +94,12 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         return null;
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
-        return null;
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la génération de la suggestion."
+        });
+        throw error;
       }
     },
     enabled: !!temperature && !!description,
