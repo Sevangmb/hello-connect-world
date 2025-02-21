@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -49,6 +48,7 @@ import Suitcases from "@/pages/Suitcases";
 import Boutiques from "@/pages/Boutiques";
 import ShopDetail from "@/pages/ShopDetail";
 import Cart from "@/pages/Cart";
+import Favorites from "@/pages/Favorites";
 import "./index.css";
 
 // Create a client
@@ -89,7 +89,8 @@ const routeComponents = {
   '/marketplace': Shops,
   '/help': HelpAndSupport,
   '/virtual-tryon': VirtualTryOn,
-  '/cart': Cart
+  '/cart': Cart,
+  '/favorites': Favorites
 };
 
 const App = () => {
