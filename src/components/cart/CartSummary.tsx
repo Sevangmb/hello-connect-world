@@ -29,16 +29,11 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
 
   // Filter and validate items
   const validItems = items.filter((item): item is CartItem => {
-    const isValid = item && 
+    return !!(item && 
       item.shop_items && 
       typeof item.shop_items.price === 'number' &&
       item.id &&
-      item.quantity;
-      
-    if (!isValid) {
-      console.warn('Invalid cart item detected:', item);
-    }
-    return isValid;
+      item.quantity);
   });
 
   // Calculate total only with valid items
