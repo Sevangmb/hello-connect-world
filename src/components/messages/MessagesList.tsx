@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { UserSearch } from "@/components/users/UserSearch";
 import { PrivateChat } from "./PrivateChat";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -85,3 +86,4 @@ export const MessagesList = () => {
     </div>
   );
 };
+
