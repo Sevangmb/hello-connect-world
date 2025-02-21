@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Suitcase } from "@/hooks/useSuitcases";
+import type { Suitcase } from "./utils/types";
 import { SuitcaseItems } from "./SuitcaseItems";
 import { SuitcaseDates } from "./components/SuitcaseDates";
 import { SuitcaseActions } from "./components/SuitcaseActions";

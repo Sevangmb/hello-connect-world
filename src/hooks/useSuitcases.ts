@@ -1,18 +1,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-
-export type Suitcase = {
-  id: string;
-  name: string;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-  updated_at: string;
-};
+import type { Suitcase } from "@/components/suitcases/utils/types";
+import { useToast } from "./use-toast";
 
 export const useSuitcases = () => {
+  const { toast } = useToast();
+
   return useQuery({
     queryKey: ["suitcases"],
     queryFn: async () => {
@@ -22,11 +16,22 @@ export const useSuitcases = () => {
       const { data, error } = await supabase
         .from("suitcases")
         .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger vos valises",
+        });
+        throw error;
+      }
+
       return data as Suitcase[];
     },
+    retry: 1,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
-

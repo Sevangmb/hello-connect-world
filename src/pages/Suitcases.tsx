@@ -5,7 +5,6 @@ import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { CreateSuitcaseDialog } from "@/components/suitcases/CreateSuitcaseDialog";
 import { SuitcaseCard } from "@/components/suitcases/SuitcaseCard";
-import { SuitcaseItems } from "@/components/suitcases/SuitcaseItems";
 import { useSuitcases } from "@/hooks/useSuitcases";
 import { Loader2 } from "lucide-react";
 
@@ -46,12 +45,6 @@ const Suitcases = () => {
               ))}
             </div>
           )}
-
-          {selectedSuitcaseId && (
-            <div className="mt-8">
-              <SuitcaseItems suitcaseId={selectedSuitcaseId} />
-            </div>
-          )}
         </div>
       </main>
       <BottomNav />
@@ -60,4 +53,3 @@ const Suitcases = () => {
 };
 
 export default Suitcases;
-
