@@ -86,8 +86,12 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
 
       toast({
         title: "Suggestions de l'IA",
-        description: data.suggestions,
+        description: data.explanation,
       });
+      
+      // Optionnel : on pourrait automatiquement ajouter les vêtements suggérés à la valise
+      // mais pour l'instant on affiche juste l'explication
+
     } catch (error) {
       console.error("Error getting suggestions:", error);
       toast({
