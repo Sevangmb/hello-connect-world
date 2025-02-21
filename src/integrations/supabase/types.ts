@@ -292,6 +292,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_for_sale: boolean | null
+          last_worn_date: string | null
           material: string | null
           name: string
           needs_alteration: boolean | null
@@ -317,6 +318,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_for_sale?: boolean | null
+          last_worn_date?: string | null
           material?: string | null
           name: string
           needs_alteration?: boolean | null
@@ -342,6 +344,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_for_sale?: boolean | null
+          last_worn_date?: string | null
           material?: string | null
           name?: string
           needs_alteration?: boolean | null
