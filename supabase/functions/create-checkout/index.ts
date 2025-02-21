@@ -21,6 +21,7 @@ serve(async (req) => {
     const { cartItems, userId } = await req.json();
 
     if (!cartItems?.length || !userId) {
+      console.error('Missing required parameters:', { cartItems, userId });
       throw new Error('Missing required parameters');
     }
 
@@ -29,7 +30,7 @@ serve(async (req) => {
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Get Stripe secret key
@@ -43,6 +44,8 @@ serve(async (req) => {
       console.error('Error getting Stripe secret:', secretError);
       throw new Error('Could not retrieve Stripe secret key');
     }
+
+    console.log("Successfully retrieved Stripe secret key");
 
     const stripe = new Stripe(secretData.value);
 
@@ -142,6 +145,8 @@ serve(async (req) => {
       }
     });
 
+    console.log("Successfully created Stripe session:", session.url);
+
     // Clear cart after successful session creation
     const { error: clearCartError } = await supabaseClient
       .from('cart_items')
@@ -172,3 +177,4 @@ serve(async (req) => {
     );
   }
 });
+
