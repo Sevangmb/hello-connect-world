@@ -43,16 +43,24 @@ export const useClothingDetection = () => {
         return null;
       }
 
-      let description = "Détection réussie !";
-      const detectedFeatures = [];
-      if (data.category) detectedFeatures.push(`Catégorie : ${data.category}`);
-      if (data.color) detectedFeatures.push(`Couleur : ${data.color}`);
-      description += "\n" + detectedFeatures.join("\n");
+      // Afficher le toast spécifique si c'est un pantalon
+      if (data.category?.toLowerCase().includes('pantalon')) {
+        toast({
+          title: "Couleur du pantalon détectée",
+          description: `Ce pantalon est de couleur : ${data.color}`,
+        });
+      } else {
+        let description = "Détection réussie !";
+        const detectedFeatures = [];
+        if (data.category) detectedFeatures.push(`Catégorie : ${data.category}`);
+        if (data.color) detectedFeatures.push(`Couleur : ${data.color}`);
+        description += "\n" + detectedFeatures.join("\n");
 
-      toast({
-        title: "Détection réussie",
-        description: description,
-      });
+        toast({
+          title: "Détection réussie",
+          description: description,
+        });
+      }
 
       return data;
     } catch (error: any) {
