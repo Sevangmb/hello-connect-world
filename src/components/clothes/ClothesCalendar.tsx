@@ -17,18 +17,22 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { UserSearch } from "@/components/users/UserSearch";
 
 export const ClothesCalendar = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedClothes, setSelectedClothes] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<{ id: string; username: string } | null>(null);
   const { toast } = useToast();
 
   const { data: wearHistory, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
-    queryKey: ["clothes-wear-history"],
+    queryKey: ["clothes-wear-history", selectedFriend?.id],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
+
+      const userId = selectedFriend?.id || user.id;
 
       const { data, error } = await supabase
         .from("clothes_wear_history")
@@ -39,7 +43,7 @@ export const ClothesCalendar = () => {
             image_url
           )
         `)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (error) throw error;
       return data;
@@ -107,7 +111,28 @@ export const ClothesCalendar = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Calendrier de ma garde-robe</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>
+            {selectedFriend 
+              ? `Calendrier de ${selectedFriend.username}`
+              : "Mon calendrier de garde-robe"
+            }
+          </CardTitle>
+          <div className="flex items-center gap-4">
+            <UserSearch 
+              placeholder="Rechercher un ami..."
+              onSelect={(friend) => setSelectedFriend(friend)}
+            />
+            {selectedFriend && (
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedFriend(null)}
+              >
+                Revenir à mon calendrier
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-8">
@@ -126,47 +151,49 @@ export const ClothesCalendar = () => {
                   <h3 className="font-medium">
                     Vêtements portés le {format(selectedDate, "d MMMM yyyy", { locale: fr })}
                   </h3>
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Ajouter
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>
-                          Ajouter un vêtement porté le {format(selectedDate, "d MMMM yyyy", { locale: fr })}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Select
-                            value={selectedClothes}
-                            onValueChange={setSelectedClothes}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner un vêtement" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {clothesList?.map((clothes) => (
-                                <SelectItem key={clothes.id} value={clothes.id}>
-                                  {clothes.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button 
-                          onClick={handleAddClothes}
-                          disabled={!selectedClothes}
-                          className="w-full"
-                        >
+                  {!selectedFriend && (
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="gap-2">
+                          <Plus className="h-4 w-4" />
                           Ajouter
                         </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            Ajouter un vêtement porté le {format(selectedDate, "d MMMM yyyy", { locale: fr })}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Select
+                              value={selectedClothes}
+                              onValueChange={setSelectedClothes}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sélectionner un vêtement" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clothesList?.map((clothes) => (
+                                  <SelectItem key={clothes.id} value={clothes.id}>
+                                    {clothes.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button 
+                            onClick={handleAddClothes}
+                            disabled={!selectedClothes}
+                            className="w-full"
+                          >
+                            Ajouter
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
                 {isHistoryLoading ? (
                   <div className="flex justify-center p-4">
