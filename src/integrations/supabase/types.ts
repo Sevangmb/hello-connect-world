@@ -214,6 +214,10 @@ export type Database = {
           description: string | null
           end_date: string
           id: string
+          is_voting_enabled: boolean
+          participation_type: string
+          reward_description: string | null
+          rules: string | null
           start_date: string
           status: Database["public"]["Enums"]["challenge_status"]
           title: string
@@ -225,6 +229,10 @@ export type Database = {
           description?: string | null
           end_date: string
           id?: string
+          is_voting_enabled?: boolean
+          participation_type?: string
+          reward_description?: string | null
+          rules?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["challenge_status"]
           title: string
@@ -236,6 +244,10 @@ export type Database = {
           description?: string | null
           end_date?: string
           id?: string
+          is_voting_enabled?: boolean
+          participation_type?: string
+          reward_description?: string | null
+          rules?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["challenge_status"]
           title?: string
