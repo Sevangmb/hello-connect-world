@@ -68,7 +68,8 @@ export const SuitcaseActions = ({
 
     setIsGettingSuggestions(true);
     try {
-      const { data: existingItems } = await supabase
+      // Récupérer les vêtements déjà dans la valise
+      const { data: existingItems, error: existingItemsError } = await supabase
         .from("suitcase_items")
         .select(`
           *,
@@ -80,10 +81,22 @@ export const SuitcaseActions = ({
         `)
         .eq("suitcase_id", suitcaseId);
 
-      // Récupérer tous les vêtements de l'utilisateur
-      const { data: userClothes } = await supabase
+      if (existingItemsError) throw existingItemsError;
+
+      // Récupérer tous les vêtements disponibles de l'utilisateur
+      const { data: userClothes, error: userClothesError } = await supabase
         .from("clothes")
-        .select("*");
+        .select("*")
+        .eq("archived", false);
+
+      if (userClothesError) throw userClothesError;
+
+      console.log("Calling get-suitcase-suggestions with:", {
+        startDate,
+        endDate,
+        currentClothes: existingItems?.map(item => item.clothes),
+        availableClothes: userClothes
+      });
 
       const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
         body: {
@@ -93,6 +106,8 @@ export const SuitcaseActions = ({
           availableClothes: userClothes || []
         },
       });
+
+      console.log("Response from get-suitcase-suggestions:", data);
 
       if (error) throw error;
 
@@ -117,7 +132,7 @@ export const SuitcaseActions = ({
 
           if (insertError) throw insertError;
 
-          queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
+          await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
         }
       }
 
