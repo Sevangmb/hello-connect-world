@@ -1,8 +1,10 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -34,6 +36,22 @@ import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
 import Calendar from "@/pages/Calendar";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import Boutiques from "@/pages/Boutiques";
+import ShopDetail from "@/pages/ShopDetail";
+import Suitcases from "@/pages/Suitcases";
+import VirtualTryOn from "@/pages/VirtualTryOn";
+import Cart from "@/pages/Cart";
+import Favorites from "@/pages/Favorites";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminShops from "@/pages/admin/AdminShops";
+import AdminMarketplace from "@/pages/admin/AdminMarketplace";
+import AdminContent from "@/pages/admin/AdminContent";
+import AdminStats from "@/pages/admin/AdminStats";
+import AdminMarketing from "@/pages/admin/AdminMarketing";
+import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminHelp from "@/pages/admin/AdminHelp";
+import "./index.css";
 
 // Create a client
 const queryClient = new QueryClient({
