@@ -1845,6 +1845,7 @@ export type Database = {
     }
     Enums: {
       challenge_status: "active" | "completed"
+      suitcase_status: "active" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
