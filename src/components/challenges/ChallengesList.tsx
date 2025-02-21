@@ -20,6 +20,19 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
     queryKey: ["challenges", filter],
     queryFn: async () => {
       console.log("Fetching challenges...");
+      
+      // D'abord, mettre à jour le statut des défis terminés
+      const { error: updateError } = await supabase
+        .from("challenges")
+        .update({ status: "completed" })
+        .eq("status", "active")
+        .lt("end_date", now);
+
+      if (updateError) {
+        console.error("Error updating challenge statuses:", updateError);
+      }
+
+      // Ensuite, récupérer les défis selon le filtre
       let query = supabase
         .from("challenges")
         .select(`
@@ -62,7 +75,6 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
           break;
         case "completed":
           query = query
-            .lte("end_date", now)
             .eq("status", "completed");
           break;
       }
