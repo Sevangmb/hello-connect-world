@@ -17,7 +17,16 @@ serve(async (req) => {
     const { startDate, endDate, currentClothes } = await req.json();
     console.log("Received request for suitcase suggestions:", { startDate, endDate, clothesCount: currentClothes?.length });
 
+    // Vérifier que les dates sont valides
+    if (!startDate || !endDate) {
+      throw new Error("Les dates de début et de fin sont requises");
+    }
+
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
+    if (!genAI) {
+      throw new Error("La clé API Gemini n'est pas configurée");
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const tripDuration = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -35,61 +44,33 @@ serve(async (req) => {
     4. Optimiser l'espace en favorisant des vêtements qui se marient bien entre eux
     5. Prévoir 1-2 tenues de rechange
 
-    Retourne tes suggestions au format JSON avec cette structure :
-    {
-      "suggestions": [{
-        "day": "Jour X",
-        "outfit": {
-          "morning": {
-            "top": "ID_DU_HAUT",
-            "bottom": "ID_DU_BAS",
-            "shoes": "ID_DES_CHAUSSURES"
-          },
-          "evening": {
-            "top": "ID_DU_HAUT",
-            "bottom": "ID_DU_BAS",
-            "shoes": "ID_DES_CHAUSSURES"
-          }
-        }
-      }],
-      "backups": [{
-        "top": "ID_DU_HAUT",
-        "bottom": "ID_DU_BAS",
-        "shoes": "ID_DES_CHAUSSURES"
-      }],
-      "explanation": "Explication détaillée des choix de tenues et comment les combiner"
-    }`
+    Retourne tes suggestions au format texte simple, en français, sans structure JSON.
+    Concentre-toi sur des conseils pratiques et des suggestions de combinaisons avec les vêtements disponibles.`;
 
     console.log("Sending prompt to Gemini");
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
     console.log("Received response from Gemini:", text);
-    
-    // Parse the JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Failed to parse JSON from response");
-    }
-    
-    const suggestionData = JSON.parse(jsonMatch[0]);
-    console.log("Parsed suggestion data:", suggestionData);
 
     return new Response(
-      JSON.stringify(suggestionData),
+      JSON.stringify({ explanation: text }),
       { 
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
-        }
+        },
+        status: 200
       }
     );
   } catch (error) {
     console.error('Error in get-suitcase-suggestions:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Une erreur s'est produite"
+      }),
       { 
-        status: 500,
+        status: 400,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
