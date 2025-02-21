@@ -1,5 +1,5 @@
 
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,7 @@ interface SuitcaseSuggestionsDialogProps {
   suggestedClothes: SuggestedClothing[];
   aiExplanation: string;
   onAddSuggestions: () => void;
+  isLoading: boolean;
 }
 
 export const SuitcaseSuggestionsDialog = ({
@@ -29,6 +30,7 @@ export const SuitcaseSuggestionsDialog = ({
   suggestedClothes,
   aiExplanation,
   onAddSuggestions,
+  isLoading,
 }: SuitcaseSuggestionsDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,9 +53,13 @@ export const SuitcaseSuggestionsDialog = ({
                   </div>
                 ))}
               </div>
-              <Button onClick={onAddSuggestions} className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter les suggestions à la valise
+              <Button onClick={onAddSuggestions} className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                {isLoading ? "Ajout en cours..." : "Ajouter les suggestions à la valise"}
               </Button>
             </>
           ) : (

@@ -23,6 +23,7 @@ export const SuitcaseActions = ({
   const { isDeleting, deleteSuitcase } = useDeleteSuitcase();
   const {
     isGettingSuggestions,
+    isAddingSuggestions,
     suggestedClothes,
     showSuggestionsDialog,
     setShowSuggestionsDialog,
@@ -31,6 +32,8 @@ export const SuitcaseActions = ({
     addSuggestedClothes,
   } = useSuitcaseSuggestions(suitcaseId);
 
+  const isDisabled = isDeleting || isGettingSuggestions || isAddingSuggestions;
+
   return (
     <>
       <div className="flex justify-between">
@@ -38,6 +41,7 @@ export const SuitcaseActions = ({
           <Button
             variant={isSelected ? "default" : "outline"}
             onClick={() => onSelect(suitcaseId)}
+            disabled={isDisabled}
           >
             <Package className="mr-2 h-4 w-4" />
             {isSelected ? "Masquer les vêtements" : "Voir les vêtements"}
@@ -45,23 +49,27 @@ export const SuitcaseActions = ({
           <Button
             variant="outline"
             onClick={() => startDate && endDate && getSuggestions(startDate, endDate)}
-            disabled={isGettingSuggestions || !startDate || !endDate}
+            disabled={isDisabled || !startDate || !endDate}
           >
             {isGettingSuggestions ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <HelpCircle className="mr-2 h-4 w-4" />
             )}
-            Demander à l'IA
+            {isGettingSuggestions ? "Chargement..." : "Demander à l'IA"}
           </Button>
         </div>
         <Button
           variant="outline"
           size="icon"
           onClick={() => deleteSuitcase(suitcaseId)}
-          disabled={isDeleting}
+          disabled={isDisabled}
         >
-          <Trash2 className="h-4 w-4" />
+          {isDeleting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
         </Button>
       </div>
 
@@ -71,6 +79,7 @@ export const SuitcaseActions = ({
         suggestedClothes={suggestedClothes}
         aiExplanation={aiExplanation}
         onAddSuggestions={addSuggestedClothes}
+        isLoading={isAddingSuggestions}
       />
     </>
   );

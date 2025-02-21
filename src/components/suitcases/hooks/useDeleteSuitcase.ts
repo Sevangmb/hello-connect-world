@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export const useDeleteSuitcase = () => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -13,13 +14,15 @@ export const useDeleteSuitcase = () => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette valise ?")) return;
     
     setIsDeleting(true);
+    setError(null);
+
     try {
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from("suitcases")
         .delete()
         .eq("id", suitcaseId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
 
       toast({
         title: "Valise supprimée",
@@ -27,12 +30,14 @@ export const useDeleteSuitcase = () => {
       });
 
       queryClient.invalidateQueries({ queryKey: ["suitcases"] });
-    } catch (error) {
-      console.error("Error deleting suitcase:", error);
+    } catch (e: any) {
+      console.error("Error deleting suitcase:", e);
+      const errorMessage = e.message || "Impossible de supprimer la valise";
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de supprimer la valise",
+        description: errorMessage,
       });
     } finally {
       setIsDeleting(false);
@@ -41,6 +46,7 @@ export const useDeleteSuitcase = () => {
 
   return {
     isDeleting,
+    error,
     deleteSuitcase,
   };
 };

@@ -12,9 +12,11 @@ type SuggestedClothing = {
 
 export const useSuitcaseSuggestions = (suitcaseId: string) => {
   const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
+  const [isAddingSuggestions, setIsAddingSuggestions] = useState(false);
   const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothing[]>([]);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
   const [aiExplanation, setAiExplanation] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -29,6 +31,8 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
     }
 
     setIsGettingSuggestions(true);
+    setError(null);
+
     try {
       const { data: existingItems, error: existingItemsError } = await supabase
         .from("suitcase_items")
@@ -66,12 +70,14 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
       setSuggestedClothes(newSuggestions);
       setAiExplanation(data.explanation);
       setShowSuggestionsDialog(true);
-    } catch (error: any) {
-      console.error("Error getting suggestions:", error);
+    } catch (e: any) {
+      console.error("Error getting suggestions:", e);
+      const errorMessage = e.message || "Impossible d'obtenir les suggestions";
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'obtenir les suggestions",
+        description: errorMessage,
       });
     } finally {
       setIsGettingSuggestions(false);
@@ -79,8 +85,11 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
   };
 
   const addSuggestedClothes = async () => {
+    setIsAddingSuggestions(true);
+    setError(null);
+
     try {
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from("suitcase_items")
         .insert(
           suggestedClothes.map(cloth => ({
@@ -89,7 +98,7 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
           }))
         );
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
       await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
       toast({
@@ -98,22 +107,28 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
       });
       setShowSuggestionsDialog(false);
       setSuggestedClothes([]);
-    } catch (error) {
-      console.error("Error adding suggested clothes:", error);
+    } catch (e: any) {
+      console.error("Error adding suggested clothes:", e);
+      const errorMessage = e.message || "Impossible d'ajouter les vêtements suggérés";
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'ajouter les vêtements suggérés",
+        description: errorMessage,
       });
+    } finally {
+      setIsAddingSuggestions(false);
     }
   };
 
   return {
     isGettingSuggestions,
+    isAddingSuggestions,
     suggestedClothes,
     showSuggestionsDialog,
     setShowSuggestionsDialog,
     aiExplanation,
+    error,
     getSuggestions,
     addSuggestedClothes,
   };
