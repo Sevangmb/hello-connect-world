@@ -60,6 +60,15 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
   };
 
   const handleGetSuggestions = async () => {
+    if (!suitcase.start_date || !suitcase.end_date) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Les dates de début et de fin sont requises pour obtenir des suggestions",
+      });
+      return;
+    }
+
     setIsGettingSuggestions(true);
     try {
       const { data: items } = await supabase
@@ -74,23 +83,30 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
         `)
         .eq("suitcase_id", suitcase.id);
 
+      // Format the dates to ISO strings for the Edge Function
+      const startDate = new Date(suitcase.start_date).toISOString();
+      const endDate = new Date(suitcase.end_date).toISOString();
+
+      console.log("Sending request with dates:", { startDate, endDate });
+
       const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
         body: {
-          startDate: suitcase.start_date,
-          endDate: suitcase.end_date,
+          startDate,
+          endDate,
           currentClothes: items?.map(item => item.clothes) || []
         },
       });
 
       if (error) throw error;
 
+      if (!data?.explanation) {
+        throw new Error("La réponse ne contient pas d'explications");
+      }
+
       toast({
         title: "Suggestions de l'IA",
         description: data.explanation,
       });
-      
-      // Optionnel : on pourrait automatiquement ajouter les vêtements suggérés à la valise
-      // mais pour l'instant on affiche juste l'explication
 
     } catch (error) {
       console.error("Error getting suggestions:", error);
@@ -140,7 +156,7 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
           <Button
             variant="outline"
             onClick={handleGetSuggestions}
-            disabled={isGettingSuggestions}
+            disabled={isGettingSuggestions || !suitcase.start_date || !suitcase.end_date}
           >
             {isGettingSuggestions ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
