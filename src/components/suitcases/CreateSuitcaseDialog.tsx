@@ -27,8 +27,6 @@ export const CreateSuitcaseDialog = () => {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [startCalendarOpen, setStartCalendarOpen] = useState(false);
-  const [endCalendarOpen, setEndCalendarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const { toast } = useToast();
@@ -112,7 +110,7 @@ export const CreateSuitcaseDialog = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Date de début</Label>
-              <Popover open={startCalendarOpen} onOpenChange={setStartCalendarOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -125,21 +123,19 @@ export const CreateSuitcaseDialog = () => {
                     {startDate ? format(startDate, "PP", { locale: fr }) : "Sélectionner"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={(date) => {
-                      setStartDate(date);
-                      setStartCalendarOpen(false);
-                    }}
+                    onSelect={setStartDate}
+                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
             <div className="space-y-2">
               <Label>Date de fin</Label>
-              <Popover open={endCalendarOpen} onOpenChange={setEndCalendarOpen}>
+              <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -152,14 +148,12 @@ export const CreateSuitcaseDialog = () => {
                     {endDate ? format(endDate, "PP", { locale: fr }) : "Sélectionner"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
-                    onSelect={(date) => {
-                      setEndDate(date);
-                      setEndCalendarOpen(false);
-                    }}
+                    onSelect={setEndDate}
+                    initialFocus
                   />
                 </PopoverContent>
               </Popover>
@@ -173,4 +167,3 @@ export const CreateSuitcaseDialog = () => {
     </Dialog>
   );
 };
-
