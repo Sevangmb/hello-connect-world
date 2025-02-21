@@ -1,53 +1,54 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import Stripe from 'https://esm.sh/stripe@12.4.0?target=deno';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import Stripe from 'https://esm.sh/stripe@12.4.0?target=deno'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-console.log("Create Checkout Function Started");
+console.log("Create Checkout Function Started")
 
 serve(async (req) => {
   try {
     // Handle CORS
     if (req.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders });
+      return new Response('ok', { headers: corsHeaders })
     }
 
     // Get the request body
-    const { cartItems, userId } = await req.json();
+    const { cartItems, userId } = await req.json()
 
     if (!cartItems?.length || !userId) {
-      console.error('Missing required parameters:', { cartItems, userId });
-      throw new Error('Missing required parameters');
+      console.error('Missing required parameters:', { cartItems, userId })
+      throw new Error('Missing required parameters')
     }
 
-    console.log("Received request:", { cartItems, userId });
+    console.log("Received request:", { cartItems, userId })
 
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    )
 
-    // Get Stripe secret key
+    // Get Stripe secret key from secrets table
     const { data: secretData, error: secretError } = await supabaseClient
       .from('secrets')
       .select('value')
       .eq('key', 'STRIPE_SECRET_KEY')
-      .single();
+      .single()
 
     if (secretError || !secretData?.value) {
-      console.error('Error getting Stripe secret:', secretError);
-      throw new Error('Could not retrieve Stripe secret key');
+      console.error('Error getting Stripe secret:', secretError)
+      throw new Error('Could not retrieve Stripe secret key')
     }
 
-    console.log("Successfully retrieved Stripe secret key");
+    console.log("Successfully retrieved Stripe secret key")
 
-    const stripe = new Stripe(secretData.value);
+    // Initialize Stripe with the secret key
+    const stripe = new Stripe(secretData.value)
 
     // Fetch detailed cart items with correct relationship specification
     const { data: items, error: itemsError } = await supabaseClient
@@ -64,24 +65,24 @@ serve(async (req) => {
           )
         )
       `)
-      .in('id', cartItems.map(item => item.id));
+      .in('id', cartItems.map(item => item.id))
 
     if (itemsError) {
-      console.error('Error fetching cart items:', itemsError);
-      throw itemsError;
+      console.error('Error fetching cart items:', itemsError)
+      throw itemsError
     }
 
     if (!items?.length) {
-      console.error('No items found in cart');
-      throw new Error('No items found in cart');
+      console.error('No items found in cart')
+      throw new Error('No items found in cart')
     }
 
-    console.log("Retrieved cart items:", items);
+    console.log("Retrieved cart items:", items)
 
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => {
-      return sum + (item.shop_items.price * item.quantity);
-    }, 0);
+      return sum + (item.shop_items.price * item.quantity)
+    }, 0)
 
     // Create order first
     const { data: order, error: orderError } = await supabaseClient
@@ -95,14 +96,14 @@ serve(async (req) => {
         payment_type: 'stripe'
       })
       .select()
-      .single();
+      .single()
 
     if (orderError || !order) {
-      console.error('Error creating order:', orderError);
-      throw orderError;
+      console.error('Error creating order:', orderError)
+      throw orderError
     }
 
-    console.log('Created order:', order);
+    console.log('Created order:', order)
 
     // Create order items
     const orderItems = items.map(item => ({
@@ -110,18 +111,18 @@ serve(async (req) => {
       shop_item_id: item.shop_items.id,
       quantity: item.quantity,
       price_at_time: item.shop_items.price
-    }));
+    }))
 
     const { error: orderItemsError } = await supabaseClient
       .from('order_items')
-      .insert(orderItems);
+      .insert(orderItems)
 
     if (orderItemsError) {
-      console.error('Error creating order items:', orderItemsError);
-      throw orderItemsError;
+      console.error('Error creating order items:', orderItemsError)
+      throw orderItemsError
     }
 
-    console.log("Creating Stripe session...");
+    console.log("Creating Stripe session...")
 
     // Create Stripe session
     const session = await stripe.checkout.sessions.create({
@@ -143,18 +144,18 @@ serve(async (req) => {
       metadata: {
         order_id: order.id
       }
-    });
+    })
 
-    console.log("Successfully created Stripe session:", session.url);
+    console.log("Successfully created Stripe session:", session.url)
 
     // Clear cart after successful session creation
     const { error: clearCartError } = await supabaseClient
       .from('cart_items')
       .delete()
-      .in('id', cartItems.map(item => item.id));
+      .in('id', cartItems.map(item => item.id))
 
     if (clearCartError) {
-      console.error('Error clearing cart:', clearCartError);
+      console.error('Error clearing cart:', clearCartError)
       // Don't throw here, as the order is already created
     }
 
@@ -164,17 +165,16 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
-    );
+    )
 
   } catch (error) {
-    console.error('Error in create-checkout:', error);
+    console.error('Error in create-checkout:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
-    );
+    )
   }
-});
-
+})
