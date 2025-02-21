@@ -2,18 +2,19 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ClothesFormData } from "@/components/clothes/types";
 
 export const useClothingDetection = () => {
   const [detecting, setDetecting] = useState(false);
   const { toast } = useToast();
 
-  const detectClothing = async (imageUrl: string) => {
+  const detectClothing = async (imageUrl: string): Promise<Partial<ClothesFormData> | null> => {
     try {
       setDetecting(true);
       
       toast({
         title: "Détection en cours",
-        description: "Analyse de l'image en cours...",
+        description: "Analyse de l'image avec l'IA...",
       });
       
       console.log("Attempting to detect features for image:", imageUrl);
@@ -33,9 +34,9 @@ export const useClothingDetection = () => {
       }
 
       console.log("Detection succeeded:", data);
-      
-      if (!data?.category && !data?.color) {
-        console.log("No features detected in the response");
+
+      if (!data) {
+        console.log("No data in the response");
         toast({
           title: "Aucune détection",
           description: "Aucune caractéristique n'a pu être détectée sur cette image",
@@ -43,26 +44,35 @@ export const useClothingDetection = () => {
         return null;
       }
 
-      // Afficher le toast spécifique si c'est un pantalon
-      if (data.category?.toLowerCase().includes('pantalon')) {
-        toast({
-          title: "Couleur du pantalon détectée",
-          description: `Ce pantalon est de couleur : ${data.color}`,
-        });
-      } else {
-        let description = "Détection réussie !";
-        const detectedFeatures = [];
-        if (data.category) detectedFeatures.push(`Catégorie : ${data.category}`);
-        if (data.color) detectedFeatures.push(`Couleur : ${data.color}`);
-        description += "\n" + detectedFeatures.join("\n");
+      const detectedData: Partial<ClothesFormData> = {
+        category: data.category || undefined,
+        subcategory: data.subcategory || undefined,
+        color: data.color || undefined,
+        material: data.material || undefined,
+        style: data.style || undefined,
+        brand: data.brand || undefined,
+        description: data.description || undefined
+      };
 
+      // Filtrer les valeurs undefined
+      const detectedFeatures = Object.entries(detectedData)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => `${key}: ${value}`);
+
+      if (detectedFeatures.length > 0) {
         toast({
           title: "Détection réussie",
-          description: description,
+          description: "Caractéristiques détectées :\n" + detectedFeatures.join("\n"),
         });
+        return detectedData;
+      } else {
+        toast({
+          title: "Détection limitée",
+          description: "Peu de caractéristiques ont pu être détectées sur cette image",
+        });
+        return null;
       }
 
-      return data;
     } catch (error: any) {
       console.error("Error in detectClothing:", error);
       toast({

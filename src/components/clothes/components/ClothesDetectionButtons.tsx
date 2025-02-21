@@ -24,15 +24,18 @@ export const ClothesDetectionButtons = ({ imageUrl, onFormChange }: ClothesDetec
     if (data) {
       console.log("Detection results:", data);
       
-      if (data.category && CATEGORIES.includes(data.category)) {
-        console.log("Setting category to:", data.category);
-        onFormChange('category', data.category);
-      }
-
-      if (data.color) {
-        console.log("Setting color to:", data.color);
-        onFormChange('color', data.color);
-      }
+      // Mettre à jour chaque champ détecté
+      Object.entries(data).forEach(([field, value]) => {
+        if (value !== undefined) {
+          const fieldName = field as keyof ClothesFormData;
+          if (fieldName === 'category' && !CATEGORIES.includes(value)) {
+            console.warn(`Detected category "${value}" is not in the allowed list`);
+            return;
+          }
+          console.log(`Setting ${field} to:`, value);
+          onFormChange(fieldName, value);
+        }
+      });
     }
   };
 
@@ -80,4 +83,3 @@ export const ClothesDetectionButtons = ({ imageUrl, onFormChange }: ClothesDetec
     </div>
   );
 };
-
