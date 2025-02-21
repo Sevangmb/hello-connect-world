@@ -25,6 +25,10 @@ export const ChallengesList = () => {
             user_id,
             outfit_id,
             comment,
+            moderated_at,
+            moderated_by,
+            moderation_status,
+            moderation_reason,
             outfits!inner(
               name,
               top:clothes!top_id(name, image_url),
@@ -137,4 +141,3 @@ export const ChallengesList = () => {
     </div>
   );
 };
-

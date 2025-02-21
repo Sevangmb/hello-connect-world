@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
@@ -31,6 +30,10 @@ export default function Challenge() {
             outfit_id,
             comment,
             status,
+            moderated_at,
+            moderated_by,
+            moderation_status,
+            moderation_reason,
             outfits!inner(
               name,
               top:clothes!top_id(name, image_url),
