@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OrderRow } from "./components/OrderRow";
-import type { Order } from "./types/orders";
+import type { Order, ShippingAddress, statusLabels } from "./types/orders";
 
 export default function AdminOrders() {
   const { toast } = useToast();
@@ -50,9 +50,11 @@ export default function AdminOrders() {
 
       if (error) throw error;
 
-      // Transform and validate shipping_address from JSON
+      // Transform and validate data from Supabase
       return data.map((order): Order => ({
         ...order,
+        // Ensure status is one of our valid status types
+        status: validateOrderStatus(order.status),
         order_shipments: order.order_shipments.map(shipment => ({
           ...shipment,
           shipping_address: shipment.shipping_address as ShippingAddress
@@ -60,6 +62,20 @@ export default function AdminOrders() {
       }));
     }
   });
+
+  // Helper function to validate status
+  const validateOrderStatus = (status: string): keyof typeof statusLabels => {
+    if (isValidOrderStatus(status)) {
+      return status;
+    }
+    console.warn(`Invalid order status: ${status}, defaulting to "pending"`);
+    return "pending";
+  };
+
+  // Type guard for order status
+  const isValidOrderStatus = (status: string): status is keyof typeof statusLabels => {
+    return Object.keys(statusLabels).includes(status);
+  };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -131,4 +147,3 @@ export default function AdminOrders() {
     </div>
   );
 }
-
