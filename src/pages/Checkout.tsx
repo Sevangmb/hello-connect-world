@@ -50,11 +50,29 @@ export default function Checkout() {
     return window.location.href = "/cart";
   }
 
-  const subtotal = cartItems.reduce((acc: number, item: any) => 
+  // Validate cart items and calculate total with safe access
+  const validCartItems = cartItems.filter(item => 
+    item && 
+    item.shop_items && 
+    typeof item.shop_items.price === 'number' && 
+    typeof item.quantity === 'number'
+  );
+  
+  const subtotal = validCartItems.reduce((acc, item) => 
     acc + (item.shop_items.price * item.quantity), 0
   );
   
-  const total = subtotal + shippingDetails.basePrice;
+  const total = subtotal + (shippingDetails.basePrice || 0);
+
+  // If no valid items, return to cart
+  if (validCartItems.length === 0) {
+    toast({
+      title: "Erreur",
+      description: "Aucun article valide dans votre panier",
+      variant: "destructive",
+    });
+    return window.location.href = "/cart";
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -79,7 +97,7 @@ export default function Checkout() {
               <div className="bg-white p-6 rounded-lg shadow">
                 <h2 className="text-lg font-medium mb-4">Articles</h2>
                 <div className="space-y-4">
-                  {cartItems.map((item: any) => (
+                  {validCartItems.map((item) => (
                     <div key={item.id} className="flex justify-between items-center">
                       <div className="flex items-center space-x-4">
                         <div className="flex-1">
