@@ -18,13 +18,23 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ cartItems, isLoading: externalLoading }: CheckoutButtonProps) {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<string>("");
+
+  const showProcessingToast = (message: string) => {
+    toast({
+      title: "Traitement en cours",
+      description: message,
+    });
+  };
 
   const handleCheckout = async () => {
     try {
       setIsProcessing(true);
+      setProcessingStep("Initialisation du processus de paiement...");
+      showProcessingToast("Initialisation du processus de paiement...");
       
-      console.log("Starting checkout process...");
-      
+      // Vérification de l'authentification
+      setProcessingStep("Vérification de l'authentification...");
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -35,6 +45,7 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
         return;
       }
 
+      // Vérification du panier
       if (!cartItems.length) {
         toast({
           title: "Panier vide",
@@ -44,14 +55,21 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
         return;
       }
 
-      console.log("Calling create-checkout with:", { cartItems, userId: user.id });
+      // Préparation des données pour Stripe
+      setProcessingStep("Préparation des données pour le paiement...");
+      showProcessingToast("Préparation des données pour le paiement...");
+      console.log("Données du panier à envoyer:", { cartItems, userId: user.id });
+
+      // Appel à la fonction de création de session Stripe
+      setProcessingStep("Création de la session de paiement...");
+      showProcessingToast("Création de la session de paiement...");
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { cartItems, userId: user.id }
       });
 
       if (error) {
-        console.error('Error creating checkout session:', error);
-        // Check if the error is from a browser extension
+        console.error('Erreur lors de la création de la session:', error);
+        // Vérification des erreurs liées aux extensions
         if (error.message?.includes('chrome-extension') || error.message?.includes('rejected')) {
           toast({
             title: "Extension de navigateur détectée",
@@ -64,18 +82,19 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       }
 
       if (!data?.url) {
-        throw new Error('No checkout URL returned from server');
+        throw new Error('Aucune URL de paiement reçue du serveur');
       }
 
-      console.log("Redirecting to:", data.url);
+      // Redirection vers Stripe
+      setProcessingStep("Redirection vers la page de paiement...");
+      showProcessingToast("Redirection vers la page de paiement sécurisée...");
+      console.log("URL de redirection:", data.url);
       
-      // Use a more reliable way to redirect
       const redirectToCheckout = () => {
         try {
           window.location.assign(data.url);
         } catch (redirectError) {
-          console.error('Redirect failed, trying fallback...', redirectError);
-          // Fallback
+          console.error('Échec de la redirection, tentative avec fallback...', redirectError);
           window.open(data.url, '_self');
         }
       };
@@ -83,25 +102,33 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       redirectToCheckout();
       
     } catch (error) {
-      console.error('Error in checkout process:', error);
+      console.error('Erreur dans le processus de paiement:', error);
       toast({
         title: "Erreur de paiement",
-        description: "Impossible de procéder au paiement. Veuillez réessayer.",
+        description: "Une erreur est survenue lors du processus de paiement. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
       setIsProcessing(false);
+      setProcessingStep("");
     }
   };
 
   return (
-    <Button
-      className="w-full"
-      onClick={handleCheckout}
-      disabled={externalLoading || isProcessing || !cartItems.length}
-    >
-      <ShoppingBag className="mr-2 h-4 w-4" />
-      {isProcessing ? "Traitement en cours..." : "Passer la commande"}
-    </Button>
+    <div>
+      <Button
+        className="w-full"
+        onClick={handleCheckout}
+        disabled={externalLoading || isProcessing || !cartItems.length}
+      >
+        <ShoppingBag className="mr-2 h-4 w-4" />
+        {isProcessing ? processingStep : "Passer la commande"}
+      </Button>
+      {isProcessing && (
+        <p className="mt-2 text-sm text-gray-500 text-center">
+          {processingStep}
+        </p>
+      )}
+    </div>
   );
 }
