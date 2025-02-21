@@ -27,3 +27,7 @@ export interface SuitcaseItem {
     category: string;
   };
 }
+
+export interface SuitcaseCalendarItem extends SuitcaseItem {
+  suitcase: Pick<Suitcase, 'start_date' | 'end_date'>;
+}

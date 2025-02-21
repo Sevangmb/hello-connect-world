@@ -10,53 +10,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ClothesItem } from "@/components/clothes/types";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useSuitcaseItemsManager } from "../hooks/useSuitcaseItemsManager";
 
 interface AddClothesDialogProps {
   suitcaseId: string;
   availableClothes: ClothesItem[];
-  onClothesAdded: () => void;
 }
 
 export const AddClothesDialog = ({
   suitcaseId,
   availableClothes,
-  onClothesAdded,
 }: AddClothesDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { isAdding, addItem } = useSuitcaseItemsManager(suitcaseId);
 
   const handleAddItem = async (clothesId: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from("suitcase_items")
-        .insert({
-          suitcase_id: suitcaseId,
-          clothes_id: clothesId,
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Vêtement ajouté",
-        description: "Le vêtement a été ajouté à la valise",
-      });
-
-      onClothesAdded();
-      setIsOpen(false);
-    } catch (error) {
-      console.error("Error adding item to suitcase:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'ajouter le vêtement à la valise",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    await addItem(clothesId);
+    setIsOpen(false);
   };
 
   return (
@@ -101,7 +71,7 @@ export const AddClothesDialog = ({
                 </div>
                 <Button
                   onClick={() => handleAddItem(cloth.id)}
-                  disabled={isLoading}
+                  disabled={isAdding}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>

@@ -1,45 +1,19 @@
 
 import { X, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { SuitcaseItem } from "@/components/suitcases/utils/types";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import type { SuitcaseItem } from "../utils/types";
+import { useSuitcaseItemsManager } from "../hooks/useSuitcaseItemsManager";
 
 interface SuitcaseItemsListProps {
+  suitcaseId: string;
   items: SuitcaseItem[];
-  onItemRemoved: () => void;
 }
 
 export const SuitcaseItemsList = ({
+  suitcaseId,
   items,
-  onItemRemoved,
 }: SuitcaseItemsListProps) => {
-  const { toast } = useToast();
-
-  const handleRemoveItem = async (itemId: string) => {
-    try {
-      const { error } = await supabase
-        .from("suitcase_items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Vêtement retiré",
-        description: "Le vêtement a été retiré de la valise",
-      });
-
-      onItemRemoved();
-    } catch (error) {
-      console.error("Error removing item from suitcase:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de retirer le vêtement de la valise",
-      });
-    }
-  };
+  const { isRemoving, removeItem } = useSuitcaseItemsManager(suitcaseId);
 
   if (!items?.length) {
     return (
@@ -76,7 +50,8 @@ export const SuitcaseItemsList = ({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => handleRemoveItem(item.id)}
+            onClick={() => removeItem(item.id)}
+            disabled={isRemoving}
           >
             <X className="h-4 w-4" />
           </Button>
