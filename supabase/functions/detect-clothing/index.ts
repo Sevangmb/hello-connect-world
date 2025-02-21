@@ -7,8 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Liste des couleurs standardisées en français
+const VALID_COLORS = [
+  "noir", "blanc", "gris", "rouge", "bleu", "vert", "jaune", "orange", 
+  "violet", "rose", "marron", "beige", "doré", "argenté", "multicolore"
+];
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -22,18 +27,15 @@ serve(async (req) => {
 
     console.log('Processing image:', imageUrl)
 
-    // Fetch the image
     const imageResponse = await fetch(imageUrl)
     if (!imageResponse.ok) {
       throw new Error('Failed to fetch image')
     }
     const imageBlob = await imageResponse.blob()
 
-    // Initialize Gemini
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '')
     const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' })
 
-    // Prepare image for Gemini
     const imageData = {
       inlineData: {
         data: await blobToBase64(imageBlob),
@@ -41,17 +43,19 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `Tu es un expert en mode qui analyse cette image de vêtement. Retourne uniquement un JSON avec ces informations (pas de texte avant ou après) :
+    const prompt = `Tu es un expert en mode qui analyse cette image de vêtement.
+    Retourne uniquement un JSON avec ces informations (pas de texte avant ou après) :
     {
       "category": type exact parmi cette liste (Hauts, Bas, Robes, Manteaux, Chaussures, Accessoires),
-      "color": la couleur principale exacte en français,
-      "material": le matériau principal si visible (en français),
+      "color": la couleur dominante parmi cette liste uniquement (${VALID_COLORS.join(', ')}),
+      "material": le matériau principal si visible en français (ex: coton, laine, cuir, jean, etc),
       "style": le style vestimentaire parmi (Casual, Formel, Sport, Vintage, Bohème),
       "brand": la marque si visible,
       "description": courte description en français du vêtement,
       "weather_categories": tableau avec les saisons adaptées parmi [Été, Hiver, Mi-saison]
     }
-    Les champs doivent être en minuscules et ne contenir que les valeurs autorisées. Si une information n'est pas visible ou incertaine, mets null.`
+    Important: Pour la couleur, utilise UNIQUEMENT une des valeurs de la liste fournie, en minuscules.
+    Si une information n'est pas visible ou incertaine, mets null.`
 
     console.log('Sending request to Gemini...')
     
@@ -61,13 +65,18 @@ serve(async (req) => {
     
     console.log('Gemini response:', text)
 
-    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       throw new Error('Failed to parse Gemini response')
     }
 
     const detectedInfo = JSON.parse(jsonMatch[0])
+
+    // Validation de la couleur
+    if (detectedInfo.color && !VALID_COLORS.includes(detectedInfo.color.toLowerCase())) {
+      detectedInfo.color = null;
+      console.warn('Invalid color detected, setting to null');
+    }
 
     console.log('Parsed detection results:', detectedInfo)
 
@@ -87,7 +96,6 @@ serve(async (req) => {
   }
 })
 
-// Utility to convert Blob to base64
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer()
   const bytes = new Uint8Array(buffer)
