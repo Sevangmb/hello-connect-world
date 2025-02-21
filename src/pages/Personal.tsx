@@ -4,6 +4,7 @@ import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { PublishForm } from "@/components/publications/PublishForm";
 import { Card } from "@/components/ui/card";
+import { ClothesCalendar } from "@/components/clothes/ClothesCalendar";
 
 const Personal = () => {
   return (
@@ -11,14 +12,12 @@ const Personal = () => {
       <Header />
       <MainSidebar />
       <main className="pt-24 px-4 md:pl-72">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">Mon Espace Personnel</h1>
-          
-          <Card className="p-6 mb-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <Card className="p-6">
             <PublishForm />
           </Card>
           
-          {/* Liste des publications à implémenter plus tard */}
+          <ClothesCalendar />
         </div>
       </main>
       <BottomNav />
