@@ -65,7 +65,7 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
           </div>
         )}
         <ScrollArea className="h-full px-4 py-6">
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible defaultValue="personal">
             <HomeSection />
             <ExploreSection />
             <PersonalSection />
@@ -78,4 +78,3 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
     </>
   );
 }
-
