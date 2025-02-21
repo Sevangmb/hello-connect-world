@@ -14,8 +14,8 @@ interface HashtagCount {
 
 interface HashtagResponse {
   name: string;
-  clothes_count: number | null;
-  outfit_count: number | null;
+  clothes_count: { count: number }[];
+  outfit_count: { count: number }[];
 }
 
 const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
@@ -39,7 +39,7 @@ const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
 
   const processedData = (hashtagsData as HashtagResponse[]).map(tag => ({
     name: tag.name,
-    count: Number(tag.clothes_count || 0) + Number(tag.outfit_count || 0)
+    count: (tag.clothes_count[0]?.count || 0) + (tag.outfit_count[0]?.count || 0)
   })).sort((a, b) => b.count - a.count);
 
   console.log("Processed hashtags data:", processedData);
