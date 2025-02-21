@@ -1518,6 +1518,75 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_labels: {
+        Row: {
+          carrier_id: string | null
+          carrier_response: Json | null
+          created_at: string
+          dimensions: Json | null
+          error_message: string | null
+          id: string
+          label_data: Json | null
+          label_url: string
+          order_shipment_id: string | null
+          shipping_cost: number | null
+          status: string
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          carrier_id?: string | null
+          carrier_response?: Json | null
+          created_at?: string
+          dimensions?: Json | null
+          error_message?: string | null
+          id?: string
+          label_data?: Json | null
+          label_url: string
+          order_shipment_id?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          carrier_id?: string | null
+          carrier_response?: Json | null
+          created_at?: string
+          dimensions?: Json | null
+          error_message?: string | null
+          id?: string
+          label_data?: Json | null
+          label_url?: string
+          order_shipment_id?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_labels_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_labels_order_shipment_id_fkey"
+            columns: ["order_shipment_id"]
+            isOneToOne: false
+            referencedRelation: "order_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_items: {
         Row: {
           clothes_id: string

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export interface CheckoutItem {
   id: string;
@@ -34,6 +35,7 @@ interface CheckoutButtonProps {
 
 export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedCarrier, setSelectedCarrier] = useState<string>("");
   const [isShippingSheetOpen, setIsShippingSheetOpen] = useState(false);
 
@@ -46,20 +48,45 @@ export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
         .eq("is_active", true)
         .order("name");
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les transporteurs",
+          variant: "destructive",
+        });
+        throw error;
+      }
       return data;
     }
   });
 
   const handleProceedToCheckout = () => {
-    if (selectedCarrier) {
-      navigate("/checkout", {
-        state: { 
-          cartItems,
-          shippingCarrierId: selectedCarrier 
-        }
+    if (!selectedCarrier) {
+      toast({
+        title: "Sélection requise",
+        description: "Veuillez sélectionner un transporteur avant de continuer",
+        variant: "destructive",
       });
+      return;
     }
+
+    const selectedCarrierDetails = carriers?.find(c => c.id === selectedCarrier);
+    
+    navigate("/checkout", {
+      state: { 
+        cartItems,
+        shippingCarrierId: selectedCarrier,
+        shippingDetails: {
+          carrierName: selectedCarrierDetails?.name,
+          basePrice: selectedCarrierDetails?.base_price,
+          estimatedDays: {
+            min: selectedCarrierDetails?.shipping_time_min,
+            max: selectedCarrierDetails?.shipping_time_max
+          }
+        }
+      }
+    });
+    setIsShippingSheetOpen(false);
   };
 
   if (!cartItems.length) {
@@ -113,6 +140,17 @@ export function CheckoutButton({ cartItems, isLoading }: CheckoutButtonProps) {
             <p className="text-sm text-muted-foreground">
               {carriers.find(c => c.id === selectedCarrier)?.description}
             </p>
+          )}
+
+          {selectedCarrier && (
+            <div className="text-sm text-muted-foreground mt-2">
+              {carriers?.find(c => c.id === selectedCarrier)?.shipping_time_min && (
+                <p>
+                  Délai estimé: {carriers.find(c => c.id === selectedCarrier)?.shipping_time_min}-
+                  {carriers.find(c => c.id === selectedCarrier)?.shipping_time_max} jours
+                </p>
+              )}
+            </div>
           )}
         </div>
 
