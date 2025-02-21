@@ -26,23 +26,18 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
   const addedClothesIds = new Set(items?.map(item => item.clothes_id));
   const availableClothes = clothes?.filter(cloth => !addedClothesIds.has(cloth.id)) || [];
 
-  const handleItemsChange = () => {
-    queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <AddClothesDialog
           suitcaseId={suitcaseId}
           availableClothes={availableClothes}
-          onClothesAdded={handleItemsChange}
         />
       </div>
 
       <SuitcaseItemsList
         items={items || []}
-        onItemRemoved={handleItemsChange}
+        suitcaseId={suitcaseId}
       />
     </div>
   );
