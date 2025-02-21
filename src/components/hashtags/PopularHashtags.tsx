@@ -14,40 +14,31 @@ interface HashtagCount {
 
 const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
   console.log("Fetching popular hashtags...");
-  const { data, error } = await supabase
+  const { data: hashtagsData, error } = await supabase
     .from('hashtags')
     .select(`
-      id,
       name,
       clothes_count:clothes_hashtags(count),
       outfit_count:outfits_hashtags(count)
-    `)
-    .order('created_at', { ascending: false })
-    .limit(10);
+    `);
 
   if (error) {
     console.error("Error fetching hashtags:", error);
     throw error;
   }
 
-  console.log("Hashtags data:", data);
+  console.log("Hashtags raw data:", hashtagsData);
 
-  return data.map(tag => {
-    // Extraire le compte des vêtements
-    const clothesCount = Array.isArray(tag.clothes_count) 
-      ? tag.clothes_count.length 
-      : (tag.clothes_count || 0);
-    
-    // Extraire le compte des tenues
-    const outfitCount = Array.isArray(tag.outfit_count)
-      ? tag.outfit_count.length
-      : (tag.outfit_count || 0);
+  if (!hashtagsData) return [];
 
-    return {
-      name: tag.name,
-      count: clothesCount + outfitCount
-    };
-  }).sort((a, b) => b.count - a.count);
+  const processedData = hashtagsData.map(tag => ({
+    name: tag.name,
+    count: (tag.clothes_count || 0) + (tag.outfit_count || 0)
+  })).sort((a, b) => b.count - a.count);
+
+  console.log("Processed hashtags data:", processedData);
+
+  return processedData;
 };
 
 export const PopularHashtags = () => {
