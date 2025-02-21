@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChallengeMetadata } from "@/components/challenges/ChallengeMetadata";
 import { ParticipantsList } from "@/components/challenges/ParticipantsList";
 import { useChallengeActions } from "@/components/challenges/ChallengeActions";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Challenge } from "@/components/challenges/types";
 
@@ -59,10 +59,16 @@ export default function Challenge() {
         throw new Error("Invalid participation_type value");
       }
 
+      const now = new Date();
+      const startDate = new Date(data.start_date);
+      const endDate = new Date(data.end_date);
+      const isActive = now >= startDate && now <= endDate;
+
       return {
         ...data,
-        participation_type: data.participation_type as "virtual" | "photo"
-      } as Challenge;
+        participation_type: data.participation_type as "virtual" | "photo",
+        isActive
+      } as Challenge & { isActive: boolean };
     },
   });
 
@@ -96,7 +102,12 @@ export default function Challenge() {
           <Card>
             <CardHeader>
               <div className="space-y-2">
-                <CardTitle className="text-2xl">{challenge.title}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl">{challenge.title}</CardTitle>
+                  <Badge variant={challenge.isActive ? "secondary" : "outline"}>
+                    {challenge.isActive ? "En cours" : "Terminé"}
+                  </Badge>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {challenge.hashtags?.map((tag: any) => (
                     <Badge key={tag.hashtags.name} variant="secondary">
@@ -119,10 +130,23 @@ export default function Challenge() {
               
               <Separator />
               
+              {!challenge.isActive && (
+                <div className="bg-yellow-50 p-4 rounded-md mb-4">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    <p className="text-sm font-medium text-yellow-800">
+                      Ce défi est terminé. Les votes et la participation ne sont plus possibles.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <ParticipantsList 
                 participants={challenge.participants} 
                 onVote={handleVote}
                 challengeId={challenge.id}
+                isVotingEnabled={challenge.isActive && challenge.is_voting_enabled}
+                showFinalRanking={!challenge.isActive}
               />
             </CardContent>
           </Card>
