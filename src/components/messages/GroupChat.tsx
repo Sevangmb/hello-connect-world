@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { GroupMessage } from "@/types/messages";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface GroupChatProps {
   groupId: string;
@@ -12,7 +14,7 @@ interface GroupChatProps {
 }
 
 export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
-  const [messages, setMessages] = useState<GroupMessage[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const { toast } = useToast();
 
@@ -32,7 +34,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
         return;
       }
 
-      setMessages(data as GroupMessage[] || []);
+      setMessages(data || []);
     };
 
     fetchMessages();
@@ -48,7 +50,7 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
           filter: `group_id=eq.${groupId}`,
         },
         (payload) => {
-          setMessages((current) => [...current, payload.new as GroupMessage]);
+          setMessages((current) => [...current, payload.new]);
         }
       )
       .subscribe();
@@ -82,26 +84,53 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-lg shadow">
+    <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold">{groupName}</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div key={message.id} className="flex flex-col">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium">{message.sender.username}</span>
-              <span className="text-xs text-gray-500">
-                {new Date(message.created_at).toLocaleTimeString()}
-              </span>
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${
+                message.sender_id === (supabase.auth.getUser())?.data?.user?.id
+                  ? "justify-end"
+                  : "justify-start"
+              }`}
+            >
+              <div className="flex items-start gap-2 max-w-[70%]">
+                {message.sender_id !== (supabase.auth.getUser())?.data?.user?.id && (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={message.sender.avatar_url || ""} />
+                    <AvatarFallback>
+                      {message.sender.username?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={`p-3 rounded-lg ${
+                    message.sender_id === (supabase.auth.getUser())?.data?.user?.id
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100"
+                  }`}
+                >
+                  {message.sender_id !== (supabase.auth.getUser())?.data?.user?.id && (
+                    <p className="text-xs font-medium mb-1">
+                      {message.sender.username}
+                    </p>
+                  )}
+                  <p>{message.content}</p>
+                  <span className="text-xs opacity-70">
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="bg-gray-100 p-3 rounded-lg max-w-[70%]">
-              <p>{message.content}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </ScrollArea>
 
       <form onSubmit={sendMessage} className="p-4 border-t flex gap-2">
         <Input
