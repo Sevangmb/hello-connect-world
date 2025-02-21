@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3"
 
 const corsHeaders = {
@@ -34,7 +33,7 @@ serve(async (req) => {
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '')
     const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' })
 
-    // Préparer l'image pour Gemini
+    // Prepare image for Gemini
     const imageData = {
       inlineData: {
         data: await blobToBase64(imageBlob),
@@ -42,17 +41,17 @@ serve(async (req) => {
       }
     }
 
-    const prompt = `Analyse cette image de vêtement et retourne un JSON avec ces informations :
+    const prompt = `Tu es un expert en mode qui analyse cette image de vêtement. Retourne uniquement un JSON avec ces informations (pas de texte avant ou après) :
     {
-      "category": la catégorie principale du vêtement (Hauts, Bas, Robes, Manteaux, Chaussures, Accessoires),
-      "subcategory": la sous-catégorie précise,
-      "color": la couleur dominante,
-      "material": le matériau si visible,
-      "style": le style vestimentaire (Casual, Formel, Sport, etc),
+      "category": type exact parmi cette liste (Hauts, Bas, Robes, Manteaux, Chaussures, Accessoires),
+      "color": la couleur principale exacte en français,
+      "material": le matériau principal si visible (en français),
+      "style": le style vestimentaire parmi (Casual, Formel, Sport, Vintage, Bohème),
       "brand": la marque si visible,
-      "description": une courte description
+      "description": courte description en français du vêtement,
+      "weather_categories": tableau avec les saisons adaptées parmi [Été, Hiver, Mi-saison]
     }
-    Concentre-toi sur les détails visibles dans l'image. Si une information n'est pas visible ou incertaine, mets null.`
+    Les champs doivent être en minuscules et ne contenir que les valeurs autorisées. Si une information n'est pas visible ou incertaine, mets null.`
 
     console.log('Sending request to Gemini...')
     
@@ -62,7 +61,7 @@ serve(async (req) => {
     
     console.log('Gemini response:', text)
 
-    // Extraire le JSON de la réponse
+    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       throw new Error('Failed to parse Gemini response')
@@ -88,7 +87,7 @@ serve(async (req) => {
   }
 })
 
-// Utilitaire pour convertir un Blob en base64
+// Utility to convert Blob to base64
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer()
   const bytes = new Uint8Array(buffer)
