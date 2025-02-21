@@ -2,13 +2,44 @@
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Checkout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { cartItems, shippingDetails } = location.state || {};
+
+  const createCheckoutSession = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          cartItems,
+          shippingDetails
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    },
+    onError: (error) => {
+      console.error('Error creating checkout session:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de procéder au paiement",
+        variant: "destructive",
+      });
+    }
+  });
 
   if (!cartItems || !shippingDetails) {
     toast({
@@ -18,6 +49,12 @@ export default function Checkout() {
     });
     return window.location.href = "/cart";
   }
+
+  const subtotal = cartItems.reduce((acc: number, item: any) => 
+    acc + (item.shop_items.price * item.quantity), 0
+  );
+  
+  const total = subtotal + shippingDetails.basePrice;
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -59,13 +96,12 @@ export default function Checkout() {
 
             {/* Résumé des coûts */}
             <div className="lg:col-span-4">
-              <div className="bg-white p-6 rounded-lg shadow sticky top-24">
+              <div className="bg-white p-6 rounded-lg shadow sticky top-24 space-y-6">
                 <h2 className="text-lg font-medium mb-4">Résumé</h2>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Sous-total</span>
-                    <span>{cartItems.reduce((acc: number, item: any) => 
-                      acc + (item.shop_items.price * item.quantity), 0)}€</span>
+                    <span>{subtotal}€</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Frais de livraison</span>
@@ -74,11 +110,22 @@ export default function Checkout() {
                   <div className="border-t pt-2 mt-2">
                     <div className="flex justify-between font-medium">
                       <span>Total</span>
-                      <span>{cartItems.reduce((acc: number, item: any) => 
-                        acc + (item.shop_items.price * item.quantity), 0) + shippingDetails.basePrice}€</span>
+                      <span>{total}€</span>
                     </div>
                   </div>
                 </div>
+
+                <Button 
+                  className="w-full"
+                  size="lg"
+                  onClick={() => createCheckoutSession.mutate()}
+                  disabled={createCheckoutSession.isPending}
+                >
+                  {createCheckoutSession.isPending ? 
+                    "Redirection vers le paiement..." : 
+                    "Procéder au paiement"
+                  }
+                </Button>
               </div>
             </div>
           </div>

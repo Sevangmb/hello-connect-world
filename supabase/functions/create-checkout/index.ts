@@ -1,180 +1,118 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import Stripe from 'https://esm.sh/stripe@12.4.0?target=deno'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { stripe } from '../_shared/stripe.ts';
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+interface CartItem {
+  id: string;
+  quantity: number;
+  shop_items: {
+    id: string;
+    price: number;
+    clothes: {
+      name: string;
+    };
+  };
 }
 
-console.log("Create Checkout Function Started")
+interface ShippingDetails {
+  carrierName: string;
+  basePrice: number;
+  estimatedDays: {
+    min: number;
+    max: number;
+  };
+}
 
-serve(async (req) => {
+interface RequestBody {
+  cartItems: CartItem[];
+  shippingDetails: ShippingDetails;
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
-    // Handle CORS
-    if (req.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders })
-    }
-
-    // Get the request body
-    const { cartItems, userId } = await req.json()
-
-    if (!cartItems?.length || !userId) {
-      console.error('Missing required parameters:', { cartItems, userId })
-      throw new Error('Missing required parameters')
-    }
-
-    console.log("Received request:", { cartItems, userId })
-
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get Stripe secret key from secrets table
-    const { data: secretData, error: secretError } = await supabaseClient
-      .from('secrets')
-      .select('value')
-      .eq('key', 'STRIPE_SECRET_KEY')
-      .single()
+    // Get request body
+    const { cartItems, shippingDetails } = await req.json() as RequestBody;
 
-    if (secretError || !secretData?.value) {
-      console.error('Error getting Stripe secret:', secretError)
-      throw new Error('Could not retrieve Stripe secret key')
+    // Get session to identify user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+      req.headers.get('Authorization')?.replace('Bearer ', '') ?? ''
+    );
+
+    if (authError || !user) {
+      throw new Error('Not authenticated');
     }
 
-    console.log("Successfully retrieved Stripe secret key")
-
-    // Initialize Stripe with the secret key
-    const stripe = new Stripe(secretData.value)
-
-    // Fetch detailed cart items with correct relationship specification
-    const { data: items, error: itemsError } = await supabaseClient
-      .from('cart_items')
-      .select(`
-        id,
-        quantity,
-        shop_items!shop_item_id (
-          id,
-          price,
-          clothes!clothes_id (
-            name,
-            image_url
-          )
-        )
-      `)
-      .in('id', cartItems.map(item => item.id))
-
-    if (itemsError) {
-      console.error('Error fetching cart items:', itemsError)
-      throw itemsError
-    }
-
-    if (!items?.length) {
-      console.error('No items found in cart')
-      throw new Error('No items found in cart')
-    }
-
-    console.log("Retrieved cart items:", items)
-
-    // Calculate total amount
-    const totalAmount = items.reduce((sum, item) => {
-      return sum + (item.shop_items.price * item.quantity)
-    }, 0)
-
-    // Create order first
-    const { data: order, error: orderError } = await supabaseClient
-      .from('orders')
-      .insert({
-        buyer_id: userId,
-        total_amount: totalAmount,
-        status: 'pending',
-        payment_status: 'pending',
-        transaction_type: 'online',
-        payment_type: 'stripe'
-      })
-      .select()
-      .single()
-
-    if (orderError || !order) {
-      console.error('Error creating order:', orderError)
-      throw orderError
-    }
-
-    console.log('Created order:', order)
-
-    // Create order items
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      shop_item_id: item.shop_items.id,
+    // Create line items for Stripe
+    const lineItems = cartItems.map(item => ({
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: item.shop_items.clothes.name,
+        },
+        unit_amount: Math.round(item.shop_items.price * 100), // Convert to cents
+      },
       quantity: item.quantity,
-      price_at_time: item.shop_items.price
-    }))
+    }));
 
-    const { error: orderItemsError } = await supabaseClient
-      .from('order_items')
-      .insert(orderItems)
-
-    if (orderItemsError) {
-      console.error('Error creating order items:', orderItemsError)
-      throw orderItemsError
-    }
-
-    console.log("Creating Stripe session...")
-
-    // Create Stripe session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: items.map(item => ({
+    // Add shipping as a line item
+    if (shippingDetails.basePrice > 0) {
+      lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: item.shop_items.clothes.name,
-            images: item.shop_items.clothes.image_url ? [item.shop_items.clothes.image_url] : [],
+            name: `Livraison - ${shippingDetails.carrierName}`,
           },
-          unit_amount: Math.round(item.shop_items.price * 100), // Convert to cents
+          unit_amount: Math.round(shippingDetails.basePrice * 100),
         },
-        quantity: item.quantity,
-      })),
-      mode: 'payment',
-      success_url: `${req.headers.get('origin')}/payment-success?order_id=${order.id}`,
-      cancel_url: `${req.headers.get('origin')}/payment-cancelled`,
-      metadata: {
-        order_id: order.id
-      }
-    })
-
-    console.log("Successfully created Stripe session:", session.url)
-
-    // Clear cart after successful session creation
-    const { error: clearCartError } = await supabaseClient
-      .from('cart_items')
-      .delete()
-      .in('id', cartItems.map(item => item.id))
-
-    if (clearCartError) {
-      console.error('Error clearing cart:', clearCartError)
-      // Don't throw here, as the order is already created
+        quantity: 1,
+      });
     }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer_email: user.email,
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${req.headers.get('Origin')}/payment-success`,
+      cancel_url: `${req.headers.get('Origin')}/payment-cancelled`,
+      metadata: {
+        user_id: user.id,
+        cart_items: JSON.stringify(cartItems.map(item => ({
+          id: item.id,
+          shop_item_id: item.shop_items.id,
+          quantity: item.quantity
+        }))),
+        shipping_details: JSON.stringify(shippingDetails)
+      }
+    });
 
     return new Response(
       JSON.stringify({ url: session.url }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-      }
+      },
     )
 
   } catch (error) {
-    console.error('Error in create-checkout:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
+      { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
-      }
+      },
     )
   }
 })
