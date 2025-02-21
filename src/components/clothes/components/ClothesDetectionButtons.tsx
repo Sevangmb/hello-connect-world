@@ -28,12 +28,27 @@ export const ClothesDetectionButtons = ({ imageUrl, onFormChange }: ClothesDetec
       Object.entries(data).forEach(([field, value]) => {
         if (value !== undefined) {
           const fieldName = field as keyof ClothesFormData;
-          if (fieldName === 'category' && !CATEGORIES.includes(value)) {
+          
+          // Skip invalid categories
+          if (fieldName === 'category' && !CATEGORIES.includes(value as string)) {
             console.warn(`Detected category "${value}" is not in the allowed list`);
             return;
           }
-          console.log(`Setting ${field} to:`, value);
-          onFormChange(fieldName, value);
+
+          // Convert values to the correct type based on the field
+          let processedValue = value;
+          if (fieldName === 'price') {
+            processedValue = typeof value === 'string' ? parseFloat(value) : value;
+          } else if (typeof value === 'number') {
+            processedValue = value.toString();
+          } else if (fieldName === 'weather_categories' && !Array.isArray(value)) {
+            processedValue = [value.toString()];
+          } else if (['is_for_sale', 'needs_alteration'].includes(fieldName)) {
+            processedValue = Boolean(value);
+          }
+
+          console.log(`Setting ${field} to:`, processedValue);
+          onFormChange(fieldName, processedValue);
         }
       });
     }
