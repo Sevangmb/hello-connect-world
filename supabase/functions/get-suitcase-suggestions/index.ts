@@ -1,6 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
 
 const corsHeaders = {
@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -18,11 +18,11 @@ serve(async (req) => {
     const { startDate, endDate, currentClothes, availableClothes } = await req.json();
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
 
-    // Formatage des dates pour un affichage plus lisible
+    // Format dates for more readable display
     const start = new Date(startDate).toLocaleDateString('fr-FR');
     const end = new Date(endDate).toLocaleDateString('fr-FR');
 
-    // Construction du prompt pour Gemini
+    // Build prompt for Gemini
     const prompt = `En tant qu'assistant de voyage, aide-moi à choisir des vêtements pour un séjour du ${start} au ${end}.
 
 Voici la liste des vêtements disponibles dans ma garde-robe:
@@ -46,7 +46,7 @@ Réponds au format JSON exact suivant, sans texte avant ou après:
 
     console.log("Sending prompt to Gemini:", prompt);
 
-    // Génération de la réponse avec Gemini
+    // Generate response with Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -54,12 +54,12 @@ Réponds au format JSON exact suivant, sans texte avant ou après:
 
     console.log("Gemini response:", text);
 
-    // Parse la réponse JSON
+    // Parse JSON response
     const suggestions = JSON.parse(text);
 
-    // Validation de la réponse
+    // Validate response
     if (!suggestions.explanation || !Array.isArray(suggestions.suggestedClothes)) {
-      throw new Error("Format de réponse invalide");
+      throw new Error("Invalid response format");
     }
 
     return new Response(JSON.stringify(suggestions), {
