@@ -9,30 +9,31 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ items, isLoading }: CartSummaryProps) {
-  const total = items.reduce((sum, item) => {
-    // Add null checks and default values
-    if (!item?.shop_items?.price) {
-      console.warn('Invalid cart item detected:', item);
-      return sum;
-    }
-    return sum + (item.shop_items.price * (item.quantity || 1));
+  // Filter out invalid items first
+  const validItems = items.filter(item => item && item.shop_items && typeof item.shop_items.price === 'number');
+
+  const total = validItems.reduce((sum, item) => {
+    const quantity = item.quantity || 1;
+    return sum + (item.shop_items.price * quantity);
   }, 0);
+
+  if (!items.length) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <p className="text-gray-500 text-center">Votre panier est vide</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow space-y-4">
       <h2 className="font-semibold text-lg">Résumé de la commande</h2>
       
-      {/* Show item details */}
       <div className="space-y-2 py-4 border-t">
-        {items.map((item, index) => (
-          <div key={index} className="flex justify-between text-sm">
+        {validItems.map((item, index) => (
+          <div key={item.id || index} className="flex justify-between text-sm">
             <span>{item.shop_items?.clothes?.name || 'Article inconnu'}</span>
-            <span>
-              {item.shop_items?.price 
-                ? formatPrice(item.shop_items.price * (item.quantity || 1))
-                : '-'
-              }
-            </span>
+            <span>{formatPrice(item.shop_items.price * (item.quantity || 1))}</span>
           </div>
         ))}
       </div>
@@ -43,9 +44,9 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
       </div>
 
       <CheckoutButton 
-        cartItems={items.map(item => ({ 
+        cartItems={validItems.map(item => ({ 
           id: item.id, 
-          quantity: item.quantity 
+          quantity: item.quantity || 1
         }))}
         isLoading={isLoading}
       />
