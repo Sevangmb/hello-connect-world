@@ -107,6 +107,10 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          moderation_status: string | null
           outfit_id: string | null
           status: string
           updated_at: string
@@ -117,6 +121,10 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
           outfit_id?: string | null
           status?: string
           updated_at?: string
@@ -127,6 +135,10 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string | null
           outfit_id?: string | null
           status?: string
           updated_at?: string
