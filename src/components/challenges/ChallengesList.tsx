@@ -25,6 +25,7 @@ export const ChallengesList = () => {
             user_id,
             outfit_id,
             comment,
+            status,
             moderated_at,
             moderated_by,
             moderation_status,
@@ -35,7 +36,8 @@ export const ChallengesList = () => {
               bottom:clothes!bottom_id(name, image_url),
               shoes:clothes!shoes_id(name, image_url)
             ),
-            profiles(username)
+            profiles(username),
+            votes:challenge_votes(id)
           ),
           votes:challenge_votes(count)
         `)
