@@ -42,6 +42,13 @@ const statusLabels = {
   cancelled: "Annulée",
 };
 
+interface ShippingAddress {
+  street: string;
+  city: string;
+  postal_code: string;
+  country: string;
+}
+
 export default function AdminOrders() {
   const { toast } = useToast();
 
@@ -55,12 +62,12 @@ export default function AdminOrders() {
         .from("orders")
         .select(`
           *,
-          buyer:buyer_id(username),
+          buyer:profiles!orders_buyer_id_fkey(username),
           order_items(
             quantity,
             shop_items(
               price,
-              clothes(name)
+              clothes!shop_items_clothes_id_fkey(name)
             )
           ),
           order_shipments(
@@ -181,9 +188,9 @@ export default function AdminOrders() {
                               <div>
                                 <h4 className="font-medium mb-2">Adresse de livraison</h4>
                                 <p className="text-sm text-muted-foreground">
-                                  {order.order_shipments[0].shipping_address.street}<br />
-                                  {order.order_shipments[0].shipping_address.city}, {order.order_shipments[0].shipping_address.postal_code}<br />
-                                  {order.order_shipments[0].shipping_address.country}
+                                  {(order.order_shipments[0].shipping_address as ShippingAddress).street}<br />
+                                  {(order.order_shipments[0].shipping_address as ShippingAddress).city}, {(order.order_shipments[0].shipping_address as ShippingAddress).postal_code}<br />
+                                  {(order.order_shipments[0].shipping_address as ShippingAddress).country}
                                 </p>
                               </div>
                               <div>
