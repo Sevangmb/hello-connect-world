@@ -9,7 +9,7 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ items, isLoading }: CartSummaryProps) {
-  // Early return if items is undefined or null
+  // Safety check for undefined items
   if (!items) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
@@ -18,7 +18,7 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
     );
   }
 
-  // Early return for empty cart
+  // Check for empty cart
   if (items.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
@@ -27,7 +27,7 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
     );
   }
 
-  // Filter and validate items with more detailed validation
+  // Filter and validate items with detailed validation
   const validItems = items.filter((item): item is CartItem => {
     if (!item?.shop_items?.price || typeof item.shop_items.price !== 'number') {
       console.warn('Invalid cart item detected:', item?.id);

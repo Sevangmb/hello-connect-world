@@ -18,7 +18,7 @@ export default function Checkout() {
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          cartItems,
+          cartItems: validCartItems,
           shippingDetails
         }
       });
@@ -50,19 +50,13 @@ export default function Checkout() {
     return window.location.href = "/cart";
   }
 
-  // Validate cart items and calculate total with safe access
+  // Validate cart items with safe type checking
   const validCartItems = cartItems.filter(item => 
     item && 
     item.shop_items && 
     typeof item.shop_items.price === 'number' && 
     typeof item.quantity === 'number'
   );
-  
-  const subtotal = validCartItems.reduce((acc, item) => 
-    acc + (item.shop_items.price * item.quantity), 0
-  );
-  
-  const total = subtotal + (shippingDetails.basePrice || 0);
 
   // If no valid items, return to cart
   if (validCartItems.length === 0) {
@@ -73,6 +67,14 @@ export default function Checkout() {
     });
     return window.location.href = "/cart";
   }
+
+  // Calculate totals with safe access and type checking
+  const subtotal = validCartItems.reduce((sum, item) => {
+    const price = item.shop_items?.price || 0;
+    return sum + (price * item.quantity);
+  }, 0);
+  
+  const total = subtotal + (shippingDetails.basePrice || 0);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
