@@ -68,7 +68,7 @@ export const SuitcaseActions = ({
 
     setIsGettingSuggestions(true);
     try {
-      const { data: items } = await supabase
+      const { data: existingItems } = await supabase
         .from("suitcase_items")
         .select(`
           *,
@@ -80,11 +80,17 @@ export const SuitcaseActions = ({
         `)
         .eq("suitcase_id", suitcaseId);
 
+      // Récupérer tous les vêtements de l'utilisateur
+      const { data: userClothes } = await supabase
+        .from("clothes")
+        .select("*");
+
       const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
         body: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-          currentClothes: items?.map(item => item.clothes) || []
+          currentClothes: existingItems?.map(item => item.clothes) || [],
+          availableClothes: userClothes || []
         },
       });
 
@@ -92,6 +98,27 @@ export const SuitcaseActions = ({
 
       if (!data?.explanation) {
         throw new Error("La réponse ne contient pas d'explications");
+      }
+
+      // Ajouter les vêtements suggérés à la valise
+      if (data.suggestedClothes && Array.isArray(data.suggestedClothes)) {
+        const clothesToAdd = data.suggestedClothes
+          .filter(clothId => !existingItems?.some(item => item.clothes_id === clothId));
+
+        if (clothesToAdd.length > 0) {
+          const { error: insertError } = await supabase
+            .from("suitcase_items")
+            .insert(
+              clothesToAdd.map(clothId => ({
+                suitcase_id: suitcaseId,
+                clothes_id: clothId
+              }))
+            );
+
+          if (insertError) throw insertError;
+
+          queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
+        }
       }
 
       toast({
