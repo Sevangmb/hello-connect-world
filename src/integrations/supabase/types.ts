@@ -1623,10 +1623,56 @@ export type Database = {
         }
         Relationships: []
       }
+      suitcase_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_folder_id: string | null
+          suitcase_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_folder_id?: string | null
+          suitcase_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          suitcase_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suitcase_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "suitcase_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suitcase_folders_suitcase_id_fkey"
+            columns: ["suitcase_id"]
+            isOneToOne: false
+            referencedRelation: "suitcases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suitcase_items: {
         Row: {
           clothes_id: string
           created_at: string
+          folder_id: string | null
           id: string
           quantity: number
           suitcase_id: string
@@ -1634,6 +1680,7 @@ export type Database = {
         Insert: {
           clothes_id: string
           created_at?: string
+          folder_id?: string | null
           id?: string
           quantity?: number
           suitcase_id: string
@@ -1641,6 +1688,7 @@ export type Database = {
         Update: {
           clothes_id?: string
           created_at?: string
+          folder_id?: string | null
           id?: string
           quantity?: number
           suitcase_id?: string
@@ -1651,6 +1699,13 @@ export type Database = {
             columns: ["clothes_id"]
             isOneToOne: false
             referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suitcase_items_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "suitcase_folders"
             referencedColumns: ["id"]
           },
           {
@@ -1687,6 +1742,52 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "suitcase_notes_suitcase_id_fkey"
+            columns: ["suitcase_id"]
+            isOneToOne: false
+            referencedRelation: "suitcases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suitcase_outfits: {
+        Row: {
+          created_at: string
+          folder_id: string | null
+          id: string
+          outfit_id: string
+          suitcase_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          outfit_id: string
+          suitcase_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          outfit_id?: string
+          suitcase_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suitcase_outfits_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "suitcase_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suitcase_outfits_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suitcase_outfits_suitcase_id_fkey"
             columns: ["suitcase_id"]
             isOneToOne: false
             referencedRelation: "suitcases"
