@@ -49,7 +49,15 @@ export default function AdminOrders() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Order[];
+
+      // Transform and validate shipping_address from JSON
+      return data.map((order): Order => ({
+        ...order,
+        order_shipments: order.order_shipments.map(shipment => ({
+          ...shipment,
+          shipping_address: shipment.shipping_address as ShippingAddress
+        }))
+      }));
     }
   });
 
@@ -123,3 +131,4 @@ export default function AdminOrders() {
     </div>
   );
 }
+
