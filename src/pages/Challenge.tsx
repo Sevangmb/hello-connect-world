@@ -12,6 +12,7 @@ import { ParticipantsList } from "@/components/challenges/ParticipantsList";
 import { useChallengeActions } from "@/components/challenges/ChallengeActions";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Challenge } from "@/components/challenges/types";
 
 export default function Challenge() {
   const { id } = useParams();
@@ -52,7 +53,16 @@ export default function Challenge() {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Validate participation_type and assert the type
+      if (data.participation_type !== "virtual" && data.participation_type !== "photo") {
+        throw new Error("Invalid participation_type value");
+      }
+
+      return {
+        ...data,
+        participation_type: data.participation_type as "virtual" | "photo"
+      } as Challenge;
     },
   });
 
