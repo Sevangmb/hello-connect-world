@@ -111,12 +111,12 @@ export const SuitcaseActions = ({
 
       if (error) throw error;
 
-      if (!data?.explanation) {
-        throw new Error("La réponse ne contient pas d'explications");
+      if (!data?.explanation || !data?.suggestedClothes) {
+        throw new Error("La réponse ne contient pas les informations nécessaires");
       }
 
       // Ajouter les vêtements suggérés à la valise
-      if (data.suggestedClothes && Array.isArray(data.suggestedClothes)) {
+      if (Array.isArray(data.suggestedClothes) && data.suggestedClothes.length > 0) {
         const clothesToAdd = data.suggestedClothes
           .filter(clothId => !existingItems?.some(item => item.clothes_id === clothId));
 
@@ -130,9 +130,18 @@ export const SuitcaseActions = ({
               }))
             );
 
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error("Error adding suggested clothes:", insertError);
+            throw insertError;
+          }
 
+          // Rafraîchir les données de la valise
           await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
+          
+          toast({
+            title: "Suggestions ajoutées",
+            description: `${clothesToAdd.length} vêtements ont été ajoutés à votre valise.`,
+          });
         }
       }
 
