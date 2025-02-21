@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,13 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface UserSearchProps {
   onSelect: (user: { id: string; username: string; avatar_url: string | null }) => void;
   placeholder?: string;
+  className?: string;
 }
 
-export const UserSearch = ({ onSelect, placeholder = "Rechercher un utilisateur..." }: UserSearchProps) => {
+export const UserSearch = ({ onSelect, placeholder = "Rechercher un utilisateur...", className }: UserSearchProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -46,7 +49,7 @@ export const UserSearch = ({ onSelect, placeholder = "Rechercher un utilisateur.
     <>
       <Button 
         variant="outline" 
-        className="w-full justify-start" 
+        className={cn("w-full justify-start", className)}
         onClick={() => setOpen(true)}
       >
         <Search className="mr-2 h-4 w-4" />
