@@ -40,23 +40,35 @@ export const ClothingDetector = ({ imageUrl, onDetectionComplete }: ClothingDete
         if (value !== undefined) {
           const fieldName = field as keyof ClothesFormData;
           
-          if (fieldName === 'category' && !CATEGORIES.includes(value as string)) {
+          if (fieldName === 'category' && typeof value === 'string' && !CATEGORIES.includes(value)) {
             console.warn(`Detected category "${value}" is not in the allowed list`);
             return;
           }
 
-          let processedValue = value;
-          if (fieldName === 'price') {
-            processedValue = typeof value === 'string' ? parseFloat(value) : value;
-          } else if (typeof value === 'number') {
-            processedValue = value.toString();
-          } else if (fieldName === 'weather_categories' && !Array.isArray(value)) {
-            processedValue = [value.toString()];
-          } else if (['is_for_sale', 'needs_alteration'].includes(fieldName)) {
-            processedValue = Boolean(value);
+          switch (fieldName) {
+            case 'price':
+              processedData[fieldName] = typeof value === 'string' ? parseFloat(value) : value as number;
+              break;
+            case 'weather_categories':
+              processedData[fieldName] = Array.isArray(value) ? value : [value.toString()];
+              break;
+            case 'is_for_sale':
+            case 'needs_alteration':
+              processedData[fieldName] = Boolean(value);
+              break;
+            case 'name':
+            case 'description':
+            case 'category':
+            case 'subcategory':
+            case 'brand':
+            case 'size':
+            case 'material':
+            case 'color':
+            case 'style':
+            case 'purchase_date':
+              processedData[fieldName] = value.toString();
+              break;
           }
-
-          processedData[fieldName] = processedValue;
         }
       });
 
