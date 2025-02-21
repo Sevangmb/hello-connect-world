@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
@@ -9,6 +10,8 @@ import { ClothesFormData } from "./types";
 import { CATEGORIES, STYLES, WEATHER_CATEGORIES } from "./constants/categories";
 import { useClothesForm } from "./hooks/useClothesForm";
 import { ClothesHashtags } from "./forms/ClothesHashtags";
+import { useHashtags } from "@/hooks/useHashtags";
+import { useEffect } from "react";
 
 interface ClothesFormProps {
   clothesId?: string;
@@ -22,6 +25,21 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
     initialData,
     onSuccess,
   });
+
+  const { hashtags, generateHashtags, addHashtag, removeHashtag } = useHashtags(
+    initialData?.hashtags || []
+  );
+
+  // Générer les hashtags automatiquement lorsque le nom ou la catégorie change
+  useEffect(() => {
+    if (formData.name && formData.category) {
+      generateHashtags('clothes', {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category
+      });
+    }
+  }, [formData.name, formData.category]);
 
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
@@ -70,8 +88,10 @@ export const ClothesForm = ({ clothesId, initialData, onSuccess }: ClothesFormPr
         />
         
         <ClothesHashtags
-          initialHashtags={formData.hashtags}
-          onHashtagsChange={(hashtags) => handleFormChange("hashtags", hashtags)}
+          initialHashtags={hashtags}
+          onHashtagsChange={(newHashtags) => {
+            handleFormChange("hashtags", newHashtags);
+          }}
         />
 
         <Button 

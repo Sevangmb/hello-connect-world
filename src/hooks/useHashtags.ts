@@ -5,6 +5,32 @@ import { supabase } from "@/integrations/supabase/client";
 export const useHashtags = (initialHashtags: string[] = []) => {
   const [hashtags, setHashtags] = useState<string[]>(initialHashtags);
 
+  const generateHashtags = async (type: 'clothes' | 'outfit', item: {
+    name: string;
+    description?: string;
+    category?: string;
+  }) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-hashtags', {
+        body: {
+          type,
+          name: item.name,
+          description: item.description,
+          category: item.category
+        }
+      });
+
+      if (error) throw error;
+      if (data.hashtags) {
+        setHashtags(prevHashtags => [...new Set([...prevHashtags, ...data.hashtags])]);
+        return data.hashtags;
+      }
+    } catch (error) {
+      console.error("Erreur lors de la génération des hashtags:", error);
+      return [];
+    }
+  };
+
   const addHashtag = async (hashtag: string) => {
     // D'abord, créer ou récupérer le hashtag dans la table hashtags
     const { data: existingHashtag, error: searchError } = await supabase
@@ -46,6 +72,7 @@ export const useHashtags = (initialHashtags: string[] = []) => {
     hashtags,
     addHashtag,
     removeHashtag,
-    setHashtags
+    setHashtags,
+    generateHashtags
   };
 };
