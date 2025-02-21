@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { HelpCircle, Loader2, Package, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,41 +72,19 @@ export const SuitcaseActions = ({
         .from("suitcase_items")
         .select(`
           *,
-          clothes (
-            id,
-            name,
-            category
-          )
+          clothes ( id, name, category )
         `)
         .eq("suitcase_id", suitcaseId);
-
       if (existingItemsError) throw existingItemsError;
 
-      // Récupérer tous les vêtements disponibles de l'utilisateur
-      const { data: userClothes, error: userClothesError } = await supabase
-        .from("clothes")
-        .select("*")
-        .eq("archived", false);
-
-      if (userClothesError) throw userClothesError;
-
-      console.log("Calling get-suitcase-suggestions with:", {
-        startDate,
-        endDate,
-        currentClothes: existingItems?.map(item => item.clothes),
-        availableClothes: userClothes
-      });
-
+      // Appel de la fonction d'IA
       const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
         body: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-          currentClothes: existingItems?.map(item => item.clothes) || [],
-          availableClothes: userClothes || []
+          currentClothes: existingItems?.map(item => item.clothes),
         },
       });
-
-      console.log("Response from get-suitcase-suggestions:", data);
 
       if (error) throw error;
 
@@ -115,29 +92,25 @@ export const SuitcaseActions = ({
         throw new Error("La réponse ne contient pas les informations nécessaires");
       }
 
-      // Ajouter les vêtements suggérés à la valise
+      // Vérification et filtrage : si item.clothes_id ou item.clothes.id correspondent, c'est déjà ajouté
       if (Array.isArray(data.suggestedClothes) && data.suggestedClothes.length > 0) {
-        const clothesToAdd = data.suggestedClothes
-          .filter(clothId => !existingItems?.some(item => item.clothes_id === clothId));
+        const clothesToAdd = data.suggestedClothes.filter((clothId: string) =>
+          !existingItems?.some(item =>
+            item.clothes_id === clothId || (item.clothes && item.clothes.id === clothId)
+          )
+        );
 
         if (clothesToAdd.length > 0) {
           const { error: insertError } = await supabase
             .from("suitcase_items")
             .insert(
-              clothesToAdd.map(clothId => ({
+              clothesToAdd.map((clothId: string) => ({
                 suitcase_id: suitcaseId,
-                clothes_id: clothId
+                clothes_id: clothId,
               }))
             );
-
-          if (insertError) {
-            console.error("Error adding suggested clothes:", insertError);
-            throw insertError;
-          }
-
-          // Rafraîchir les données de la valise
+          if (insertError) throw insertError;
           await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
-          
           toast({
             title: "Suggestions ajoutées",
             description: `${clothesToAdd.length} vêtements ont été ajoutés à votre valise.`,
