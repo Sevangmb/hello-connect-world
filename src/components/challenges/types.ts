@@ -22,6 +22,7 @@ export type Participant = {
   moderated_by: string | null;
   moderation_status: string | null;
   moderation_reason: string | null;
+  votes: { id: string }[]; // Adding the votes array property
 };
 
 export type Challenge = {
