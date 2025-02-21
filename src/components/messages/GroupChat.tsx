@@ -16,7 +16,17 @@ interface GroupChatProps {
 export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Fetch current user ID when component mounts
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    fetchCurrentUser();
+  }, []);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -62,12 +72,12 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUserId) return;
 
     const { error } = await supabase.from("group_messages").insert({
       content: newMessage,
       group_id: groupId,
-      sender_id: (await supabase.auth.getUser()).data.user?.id,
+      sender_id: currentUserId,
     });
 
     if (error) {
@@ -95,13 +105,13 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
             <div
               key={message.id}
               className={`flex ${
-                message.sender_id === (supabase.auth.getUser())?.data?.user?.id
+                message.sender_id === currentUserId
                   ? "justify-end"
                   : "justify-start"
               }`}
             >
               <div className="flex items-start gap-2 max-w-[70%]">
-                {message.sender_id !== (supabase.auth.getUser())?.data?.user?.id && (
+                {message.sender_id !== currentUserId && (
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={message.sender.avatar_url || ""} />
                     <AvatarFallback>
@@ -111,12 +121,12 @@ export const GroupChat = ({ groupId, groupName }: GroupChatProps) => {
                 )}
                 <div
                   className={`p-3 rounded-lg ${
-                    message.sender_id === (supabase.auth.getUser())?.data?.user?.id
+                    message.sender_id === currentUserId
                       ? "bg-blue-500 text-white"
                       : "bg-gray-100"
                   }`}
                 >
-                  {message.sender_id !== (supabase.auth.getUser())?.data?.user?.id && (
+                  {message.sender_id !== currentUserId && (
                     <p className="text-xs font-medium mb-1">
                       {message.sender.username}
                     </p>
