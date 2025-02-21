@@ -23,6 +23,8 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
     try {
       setIsProcessing(true);
       
+      console.log("Starting checkout process...");
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -49,6 +51,15 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
 
       if (error) {
         console.error('Error creating checkout session:', error);
+        // Check if the error is from a browser extension
+        if (error.message?.includes('chrome-extension') || error.message?.includes('rejected')) {
+          toast({
+            title: "Extension de navigateur détectée",
+            description: "Une extension de votre navigateur semble bloquer le paiement. Essayez de désactiver vos extensions ou d'utiliser une fenêtre de navigation privée.",
+            variant: "destructive",
+          });
+          return;
+        }
         throw error;
       }
 
@@ -57,7 +68,19 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
       }
 
       console.log("Redirecting to:", data.url);
-      window.location.href = data.url;
+      
+      // Use a more reliable way to redirect
+      const redirectToCheckout = () => {
+        try {
+          window.location.assign(data.url);
+        } catch (redirectError) {
+          console.error('Redirect failed, trying fallback...', redirectError);
+          // Fallback
+          window.open(data.url, '_self');
+        }
+      };
+
+      redirectToCheckout();
       
     } catch (error) {
       console.error('Error in checkout process:', error);
