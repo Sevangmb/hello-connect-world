@@ -1,5 +1,5 @@
 
-import { ShoppingBag, Shirt, Camera, Briefcase, Heart, Pencil, Share2, PlusCircle, ScanLine, Upload, FileText, Shirt as ShirtIcon, ShoppingCart, User } from "lucide-react";
+import { ShoppingBag, Shirt, Camera, Briefcase, Heart, Pencil, Share2, PlusCircle, ScanLine, Upload, FileText, Shirt as ShirtIcon, ShoppingCart, User, Calendar } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,12 @@ export const PersonalSection = () => {
           })} onClick={() => navigate("/personal")}>
             <User className="h-4 w-4" />
             Mon Espace Personnel
+          </Button>
+          <Button variant="ghost" className={cn("w-full justify-start gap-2", {
+            "bg-gray-100": location.pathname === "/calendar"
+          })} onClick={() => navigate("/calendar")}>
+            <Calendar className="h-4 w-4" />
+            Mon Agenda
           </Button>
           <Button variant="ghost" className={cn("w-full justify-start gap-2", {
             "bg-gray-100": location.pathname === "/cart"
