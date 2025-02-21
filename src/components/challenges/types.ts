@@ -1,5 +1,5 @@
 
-type ClothingItem = {
+export type ClothingItem = {
   name: string;
   image_url: string | null;
 };
@@ -28,6 +28,8 @@ export type Challenge = {
   id: string;
   title: string;
   description: string | null;
+  rules: string | null;
+  reward_description: string | null;
   start_date: string;
   end_date: string;
   creator_id: string;
@@ -35,4 +37,7 @@ export type Challenge = {
   profiles: { username: string | null };
   participants: Participant[];
   votes: { count: number }[];
+  participation_type: 'virtual' | 'photo';
+  is_voting_enabled: boolean;
+  hashtags?: { hashtags: { name: string } }[];
 };

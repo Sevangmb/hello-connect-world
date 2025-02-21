@@ -9,12 +9,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClothesHashtags } from "@/components/clothes/forms/ClothesHashtags";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export const CreateChallenge = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [rules, setRules] = useState("");
+  const [rewardDescription, setRewardDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [participationType, setParticipationType] = useState<"virtual" | "photo">("virtual");
+  const [isVotingEnabled, setIsVotingEnabled] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -34,10 +40,14 @@ export const CreateChallenge = () => {
         .insert({
           title,
           description,
+          rules,
+          reward_description: rewardDescription,
           start_date: startDate,
           end_date: endDate,
           creator_id: user.id,
           status: "active",
+          participation_type: participationType,
+          is_voting_enabled: isVotingEnabled
         })
         .select()
         .single();
@@ -69,9 +79,13 @@ export const CreateChallenge = () => {
       
       setTitle("");
       setDescription("");
+      setRules("");
+      setRewardDescription("");
       setStartDate("");
       setEndDate("");
       setHashtags([]);
+      setParticipationType("virtual");
+      setIsVotingEnabled(true);
     } catch (error) {
       console.error("Error submitting challenge:", error);
       toast({
@@ -114,15 +128,37 @@ export const CreateChallenge = () => {
           required
         />
       </div>
+      
       <div>
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Décrivez les règles et objectifs du défi..."
+          placeholder="Décrivez le thème du défi..."
         />
       </div>
+
+      <div>
+        <Label htmlFor="rules">Règles du défi</Label>
+        <Textarea
+          id="rules"
+          value={rules}
+          onChange={(e) => setRules(e.target.value)}
+          placeholder="Listez les règles du défi..."
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="rewardDescription">Description des récompenses</Label>
+        <Textarea
+          id="rewardDescription"
+          value={rewardDescription}
+          onChange={(e) => setRewardDescription(e.target.value)}
+          placeholder="Décrivez les récompenses..."
+        />
+      </div>
+
       <div>
         <Label htmlFor="startDate">Date de début</Label>
         <Input
@@ -133,6 +169,7 @@ export const CreateChallenge = () => {
           required
         />
       </div>
+
       <div>
         <Label htmlFor="endDate">Date de fin</Label>
         <Input
@@ -142,6 +179,33 @@ export const CreateChallenge = () => {
           onChange={(e) => setEndDate(e.target.value)}
           required
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Type de participation</Label>
+        <RadioGroup 
+          value={participationType} 
+          onValueChange={(value: "virtual" | "photo") => setParticipationType(value)}
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="virtual" id="virtual" />
+            <Label htmlFor="virtual">Tenue virtuelle</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="photo" id="photo" />
+            <Label htmlFor="photo">Photo</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Switch
+          checked={isVotingEnabled}
+          onCheckedChange={setIsVotingEnabled}
+          id="voting"
+        />
+        <Label htmlFor="voting">Activer les votes</Label>
       </div>
       
       <ClothesHashtags

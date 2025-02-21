@@ -1,62 +1,70 @@
 
-import { Challenge } from "./types";
+import { Calendar, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Challenge } from "./types";
 
-export const ChallengeMetadata = ({ challenge }: { challenge: Challenge }) => {
-  const getWinner = () => {
-    if (challenge.status !== 'completed' || !challenge.participants?.length) {
-      return null;
-    }
+type ChallengeMetadataProps = {
+  challenge: Challenge;
+};
 
-    const participantsWithVotes = challenge.participants.map(participant => {
-      const voteCount = challenge.votes.filter(vote => vote.count > 0).length || 0;
-      return {
-        username: participant.profiles.username,
-        voteCount
-      };
-    });
-
-    const winner = participantsWithVotes.reduce((prev, current) => 
-      (current.voteCount > prev.voteCount) ? current : prev
-    );
-
-    return winner.username;
-  };
-
-  const startDate = format(new Date(challenge.start_date), "dd/MM/yyyy", { locale: fr });
-  const endDate = format(new Date(challenge.end_date), "dd/MM/yyyy", { locale: fr });
-  const participantsCount = challenge.participants?.length || 0;
-  const winner = getWinner();
-
+export const ChallengeMetadata = ({ challenge }: ChallengeMetadataProps) => {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <img 
-        src={`https://img.shields.io/badge/Dates-${startDate}%20→%20${endDate}-blue?style=flat-square`}
-        alt="Dates du défi"
-        className="h-5"
-      />
-      
-      <img 
-        src={`https://img.shields.io/badge/Participants-${participantsCount}-green?style=flat-square`}
-        alt="Nombre de participants"
-        className="h-5"
-      />
-      
-      {challenge.status === 'active' && (
-        <img 
-          src="https://img.shields.io/badge/Status-En%20cours-orange?style=flat-square"
-          alt="Statut du défi"
-          className="h-5"
-        />
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <Calendar className="h-5 w-5 text-muted-foreground" />
+        <div>
+          <p className="text-sm font-medium">Dates</p>
+          <div className="text-sm text-muted-foreground">
+            Du {format(new Date(challenge.start_date), "d MMMM yyyy", { locale: fr })} au{" "}
+            {format(new Date(challenge.end_date), "d MMMM yyyy", { locale: fr })}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Users className="h-5 w-5 text-muted-foreground" />
+        <div>
+          <p className="text-sm font-medium">Participants</p>
+          <div className="text-sm text-muted-foreground">
+            {challenge.participants?.length || 0} participant(s)
+          </div>
+        </div>
+      </div>
+
+      {challenge.rules && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Règles du défi</p>
+          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {challenge.rules}
+          </div>
+        </div>
       )}
-      
-      {challenge.status === 'completed' && winner && (
-        <img 
-          src={`https://img.shields.io/badge/Vainqueur-${encodeURIComponent(winner)}-gold?style=flat-square`}
-          alt="Vainqueur du défi"
-          className="h-5"
-        />
+
+      {challenge.reward_description && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Récompenses</p>
+          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {challenge.reward_description}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Type de participation</p>
+        <Badge variant="secondary" className="text-xs">
+          {challenge.participation_type === "virtual" ? "Tenue virtuelle" : "Photo"}
+        </Badge>
+      </div>
+
+      {challenge.is_voting_enabled && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Votes</p>
+          <Badge variant="secondary" className="text-xs">
+            Votes activés
+          </Badge>
+        </div>
       )}
     </div>
   );
