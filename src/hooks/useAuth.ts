@@ -52,13 +52,16 @@ export const useAuth = () => {
     
     // Handle specific error cases
     if (error.message.includes("rejected")) {
-      return "Authentication was cancelled. Please try again.";
+      return "L'authentification a été annulée. Veuillez réessayer.";
     }
     if (error.message.includes("Email not confirmed")) {
-      return "Please confirm your email address before signing in.";
+      return "Veuillez confirmer votre adresse e-mail avant de vous connecter.";
     }
     if (error.message.includes("Invalid login credentials")) {
-      return "Invalid email or password.";
+      return "Email ou mot de passe invalide.";
+    }
+    if (error.message.includes("chrome-extension")) {
+      return "Une extension Chrome interfère avec l'authentification. Essayez de désactiver vos extensions ou d'utiliser le mode navigation privée.";
     }
     
     return error.message;
@@ -122,3 +125,4 @@ export const useAuth = () => {
 
   return { user, loading, signIn, signUp, signOut };
 };
+
