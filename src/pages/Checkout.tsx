@@ -26,16 +26,24 @@ export default function Checkout() {
       if (error) throw error;
       
       if (data?.url) {
-        window.location.href = data.url;
+        try {
+          window.location.href = data.url;
+        } catch (err: any) {
+          // Handle browser extension interference
+          if (err.message?.includes('rejected the request')) {
+            throw new Error('Le paiement a été bloqué par une extension de navigateur. Essayez de désactiver vos extensions ou d\'utiliser une fenêtre de navigation privée.');
+          }
+          throw err;
+        }
       } else {
         throw new Error("No checkout URL returned");
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error creating checkout session:', error);
       toast({
-        title: "Erreur",
-        description: "Impossible de procéder au paiement",
+        title: "Erreur lors du paiement",
+        description: error.message || "Impossible de procéder au paiement",
         variant: "destructive",
       });
     }
@@ -146,6 +154,11 @@ export default function Checkout() {
                     "Procéder au paiement"
                   }
                 </Button>
+                
+                <p className="text-sm text-muted-foreground text-center">
+                  Si vous rencontrez des problèmes lors du paiement, essayez de désactiver vos extensions de navigateur 
+                  ou utilisez une fenêtre de navigation privée.
+                </p>
               </div>
             </div>
           </div>
