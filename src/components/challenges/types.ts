@@ -32,4 +32,3 @@ export type Challenge = {
   participants: Participant[];
   votes: { count: number }[];
 };
-
