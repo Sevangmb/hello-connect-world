@@ -1628,18 +1628,21 @@ export type Database = {
           clothes_id: string
           created_at: string
           id: string
+          quantity: number
           suitcase_id: string
         }
         Insert: {
           clothes_id: string
           created_at?: string
           id?: string
+          quantity?: number
           suitcase_id: string
         }
         Update: {
           clothes_id?: string
           created_at?: string
           id?: string
+          quantity?: number
           suitcase_id?: string
         }
         Relationships: [
@@ -1659,6 +1662,59 @@ export type Database = {
           },
         ]
       }
+      suitcase_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          suitcase_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          suitcase_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          suitcase_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suitcase_notes_suitcase_id_fkey"
+            columns: ["suitcase_id"]
+            isOneToOne: false
+            referencedRelation: "suitcases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suitcase_stats: {
+        Row: {
+          avg_items_per_suitcase: number | null
+          id: string
+          total_suitcases: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_items_per_suitcase?: number | null
+          id?: string
+          total_suitcases?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_items_per_suitcase?: number | null
+          id?: string
+          total_suitcases?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       suitcases: {
         Row: {
           created_at: string
@@ -1666,7 +1722,9 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          parent_id: string | null
           start_date: string | null
+          status: Database["public"]["Enums"]["suitcase_status"] | null
           updated_at: string
           user_id: string
         }
@@ -1676,7 +1734,9 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          parent_id?: string | null
           start_date?: string | null
+          status?: Database["public"]["Enums"]["suitcase_status"] | null
           updated_at?: string
           user_id: string
         }
@@ -1686,11 +1746,20 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          parent_id?: string | null
           start_date?: string | null
+          status?: Database["public"]["Enums"]["suitcase_status"] | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "suitcases_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "suitcases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "suitcases_user_id_fkey"
             columns: ["user_id"]
