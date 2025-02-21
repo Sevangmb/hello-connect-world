@@ -7,8 +7,11 @@ import { CreateGroupDialog } from "@/components/groups/CreateGroupDialog";
 import { GroupChannel } from "@/components/groups/GroupChannel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 const Groups = () => {
   const [groups, setGroups] = useState<any[]>([]);
@@ -16,6 +19,10 @@ const Groups = () => {
   const [channels, setChannels] = useState<any[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreateChannelDialog, setShowCreateChannelDialog] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelDescription, setNewChannelDescription] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchGroups();
@@ -64,6 +71,39 @@ const Groups = () => {
     }
   };
 
+  const createChannel = async () => {
+    if (!selectedGroup) return;
+    
+    try {
+      const { error } = await supabase
+        .from('group_channels')
+        .insert({
+          group_id: selectedGroup.id,
+          name: newChannelName,
+          description: newChannelDescription
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Canal créé",
+        description: "Le canal a été créé avec succès",
+      });
+
+      setShowCreateChannelDialog(false);
+      setNewChannelName("");
+      setNewChannelDescription("");
+      fetchChannels(selectedGroup.id);
+    } catch (error) {
+      console.error('Error creating channel:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de créer le canal",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
       <Header />
@@ -104,11 +144,15 @@ const Groups = () => {
             {/* Channels sidebar */}
             {selectedGroup && (
               <div className="w-64 border-r">
-                <div className="p-4 border-b">
+                <div className="p-4 border-b flex items-center justify-between">
                   <h3 className="font-semibold">{selectedGroup.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedGroup.description}
-                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowCreateChannelDialog(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
                 <ScrollArea className="h-full">
                   <div className="space-y-1 p-2">
@@ -151,6 +195,35 @@ const Groups = () => {
             fetchGroups();
           }}
         />
+
+        <Dialog open={showCreateChannelDialog} onOpenChange={setShowCreateChannelDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Créer un nouveau canal</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Input
+                  placeholder="Nom du canal"
+                  value={newChannelName}
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Description (optionnelle)"
+                  value={newChannelDescription}
+                  onChange={(e) => setNewChannelDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={createChannel} disabled={!newChannelName.trim()}>
+                  Créer le canal
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       <BottomNav />
     </div>
