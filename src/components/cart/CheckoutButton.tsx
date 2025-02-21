@@ -55,16 +55,20 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
         return;
       }
 
-      // Préparation des données pour Stripe
+      // Préparation des données pour Stripe/PayPal
       setProcessingStep("Préparation des données pour le paiement...");
       showProcessingToast("Préparation des données pour le paiement...");
       console.log("Données du panier à envoyer:", { cartItems, userId: user.id });
 
-      // Appel à la fonction de création de session Stripe
+      // Appel à la fonction de création de session de paiement
       setProcessingStep("Création de la session de paiement...");
       showProcessingToast("Création de la session de paiement...");
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { cartItems, userId: user.id }
+        body: { 
+          cartItems, 
+          userId: user.id,
+          paymentMethod: 'paypal' // Ajout du paramètre paymentMethod
+        }
       });
 
       if (error) {
@@ -85,7 +89,7 @@ export function CheckoutButton({ cartItems, isLoading: externalLoading }: Checko
         throw new Error('Aucune URL de paiement reçue du serveur');
       }
 
-      // Redirection vers Stripe
+      // Redirection vers la page de paiement
       setProcessingStep("Redirection vers la page de paiement...");
       showProcessingToast("Redirection vers la page de paiement sécurisée...");
       console.log("URL de redirection:", data.url);

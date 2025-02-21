@@ -815,6 +815,7 @@ export type Database = {
           id: string
           meeting_location: string | null
           meeting_time: string | null
+          payment_method: string | null
           payment_status: string
           payment_type: string
           pickup_location: string | null
@@ -842,6 +843,7 @@ export type Database = {
           id?: string
           meeting_location?: string | null
           meeting_time?: string | null
+          payment_method?: string | null
           payment_status?: string
           payment_type?: string
           pickup_location?: string | null
@@ -869,6 +871,7 @@ export type Database = {
           id?: string
           meeting_location?: string | null
           meeting_time?: string | null
+          payment_method?: string | null
           payment_status?: string
           payment_type?: string
           pickup_location?: string | null
