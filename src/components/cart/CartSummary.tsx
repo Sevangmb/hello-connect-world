@@ -27,17 +27,42 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
     );
   }
 
-  // Filter and validate items
+  // Filter and validate items with more detailed validation
   const validItems = items.filter((item): item is CartItem => {
-    return !!(item && 
-      item.shop_items && 
-      typeof item.shop_items.price === 'number' &&
-      item.id &&
-      item.quantity);
+    if (!item) {
+      console.warn('Null or undefined cart item detected');
+      return false;
+    }
+    
+    if (!item.shop_items) {
+      console.warn('Cart item missing shop_items:', item.id);
+      return false;
+    }
+    
+    if (typeof item.shop_items.price !== 'number') {
+      console.warn('Cart item has invalid price:', item.id);
+      return false;
+    }
+    
+    if (!item.id) {
+      console.warn('Cart item missing ID');
+      return false;
+    }
+    
+    if (!item.quantity || item.quantity <= 0) {
+      console.warn('Cart item has invalid quantity:', item.id);
+      return false;
+    }
+
+    return true;
   });
 
-  // Calculate total only with valid items
+  // Calculate total only with valid items, with additional safeguards
   const total = validItems.reduce((sum, item) => {
+    // Double check the item structure even after filtering
+    if (!item.shop_items || typeof item.shop_items.price !== 'number') {
+      return sum;
+    }
     return sum + (item.shop_items.price * item.quantity);
   }, 0);
 
@@ -45,28 +70,34 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
     <div className="bg-white p-6 rounded-lg shadow space-y-4">
       <h2 className="font-semibold text-lg">Résumé de la commande</h2>
       
-      <div className="space-y-2 py-4 border-t">
-        {validItems.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <span>{item.shop_items.clothes?.name || 'Article inconnu'}</span>
-            <span>{formatPrice(item.shop_items.price * item.quantity)}</span>
+      {validItems.length === 0 ? (
+        <p className="text-yellow-600 text-sm">
+          Attention: Aucun article valide dans le panier
+        </p>
+      ) : (
+        <>
+          <div className="space-y-2 py-4 border-t">
+            {validItems.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span>{item.shop_items?.clothes?.name || 'Article inconnu'}</span>
+                <span>{formatPrice(item.shop_items.price * item.quantity)}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="flex justify-between py-4 border-t">
-        <span className="font-medium">Total</span>
-        <span className="font-bold">{formatPrice(total)}</span>
-      </div>
+          <div className="flex justify-between py-4 border-t">
+            <span className="font-medium">Total</span>
+            <span className="font-bold">{formatPrice(total)}</span>
+          </div>
 
-      {validItems.length > 0 && (
-        <CheckoutButton 
-          cartItems={validItems.map(item => ({ 
-            id: item.id, 
-            quantity: item.quantity
-          }))}
-          isLoading={isLoading}
-        />
+          <CheckoutButton 
+            cartItems={validItems.map(item => ({ 
+              id: item.id, 
+              quantity: item.quantity
+            }))}
+            isLoading={isLoading}
+          />
+        </>
       )}
     </div>
   );
