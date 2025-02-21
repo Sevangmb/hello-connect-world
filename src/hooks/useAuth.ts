@@ -34,7 +34,11 @@ export const useAuth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
-      setUser(session?.user ?? null);
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      } else if (session?.user) {
+        setUser(session.user);
+      }
       setLoading(false);
     });
 
@@ -43,16 +47,37 @@ export const useAuth = () => {
     };
   }, []);
 
+  const handleAuthError = (error: AuthError) => {
+    console.error("Auth error:", error);
+    
+    // Handle specific error cases
+    if (error.message.includes("rejected")) {
+      return "Authentication was cancelled. Please try again.";
+    }
+    if (error.message.includes("Email not confirmed")) {
+      return "Please confirm your email address before signing in.";
+    }
+    if (error.message.includes("Invalid login credentials")) {
+      return "Invalid email or password.";
+    }
+    
+    return error.message;
+  };
+
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+      });
+      
       if (error) throw error;
       setUser(data.user);
+      return { error: null };
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Error signing in:", authError);
-      throw authError;
+      return { error: handleAuthError(authError) };
     } finally {
       setLoading(false);
     }
@@ -66,15 +91,15 @@ export const useAuth = () => {
         password,
         options: {
           data: metadata,
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
+
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Error signing up:", authError);
-      throw authError;
+      return { data: null, error: handleAuthError(authError) };
     } finally {
       setLoading(false);
     }
@@ -86,10 +111,10 @@ export const useAuth = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null);
+      return { error: null };
     } catch (error) {
       const authError = error as AuthError;
-      console.error("Error signing out:", authError);
-      throw authError;
+      return { error: handleAuthError(authError) };
     } finally {
       setLoading(false);
     }

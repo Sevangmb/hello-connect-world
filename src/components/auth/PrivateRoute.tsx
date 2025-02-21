@@ -21,18 +21,14 @@ const useAuthCheck = () => {
           console.error("Error checking auth status:", error);
           toast({
             variant: "destructive",
-            title: "Erreur d'authentification",
-            description: "Veuillez vous reconnecter",
+            title: "Authentication error",
+            description: "Please sign in again",
           });
           setAuthenticated(false);
-          
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            await supabase.auth.signOut();
-          }
-        } else {
-          setAuthenticated(!!session);
+          return;
         }
+
+        setAuthenticated(!!session);
       } catch (error) {
         console.error("Error in auth check:", error);
         setAuthenticated(false);
@@ -46,16 +42,12 @@ const useAuthCheck = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session);
       
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token was refreshed successfully');
+      if (event === 'SIGNED_OUT') {
+        setAuthenticated(false);
+      } else if (session) {
+        setAuthenticated(true);
       }
       
-      if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        setAuthenticated(false);
-      }
-
-      setAuthenticated(!!session);
       setLoading(false);
     });
 
@@ -74,7 +66,7 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-facebook-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
