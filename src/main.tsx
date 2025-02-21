@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -44,6 +45,7 @@ import Favorites from "@/pages/Favorites";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminShops from "@/pages/admin/AdminShops";
+import AdminOrders from "@/pages/admin/AdminOrders";
 import AdminMarketplace from "@/pages/admin/AdminMarketplace";
 import AdminContent from "@/pages/admin/AdminContent";
 import AdminStats from "@/pages/admin/AdminStats";
@@ -126,6 +128,7 @@ const App = () => {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="shops" element={<AdminShops />} />
+        <Route path="orders" element={<AdminOrders />} />
         <Route path="marketplace" element={<AdminMarketplace />} />
         <Route path="content" element={<AdminContent />} />
         <Route path="stats" element={<AdminStats />} />
