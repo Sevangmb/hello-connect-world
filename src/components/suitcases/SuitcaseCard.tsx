@@ -178,6 +178,7 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
                 selected={startDate}
                 onSelect={(date) => handleDateChange('start', date)}
                 initialFocus
+                locale={fr}
               />
             </PopoverContent>
           </Popover>
@@ -195,6 +196,7 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
                 selected={endDate}
                 onSelect={(date) => handleDateChange('end', date)}
                 initialFocus
+                locale={fr}
               />
             </PopoverContent>
           </Popover>
@@ -236,3 +238,4 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
     </Card>
   );
 };
+
