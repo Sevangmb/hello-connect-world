@@ -802,6 +802,93 @@ export type Database = {
           },
         ]
       }
+      order_shipments: {
+        Row: {
+          actual_delivery_date: string | null
+          buyer_confirmation_deadline: string | null
+          buyer_confirmed: boolean | null
+          carrier_id: string | null
+          carrier_name: string | null
+          created_at: string
+          estimated_delivery_date: string | null
+          id: string
+          insurance_cost: number | null
+          insurance_selected: boolean | null
+          notes: string | null
+          order_id: string
+          shipped_at: string | null
+          shipping_address: Json
+          shipping_cost: number | null
+          shipping_label_url: string | null
+          shipping_method: string
+          status: string
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          buyer_confirmation_deadline?: string | null
+          buyer_confirmed?: boolean | null
+          carrier_id?: string | null
+          carrier_name?: string | null
+          created_at?: string
+          estimated_delivery_date?: string | null
+          id?: string
+          insurance_cost?: number | null
+          insurance_selected?: boolean | null
+          notes?: string | null
+          order_id: string
+          shipped_at?: string | null
+          shipping_address: Json
+          shipping_cost?: number | null
+          shipping_label_url?: string | null
+          shipping_method?: string
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          buyer_confirmation_deadline?: string | null
+          buyer_confirmed?: boolean | null
+          carrier_id?: string | null
+          carrier_name?: string | null
+          created_at?: string
+          estimated_delivery_date?: string | null
+          id?: string
+          insurance_cost?: number | null
+          insurance_selected?: boolean | null
+          notes?: string | null
+          order_id?: string
+          shipped_at?: string | null
+          shipping_address?: Json
+          shipping_cost?: number | null
+          shipping_label_url?: string | null
+          shipping_method?: string
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipments_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           buyer_confirmed: boolean | null
@@ -813,6 +900,7 @@ export type Database = {
           created_at: string
           delivery_type: string | null
           id: string
+          insurance_cost: number | null
           meeting_location: string | null
           meeting_time: string | null
           payment_method: string | null
@@ -823,6 +911,11 @@ export type Database = {
           reservation_expiry: string | null
           seller_confirmed: boolean | null
           seller_id: string
+          shipping_address: Json | null
+          shipping_cost: number | null
+          shipping_method: string | null
+          shipping_required: boolean | null
+          shipping_status: string | null
           shop_pickup_time: string | null
           shop_validation_time: string | null
           status: string
@@ -841,6 +934,7 @@ export type Database = {
           created_at?: string
           delivery_type?: string | null
           id?: string
+          insurance_cost?: number | null
           meeting_location?: string | null
           meeting_time?: string | null
           payment_method?: string | null
@@ -851,6 +945,11 @@ export type Database = {
           reservation_expiry?: string | null
           seller_confirmed?: boolean | null
           seller_id: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method?: string | null
+          shipping_required?: boolean | null
+          shipping_status?: string | null
           shop_pickup_time?: string | null
           shop_validation_time?: string | null
           status?: string
@@ -869,6 +968,7 @@ export type Database = {
           created_at?: string
           delivery_type?: string | null
           id?: string
+          insurance_cost?: number | null
           meeting_location?: string | null
           meeting_time?: string | null
           payment_method?: string | null
@@ -879,6 +979,11 @@ export type Database = {
           reservation_expiry?: string | null
           seller_confirmed?: boolean | null
           seller_id?: string
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          shipping_method?: string | null
+          shipping_required?: boolean | null
+          shipping_status?: string | null
           shop_pickup_time?: string | null
           shop_validation_time?: string | null
           status?: string
@@ -1344,6 +1449,60 @@ export type Database = {
           id?: string
           key?: string
           value?: string
+        }
+        Relationships: []
+      }
+      shipping_carriers: {
+        Row: {
+          api_enabled: boolean | null
+          base_price: number | null
+          created_at: string
+          description: string | null
+          id: string
+          insurance_available: boolean | null
+          insurance_price: number | null
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          shipping_time_max: number | null
+          shipping_time_min: number | null
+          tracking_url_template: string | null
+          type: Database["public"]["Enums"]["shipping_carrier_type"]
+          updated_at: string
+        }
+        Insert: {
+          api_enabled?: boolean | null
+          base_price?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          insurance_available?: boolean | null
+          insurance_price?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          shipping_time_max?: number | null
+          shipping_time_min?: number | null
+          tracking_url_template?: string | null
+          type?: Database["public"]["Enums"]["shipping_carrier_type"]
+          updated_at?: string
+        }
+        Update: {
+          api_enabled?: boolean | null
+          base_price?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          insurance_available?: boolean | null
+          insurance_price?: number | null
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          shipping_time_max?: number | null
+          shipping_time_min?: number | null
+          tracking_url_template?: string | null
+          type?: Database["public"]["Enums"]["shipping_carrier_type"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2018,6 +2177,7 @@ export type Database = {
     }
     Enums: {
       challenge_status: "active" | "completed"
+      shipping_carrier_type: "integrated" | "manual"
       suitcase_status: "active" | "archived"
     }
     CompositeTypes: {
