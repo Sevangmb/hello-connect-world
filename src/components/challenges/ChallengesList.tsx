@@ -8,14 +8,19 @@ import { ParticipantsList } from "./ParticipantsList";
 import { useChallengeActions } from "./ChallengeActions";
 import { Challenge } from "./types";
 
-export const ChallengesList = () => {
+interface ChallengesListProps {
+  filter: "ongoing" | "upcoming" | "completed";
+}
+
+export const ChallengesList = ({ filter }: ChallengesListProps) => {
   const { handleJoinChallenge, handleVote } = useChallengeActions();
+  const now = new Date().toISOString();
 
   const { data: challenges, isLoading } = useQuery({
-    queryKey: ["challenges"],
+    queryKey: ["challenges", filter],
     queryFn: async () => {
       console.log("Fetching challenges...");
-      const { data, error } = await supabase
+      let query = supabase
         .from("challenges")
         .select(`
           *,
@@ -40,23 +45,37 @@ export const ChallengesList = () => {
             votes:challenge_votes(id)
           ),
           votes:challenge_votes(count)
-        `)
-        .order("created_at", { ascending: false })
-        .in("status", ["active", "completed"]);
+        `);
+
+      // Appliquer les filtres en fonction de l'onglet sélectionné
+      switch (filter) {
+        case "ongoing":
+          query = query
+            .lte("start_date", now)
+            .gt("end_date", now)
+            .eq("status", "active");
+          break;
+        case "upcoming":
+          query = query
+            .gt("start_date", now)
+            .eq("status", "active");
+          break;
+        case "completed":
+          query = query
+            .lte("end_date", now)
+            .eq("status", "completed");
+          break;
+      }
+
+      const { data, error } = await query.order("start_date", { ascending: true });
 
       if (error) {
         console.error("Error fetching challenges:", error);
         throw error;
       }
 
-      const sortedChallenges = data.sort((a, b) => {
-        const dateA = new Date(a.start_date);
-        const dateB = new Date(b.start_date);
-        return dateA.getTime() - dateB.getTime();
-      });
-
-      console.log("Fetched challenges:", sortedChallenges);
-      return sortedChallenges as Challenge[];
+      console.log("Fetched challenges:", data);
+      return data as Challenge[];
     },
   });
 
@@ -71,75 +90,39 @@ export const ChallengesList = () => {
   if (!challenges?.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Aucun défi trouvé
+        {filter === "ongoing" && "Aucun défi en cours"}
+        {filter === "upcoming" && "Aucun défi à venir"}
+        {filter === "completed" && "Aucun défi terminé"}
       </div>
     );
   }
 
-  const activeChallenges = challenges.filter(challenge => challenge.status === "active");
-  const completedChallenges = challenges.filter(challenge => challenge.status === "completed");
-
   return (
-    <div className="space-y-8">
-      {activeChallenges.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Défis actifs</h2>
-          {activeChallenges.map((challenge: Challenge) => (
-            <div
-              key={challenge.id}
-              className="bg-white p-4 rounded-lg shadow space-y-4"
-            >
-              <ChallengeHeader 
-                challenge={challenge} 
-                onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
-                onVote={(participantId) => handleVote(participantId, challenge.id)}
-              />
-              
-              {challenge.description && (
-                <p className="text-sm text-gray-600">{challenge.description}</p>
-              )}
+    <div className="space-y-4">
+      {challenges.map((challenge: Challenge) => (
+        <div
+          key={challenge.id}
+          className="bg-white p-4 rounded-lg shadow space-y-4"
+        >
+          <ChallengeHeader 
+            challenge={challenge} 
+            onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
+            onVote={(participantId) => handleVote(participantId, challenge.id)}
+          />
+          
+          {challenge.description && (
+            <p className="text-sm text-gray-600">{challenge.description}</p>
+          )}
 
-              <ChallengeMetadata challenge={challenge} />
-              
-              <ParticipantsList 
-                participants={challenge.participants} 
-                onVote={handleVote}
-                challengeId={challenge.id}
-              />
-            </div>
-          ))}
+          <ChallengeMetadata challenge={challenge} />
+          
+          <ParticipantsList 
+            participants={challenge.participants} 
+            onVote={handleVote}
+            challengeId={challenge.id}
+          />
         </div>
-      )}
-
-      {completedChallenges.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Défis terminés</h2>
-          {completedChallenges.map((challenge: Challenge) => (
-            <div
-              key={challenge.id}
-              className="bg-white p-4 rounded-lg shadow space-y-4 opacity-80"
-            >
-              <ChallengeHeader 
-                challenge={challenge} 
-                onJoin={(outfitId, comment) => handleJoinChallenge(challenge.id, outfitId, comment)}
-                onVote={(participantId) => handleVote(participantId, challenge.id)}
-              />
-              
-              {challenge.description && (
-                <p className="text-sm text-gray-600">{challenge.description}</p>
-              )}
-
-              <ChallengeMetadata challenge={challenge} />
-              
-              <ParticipantsList 
-                participants={challenge.participants} 
-                onVote={handleVote}
-                challengeId={challenge.id}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      ))}
     </div>
   );
 };
