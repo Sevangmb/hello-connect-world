@@ -144,14 +144,15 @@ const Groups = () => {
             {/* Channels sidebar */}
             {selectedGroup && (
               <div className="w-64 border-r">
-                <div className="p-4 border-b flex items-center justify-between">
-                  <h3 className="font-semibold">{selectedGroup.name}</h3>
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold mb-2">{selectedGroup.name}</h3>
                   <Button
                     variant="ghost"
-                    size="icon"
+                    className="w-full justify-start"
                     onClick={() => setShowCreateChannelDialog(true)}
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 mr-2" />
+                    Channel
                   </Button>
                 </div>
                 <ScrollArea className="h-full">
@@ -231,3 +232,4 @@ const Groups = () => {
 };
 
 export default Groups;
+
