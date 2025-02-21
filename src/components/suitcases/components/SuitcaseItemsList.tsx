@@ -1,7 +1,7 @@
 
 import { X, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { SuitcaseItem } from "@/hooks/useSuitcaseItems";
+import type { SuitcaseItem } from "@/components/suitcases/utils/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 

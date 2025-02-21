@@ -35,18 +35,25 @@ export const useSuitcaseCalendar = () => {
             category
           ),
           suitcase_id,
-          suitcase (
+          suitcases!suitcase_items_suitcase_id_fkey (
             start_date,
             end_date
           )
         `)
-        .eq("suitcase.user_id", user.id)
-        .eq("suitcase.status", "active")
-        .not("suitcase.start_date", "is", null)
-        .not("suitcase.end_date", "is", null);
+        .eq("suitcases.user_id", user.id)
+        .eq("suitcases.status", "active")
+        .not("suitcases.start_date", "is", null)
+        .not("suitcases.end_date", "is", null);
 
       if (error) throw error;
-      return data as SuitcaseCalendarItem[];
+
+      // Transform the data to match the expected type
+      const calendarItems: SuitcaseCalendarItem[] = data.map(item => ({
+        ...item,
+        suitcase: item.suitcases
+      }));
+
+      return calendarItems;
     },
   });
 };
