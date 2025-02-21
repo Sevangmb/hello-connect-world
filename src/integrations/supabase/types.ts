@@ -410,6 +410,38 @@ export type Database = {
           },
         ]
       }
+      clothes_wear_history: {
+        Row: {
+          clothes_id: string
+          created_at: string
+          id: string
+          user_id: string
+          worn_date: string
+        }
+        Insert: {
+          clothes_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+          worn_date: string
+        }
+        Update: {
+          clothes_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+          worn_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clothes_wear_history_clothes_id_fkey"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorite_shops: {
         Row: {
           created_at: string
