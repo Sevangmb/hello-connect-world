@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 import { ClothesHashtags } from "@/components/clothes/forms/ClothesHashtags";
 
 export const CreateChallenge = () => {
@@ -16,6 +18,7 @@ export const CreateChallenge = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [hashtags, setHashtags] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,11 +28,12 @@ export const CreateChallenge = () => {
         throw new Error("User not authenticated");
       }
 
-      const { data: challengeData, error } = await supabase
+      // Créer le défi
+      const { data: challengeData, error: challengeError } = await supabase
         .from("challenges")
         .insert({
-          title: title,
-          description: description,
+          title,
+          description,
           start_date: startDate,
           end_date: endDate,
           creator_id: user.id,
@@ -38,21 +42,16 @@ export const CreateChallenge = () => {
         .select()
         .single();
 
-      if (error) {
-        console.error("Error creating challenge:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de créer le défi",
-        });
-        return;
+      if (challengeError) {
+        console.error("Error creating challenge:", challengeError);
+        throw challengeError;
       }
 
       // Ajouter les hashtags au défi
-      if (hashtags.length) {
+      if (hashtags.length && challengeData?.id) {
         for (const hashtag of hashtags) {
           const hashtagId = await addHashtag(hashtag);
-          if (hashtagId && challengeData?.id) {
+          if (hashtagId) {
             await supabase.from("challenge_hashtags").insert({
               challenge_id: challengeData.id,
               hashtag_id: hashtagId
@@ -61,14 +60,18 @@ export const CreateChallenge = () => {
         }
       }
 
+      queryClient.invalidateQueries({ queryKey: ['challenges'] });
+
       toast({
         title: "Défi créé",
         description: "Le défi a été créé avec succès",
       });
+      
       setTitle("");
       setDescription("");
       setStartDate("");
       setEndDate("");
+      setHashtags([]);
     } catch (error) {
       console.error("Error submitting challenge:", error);
       toast({
@@ -117,6 +120,7 @@ export const CreateChallenge = () => {
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          placeholder="Décrivez les règles et objectifs du défi..."
         />
       </div>
       <div>
