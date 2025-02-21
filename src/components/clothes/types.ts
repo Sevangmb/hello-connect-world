@@ -1,3 +1,4 @@
+
 export interface ClothesFormData {
   id?: string;
   name: string;
@@ -30,6 +31,8 @@ export interface ClothesWearHistory {
 export interface ClothesItem {
   id: string;
   name: string;
+  image_url: string | null;
+  category: string;
 }
 
 export interface ClothesCalendarState {
