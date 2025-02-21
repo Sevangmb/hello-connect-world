@@ -9,15 +9,17 @@ interface CartSummaryProps {
 }
 
 export function CartSummary({ items, isLoading }: CartSummaryProps) {
-  // Filter out invalid items first
-  const validItems = items.filter(item => item && item.shop_items && typeof item.shop_items.price === 'number');
+  // Early return if items is undefined or null
+  if (!items) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow">
+        <p className="text-gray-500 text-center">Chargement...</p>
+      </div>
+    );
+  }
 
-  const total = validItems.reduce((sum, item) => {
-    const quantity = item.quantity || 1;
-    return sum + (item.shop_items.price * quantity);
-  }, 0);
-
-  if (!items.length) {
+  // Early return for empty cart
+  if (items.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
         <p className="text-gray-500 text-center">Votre panier est vide</p>
@@ -25,15 +27,34 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
     );
   }
 
+  // Filter and validate items
+  const validItems = items.filter((item): item is CartItem => {
+    const isValid = item && 
+      item.shop_items && 
+      typeof item.shop_items.price === 'number' &&
+      item.id &&
+      item.quantity;
+      
+    if (!isValid) {
+      console.warn('Invalid cart item detected:', item);
+    }
+    return isValid;
+  });
+
+  // Calculate total only with valid items
+  const total = validItems.reduce((sum, item) => {
+    return sum + (item.shop_items.price * item.quantity);
+  }, 0);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow space-y-4">
       <h2 className="font-semibold text-lg">Résumé de la commande</h2>
       
       <div className="space-y-2 py-4 border-t">
-        {validItems.map((item, index) => (
-          <div key={item.id || index} className="flex justify-between text-sm">
-            <span>{item.shop_items?.clothes?.name || 'Article inconnu'}</span>
-            <span>{formatPrice(item.shop_items.price * (item.quantity || 1))}</span>
+        {validItems.map((item) => (
+          <div key={item.id} className="flex justify-between text-sm">
+            <span>{item.shop_items.clothes?.name || 'Article inconnu'}</span>
+            <span>{formatPrice(item.shop_items.price * item.quantity)}</span>
           </div>
         ))}
       </div>
@@ -43,13 +64,15 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
         <span className="font-bold">{formatPrice(total)}</span>
       </div>
 
-      <CheckoutButton 
-        cartItems={validItems.map(item => ({ 
-          id: item.id, 
-          quantity: item.quantity || 1
-        }))}
-        isLoading={isLoading}
-      />
+      {validItems.length > 0 && (
+        <CheckoutButton 
+          cartItems={validItems.map(item => ({ 
+            id: item.id, 
+            quantity: item.quantity
+          }))}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 }
