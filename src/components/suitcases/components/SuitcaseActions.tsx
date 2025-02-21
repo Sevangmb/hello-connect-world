@@ -1,9 +1,17 @@
+
 import { useState } from "react";
-import { HelpCircle, Loader2, Package, Trash2 } from "lucide-react";
+import { HelpCircle, Loader2, Package, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface SuitcaseActionsProps {
   suitcaseId: string;
@@ -12,6 +20,12 @@ interface SuitcaseActionsProps {
   startDate?: Date;
   endDate?: Date;
 }
+
+type SuggestedClothing = {
+  id: string;
+  name: string;
+  category: string;
+};
 
 export const SuitcaseActions = ({
   suitcaseId,
@@ -22,6 +36,9 @@ export const SuitcaseActions = ({
 }: SuitcaseActionsProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
+  const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothing[]>([]);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -92,36 +109,21 @@ export const SuitcaseActions = ({
         throw new Error("La réponse ne contient pas les informations nécessaires");
       }
 
-      // Vérification et filtrage : si item.clothes_id ou item.clothes.id correspondent, c'est déjà ajouté
-      if (Array.isArray(data.suggestedClothes) && data.suggestedClothes.length > 0) {
-        const clothesToAdd = data.suggestedClothes.filter((clothId: string) =>
-          !existingItems?.some(item =>
-            item.clothes_id === clothId || (item.clothes && item.clothes.id === clothId)
-          )
-        );
+      // Récupérer les détails des vêtements suggérés
+      const { data: clothesDetails, error: clothesError } = await supabase
+        .from("clothes")
+        .select("id, name, category")
+        .in("id", data.suggestedClothes);
 
-        if (clothesToAdd.length > 0) {
-          const { error: insertError } = await supabase
-            .from("suitcase_items")
-            .insert(
-              clothesToAdd.map((clothId: string) => ({
-                suitcase_id: suitcaseId,
-                clothes_id: clothId,
-              }))
-            );
-          if (insertError) throw insertError;
-          await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
-          toast({
-            title: "Suggestions ajoutées",
-            description: `${clothesToAdd.length} vêtements ont été ajoutés à votre valise.`,
-          });
-        }
-      }
+      if (clothesError) throw clothesError;
 
-      toast({
-        title: "Suggestions de l'IA",
-        description: data.explanation,
-      });
+      // Filtrer les vêtements déjà présents dans la valise
+      const existingIds = new Set(existingItems?.map(item => item.clothes_id));
+      const newSuggestions = clothesDetails?.filter(cloth => !existingIds.has(cloth.id)) || [];
+
+      setSuggestedClothes(newSuggestions);
+      setAiExplanation(data.explanation);
+      setShowSuggestionsDialog(true);
     } catch (error) {
       console.error("Error getting suggestions:", error);
       toast({
@@ -134,37 +136,103 @@ export const SuitcaseActions = ({
     }
   };
 
+  const handleAddSuggestedClothes = async () => {
+    try {
+      const { error } = await supabase
+        .from("suitcase_items")
+        .insert(
+          suggestedClothes.map(cloth => ({
+            suitcase_id: suitcaseId,
+            clothes_id: cloth.id,
+          }))
+        );
+
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
+      toast({
+        title: "Suggestions ajoutées",
+        description: `${suggestedClothes.length} vêtements ont été ajoutés à votre valise.`,
+      });
+      setShowSuggestionsDialog(false);
+      setSuggestedClothes([]);
+    } catch (error) {
+      console.error("Error adding suggested clothes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'ajouter les vêtements suggérés",
+      });
+    }
+  };
+
   return (
-    <div className="flex justify-between">
-      <div className="flex gap-2">
-        <Button
-          variant={isSelected ? "default" : "outline"}
-          onClick={() => onSelect(suitcaseId)}
-        >
-          <Package className="mr-2 h-4 w-4" />
-          {isSelected ? "Masquer les vêtements" : "Voir les vêtements"}
-        </Button>
+    <>
+      <div className="flex justify-between">
+        <div className="flex gap-2">
+          <Button
+            variant={isSelected ? "default" : "outline"}
+            onClick={() => onSelect(suitcaseId)}
+          >
+            <Package className="mr-2 h-4 w-4" />
+            {isSelected ? "Masquer les vêtements" : "Voir les vêtements"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleGetSuggestions}
+            disabled={isGettingSuggestions || !startDate || !endDate}
+          >
+            {isGettingSuggestions ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <HelpCircle className="mr-2 h-4 w-4" />
+            )}
+            Demander à l'IA
+          </Button>
+        </div>
         <Button
           variant="outline"
-          onClick={handleGetSuggestions}
-          disabled={isGettingSuggestions || !startDate || !endDate}
+          size="icon"
+          onClick={handleDelete}
+          disabled={isDeleting}
         >
-          {isGettingSuggestions ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <HelpCircle className="mr-2 h-4 w-4" />
-          )}
-          Demander à l'IA
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleDelete}
-        disabled={isDeleting}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
+
+      <Dialog open={showSuggestionsDialog} onOpenChange={setShowSuggestionsDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Suggestions de l'IA</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
+              {aiExplanation}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {suggestedClothes.length > 0 ? (
+              <>
+                <div className="grid gap-2">
+                  {suggestedClothes.map((cloth) => (
+                    <div key={cloth.id} className="flex items-center gap-2 p-2 border rounded">
+                      <span className="font-medium">{cloth.name}</span>
+                      <span className="text-sm text-muted-foreground">({cloth.category})</span>
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={handleAddSuggestedClothes} className="w-full">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter les suggestions à la valise
+                </Button>
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                Aucun nouveau vêtement à suggérer pour cette valise
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
