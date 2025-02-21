@@ -49,6 +49,16 @@ interface ShippingAddress {
   country: string;
 }
 
+interface OrderShipment {
+  id: string;
+  shipping_method: string;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  shipping_cost: number | null;
+  status: string;
+  shipping_address: ShippingAddress;
+}
+
 export default function AdminOrders() {
   const { toast } = useToast();
 
@@ -185,14 +195,16 @@ export default function AdminOrders() {
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Adresse de livraison</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {(order.order_shipments[0].shipping_address as ShippingAddress).street}<br />
-                                  {(order.order_shipments[0].shipping_address as ShippingAddress).city}, {(order.order_shipments[0].shipping_address as ShippingAddress).postal_code}<br />
-                                  {(order.order_shipments[0].shipping_address as ShippingAddress).country}
-                                </p>
-                              </div>
+                              {isValidShippingAddress(order.order_shipments[0].shipping_address) && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Adresse de livraison</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {order.order_shipments[0].shipping_address.street}<br />
+                                    {order.order_shipments[0].shipping_address.city}, {order.order_shipments[0].shipping_address.postal_code}<br />
+                                    {order.order_shipments[0].shipping_address.country}
+                                  </p>
+                                </div>
+                              )}
                               <div>
                                 <h4 className="font-medium mb-2">Méthode d'expédition</h4>
                                 <p className="text-sm text-muted-foreground">
@@ -246,5 +258,17 @@ export default function AdminOrders() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Type guard to check if a value is a valid ShippingAddress
+function isValidShippingAddress(value: any): value is ShippingAddress {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'street' in value &&
+    'city' in value &&
+    'postal_code' in value &&
+    'country' in value
   );
 }
