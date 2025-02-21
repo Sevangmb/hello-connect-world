@@ -1455,6 +1455,8 @@ export type Database = {
       shipping_carriers: {
         Row: {
           api_enabled: boolean | null
+          api_endpoint: string | null
+          api_key_required: boolean | null
           base_price: number | null
           created_at: string
           description: string | null
@@ -1464,14 +1466,18 @@ export type Database = {
           is_active: boolean | null
           logo_url: string | null
           name: string
+          shipping_label_api_endpoint: string | null
           shipping_time_max: number | null
           shipping_time_min: number | null
+          tracking_api_endpoint: string | null
           tracking_url_template: string | null
           type: Database["public"]["Enums"]["shipping_carrier_type"]
           updated_at: string
         }
         Insert: {
           api_enabled?: boolean | null
+          api_endpoint?: string | null
+          api_key_required?: boolean | null
           base_price?: number | null
           created_at?: string
           description?: string | null
@@ -1481,14 +1487,18 @@ export type Database = {
           is_active?: boolean | null
           logo_url?: string | null
           name: string
+          shipping_label_api_endpoint?: string | null
           shipping_time_max?: number | null
           shipping_time_min?: number | null
+          tracking_api_endpoint?: string | null
           tracking_url_template?: string | null
           type?: Database["public"]["Enums"]["shipping_carrier_type"]
           updated_at?: string
         }
         Update: {
           api_enabled?: boolean | null
+          api_endpoint?: string | null
+          api_key_required?: boolean | null
           base_price?: number | null
           created_at?: string
           description?: string | null
@@ -1498,8 +1508,10 @@ export type Database = {
           is_active?: boolean | null
           logo_url?: string | null
           name?: string
+          shipping_label_api_endpoint?: string | null
           shipping_time_max?: number | null
           shipping_time_min?: number | null
+          tracking_api_endpoint?: string | null
           tracking_url_template?: string | null
           type?: Database["public"]["Enums"]["shipping_carrier_type"]
           updated_at?: string
