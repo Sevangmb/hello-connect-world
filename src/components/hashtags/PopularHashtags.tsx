@@ -12,6 +12,12 @@ interface HashtagCount {
   count: number;
 }
 
+interface HashtagResponse {
+  name: string;
+  clothes_count: number | null;
+  outfit_count: number | null;
+}
+
 const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
   console.log("Fetching popular hashtags...");
   const { data: hashtagsData, error } = await supabase
@@ -31,9 +37,9 @@ const fetchPopularHashtags = async (): Promise<HashtagCount[]> => {
 
   if (!hashtagsData) return [];
 
-  const processedData = hashtagsData.map(tag => ({
+  const processedData = (hashtagsData as HashtagResponse[]).map(tag => ({
     name: tag.name,
-    count: (tag.clothes_count || 0) + (tag.outfit_count || 0)
+    count: Number(tag.clothes_count || 0) + Number(tag.outfit_count || 0)
   })).sort((a, b) => b.count - a.count);
 
   console.log("Processed hashtags data:", processedData);
