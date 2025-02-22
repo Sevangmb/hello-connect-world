@@ -16,27 +16,40 @@ export default function Checkout() {
 
   const createCheckoutSession = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          cartItems: validCartItems,
-          shippingDetails
-        }
-      });
-
-      if (error) throw error;
-      
-      if (data?.url) {
-        try {
-          window.location.href = data.url;
-        } catch (err: any) {
-          // Handle browser extension interference
-          if (err.message?.includes('rejected the request')) {
-            throw new Error('Le paiement a été bloqué par une extension de navigateur. Essayez de désactiver vos extensions ou d\'utiliser une fenêtre de navigation privée.');
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: {
+            cartItems: validCartItems,
+            shippingDetails
           }
-          throw err;
+        });
+
+        if (error) throw error;
+        
+        if (data?.url) {
+          try {
+            window.location.href = data.url;
+          } catch (err: any) {
+            // Handle browser extension interference
+            if (err.message?.includes('rejected') || err.message?.includes('chrome-extension')) {
+              toast({
+                title: "Erreur de redirection",
+                description: "Une extension de navigateur bloque le paiement. Essayez de désactiver vos extensions ou d'utiliser une fenêtre de navigation privée.",
+                variant: "destructive",
+              });
+              throw new Error('Le paiement a été bloqué par une extension de navigateur.');
+            }
+            throw err;
+          }
+        } else {
+          throw new Error("No checkout URL returned");
         }
-      } else {
-        throw new Error("No checkout URL returned");
+      } catch (error: any) {
+        if (error.message?.includes('extension')) {
+          // Déjà géré par le toast ci-dessus
+          throw error;
+        }
+        throw new Error(error.message || "Erreur lors de la création de la session de paiement");
       }
     },
     onError: (error: Error) => {
@@ -155,10 +168,16 @@ export default function Checkout() {
                   }
                 </Button>
                 
-                <p className="text-sm text-muted-foreground text-center">
-                  Si vous rencontrez des problèmes lors du paiement, essayez de désactiver vos extensions de navigateur 
-                  ou utilisez une fenêtre de navigation privée.
-                </p>
+                <div className="text-sm text-muted-foreground space-y-2 mt-4">
+                  <p className="text-center">
+                    Si vous rencontrez des problèmes lors du paiement :
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Désactivez temporairement vos extensions de navigateur</li>
+                    <li>Utilisez une fenêtre de navigation privée</li>
+                    <li>Essayez un autre navigateur web</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
