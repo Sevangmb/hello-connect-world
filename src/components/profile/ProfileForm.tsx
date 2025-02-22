@@ -2,19 +2,16 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, User, Loader2, Eye, EyeOff, MapPin, Phone, Mail, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileStats } from "./ProfileStats";
+import { ProfileAvatar } from "./components/ProfileAvatar";
+import { ProfileBasicInfo } from "./components/ProfileBasicInfo";
+import { ProfileVisibility } from "./components/ProfileVisibility";
 
 export const ProfileForm = () => {
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const [profile, setProfile] = useState<{
     username: string;
@@ -41,7 +38,6 @@ export const ProfileForm = () => {
         .maybeSingle();
 
       if (error) throw error;
-      console.log("Profile fetched:", data);
       
       const visibility = data?.visibility === "private" ? "private" : "public";
       setProfile(data ? {
@@ -106,53 +102,8 @@ export const ProfileForm = () => {
     }
   };
 
-  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error("Vous devez sélectionner une image");
-      }
-
-      if (!userId) throw new Error("User not found");
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${userId}/${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("id", userId);
-
-      if (updateError) throw updateError;
-
-      setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
-      
-      toast({
-        title: "Avatar mis à jour",
-        description: "Votre photo de profil a été mise à jour avec succès",
-      });
-    } catch (error: any) {
-      console.error("Error uploading avatar:", error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour votre photo de profil",
-      });
-    } finally {
-      setUploading(false);
-    }
+  const handleFieldChange = (field: string, value: string) => {
+    setProfile(prev => prev ? { ...prev, [field]: value } : null);
   };
 
   if (!profile || !userId) return null;
@@ -170,190 +121,26 @@ export const ProfileForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4 mb-6">
-              <Avatar className="w-20 h-20">
-                <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback>
-                  <User className="w-8 h-8" />
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="relative">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={uploadAvatar}
-                  disabled={uploading}
-                  className="hidden"
-                  id="avatar-upload"
-                />
-                <Button
-                  asChild
-                  variant="outline"
-                  disabled={uploading}
-                >
-                  <label htmlFor="avatar-upload" className="cursor-pointer">
-                    {uploading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Chargement...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-4 h-4 mr-2" />
-                        Changer la photo
-                      </>
-                    )}
-                  </label>
-                </Button>
-              </div>
-            </div>
+            <ProfileAvatar
+              userId={userId}
+              avatarUrl={profile.avatar_url}
+              onAvatarUploaded={(url) => setProfile(prev => prev ? { ...prev, avatar_url: url } : null)}
+            />
 
             <form onSubmit={updateProfile} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Nom d'utilisateur</Label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3 text-gray-500">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <Input
-                      id="username"
-                      value={profile?.username || ""}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, username: e.target.value } : null)}
-                      placeholder="Votre nom d'utilisateur"
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
+              <ProfileBasicInfo
+                username={profile.username}
+                fullName={profile.full_name}
+                phone={profile.phone || ""}
+                address={profile.address || ""}
+                preferredLanguage={profile.preferred_language}
+                onFieldChange={handleFieldChange}
+              />
 
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Nom complet</Label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3 text-gray-500">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <Input
-                      id="full_name"
-                      value={profile?.full_name || ""}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-                      placeholder="Votre nom complet"
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3 text-gray-500">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={profile?.phone || ""}
-                      onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                      placeholder="Votre numéro de téléphone"
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language">Langue préférée</Label>
-                  <Select
-                    value={profile.preferred_language}
-                    onValueChange={(value) => 
-                      setProfile(prev => prev ? { ...prev, preferred_language: value } : null)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue>
-                        <div className="flex items-center">
-                          <Globe className="w-4 h-4 mr-2" />
-                          {profile.preferred_language === "fr" ? "Français" : "English"}
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">
-                        <div className="flex items-center">
-                          <Globe className="w-4 h-4 mr-2" />
-                          Français
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="en">
-                        <div className="flex items-center">
-                          <Globe className="w-4 h-4 mr-2" />
-                          English
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Adresse</Label>
-                <div className="relative">
-                  <div className="absolute left-3 top-3 text-gray-500">
-                    <MapPin className="w-4 h-4" />
-                  </div>
-                  <Textarea
-                    id="address"
-                    value={profile?.address || ""}
-                    onChange={(e) => setProfile(prev => prev ? { ...prev, address: e.target.value } : null)}
-                    placeholder="Votre adresse complète"
-                    className="min-h-[100px] pl-9"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="visibility">Visibilité du profil</Label>
-                <Select
-                  value={profile.visibility}
-                  onValueChange={(value: "public" | "private") => 
-                    setProfile(prev => prev ? { ...prev, visibility: value } : null)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue>
-                      {profile.visibility === "public" ? (
-                        <div className="flex items-center">
-                          <Eye className="w-4 h-4 mr-2" />
-                          Public
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <EyeOff className="w-4 h-4 mr-2" />
-                          Privé
-                        </div>
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">
-                      <div className="flex items-center">
-                        <Eye className="w-4 h-4 mr-2" />
-                        Public
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="private">
-                      <div className="flex items-center">
-                        <EyeOff className="w-4 h-4 mr-2" />
-                        Privé
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  {profile.visibility === "public" 
-                    ? "Votre profil est visible par tous les utilisateurs"
-                    : "Votre profil n'est visible que par vos amis"}
-                </p>
-              </div>
+              <ProfileVisibility
+                visibility={profile.visibility}
+                onVisibilityChange={(value) => handleFieldChange("visibility", value)}
+              />
 
               <Button type="submit" disabled={loading}>
                 {loading ? (
@@ -372,4 +159,3 @@ export const ProfileForm = () => {
     </div>
   );
 };
-
