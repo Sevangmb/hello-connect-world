@@ -36,6 +36,18 @@ export default function Checkout() {
   const createCheckoutSession = useMutation({
     mutationFn: async () => {
       try {
+        // Get seller ID from the first item (assuming all items are from the same seller)
+        const { data: shopItem, error: shopError } = await supabase
+          .from('shop_items')
+          .select('shop:shop_id(user_id)')
+          .eq('id', validCartItems[0].shop_item_id)
+          .single();
+
+        if (shopError) throw shopError;
+        if (!shopItem?.shop?.user_id) throw new Error("Seller information not found");
+
+        const seller_id = shopItem.shop.user_id;
+
         // For Stripe payments, use Stripe Checkout
         if (selectedPaymentMethod === 'stripe') {
           const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -52,7 +64,6 @@ export default function Checkout() {
             try {
               window.location.href = data.url;
             } catch (err: any) {
-              // Handle browser extension interference
               if (err.message?.includes('rejected') || err.message?.includes('chrome-extension')) {
                 toast({
                   title: "Erreur de redirection",
@@ -72,12 +83,16 @@ export default function Checkout() {
             .from('orders')
             .insert({
               buyer_id: (await supabase.auth.getUser()).data.user?.id,
+              seller_id,
               total_amount: total,
               payment_method: selectedPaymentMethod,
               payment_status: selectedPaymentMethod === 'cash' ? 'pending' : 'processing',
               shipping_address: shippingDetails,
               shipping_cost: shippingDetails.basePrice,
-              shipping_method: shippingDetails.carrierName
+              shipping_method: shippingDetails.carrierName,
+              payment_type: 'online',
+              transaction_type: 'p2p',
+              status: 'pending'
             })
             .select()
             .single();
