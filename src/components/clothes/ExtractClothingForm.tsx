@@ -1,11 +1,11 @@
+
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Loader2, Upload, Scissors } from "lucide-react";
+import { Loader2, Scissors } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageUploader } from "./components/ImageUploader";
 
 export const ExtractClothingForm = () => {
   const [sourceImage, setSourceImage] = useState<string | null>(null);
@@ -82,64 +82,37 @@ export const ExtractClothingForm = () => {
     <Card className="p-6">
       <div className="space-y-6">
         <div className="space-y-4">
-          <Label>Photo avec le vêtement à extraire</Label>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImageUpload(file);
-            }}
-            className="hidden"
-            id="source-upload"
+          <ImageUploader
+            label="Photo avec le vêtement à extraire"
+            imageUrl={sourceImage}
+            onImageUpload={handleImageUpload}
           />
-          {sourceImage ? (
-            <div className="relative aspect-square">
-              <img
-                src={sourceImage}
-                alt="Image source"
-                className="w-full h-full object-cover rounded-lg"
-              />
-              <div className="absolute bottom-2 right-2 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleExtractClothing}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Scissors className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  asChild
-                >
-                  <label htmlFor="source-upload">
-                    <Upload className="h-4 w-4" />
-                  </label>
-                </Button>
-              </div>
-            </div>
-          ) : (
+          
+          {sourceImage && (
             <Button
               variant="outline"
-              className="w-full aspect-square"
-              asChild
+              onClick={handleExtractClothing}
+              disabled={loading}
+              className="w-full"
             >
-              <label htmlFor="source-upload" className="cursor-pointer">
-                Télécharger une photo
-              </label>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Extraction en cours...
+                </>
+              ) : (
+                <>
+                  <Scissors className="h-4 w-4 mr-2" />
+                  Extraire le vêtement
+                </>
+              )}
             </Button>
           )}
         </div>
 
         {extractedImage && (
           <div className="space-y-4">
-            <Label>Vêtement extrait</Label>
+            <h3 className="text-lg font-semibold">Vêtement extrait</h3>
             <div className="aspect-square">
               <img
                 src={extractedImage}
