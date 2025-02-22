@@ -5,48 +5,117 @@ import { BottomNav } from "@/components/navigation/BottomNav";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
 
 export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { cartItems, shippingDetails } = location.state || {};
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('stripe');
+
+  // Fetch available payment methods
+  const { data: paymentMethods } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const createCheckoutSession = useMutation({
     mutationFn: async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: {
-            cartItems: validCartItems,
-            shippingDetails
-          }
-        });
-
-        if (error) throw error;
-        
-        if (data?.url) {
-          try {
-            window.location.href = data.url;
-          } catch (err: any) {
-            // Handle browser extension interference
-            if (err.message?.includes('rejected') || err.message?.includes('chrome-extension')) {
-              toast({
-                title: "Erreur de redirection",
-                description: "Une extension de navigateur bloque le paiement. Essayez de désactiver vos extensions ou d'utiliser une fenêtre de navigation privée.",
-                variant: "destructive",
-              });
-              throw new Error('Le paiement a été bloqué par une extension de navigateur.');
+        // For Stripe payments, use Stripe Checkout
+        if (selectedPaymentMethod === 'stripe') {
+          const { data, error } = await supabase.functions.invoke('create-checkout', {
+            body: {
+              cartItems: validCartItems,
+              shippingDetails,
+              paymentMethod: selectedPaymentMethod
             }
-            throw err;
+          });
+
+          if (error) throw error;
+          
+          if (data?.url) {
+            try {
+              window.location.href = data.url;
+            } catch (err: any) {
+              // Handle browser extension interference
+              if (err.message?.includes('rejected') || err.message?.includes('chrome-extension')) {
+                toast({
+                  title: "Erreur de redirection",
+                  description: "Une extension de navigateur bloque le paiement. Essayez de désactiver vos extensions ou d'utiliser une fenêtre de navigation privée.",
+                  variant: "destructive",
+                });
+                throw new Error('Le paiement a été bloqué par une extension de navigateur.');
+              }
+              throw err;
+            }
+          } else {
+            throw new Error("No checkout URL returned");
           }
         } else {
-          throw new Error("No checkout URL returned");
+          // For other payment methods, create order directly
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert({
+              buyer_id: (await supabase.auth.getUser()).data.user?.id,
+              total_amount: total,
+              payment_method: selectedPaymentMethod,
+              payment_status: selectedPaymentMethod === 'cash' ? 'pending' : 'processing',
+              shipping_address: shippingDetails,
+              shipping_cost: shippingDetails.basePrice,
+              shipping_method: shippingDetails.carrierName
+            })
+            .select()
+            .single();
+
+          if (orderError) throw orderError;
+
+          // Create order items
+          const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(
+              validCartItems.map(item => ({
+                order_id: order.id,
+                shop_item_id: item.id,
+                quantity: item.quantity,
+                price_at_time: item.shop_items.price
+              }))
+            );
+
+          if (itemsError) throw itemsError;
+
+          // Clear cart after successful order creation
+          const { error: cartError } = await supabase
+            .from('cart_items')
+            .delete()
+            .in('id', validCartItems.map(item => item.id));
+
+          if (cartError) throw cartError;
+
+          // Redirect to success page
+          navigate('/payment-success', { 
+            state: { 
+              orderId: order.id,
+              paymentMethod: selectedPaymentMethod 
+            }
+          });
         }
       } catch (error: any) {
         if (error.message?.includes('extension')) {
-          // Déjà géré par le toast ci-dessus
           throw error;
         }
         throw new Error(error.message || "Erreur lors de la création de la session de paiement");
@@ -89,7 +158,7 @@ export default function Checkout() {
     return window.location.href = "/cart";
   }
 
-  // Calculate totals with safe access and type checking
+  // Calculate totals with safe access
   const subtotal = validCartItems.reduce((sum, item) => {
     const price = item.shop_items?.price || 0;
     return sum + (price * item.quantity);
@@ -115,6 +184,31 @@ export default function Checkout() {
                   <p>Prix de base: {shippingDetails.basePrice}€</p>
                   <p>Délai estimé: {shippingDetails.estimatedDays.min}-{shippingDetails.estimatedDays.max} jours</p>
                 </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow">
+                <h2 className="text-lg font-medium mb-4">Moyen de paiement</h2>
+                {paymentMethods && (
+                  <RadioGroup 
+                    value={selectedPaymentMethod} 
+                    onValueChange={setSelectedPaymentMethod}
+                    className="space-y-3"
+                  >
+                    {paymentMethods.map((method) => (
+                      <div key={method.id} className="flex items-center space-x-2">
+                        <RadioGroupItem value={method.code} id={method.code} />
+                        <Label htmlFor={method.code} className="font-medium">
+                          {method.name}
+                          {method.description && (
+                            <span className="block text-sm text-muted-foreground">
+                              {method.description}
+                            </span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow">
@@ -163,8 +257,10 @@ export default function Checkout() {
                   disabled={createCheckoutSession.isPending}
                 >
                   {createCheckoutSession.isPending ? 
-                    "Redirection vers le paiement..." : 
-                    "Procéder au paiement"
+                    "Traitement en cours..." : 
+                    selectedPaymentMethod === 'cash' ?
+                      "Confirmer la commande" :
+                      "Procéder au paiement"
                   }
                 </Button>
                 
