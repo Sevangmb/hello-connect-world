@@ -18,6 +18,18 @@ export const VirtualTryOnForm = () => {
   } = useToast();
   const handleImageUpload = async (file: File, type: 'person' | 'clothing') => {
     try {
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        throw new Error("Type de fichier non valide. Veuillez télécharger une image au format JPEG, PNG ou WebP.");
+      }
+
+      // Validate file size (max 5MB)
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSizeInBytes) {
+        throw new Error("La taille du fichier dépasse la limite de 5MB.");
+      }
+
       const {
         data: {
           user
