@@ -213,34 +213,51 @@ export const ProfileForm = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="username">Nom d'utilisateur</Label>
-                  <Input
-                    id="username"
-                    value={profile?.username || ""}
-                    onChange={(e) => setProfile(prev => prev ? { ...prev, username: e.target.value } : null)}
-                    placeholder="Votre nom d'utilisateur"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-3 text-gray-500">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <Input
+                      id="username"
+                      value={profile?.username || ""}
+                      onChange={(e) => setProfile(prev => prev ? { ...prev, username: e.target.value } : null)}
+                      placeholder="Votre nom d'utilisateur"
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Nom complet</Label>
-                  <Input
-                    id="full_name"
-                    value={profile?.full_name || ""}
-                    onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-                    placeholder="Votre nom complet"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-3 text-gray-500">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <Input
+                      id="full_name"
+                      value={profile?.full_name || ""}
+                      onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
+                      placeholder="Votre nom complet"
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile?.phone || ""}
-                    onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
-                    placeholder="Votre numéro de téléphone"
-                    icon={<Phone className="w-4 h-4" />}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-3 text-gray-500">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile?.phone || ""}
+                      onChange={(e) => setProfile(prev => prev ? { ...prev, phone: e.target.value } : null)}
+                      placeholder="Votre numéro de téléphone"
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -279,13 +296,18 @@ export const ProfileForm = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="address">Adresse</Label>
-                <Textarea
-                  id="address"
-                  value={profile?.address || ""}
-                  onChange={(e) => setProfile(prev => prev ? { ...prev, address: e.target.value } : null)}
-                  placeholder="Votre adresse complète"
-                  className="min-h-[100px]"
-                />
+                <div className="relative">
+                  <div className="absolute left-3 top-3 text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <Textarea
+                    id="address"
+                    value={profile?.address || ""}
+                    onChange={(e) => setProfile(prev => prev ? { ...prev, address: e.target.value } : null)}
+                    placeholder="Votre adresse complète"
+                    className="min-h-[100px] pl-9"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
