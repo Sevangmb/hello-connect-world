@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.0";
@@ -14,8 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const { temperature, description, clothes } = await req.json();
-    console.log("Received request with:", { temperature, description, clothesCount: clothes?.length });
+    let temperature, description, clothes;
+    try {
+      const requestData = await req.json();
+      ({ temperature, description, clothes } = requestData);
+
+      console.log("Received request with:", { temperature, description, clothesCount: clothes?.length });
+
+      // Validate request structure
+      if (typeof temperature !== "number" || typeof description !== "string" || !Array.isArray(clothes)) {
+        throw new Error("Invalid request format: Ensure 'temperature' is a number, 'description' is a string, and 'clothes' is an array.");
+      }
+    } catch (error) {
+      console.error("Error parsing request JSON:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid request format. Please provide valid 'temperature', 'description', and 'clothes'." }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
@@ -52,15 +67,34 @@ serve(async (req) => {
     const response = result.response;
     const text = response.text();
     console.log("Received response from Gemini:", text);
-    
-    // Parse the JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Failed to parse JSON from response");
+
+    // Clean and parse the JSON response
+    let suggestionData;
+    try {
+      // Extract JSON from the response using regex
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No valid JSON found in response");
+      }
+
+      // Parse the extracted JSON
+      const jsonStr = jsonMatch[0].trim();
+      suggestionData = JSON.parse(jsonStr);
+
+      // Validate the structure
+      if (
+        !suggestionData.suggestion ||
+        !suggestionData.explanation ||
+        typeof suggestionData.suggestion.top !== "string" ||
+        typeof suggestionData.suggestion.bottom !== "string" ||
+        typeof suggestionData.suggestion.shoes !== "string"
+      ) {
+        throw new Error("Invalid response structure: Missing or incorrect 'suggestion' or 'explanation' fields.");
+      }
+    } catch (parseError) {
+      console.error("Error parsing Gemini response:", parseError);
+      throw new Error("Failed to parse AI response. Ensure the response contains valid JSON with the required structure.");
     }
-    
-    const suggestionData = JSON.parse(jsonMatch[0]);
-    console.log("Parsed suggestion data:", suggestionData);
 
     return new Response(
       JSON.stringify(suggestionData),
