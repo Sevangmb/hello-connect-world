@@ -1377,34 +1377,46 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
           created_at: string
+          email_notifications: boolean | null
           full_name: string | null
           id: string
           is_admin: boolean | null
           phone: string | null
+          preferences: Json | null
+          preferred_language: string | null
           updated_at: string
           username: string | null
           visibility: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
+          email_notifications?: boolean | null
           full_name?: string | null
           id: string
           is_admin?: boolean | null
           phone?: string | null
+          preferences?: Json | null
+          preferred_language?: string | null
           updated_at?: string
           username?: string | null
           visibility?: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
           created_at?: string
+          email_notifications?: boolean | null
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
           phone?: string | null
+          preferences?: Json | null
+          preferred_language?: string | null
           updated_at?: string
           username?: string | null
           visibility?: string
