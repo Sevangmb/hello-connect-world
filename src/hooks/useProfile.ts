@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 export type Profile = {
+  id: string;  // Adding the id field that was missing
   username: string;
   full_name: string;
   avatar_url: string | null;
@@ -21,44 +22,69 @@ export const useProfile = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not found");
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications")
-        .eq("id", user.id)
-        .maybeSingle();
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (error) throw error;
-      
-      return {
-        ...data,
-        username: data?.username || "",
-        full_name: data?.full_name || "",
-        phone: data?.phone || "",
-        address: data?.address || "",
-        preferred_language: data?.preferred_language || "fr",
-        visibility: (data?.visibility || "public") as "public" | "private",
-        email_notifications: data?.email_notifications ?? true,
-      } as Profile;
+        if (error) throw error;
+        
+        return {
+          id: user.id,  // Ensure we always have an id
+          username: data?.username || "",
+          full_name: data?.full_name || "",
+          phone: data?.phone || "",
+          address: data?.address || "",
+          preferred_language: data?.preferred_language || "fr",
+          visibility: (data?.visibility || "public") as "public" | "private",
+          email_notifications: data?.email_notifications ?? true,
+          avatar_url: data?.avatar_url,
+        } as Profile;
+      } catch (error: any) {
+        // Check if this is a chrome extension interference error
+        if (error.message.includes("chrome-extension") || error.message.includes("rejected")) {
+          toast({
+            variant: "destructive",
+            title: "Erreur d'extension",
+            description: "Une extension de votre navigateur interfère avec l'application. Essayez de désactiver vos extensions ou d'utiliser le mode navigation privée.",
+          });
+        }
+        throw error;
+      }
     },
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (updatedProfile: Partial<Profile>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not found");
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          ...updatedProfile,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            ...updatedProfile,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", user.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (error: any) {
+        // Check if this is a chrome extension interference error
+        if (error.message.includes("chrome-extension") || error.message.includes("rejected")) {
+          toast({
+            variant: "destructive",
+            title: "Erreur d'extension",
+            description: "Une extension de votre navigateur interfère avec l'application. Essayez de désactiver vos extensions ou d'utiliser le mode navigation privée.",
+          });
+        }
+        throw error;
+      }
     },
     meta: {
       onSuccess: () => {
@@ -69,12 +95,15 @@ export const useProfile = () => {
         });
       },
       onError: (error: Error) => {
-        console.error("Error updating profile:", error.message);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de mettre à jour votre profil",
-        });
+        // Only show generic error if it's not already handled above
+        if (!error.message.includes("chrome-extension") && !error.message.includes("rejected")) {
+          console.error("Error updating profile:", error.message);
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de mettre à jour votre profil",
+          });
+        }
       },
     },
   });
