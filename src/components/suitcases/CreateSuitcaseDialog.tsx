@@ -48,6 +48,7 @@ export const CreateSuitcaseDialog = () => {
           start_date: startDate?.toISOString(),
           end_date: endDate?.toISOString(),
           user_id: user.id,
+          status: "active"
         });
 
       if (error) throw error;
@@ -63,7 +64,7 @@ export const CreateSuitcaseDialog = () => {
       setDescription("");
       setStartDate(undefined);
       setEndDate(undefined);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating suitcase:", error);
       toast({
         variant: "destructive",

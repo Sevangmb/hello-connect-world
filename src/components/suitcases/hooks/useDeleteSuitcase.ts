@@ -17,10 +17,23 @@ export const useDeleteSuitcase = () => {
     setError(null);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      // Delete associated suitcase items first
+      const { error: itemsError } = await supabase
+        .from("suitcase_items")
+        .delete()
+        .eq("suitcase_id", suitcaseId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the suitcase
       const { error: deleteError } = await supabase
         .from("suitcases")
         .delete()
-        .eq("id", suitcaseId);
+        .eq("id", suitcaseId)
+        .eq("user_id", user.id);
 
       if (deleteError) throw deleteError;
 
