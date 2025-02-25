@@ -54,7 +54,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           return null;
         }
 
-        // Get AI suggestion based on weather and available clothes
+        // Get suggestion based on weather and available clothes
         const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
           'generate-outfit-suggestion',
           {

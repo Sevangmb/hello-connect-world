@@ -1,4 +1,5 @@
 
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -7,14 +8,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { temperature, description, clothes } = await req.json();
-    console.log("Received request with:", { temperature, description, clothesCount: clothes?.length });
+    console.log("Received request:", { temperature, description, clothesCount: clothes?.length });
 
     if (!clothes || clothes.length === 0) {
       return new Response(
@@ -26,100 +27,86 @@ serve(async (req) => {
       );
     }
 
-    // Construire le prompt pour le modèle
-    const prompt = `En tant qu'assistant de mode, suggère une tenue appropriée pour une température de ${temperature}°C avec un temps ${description}. 
-    Voici les vêtements disponibles: ${JSON.stringify(clothes.map(c => ({ id: c.id, name: c.name, category: c.category })))}.
-    Choisis les vêtements les plus appropriés et explique pourquoi. Donne ta réponse en JSON avec le format suivant:
-    {
-      "suggestion": {
-        "top": "ID_DU_HAUT",
-        "bottom": "ID_DU_BAS",
-        "shoes": "ID_DES_CHAUSSURES"
-      },
-      "explanation": "EXPLICATION_DU_CHOIX"
-    }`;
+    // Séparation des vêtements par catégorie
+    const tops = clothes.filter(c => ["Haut", "T-shirt", "Pull", "Chemise", "Veste"].includes(c.category));
+    const bottoms = clothes.filter(c => ["Pantalon", "Jupe", "Short"].includes(c.category));
+    const shoes = clothes.filter(c => ["Chaussures"].includes(c.category));
 
-    console.log("Sending request to Hugging Face API with prompt:", prompt);
+    console.log("Clothes by category:", {
+      tops: tops.length,
+      bottoms: bottoms.length,
+      shoes: shoes.length
+    });
 
-    // Configuration pour les tentatives avec backoff exponentiel
-    const maxRetries = 3;
-    let attempt = 0;
-    let lastError = null;
-
-    while (attempt < maxRetries) {
-      try {
-        const response = await fetch(
-          "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${Deno.env.get('HUGGING_FACE_ACCESS_TOKEN')}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: prompt,
-              parameters: {
-                max_new_tokens: 500,
-                temperature: 0.7,
-                top_p: 0.9,
-                return_full_text: false,
-              },
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Hugging Face API error: ${response.statusText}`);
+    if (!tops.length || !bottoms.length || !shoes.length) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Not enough clothes to make a suggestion",
+          details: "Need at least one item in each category (top, bottom, shoes)"
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-
-        const result = await response.json();
-        console.log("Received response from Hugging Face:", result);
-
-        // Extraire la réponse JSON du texte généré
-        const text = Array.isArray(result) ? result[0].generated_text : result.generated_text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("Couldn't find JSON in the response");
-        }
-
-        const suggestionData = JSON.parse(jsonMatch[0]);
-        console.log("Parsed suggestion data:", suggestionData);
-
-        if (!suggestionData.suggestion || !suggestionData.explanation) {
-          throw new Error("Invalid response format from model");
-        }
-
-        return new Response(
-          JSON.stringify(suggestionData),
-          { 
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json'
-            } 
-          }
-        );
-      } catch (error) {
-        console.error(`Attempt ${attempt + 1} failed:`, error);
-        lastError = error;
-        // Attendre avec un backoff exponentiel avant de réessayer
-        if (attempt < maxRetries - 1) {
-          const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        attempt++;
-      }
+      );
     }
 
-    // Si toutes les tentatives ont échoué, renvoyer la dernière erreur
-    console.error('All retries failed. Last error:', lastError);
+    // Logique de sélection basée sur la température
+    let selectedTop, selectedBottom, selectedShoes;
+
+    if (temperature <= 10) {
+      // Temps froid : privilégier les pulls et vestes
+      selectedTop = tops.find(t => ["Pull", "Veste"].includes(t.category)) || tops[0];
+    } else if (temperature <= 20) {
+      // Temps modéré : chemises ou t-shirts
+      selectedTop = tops.find(t => ["Chemise", "T-shirt"].includes(t.category)) || tops[0];
+    } else {
+      // Temps chaud : t-shirts
+      selectedTop = tops.find(t => t.category === "T-shirt") || tops[0];
+    }
+
+    // Sélection du bas en fonction de la température
+    if (temperature <= 15) {
+      selectedBottom = bottoms.find(b => b.category === "Pantalon") || bottoms[0];
+    } else if (temperature <= 25) {
+      // Temps modéré : pantalon ou jupe
+      selectedBottom = bottoms[0];
+    } else {
+      // Temps chaud : short ou jupe de préférence
+      selectedBottom = bottoms.find(b => ["Short", "Jupe"].includes(b.category)) || bottoms[0];
+    }
+
+    // Sélection des chaussures (simple pour l'instant)
+    selectedShoes = shoes[0];
+
+    // Génération de l'explication
+    let explanation = `Pour une température de ${temperature}°C et un temps ${description}, `
+      + `je suggère de porter ${selectedTop.name.toLowerCase()} avec ${selectedBottom.name.toLowerCase()} `
+      + `et ${selectedShoes.name.toLowerCase()}. `;
+
+    if (temperature <= 10) {
+      explanation += "Cette tenue vous gardera au chaud par ce temps froid.";
+    } else if (temperature <= 20) {
+      explanation += "Cette combinaison est parfaite pour un temps modéré.";
+    } else {
+      explanation += "Cette tenue légère est idéale pour ce temps chaud.";
+    }
+
+    const suggestion = {
+      suggestion: {
+        top: selectedTop.id,
+        bottom: selectedBottom.id,
+        shoes: selectedShoes.id
+      },
+      explanation
+    };
+
+    console.log("Generated suggestion:", suggestion);
+
     return new Response(
-      JSON.stringify({ 
-        error: lastError?.message || "Failed to generate suggestion after multiple attempts",
-        details: lastError?.stack
-      }),
+      JSON.stringify(suggestion),
       { 
-        status: 500,
-        headers: { 
+        headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
         }
@@ -127,22 +114,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in generate-outfit-suggestion:', error);
-    
-    const errorMessage = error.message || "Internal server error";
-    const status = error.message.includes("Invalid response format") ? 422 : 500;
-    
+    console.error("Error in generate-outfit-suggestion:", error);
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
-        details: error.stack
+        error: "Failed to generate outfit suggestion",
+        details: error.message
       }),
       { 
-        status,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
