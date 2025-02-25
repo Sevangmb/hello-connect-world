@@ -8,6 +8,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function retryWithBackoff(fn: () => Promise<any>, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error);
+      if (i === maxRetries - 1) throw error;
+      // Wait 2^i seconds between retries (1s, 2s, 4s)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +29,16 @@ serve(async (req) => {
   try {
     const { temperature, description, clothes } = await req.json();
     console.log("Received request with:", { temperature, description, clothesCount: clothes?.length });
+
+    if (!clothes || clothes.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "No clothes provided" }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY')!);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
@@ -48,9 +71,13 @@ serve(async (req) => {
     }`
 
     console.log("Sending prompt to Gemini");
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
+    
+    const result = await retryWithBackoff(async () => {
+      const response = await model.generateContent(prompt);
+      return response.response;
+    });
+    
+    const text = result.text();
     console.log("Received response from Gemini:", text);
     
     // Parse the JSON from the response
@@ -61,6 +88,10 @@ serve(async (req) => {
     
     const suggestionData = JSON.parse(jsonMatch[0]);
     console.log("Parsed suggestion data:", suggestionData);
+
+    if (!suggestionData.suggestion || !suggestionData.explanation) {
+      throw new Error("Invalid response format from Gemini");
+    }
 
     return new Response(
       JSON.stringify(suggestionData),
@@ -73,10 +104,18 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in generate-outfit-suggestion:', error);
+    
+    // Format the error message
+    const errorMessage = error.message || "Internal server error";
+    const status = error.message.includes("Invalid response format") ? 422 : 500;
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error.stack
+      }),
       { 
-        status: 500,
+        status,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json'
