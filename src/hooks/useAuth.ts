@@ -50,9 +50,13 @@ export const useAuth = () => {
   const handleAuthError = (error: AuthError) => {
     console.error("Auth error:", error);
     
-    // Handle specific error cases
+    // Handle known error patterns
     if (error.message.includes("rejected")) {
-      return "L'authentification a été annulée. Veuillez réessayer.";
+      // Check if it's a Chrome extension interference
+      if (error.stack?.includes("chrome-extension")) {
+        return "Une extension Chrome interfère avec l'authentification. Essayez de :\n1. Désactiver vos extensions\n2. Utiliser le mode navigation privée\n3. Utiliser un autre navigateur";
+      }
+      return "L'authentification a échoué. Veuillez réessayer.";
     }
     if (error.message.includes("Email not confirmed")) {
       return "Veuillez confirmer votre adresse e-mail avant de vous connecter.";
@@ -60,16 +64,15 @@ export const useAuth = () => {
     if (error.message.includes("Invalid login credentials")) {
       return "Email ou mot de passe invalide.";
     }
-    if (error.message.includes("chrome-extension")) {
-      return "Une extension Chrome interfère avec l'authentification. Essayez de désactiver vos extensions ou d'utiliser le mode navigation privée.";
-    }
     
-    return error.message;
+    // Generic error message if none of the above
+    return error.message || "Une erreur est survenue lors de l'authentification";
   };
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log("Attempting sign in for:", email);
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
@@ -79,6 +82,7 @@ export const useAuth = () => {
       setUser(data.user);
       return { error: null };
     } catch (error) {
+      console.log("Sign in error:", error);
       const authError = error as AuthError;
       return { error: handleAuthError(authError) };
     } finally {
