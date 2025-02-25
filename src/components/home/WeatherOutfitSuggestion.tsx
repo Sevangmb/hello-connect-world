@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Shirt, PantsIcon, Shoe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -150,7 +150,10 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {suggestion.top && (
           <div className="flex flex-col items-center gap-2">
-            <h3 className="font-semibold">Haut</h3>
+            <div className="flex items-center gap-2">
+              <Shirt className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Haut</h3>
+            </div>
             <div className="relative aspect-square w-full">
               <img 
                 src={suggestion.top.image_url || '/placeholder.svg'} 
@@ -167,7 +170,10 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
 
         {suggestion.bottom && (
           <div className="flex flex-col items-center gap-2">
-            <h3 className="font-semibold">Bas</h3>
+            <div className="flex items-center gap-2">
+              <PantsIcon className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Bas</h3>
+            </div>
             <div className="relative aspect-square w-full">
               <img 
                 src={suggestion.bottom.image_url || '/placeholder.svg'} 
@@ -184,7 +190,10 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
 
         {suggestion.shoes && (
           <div className="flex flex-col items-center gap-2">
-            <h3 className="font-semibold">Chaussures</h3>
+            <div className="flex items-center gap-2">
+              <Shoe className="h-4 w-4 text-primary" />
+              <h3 className="font-semibold">Chaussures</h3>
+            </div>
             <div className="relative aspect-square w-full">
               <img 
                 src={suggestion.shoes.image_url || '/placeholder.svg'} 
