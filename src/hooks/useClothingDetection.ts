@@ -14,7 +14,7 @@ export const useClothingDetection = () => {
       
       toast({
         title: "Détection en cours",
-        description: "Analyse de l'image avec l'IA...",
+        description: "Analyse de l'image en cours...",
       });
       
       console.log("Attempting to detect features for image:", imageUrl);
@@ -27,16 +27,16 @@ export const useClothingDetection = () => {
         console.error("Detection error:", error);
         toast({
           variant: "destructive",
-          title: "Erreur",
-          description: "Une erreur est survenue lors de la détection",
+          title: "Erreur de détection",
+          description: "Une erreur est survenue lors de l'analyse de l'image",
         });
         return null;
       }
 
       console.log("Detection succeeded:", data);
 
-      if (!data) {
-        console.log("No data in the response");
+      if (!data || Object.keys(data).length === 0) {
+        console.log("No features detected");
         toast({
           title: "Aucune détection",
           description: "Aucune caractéristique n'a pu être détectée sur cette image",
@@ -54,7 +54,7 @@ export const useClothingDetection = () => {
         description: data.description || undefined
       };
 
-      // Filtrer les valeurs undefined
+      // Filter out undefined values
       const detectedFeatures = Object.entries(detectedData)
         .filter(([_, value]) => value !== undefined)
         .map(([key, value]) => `${key}: ${value}`);
