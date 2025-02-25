@@ -14,7 +14,7 @@ export const useClothingDetection = () => {
       
       toast({
         title: "Détection en cours",
-        description: "Analyse de l'image en cours...",
+        description: "Analyse de l'image avec Hugging Face...",
       });
       
       console.log("Attempting to detect features for image:", imageUrl);
@@ -50,7 +50,6 @@ export const useClothingDetection = () => {
         color: data.color || undefined,
         material: data.material || undefined,
         style: data.style || undefined,
-        brand: data.brand || undefined,
         description: data.description || undefined
       };
 
