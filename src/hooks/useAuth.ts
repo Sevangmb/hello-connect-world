@@ -19,6 +19,9 @@ export const useAuth = () => {
         const { data: { user: currentUser }, error } = await supabase.auth.getUser();
         if (error) {
           console.error("Error getting user:", error);
+          if (error.message.includes("rejected")) {
+            console.warn("Browser extension interference detected");
+          }
           await supabase.auth.signOut();
         }
         setUser(currentUser);
@@ -50,13 +53,12 @@ export const useAuth = () => {
   const handleAuthError = (error: AuthError) => {
     console.error("Auth error:", error);
     
-    // Handle known error patterns
+    // Enhanced error handling for extension interference
     if (error.message.includes("rejected")) {
-      // Check if it's a Chrome extension interference
       if (error.stack?.includes("chrome-extension")) {
-        return "Une extension Chrome interfère avec l'authentification. Essayez de :\n1. Désactiver vos extensions\n2. Utiliser le mode navigation privée\n3. Utiliser un autre navigateur";
+        return "Un bloqueur de publicité ou une extension Chrome interfère avec l'authentification. Essayez de :\n1. Désactiver vos extensions\n2. Utiliser le mode navigation privée\n3. Utiliser un autre navigateur";
       }
-      return "L'authentification a échoué. Veuillez réessayer.";
+      return "L'authentification a été rejetée. Veuillez réessayer.";
     }
     if (error.message.includes("Email not confirmed")) {
       return "Veuillez confirmer votre adresse e-mail avant de vous connecter.";
@@ -65,7 +67,6 @@ export const useAuth = () => {
       return "Email ou mot de passe invalide.";
     }
     
-    // Generic error message if none of the above
     return error.message || "Une erreur est survenue lors de l'authentification";
   };
 
