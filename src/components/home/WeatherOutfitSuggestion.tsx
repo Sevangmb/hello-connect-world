@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Shirt, PantsIcon, Shoe } from "lucide-react";
+import { Sparkles, Shirt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -171,7 +171,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         {suggestion.bottom && (
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-2">
-              <PantsIcon className="h-4 w-4 text-primary" />
+              <Shirt className="h-4 w-4 text-primary rotate-180" />
               <h3 className="font-semibold">Bas</h3>
             </div>
             <div className="relative aspect-square w-full">
@@ -191,7 +191,7 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
         {suggestion.shoes && (
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-2">
-              <Shoe className="h-4 w-4 text-primary" />
+              <Shirt className="h-4 w-4 text-primary -rotate-90" />
               <h3 className="font-semibold">Chaussures</h3>
             </div>
             <div className="relative aspect-square w-full">
