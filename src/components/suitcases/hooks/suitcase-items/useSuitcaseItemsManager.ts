@@ -116,5 +116,6 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
     addItem,
     removeItem,
     addSuggestedClothes,
+    addMultipleItems
   };
 };
