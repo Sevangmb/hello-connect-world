@@ -29,5 +29,5 @@ export interface SuitcaseItem {
 }
 
 export interface SuitcaseCalendarItem extends SuitcaseItem {
-  suitcase: Pick<Suitcase, 'start_date' | 'end_date'>;
+  suitcase: Pick<Suitcase, 'start_date' | 'end_date' | 'name'>;
 }
