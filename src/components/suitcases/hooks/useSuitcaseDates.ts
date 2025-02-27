@@ -22,18 +22,25 @@ export const useSuitcaseDates = (suitcaseId: string) => {
     setIsUpdating(true);
 
     try {
+      // Convert dates to ISO strings or null
+      const formattedStartDate = startDate ? startDate.toISOString() : null;
+      const formattedEndDate = endDate ? endDate.toISOString() : null;
+      
+      // Update the suitcase with the new dates
       const { error } = await supabase
         .from("suitcases")
         .update({
-          start_date: startDate ? startDate.toISOString() : null,
-          end_date: endDate ? endDate.toISOString() : null,
+          start_date: formattedStartDate,
+          end_date: formattedEndDate,
         })
         .eq("id", suitcaseId);
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ["suitcases"] });
+      // Invalidate the queries to refresh the data
+      await queryClient.invalidateQueries({ queryKey: ["suitcases"] });
       
+      // Show success toast
       toast({
         title: "Dates mises à jour",
         description: "Les dates de la valise ont été mises à jour",
