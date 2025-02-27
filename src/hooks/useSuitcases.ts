@@ -27,6 +27,7 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
+        // Ici, nous utilisons .eq() qui accepte n'importe quelle valeur de statut
         query = query.eq("status", filters.status);
       } else {
         // Par défaut, montrer uniquement les valises actives
