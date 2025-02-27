@@ -4,7 +4,7 @@ import type { ClothesItem } from "@/components/clothes/types";
 import type { SuggestedClothesItem, SuggestionResponse } from "../types/suitcaseSuggestionsTypes";
 
 /**
- * Fetch existing items in a suitcase
+ * Fetch data functions - handle retrieving data from the database
  */
 export const fetchExistingItems = async (suitcaseId: string) => {
   const { data, error } = await supabase
@@ -19,9 +19,6 @@ export const fetchExistingItems = async (suitcaseId: string) => {
   return data;
 };
 
-/**
- * Fetch all clothes belonging to the authenticated user
- */
 export const fetchUserClothes = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non authentifié");
@@ -37,7 +34,7 @@ export const fetchUserClothes = async () => {
 };
 
 /**
- * Get AI suggestions using Edge function
+ * AI suggestion functions - handle interaction with AI service
  */
 export const getAISuggestions = async (
   startDate: Date, 
@@ -45,58 +42,59 @@ export const getAISuggestions = async (
   existingItems: any[], 
   availableClothes: any[]
 ): Promise<SuggestionResponse> => {
+  const payload = {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    currentClothes: existingItems?.map(formatClothesForAI) || [],
+    availableClothes: availableClothes
+  };
+
   try {
     const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
-      body: {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        currentClothes: existingItems?.map(item => ({
-          id: item.clothes?.id,
-          name: item.clothes?.name,
-          category: item.clothes?.category
-        })) || [],
-        availableClothes: availableClothes
-      }
+      body: payload
     });
 
     if (error) throw error;
-
-    if (data && data.suggestedClothes) {
-      return {
-        suggestedClothes: data.suggestedClothes,
-        explanation: data.explanation || "Voici quelques suggestions basées sur votre collection."
-      };
-    } else {
-      throw new Error("Format de réponse invalide");
-    }
+    return validateAndFormatAIResponse(data);
   } catch (error) {
     throw error;
   }
 };
 
 /**
- * Generate basic suggestions as a fallback method
+ * Helper functions for data formatting and validation
+ */
+const formatClothesForAI = (item: any) => ({
+  id: item.clothes?.id,
+  name: item.clothes?.name,
+  category: item.clothes?.category
+});
+
+const validateAndFormatAIResponse = (data: any): SuggestionResponse => {
+  if (data && data.suggestedClothes) {
+    return {
+      suggestedClothes: data.suggestedClothes,
+      explanation: data.explanation || "Voici quelques suggestions basées sur votre collection."
+    };
+  }
+  throw new Error("Format de réponse invalide");
+};
+
+/**
+ * Fallback suggestion generation - used when AI service is unavailable
  */
 export const generateBasicSuggestions = (
-  availableClothes: any[], 
+  availableClothes: ClothesItem[], 
   existingItems: any[]
 ): SuggestionResponse => {
-  const categories = ["Hauts", "Bas", "Chaussures", "Accessoires"];
+  const essentialCategories = ["Hauts", "Bas", "Chaussures", "Accessoires"];
   const suggestedItems: SuggestedClothesItem[] = [];
   
-  for (const category of categories) {
-    // Vérifier si la catégorie est déjà présente dans la valise
-    const hasCategoryInSuitcase = existingItems?.some(item => item.clothes?.category === category);
-    
-    if (!hasCategoryInSuitcase) {
-      // Trouver un vêtement disponible dans cette catégorie
-      const clothForCategory = availableClothes.find(cloth => cloth.category === category);
-      if (clothForCategory) {
-        suggestedItems.push({
-          id: clothForCategory.id,
-          name: clothForCategory.name,
-          category: clothForCategory.category
-        });
+  for (const category of essentialCategories) {
+    if (!hasItemInCategory(existingItems, category)) {
+      const suggestedItem = findAvailableItemInCategory(availableClothes, category);
+      if (suggestedItem) {
+        suggestedItems.push(suggestedItem);
       }
     }
   }
@@ -108,24 +106,50 @@ export const generateBasicSuggestions = (
 };
 
 /**
- * Add suggested clothes to a suitcase
+ * Helper functions for basic suggestions
  */
-export const addClothesToSuitcase = async (suitcaseId: string, suggestedClothes: SuggestedClothesItem[]) => {
+const hasItemInCategory = (items: any[], category: string): boolean => {
+  return items?.some(item => item.clothes?.category === category);
+};
+
+const findAvailableItemInCategory = (
+  availableClothes: ClothesItem[], 
+  category: string
+): SuggestedClothesItem | undefined => {
+  const clothForCategory = availableClothes.find(cloth => cloth.category === category);
+  if (clothForCategory) {
+    return {
+      id: clothForCategory.id,
+      name: clothForCategory.name,
+      category: clothForCategory.category
+    };
+  }
+  return undefined;
+};
+
+/**
+ * Database operations for managing suggestions
+ */
+export const addClothesToSuitcase = async (
+  suitcaseId: string, 
+  suggestedClothes: SuggestedClothesItem[]
+) => {
   if (!suitcaseId || suggestedClothes.length === 0) {
     throw new Error("Aucun vêtement à ajouter");
   }
   
-  // Préparer les données pour l'insertion
-  const itemsToInsert = suggestedClothes.map(item => ({
-    suitcase_id: suitcaseId,
-    clothes_id: item.id,
-    quantity: 1
-  }));
+  const itemsToInsert = suggestedClothes.map(formatClothesForInsertion(suitcaseId));
 
-  // Insérer les vêtements suggérés
   const { error } = await supabase
     .from("suitcase_items")
     .insert(itemsToInsert);
 
   if (error) throw error;
 };
+
+const formatClothesForInsertion = (suitcaseId: string) => (item: SuggestedClothesItem) => ({
+  suitcase_id: suitcaseId,
+  clothes_id: item.id,
+  quantity: 1
+});
+
