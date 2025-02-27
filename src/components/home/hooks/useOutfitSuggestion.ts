@@ -41,9 +41,24 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               id,
               name,
               description,
-              top:top_id (id, name, image_url, brand),
-              bottom:bottom_id (id, name, image_url, brand),
-              shoes:shoes_id (id, name, image_url, brand)
+              top:top_id (
+                id,
+                name,
+                image_url,
+                brand
+              ),
+              bottom:bottom_id (
+                id,
+                name,
+                image_url,
+                brand
+              ),
+              shoes:shoes_id (
+                id,
+                name,
+                image_url,
+                brand
+              )
             )
           `)
           .eq('user_id', user.id)
@@ -51,13 +66,11 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           .ilike('weather_description', `%${description}%`)
           .gt('created_at', nowMinus15Minutes.toISOString())
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .maybeSingle();
           
-        if (!suggestionError && existingSuggestion && existingSuggestion.outfits) {
+        if (!suggestionError && existingSuggestion?.outfits) {
           console.log("Using existing suggestion:", existingSuggestion);
           
-          // Transformer la réponse pour correspondre au format OutfitSuggestion
           return {
             top: existingSuggestion.outfits.top,
             bottom: existingSuggestion.outfits.bottom,
@@ -112,7 +125,6 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               console.error(`Attempt ${attempt + 1} failed:`, aiError);
               lastError = aiError;
               
-              // Attendre un peu avant de réessayer
               if (attempt < maxRetries) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
@@ -140,7 +152,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
                     .eq('top_id', topDetails.id)
                     .eq('bottom_id', bottomDetails.id)
                     .eq('shoes_id', shoesDetails.id)
-                    .single();
+                    .maybeSingle();
                   
                   let outfitId;
                   
@@ -211,12 +223,10 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               break;
             }
             
-            // Attendre un peu avant de réessayer
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
         
-        // Si toutes les tentatives ont échoué
         throw lastError || new Error("Failed to generate suggestion after multiple attempts");
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
