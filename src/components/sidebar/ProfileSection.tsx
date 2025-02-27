@@ -9,17 +9,31 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const ProfileSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
+      queryClient.clear();
+      toast({
+        title: "Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès",
+      });
       navigate('/auth');
     } catch (error) {
       console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de vous déconnecter",
+      });
     }
   };
 
@@ -38,7 +52,7 @@ export const ProfileSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/profile",
             })}
-            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /profile"); } navigate("/profile"); }}
+            onClick={() => navigate("/profile")}
           >
             <UserCheck className="h-4 w-4" />
             Mon Profil
@@ -48,7 +62,7 @@ export const ProfileSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/profile/settings",
             })}
-            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /profile/settings"); } navigate("/profile/settings"); }}
+            onClick={() => navigate("/profile/settings")}
           >
             <Settings className="h-4 w-4" />
             Paramètres
@@ -58,7 +72,7 @@ export const ProfileSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/marketplace",
             })}
-            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /marketplace"); } navigate("/marketplace"); }}
+            onClick={() => navigate("/marketplace")}
           >
             <ShoppingCart className="h-4 w-4" />
             Vide-Dressing
@@ -68,7 +82,7 @@ export const ProfileSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/help",
             })}
-            onClick={() => { if (process.env.NODE_ENV === "development") { console.log("Navigating to /help"); } navigate("/help"); }}
+            onClick={() => navigate("/help")}
           >
             <HelpCircle className="h-4 w-4" />
             Aide & Support
