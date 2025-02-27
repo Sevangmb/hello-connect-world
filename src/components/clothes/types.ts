@@ -33,6 +33,7 @@ export interface ClothesItem {
   name: string;
   image_url: string | null;
   category: string;
+  brand?: string; // Added brand as an optional property
 }
 
 export interface ClothesCalendarState {

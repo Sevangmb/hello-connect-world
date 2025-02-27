@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,7 +26,7 @@ export const useClothes = (filters: ClothesFilters = {}) => {
 
       let query = supabase
         .from("clothes")
-        .select("*");
+        .select("id, name, image_url, category, brand"); // Make sure to select the brand field
 
       if (filters.category) {
         const formattedCategory = filters.category.charAt(0).toUpperCase() + filters.category.slice(1).toLowerCase();

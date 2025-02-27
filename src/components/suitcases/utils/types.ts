@@ -25,6 +25,7 @@ export interface SuitcaseItem {
     name: string;
     image_url: string | null;
     category: string;
+    brand?: string; // Make brand optional to match the ClothesItem type
   };
 }
 
