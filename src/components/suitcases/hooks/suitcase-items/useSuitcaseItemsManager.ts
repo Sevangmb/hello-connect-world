@@ -14,10 +14,13 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
   const addItem = async (clothesId: string) => {
     setIsAdding(true);
     try {
+      console.log("Tentative d'ajout de l'article:", clothesId, "à la valise:", suitcaseId);
+      
       // Vérifier si l'article existe déjà dans la valise
       const existingItems = await checkExistingItem(suitcaseId, clothesId);
       
       if (existingItems.length > 0) {
+        console.log("Article déjà dans la valise:", existingItems);
         toast({
           title: "Déjà ajouté",
           description: "Cet article est déjà dans votre valise",
@@ -26,7 +29,8 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
       }
 
       // Ajouter l'article à la valise
-      await addSuitcaseItem(suitcaseId, clothesId);
+      const result = await addSuitcaseItem(suitcaseId, clothesId);
+      console.log("Article ajouté avec succès:", result);
       
       // Invalider la requête pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });
@@ -50,7 +54,9 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
   const removeItem = async (itemId: string) => {
     setIsRemoving(true);
     try {
+      console.log("Tentative de suppression de l'article:", itemId);
       await removeSuitcaseItem(itemId);
+      console.log("Article supprimé avec succès");
       
       // Invalider la requête pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });
@@ -76,6 +82,8 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
     
     setIsAddingBulk(true);
     try {
+      console.log("Tentative d'ajout multiple:", clothesIds);
+      
       // Créer un tableau d'objets pour l'insertion en masse
       const itemsToAdd = clothesIds.map(id => ({
         suitcase_id: suitcaseId,
@@ -84,7 +92,8 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
       }));
       
       // Ajouter les articles en masse
-      await addMultipleSuitcaseItems(itemsToAdd);
+      const result = await addMultipleSuitcaseItems(itemsToAdd);
+      console.log("Articles ajoutés avec succès:", result);
       
       // Invalider la requête pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });

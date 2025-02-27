@@ -4,11 +4,11 @@ import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 import { useClothes } from '@/hooks/useClothes';
 import { useSuggestionsApi } from './api';
 import { useSuitcaseItemsManager } from '../suitcase-items/useSuitcaseItemsManager';
-import type { SuitcaseSuggestionsHookReturn } from './types';
+import type { SuitcaseSuggestionsHookReturn, SuggestedClothesItem } from './types';
 
 export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsHookReturn => {
   const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
-  const [suggestedClothes, setSuggestedClothes] = useState<Array<{ id: string; name: string; category: string }>>([]);
+  const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothesItem[]>([]);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
   const [aiExplanation, setAiExplanation] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +25,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     setError(null);
     
     try {
+      console.log("Demande de suggestions pour la valise:", suitcaseId);
+      console.log("Dates:", startDate, endDate);
+      
       // Extract current clothes in the suitcase
       const currentClothes = suitcaseItems?.map(item => ({
         id: item.clothes_id,
@@ -36,6 +39,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
       const suitcaseClothesIds = new Set(currentClothes.map(item => item.id));
       const availableClothes = allClothes.filter(cloth => !suitcaseClothesIds.has(cloth.id));
 
+      console.log("Vêtements actuels:", currentClothes);
+      console.log("Vêtements disponibles:", availableClothes.length);
+
       // Get suggestions
       const { suggestedClothes, explanation } = await getSuitcaseSuggestions(
         startDate,
@@ -43,6 +49,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
         currentClothes,
         availableClothes
       );
+
+      console.log("Suggestions reçues:", suggestedClothes);
+      console.log("Explication:", explanation);
 
       // Update state
       setSuggestedClothes(suggestedClothes);
@@ -63,6 +72,8 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
 
   const addSuggestedClothes = async (clothesIds: string[]) => {
     if (!clothesIds.length) return;
+    
+    console.log("Ajout des vêtements suggérés:", clothesIds);
     
     try {
       await addMultipleItems(clothesIds);

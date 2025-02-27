@@ -17,7 +17,6 @@ export const useSuitcaseItemsApi = () => {
   };
 
   const addSuitcaseItem = async (suitcaseId: string, clothesId: string, quantity: number = 1) => {
-    // Utilisation de l'insertion simple plutôt que l'insertion sans where clause
     const { data, error } = await supabase
       .from("suitcase_items")
       .insert({
@@ -38,27 +37,18 @@ export const useSuitcaseItemsApi = () => {
   const addMultipleSuitcaseItems = async (items: {suitcase_id: string; clothes_id: string; quantity: number}[]) => {
     if (!items.length) return [];
     
-    // Insérer chaque élément séparément pour éviter les erreurs de masse
-    const results = [];
-    
-    for (const item of items) {
-      try {
-        const { data, error } = await supabase
-          .from("suitcase_items")
-          .insert(item)
-          .select();
-          
-        if (error) {
-          console.error(`Erreur lors de l'ajout de l'article ${item.clothes_id}:`, error);
-        } else if (data) {
-          results.push(data[0]);
-        }
-      } catch (err) {
-        console.error(`Exception lors de l'ajout de l'article ${item.clothes_id}:`, err);
-      }
+    // Utiliser l'API Supabase pour insérer plusieurs articles en une seule opération
+    const { data, error } = await supabase
+      .from("suitcase_items")
+      .upsert(items, { onConflict: 'suitcase_id,clothes_id' })
+      .select();
+      
+    if (error) {
+      console.error("Erreur lors de l'ajout en masse:", error);
+      throw error;
     }
     
-    return results;
+    return data || [];
   };
 
   const removeSuitcaseItem = async (itemId: string) => {
