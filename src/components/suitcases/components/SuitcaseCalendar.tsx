@@ -1,90 +1,147 @@
 
-import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { format, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSuitcaseCalendar } from "../hooks/useSuitcaseCalendar";
+import { Calendar as CalendarIcon, Suitcase, Loader2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useSuitcaseCalendar, useSuitcaseCalendarItemsForDate } from "@/hooks/useSuitcaseCalendarItems";
+import { SuitcaseCalendarItemsList } from "./SuitcaseCalendarItemsList";
 
 export const SuitcaseCalendar = () => {
-  const { data: calendarItems, isLoading } = useSuitcaseCalendar();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [month, setMonth] = useState<Date>(new Date());
+  
+  const { calendarEvents, isLoading } = useSuitcaseCalendar();
+  const { 
+    suitcases: suitcasesForDate,
+    items, 
+    isLoading: itemsLoading,
+    hasItems,
+    hasSuitcases
+  } = useSuitcaseCalendarItemsForDate(selectedDate);
 
-  if (isLoading) {
-    return (
-      <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          Chargement du calendrier...
-        </div>
-      </Card>
-    );
-  }
+  // Fonction pour déterminer les jours avec des valises
+  const isDayWithSuitcase = (day: Date): boolean => {
+    return calendarEvents.some(event => {
+      const eventStart = event.start;
+      const eventEnd = event.end;
+      return day >= eventStart && day < eventEnd;
+    });
+  };
+  
+  // Fonction pour trouver les valises pour un jour spécifique
+  const getSuitcasesForDay = (day: Date) => {
+    return calendarEvents.filter(event => {
+      const eventStart = event.start;
+      const eventEnd = event.end;
+      return day >= eventStart && day < eventEnd;
+    });
+  };
 
-  if (!calendarItems?.length) {
-    return (
-      <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          Aucun article planifié dans vos valises
-        </div>
-      </Card>
-    );
-  }
+  // Style personnalisé pour les jours avec des valises
+  const getDayStyle = (day: Date): React.CSSProperties => {
+    const suitcases = getSuitcasesForDay(day);
+    if (suitcases.length === 0) return {};
+    
+    // Utiliser la couleur de la première valise si une seule, sinon utiliser une couleur spéciale multiple
+    const color = suitcases.length === 1 
+      ? suitcases[0].color 
+      : "#6366f1"; // Indigo pour multiple valises
+    
+    return {
+      backgroundColor: color,
+      color: "#ffffff",
+      borderRadius: "100%"
+    };
+  };
 
-  // Trier les articles par date de début
-  const sortedItems = [...calendarItems].sort((a, b) => {
-    const dateA = a.suitcase.start_date ? new Date(a.suitcase.start_date) : new Date(0);
-    const dateB = b.suitcase.start_date ? new Date(b.suitcase.start_date) : new Date(0);
-    return dateA.getTime() - dateB.getTime();
-  });
+  // Fonction pour personnaliser l'apparence des jours dans le calendrier
+  const renderDay = (day: Date, selectedDay: Date, dayProps: any) => {
+    const hasSuitcase = isDayWithSuitcase(day);
+    const style = getDayStyle(day);
+    
+    return <div className="w-full h-full" style={style}>{day.getDate()}</div>;
+  };
 
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-medium mb-4">Calendrier des articles</h2>
-      <ScrollArea className="h-[600px]">
-        <div className="space-y-6">
-          {sortedItems.map((item) => (
-            <div
-              key={`${item.suitcase_id}-${item.clothes_id}`}
-              className="flex items-start gap-4 p-4 rounded-lg border"
-            >
-              {item.clothes.image_url ? (
-                <img
-                  src={item.clothes.image_url}
-                  alt={item.clothes.name}
-                  className="w-16 h-16 object-cover rounded"
-                />
-              ) : (
-                <div className="w-16 h-16 bg-secondary rounded flex items-center justify-center">
-                  <CalendarIcon className="text-muted-foreground" />
-                </div>
-              )}
-              <div>
-                <h3 className="font-medium">{item.clothes.name}</h3>
-                <p className="text-sm text-muted-foreground mb-1">
-                  {item.clothes.category}
-                </p>
-                <div className="text-sm">
-                  <span>Du </span>
-                  {item.suitcase.start_date && (
-                    <time>
-                      {format(new Date(item.suitcase.start_date), "d MMMM yyyy", {
-                        locale: fr,
-                      })}
-                    </time>
-                  )}
-                  <span> au </span>
-                  {item.suitcase.end_date && (
-                    <time>
-                      {format(new Date(item.suitcase.end_date), "d MMMM yyyy", {
-                        locale: fr,
-                      })}
-                    </time>
-                  )}
-                </div>
-              </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-semibold">
+              Calendrier des valises
+            </CardTitle>
+            <Badge variant="outline" className="flex items-center gap-1">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              <span>{format(month, 'MMMM yyyy', { locale: fr })}</span>
+            </Badge>
+          </div>
+          <CardDescription>
+            Visualisez vos valises planifiées et leur contenu
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ))}
-        </div>
-      </ScrollArea>
-    </Card>
+          ) : (
+            <Calendar
+              mode="single"
+              selected={selectedDate || undefined}
+              onSelect={setSelectedDate}
+              month={month}
+              onMonthChange={setMonth}
+              locale={fr}
+              className="rounded-md border"
+              modifiers={{
+                suitcase: (date) => isDayWithSuitcase(date),
+              }}
+              modifiersStyles={{
+                suitcase: { fontWeight: "bold" }
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedDate && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <Suitcase className="h-5 w-5" />
+              {format(selectedDate, 'd MMMM yyyy', { locale: fr })}
+            </CardTitle>
+            <CardDescription>
+              {hasSuitcases 
+                ? `${suitcasesForDate.length} valise(s) pour cette journée` 
+                : "Aucune valise prévue pour cette journée"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {itemsLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : !hasSuitcases ? (
+              <div className="py-6 text-center text-muted-foreground">
+                Pas de valise prévue ce jour-là
+              </div>
+            ) : !hasItems ? (
+              <div className="py-6 text-center text-muted-foreground">
+                Aucun vêtement dans cette valise
+              </div>
+            ) : (
+              <SuitcaseCalendarItemsList 
+                items={items} 
+                suitcases={suitcasesForDate}
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };

@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { LayoutGrid, GripVertical } from "lucide-react";
+import { LayoutGrid, GripVertical, CalendarDays } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface SuitcaseViewToggleProps {
   viewMode: "grid" | "list";
@@ -11,6 +12,8 @@ export const SuitcaseViewToggle = ({
   viewMode,
   setViewMode,
 }: SuitcaseViewToggleProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex gap-2 justify-end">
       <Button
@@ -28,6 +31,14 @@ export const SuitcaseViewToggle = ({
         title="Vue en liste"
       >
         <GripVertical className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => navigate("/suitcase-calendar")}
+        title="Vue calendrier"
+      >
+        <CalendarDays className="h-4 w-4" />
       </Button>
     </div>
   );

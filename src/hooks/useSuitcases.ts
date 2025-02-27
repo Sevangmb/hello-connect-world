@@ -9,7 +9,7 @@ export type SuitcaseFilters = {
   startDate?: Date;
   endDate?: Date;
   search?: string;
-  forCalendar?: boolean; // Nouveau filtre pour récupérer les valises pour le calendrier
+  forCalendar?: boolean; // Filtre pour récupérer les valises pour le calendrier
 };
 
 export const useSuitcases = (filters: SuitcaseFilters = {}) => {
@@ -31,7 +31,8 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
         if (filters.status === 'deleted') {
           // Pour le statut 'deleted', qui n'existe pas dans la base de données,
           // nous allons utiliser une condition personnalisée
-          query = query.eq("status", "archived").is("description", "DELETED");
+          query = query.eq("status", "archived")
+                       .eq("description", "DELETED"); // Utilisation de .eq() au lieu de .is()
         } else {
           // Pour les autres statuts (active, archived), utiliser directement
           query = query.eq("status", filters.status);
@@ -78,13 +79,15 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Si le statut est 'deleted', nous devons post-traiter les résultats
       // pour simuler le statut 'deleted' en modifiant le status directement dans les données
-      let processedData = data;
-      if (filters.status === 'deleted') {
-        processedData = data.map(item => ({
-          ...item,
-          status: 'deleted' as SuitcaseStatus
-        }));
-      }
+      const processedData = data.map(item => {
+        if (filters.status === 'deleted' && item.description === "DELETED") {
+          return {
+            ...item,
+            status: 'deleted' as SuitcaseStatus
+          };
+        }
+        return item;
+      });
 
       return processedData as Suitcase[];
     },

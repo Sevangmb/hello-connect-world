@@ -10,6 +10,8 @@ export const useSuitcaseItems = (suitcaseId: string) => {
   return useQuery({
     queryKey: ["suitcase-items", suitcaseId],
     queryFn: async () => {
+      if (!suitcaseId) return [];
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
@@ -21,7 +23,16 @@ export const useSuitcaseItems = (suitcaseId: string) => {
             id,
             name,
             image_url,
-            category
+            category,
+            brand,
+            color,
+            size
+          ),
+          suitcases (
+            id,
+            name,
+            start_date,
+            end_date
           )
         `)
         .eq("suitcase_id", suitcaseId);
