@@ -1,14 +1,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Suitcase } from "@/components/suitcases/utils/types";
+import type { Suitcase, SuitcaseStatus } from "@/components/suitcases/utils/types";
 import { useToast } from "./use-toast";
 
 export type SuitcaseFilters = {
-  status?: 'active' | 'archived' | 'deleted' | 'all';
+  status?: SuitcaseStatus | 'all';
   startDate?: Date;
   endDate?: Date;
   search?: string;
+  forCalendar?: boolean; // Nouveau filtre pour récupérer les valises pour le calendrier
 };
 
 export const useSuitcases = (filters: SuitcaseFilters = {}) => {
@@ -27,11 +28,17 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
-        // Ici, nous utilisons .eq() qui accepte n'importe quelle valeur de statut
+        // Utilisez le type correct pour le status
         query = query.eq("status", filters.status);
       } else {
         // Par défaut, montrer uniquement les valises actives
         query = query.eq("status", "active");
+      }
+
+      // Si le filtre forCalendar est activé, on récupère uniquement les valises avec des dates
+      if (filters.forCalendar) {
+        query = query.not("start_date", "is", null)
+          .not("end_date", "is", null);
       }
 
       // Filtrer par dates si spécifiées
