@@ -17,6 +17,7 @@ export const useSuitcaseItemsApi = () => {
   };
 
   const addSuitcaseItem = async (suitcaseId: string, clothesId: string, quantity: number = 1) => {
+    // Correction de la requête d'insertion avec select()
     const { data, error } = await supabase
       .from("suitcase_items")
       .insert({
@@ -37,10 +38,10 @@ export const useSuitcaseItemsApi = () => {
   const addMultipleSuitcaseItems = async (items: {suitcase_id: string; clothes_id: string; quantity: number}[]) => {
     if (!items.length) return [];
     
-    // Utiliser l'API Supabase pour insérer plusieurs articles en une seule opération
+    // Correction de la requête d'insertion multiple
     const { data, error } = await supabase
       .from("suitcase_items")
-      .upsert(items, { onConflict: 'suitcase_id,clothes_id' })
+      .insert(items)
       .select();
       
     if (error) {
