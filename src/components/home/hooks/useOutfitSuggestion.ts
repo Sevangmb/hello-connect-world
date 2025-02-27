@@ -41,19 +41,19 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               id,
               name,
               description,
-              top:outfits (
+              top:clothes!outfits_top_id_fkey (
                 id,
                 name,
                 image_url,
                 brand
               ),
-              bottom:outfits (
+              bottom:clothes!outfits_bottom_id_fkey (
                 id,
                 name,
                 image_url,
                 brand
               ),
-              shoes:outfits (
+              shoes:clothes!outfits_shoes_id_fkey (
                 id,
                 name,
                 image_url,
