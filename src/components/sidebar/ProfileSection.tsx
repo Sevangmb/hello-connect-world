@@ -1,3 +1,4 @@
+
 import { User, UserCheck, Settings, ShoppingCart, HelpCircle, LogOut } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ export const ProfileSection = () => {
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
           <Button
-            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            variant="ghost" data-testid="profile-link"
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/profile",
             })}
@@ -43,7 +44,7 @@ export const ProfileSection = () => {
             Mon Profil
           </Button>
           <Button
-            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            variant="ghost" data-testid="profile-settings-link"
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/profile/settings",
             })}
@@ -53,7 +54,7 @@ export const ProfileSection = () => {
             Paramètres
           </Button>
           <Button
-            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            variant="ghost" data-testid="marketplace-link"
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/marketplace",
             })}
@@ -63,7 +64,7 @@ export const ProfileSection = () => {
             Vide-Dressing
           </Button>
           <Button
-            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            variant="ghost" data-testid="help-link"
             className={cn("w-full justify-start gap-2", {
               "bg-gray-100": location.pathname === "/help",
             })}
@@ -73,7 +74,7 @@ export const ProfileSection = () => {
             Aide & Support
           </Button>
           <Button
-            variant="ghost" data-testid="help-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="marketplace-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-settings-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment. data-testid="profile-link" // Navigation according to route definitions in src/main.tsx. Remember to manually test each menu link in the development environment.
+            variant="ghost"
             className={cn("w-full justify-start gap-2")}
             onClick={handleLogout}
           >
