@@ -2,12 +2,17 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Conversation } from "@/types/messages";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export const useMessages = () => {
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  /**
+   * Récupère toutes les conversations de l'utilisateur
+   */
   const fetchConversations = async () => {
     try {
       setLoading(true);
@@ -20,6 +25,8 @@ export const useMessages = () => {
           id,
           content,
           created_at,
+          sender_id,
+          receiver_id,
           sender:profiles!private_messages_sender_id_fkey(
             id, username, avatar_url
           ),
@@ -32,14 +39,31 @@ export const useMessages = () => {
 
       if (error) throw error;
 
-      const conversationsMap = new Map();
+      // Regrouper les messages par conversation
+      const conversationsMap = new Map<string, Conversation>();
+      
       data?.forEach(message => {
-        const partner = message.sender.id === user.id ? message.receiver : message.sender;
+        // Déterminer l'autre participant de la conversation
+        const isMessageSender = message.sender_id === user.id;
+        const partner = isMessageSender ? message.receiver : message.sender;
+        
         if (!conversationsMap.has(partner.id)) {
           conversationsMap.set(partner.id, {
             user: partner,
             lastMessage: message,
           });
+        } else {
+          // Mettre à jour uniquement si ce message est plus récent
+          const existingConversation = conversationsMap.get(partner.id)!;
+          const existingDate = new Date(existingConversation.lastMessage.created_at);
+          const newDate = new Date(message.created_at);
+          
+          if (newDate > existingDate) {
+            conversationsMap.set(partner.id, {
+              ...existingConversation,
+              lastMessage: message,
+            });
+          }
         }
       });
 
@@ -56,12 +80,25 @@ export const useMessages = () => {
     }
   };
 
+  /**
+   * Gestionnaire d'événements pour les changements en temps réel
+   */
+  const handleRealtimeChanges = (payload: RealtimePostgresChangesPayload<any>) => {
+    const { eventType, new: newRecord } = payload;
+    
+    if (eventType === 'INSERT') {
+      // Plutôt que de refaire une requête complète, nous pouvons mettre à jour
+      // l'état localement pour de meilleures performances
+      fetchConversations();
+    }
+  }
+
   useEffect(() => {
     fetchConversations();
 
-    // Abonnement aux changements en temps réel
+    // Abonnement aux changements en temps réel avec un gestionnaire unique
     const channel = supabase
-      .channel('private_messages')
+      .channel('private_messages_channel')
       .on(
         'postgres_changes',
         {
@@ -69,9 +106,7 @@ export const useMessages = () => {
           schema: 'public',
           table: 'private_messages'
         },
-        () => {
-          fetchConversations();
-        }
+        handleRealtimeChanges
       )
       .subscribe();
 
