@@ -3,19 +3,20 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import type { ClothesItem } from "@/components/clothes/types";
 
-type SuggestedClothing = {
+interface SuggestedClothesItem {
   id: string;
   name: string;
   category: string;
-};
+}
 
 export const useSuitcaseSuggestions = (suitcaseId: string) => {
+  const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothesItem[]>([]);
+  const [aiExplanation, setAiExplanation] = useState<string>("");
   const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
   const [isAddingSuggestions, setIsAddingSuggestions] = useState(false);
-  const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothing[]>([]);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
-  const [aiExplanation, setAiExplanation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -34,63 +35,111 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Les dates de début et de fin sont requises pour obtenir des suggestions",
+        description: "Dates de début et de fin manquantes",
       });
       return;
     }
 
     setIsGettingSuggestions(true);
+    setSuggestedClothes([]);
+    setAiExplanation("");
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-      
+      // Récupérer les vêtements déjà dans la valise
       const { data: existingItems, error: existingItemsError } = await supabase
         .from("suitcase_items")
         .select(`
-          *,
+          id, clothes_id,
           clothes ( id, name, category )
         `)
         .eq("suitcase_id", suitcaseId);
         
       if (existingItemsError) throw existingItemsError;
 
-      const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
-        body: {
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          currentClothes: existingItems?.map(item => item.clothes),
-        },
-      });
+      // Récupérer tous les vêtements de l'utilisateur
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non authentifié");
 
-      if (error) throw error;
+      const { data: userClothes, error: userClothesError } = await supabase
+        .from("clothes")
+        .select("id, name, category, weather_categories, color, style")
+        .eq("user_id", user.id)
+        .eq("archived", false);
 
-      if (!data?.explanation || !data?.suggestedClothes) {
-        throw new Error("La réponse ne contient pas les informations nécessaires");
+      if (userClothesError) throw userClothesError;
+
+      // Créer des suggestions basées sur les vêtements de l'utilisateur
+      // Filtrer les vêtements déjà dans la valise
+      const existingClothesIds = existingItems?.map(item => item.clothes_id) || [];
+      const availableClothes = userClothes.filter(cloth => !existingClothesIds.includes(cloth.id));
+
+      if (availableClothes.length === 0) {
+        setAiExplanation("Vous avez déjà ajouté tous vos vêtements à cette valise.");
+        setShowSuggestionsDialog(true);
+        return;
       }
 
-      const { data: clothesDetails, error: clothesError } = await supabase
-        .from("clothes")
-        .select("id, name, category")
-        .in("id", data.suggestedClothes);
+      try {
+        // Essayer d'utiliser la fonction Edge
+        const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
+          body: {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            currentClothes: existingItems?.map(item => ({
+              id: item.clothes?.id,
+              name: item.clothes?.name,
+              category: item.clothes?.category
+            })) || [],
+            availableClothes: availableClothes
+          }
+        });
 
-      if (clothesError) throw clothesError;
+        if (error) throw error;
 
-      const existingIds = new Set(existingItems?.map(item => item.clothes_id));
-      const newSuggestions = clothesDetails?.filter(cloth => !existingIds.has(cloth.id)) || [];
+        if (data && data.suggestedClothes) {
+          setSuggestedClothes(data.suggestedClothes);
+          setAiExplanation(data.explanation || "Voici quelques suggestions basées sur votre collection.");
+        } else {
+          throw new Error("Format de réponse invalide");
+        }
+      } catch (edgeFunctionError) {
+        console.error("Erreur avec la fonction Edge, utilisation de la méthode de secours:", edgeFunctionError);
+        
+        // Méthode de secours si la fonction Edge échoue
+        // Suggestions basiques basées sur la saison et les catégories manquantes
+        const categories = ["Hauts", "Bas", "Chaussures", "Accessoires"];
+        const suggestedItems: SuggestedClothesItem[] = [];
+        
+        for (const category of categories) {
+          // Vérifier si la catégorie est déjà présente dans la valise
+          const hasCategoryInSuitcase = existingItems?.some(item => item.clothes?.category === category);
+          
+          if (!hasCategoryInSuitcase) {
+            // Trouver un vêtement disponible dans cette catégorie
+            const clothForCategory = availableClothes.find(cloth => cloth.category === category);
+            if (clothForCategory) {
+              suggestedItems.push({
+                id: clothForCategory.id,
+                name: clothForCategory.name,
+                category: clothForCategory.category
+              });
+            }
+          }
+        }
+        
+        setSuggestedClothes(suggestedItems);
+        setAiExplanation("Voici quelques suggestions basées sur les catégories manquantes dans votre valise.");
+      }
 
-      setSuggestedClothes(newSuggestions);
-      setAiExplanation(data.explanation);
       setShowSuggestionsDialog(true);
     } catch (e: any) {
-      console.error("Error getting suggestions:", e);
-      const errorMessage = e.message || "Impossible d'obtenir les suggestions";
-      setError(errorMessage);
+      console.error("Erreur lors de la récupération des suggestions:", e);
+      setError(e.message || "Impossible de récupérer les suggestions");
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: errorMessage,
+        description: e.message || "Impossible de récupérer les suggestions",
       });
     } finally {
       setIsGettingSuggestions(false);
@@ -99,6 +148,11 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
 
   const addSuggestedClothes = async () => {
     if (!suitcaseId || suggestedClothes.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Aucun vêtement à ajouter",
+      });
       return;
     }
     
@@ -106,35 +160,39 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-      
+      // Préparer les données pour l'insertion
+      const itemsToInsert = suggestedClothes.map(item => ({
+        suitcase_id: suitcaseId,
+        clothes_id: item.id,
+        quantity: 1
+      }));
+
+      // Insérer les vêtements suggérés
       const { error: insertError } = await supabase
         .from("suitcase_items")
-        .insert(
-          suggestedClothes.map(cloth => ({
-            suitcase_id: suitcaseId,
-            clothes_id: cloth.id,
-          }))
-        );
+        .insert(itemsToInsert);
 
       if (insertError) throw insertError;
 
-      await queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
       toast({
-        title: "Suggestions ajoutées",
-        description: `${suggestedClothes.length} vêtements ont été ajoutés à votre valise.`,
+        title: "Vêtements ajoutés",
+        description: `${suggestedClothes.length} vêtements ont été ajoutés à la valise`,
       });
+
+      // Fermer le dialogue et réinitialiser l'état
       setShowSuggestionsDialog(false);
       setSuggestedClothes([]);
+      setAiExplanation("");
+
+      // Invalider les requêtes pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (e: any) {
-      console.error("Error adding suggested clothes:", e);
-      const errorMessage = e.message || "Impossible d'ajouter les vêtements suggérés";
-      setError(errorMessage);
+      console.error("Erreur lors de l'ajout des vêtements suggérés:", e);
+      setError(e.message || "Impossible d'ajouter les vêtements suggérés");
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: errorMessage,
+        description: e.message || "Impossible d'ajouter les vêtements suggérés",
       });
     } finally {
       setIsAddingSuggestions(false);
@@ -142,12 +200,12 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
   };
 
   return {
+    suggestedClothes,
+    aiExplanation,
     isGettingSuggestions,
     isAddingSuggestions,
-    suggestedClothes,
     showSuggestionsDialog,
     setShowSuggestionsDialog,
-    aiExplanation,
     error,
     getSuggestions,
     addSuggestedClothes,

@@ -23,15 +23,33 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
     
     setIsAdding(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+      // Vérification préalable pour voir si l'article existe déjà
+      const { data: existingItems, error: checkError } = await supabase
+        .from("suitcase_items")
+        .select("id")
+        .eq("suitcase_id", suitcaseId)
+        .eq("clothes_id", clothesId);
+      
+      if (checkError) throw checkError;
+      
+      // Si l'article existe déjà, on ne l'ajoute pas à nouveau
+      if (existingItems && existingItems.length > 0) {
+        toast({
+          title: "Information",
+          description: "Ce vêtement est déjà dans la valise",
+        });
+        return;
+      }
 
-      const { error } = await supabase
+      // Ajouter l'article
+      const { data, error } = await supabase
         .from("suitcase_items")
         .insert({
           suitcase_id: suitcaseId,
           clothes_id: clothesId,
-        });
+          quantity: 1
+        })
+        .select();
 
       if (error) throw error;
 
@@ -40,13 +58,14 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
         description: "Le vêtement a été ajouté à la valise",
       });
 
+      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
-      console.error("Error adding item to suitcase:", error);
+      console.error("Erreur lors de l'ajout d'un article à la valise:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'ajouter le vêtement à la valise",
+        description: error.message || "Impossible d'ajouter le vêtement à la valise",
       });
     } finally {
       setIsAdding(false);
@@ -65,9 +84,6 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
     
     setIsRemoving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
       const { error } = await supabase
         .from("suitcase_items")
         .delete()
@@ -80,13 +96,14 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
         description: "Le vêtement a été retiré de la valise",
       });
 
+      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
-      console.error("Error removing item from suitcase:", error);
+      console.error("Erreur lors de la suppression d'un article de la valise:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de retirer le vêtement de la valise",
+        description: error.message || "Impossible de retirer le vêtement de la valise",
       });
     } finally {
       setIsRemoving(false);
