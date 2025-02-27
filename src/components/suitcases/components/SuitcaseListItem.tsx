@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Suitcase } from "@/components/suitcases/utils/types";
 import { SuitcaseDates } from "./SuitcaseDates";
-import { SuitcaseItems } from "@/components/suitcases/SuitcaseItems";
+import { SuitcaseItems } from "@/components/suitcases/items";
 import { SuitcaseActions } from "./SuitcaseActions";
 
 interface SuitcaseListItemProps {

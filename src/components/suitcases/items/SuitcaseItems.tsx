@@ -1,9 +1,11 @@
 
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useClothes } from "@/hooks/useClothes";
 import { useSuitcaseItems } from "@/hooks/useSuitcaseItems";
-import { AddClothesDialog } from "./AddClothesDialog";
-import { SuitcaseItemsList } from "./SuitcaseItemsList";
+import { SuitcaseItemsList } from "../components/SuitcaseItemsList";
+import { SuitcaseItemsHeader } from "./SuitcaseItemsHeader";
+import { SuitcaseItemsEmpty } from "./SuitcaseItemsEmpty";
 
 interface SuitcaseItemsProps {
   suitcaseId: string;
@@ -12,6 +14,7 @@ interface SuitcaseItemsProps {
 export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
   const { data: items, isLoading: isLoadingItems } = useSuitcaseItems(suitcaseId);
   const { data: clothes } = useClothes({ source: "mine" });
+  const queryClient = useQueryClient();
 
   if (isLoadingItems) {
     return (
@@ -26,14 +29,25 @@ export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
 
   return (
     <div className="space-y-4">
-      <AddClothesDialog
+      <SuitcaseItemsHeader 
         suitcaseId={suitcaseId}
+        itemsCount={items?.length || 0}
         availableClothes={availableClothes}
       />
-      <SuitcaseItemsList
-        suitcaseId={suitcaseId}
-        items={items || []}
-      />
+
+      {items && items.length > 0 ? (
+        <div className="space-y-4">
+          <SuitcaseItemsList
+            items={items}
+            suitcaseId={suitcaseId}
+          />
+        </div>
+      ) : (
+        <SuitcaseItemsEmpty
+          suitcaseId={suitcaseId}
+          availableClothes={availableClothes}
+        />
+      )}
     </div>
   );
 };
