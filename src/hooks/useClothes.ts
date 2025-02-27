@@ -26,7 +26,7 @@ export const useClothes = (filters: ClothesFilters = {}) => {
 
       let query = supabase
         .from("clothes")
-        .select("id, name, image_url, category, brand"); // Make sure to select the brand field
+        .select("*"); // Sélectionner tous les champs
 
       if (filters.category) {
         const formattedCategory = filters.category.charAt(0).toUpperCase() + filters.category.slice(1).toLowerCase();
