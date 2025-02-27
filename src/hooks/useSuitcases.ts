@@ -28,11 +28,11 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
-        // Utiliser un cast explicite pour informer TypeScript que nous savons ce que nous faisons
-        query = query.eq("status", filters.status as SuitcaseStatus);
+        // Utiliser le type explicite pour éviter les erreurs de TypeScript
+        query = query.eq("status", filters.status);
       } else {
         // Par défaut, montrer uniquement les valises actives
-        query = query.eq("status", "active" as SuitcaseStatus);
+        query = query.eq("status", "active");
       }
 
       // Si le filtre forCalendar est activé, on récupère uniquement les valises avec des dates
