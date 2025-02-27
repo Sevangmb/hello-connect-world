@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { format, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar as CalendarIcon, Suitcase, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Briefcase, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -111,7 +111,7 @@ export const SuitcaseCalendar = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <Suitcase className="h-5 w-5" />
+              <Briefcase className="h-5 w-5" />
               {format(selectedDate, 'd MMMM yyyy', { locale: fr })}
             </CardTitle>
             <CardDescription>
