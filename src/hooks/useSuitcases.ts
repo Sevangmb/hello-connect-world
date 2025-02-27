@@ -28,8 +28,14 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
-        // On utilise le statut directement (supprimer le type explicite pour résoudre l'erreur)
-        query = query.eq("status", filters.status);
+        if (filters.status === 'deleted') {
+          // Pour le statut 'deleted', qui n'existe pas dans la base de données,
+          // nous allons utiliser une condition personnalisée
+          query = query.eq("status", "archived").is("description", "DELETED");
+        } else {
+          // Pour les autres statuts (active, archived), utiliser directement
+          query = query.eq("status", filters.status);
+        }
       } else {
         // Par défaut, montrer uniquement les valises actives
         query = query.eq("status", "active");
@@ -70,7 +76,17 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
         throw error;
       }
 
-      return data as Suitcase[];
+      // Si le statut est 'deleted', nous devons post-traiter les résultats
+      // pour simuler le statut 'deleted' en modifiant le status directement dans les données
+      let processedData = data;
+      if (filters.status === 'deleted') {
+        processedData = data.map(item => ({
+          ...item,
+          status: 'deleted' as SuitcaseStatus
+        }));
+      }
+
+      return processedData as Suitcase[];
     },
     retry: 1,
     staleTime: 1000 * 60 * 5, // 5 minutes
