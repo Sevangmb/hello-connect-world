@@ -1,5 +1,5 @@
 
-import { Shirt } from "lucide-react";
+import { Shirt, ShoppingBag, Footprints } from "lucide-react";
 
 interface ClothingItemCardProps {
   type: 'top' | 'bottom' | 'shoes';
@@ -11,35 +11,27 @@ interface ClothingItemCardProps {
 }
 
 export const ClothingItemCard = ({ type, item }: ClothingItemCardProps) => {
-  if (!item) return null;
-
-  const getIcon = () => {
-    switch (type) {
-      case 'top':
-        return <Shirt className="h-4 w-4 text-primary" />;
-      case 'bottom':
-        return <Shirt className="h-4 w-4 text-primary rotate-180" />;
-      case 'shoes':
-        return <Shirt className="h-4 w-4 text-primary -rotate-90" />;
-    }
-  };
-
-  const getLabel = () => {
-    switch (type) {
-      case 'top':
-        return 'Haut';
-      case 'bottom':
-        return 'Bas';
-      case 'shoes':
-        return 'Chaussures';
-    }
-  };
+  if (!item) {
+    return (
+      <div className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <div className="flex items-center gap-2">
+          {type === 'top' && <Shirt className="h-4 w-4 text-muted-foreground" />}
+          {type === 'bottom' && <ShoppingBag className="h-4 w-4 text-muted-foreground" />}
+          {type === 'shoes' && <Footprints className="h-4 w-4 text-muted-foreground" />}
+          <h3 className="font-semibold text-muted-foreground">{getLabel(type)}</h3>
+        </div>
+        <p className="text-xs text-center text-muted-foreground">Aucun vêtement sélectionné</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="flex items-center gap-2">
-        {getIcon()}
-        <h3 className="font-semibold">{getLabel()}</h3>
+        {type === 'top' && <Shirt className="h-4 w-4 text-primary" />}
+        {type === 'bottom' && <ShoppingBag className="h-4 w-4 text-primary" />}
+        {type === 'shoes' && <Footprints className="h-4 w-4 text-primary" />}
+        <h3 className="font-semibold">{getLabel(type)}</h3>
       </div>
       <div className="relative aspect-square w-full">
         <img 
@@ -56,3 +48,13 @@ export const ClothingItemCard = ({ type, item }: ClothingItemCardProps) => {
   );
 };
 
+function getLabel(type: 'top' | 'bottom' | 'shoes'): string {
+  switch (type) {
+    case 'top':
+      return 'Haut';
+    case 'bottom':
+      return 'Bas';
+    case 'shoes':
+      return 'Chaussures';
+  }
+}

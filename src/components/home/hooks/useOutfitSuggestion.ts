@@ -16,6 +16,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
       try {
         console.log("Fetching outfit suggestion for:", { temperature, description });
         
+        // Vérifier si l'utilisateur est connecté
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           console.log("User not authenticated");
@@ -27,10 +28,8 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw new Error("User not authenticated");
         }
 
-        // Check for existing recent suggestion
+        // Vérifier s'il existe déjà une suggestion récente
         const { existingSuggestion, suggestionError } = await fetchExistingSuggestion(user.id, temperature, description);
-        
-        console.log("Existing suggestion query result:", existingSuggestion);
         
         if (!suggestionError && existingSuggestion?.outfits) {
           console.log("Using existing suggestion:", existingSuggestion);
@@ -46,7 +45,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           } as OutfitSuggestion;
         }
 
-        // If no recent suggestion exists, fetch user's clothes
+        // Récupérer les vêtements de l'utilisateur
         const { data: clothes, error: clothesError } = await fetchUserClothes(user.id);
 
         if (clothesError) {
@@ -63,7 +62,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw new Error("No clothes available");
         }
 
-        // Generate new AI suggestion
+        // Générer une nouvelle suggestion avec l'IA
         const { suggestion, error: aiError } = await generateAISuggestion(
           clothes,
           temperature,
@@ -74,7 +73,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw aiError || new Error("Failed to generate suggestion");
         }
 
-        // Save the suggestion to the database
+        // Enregistrer la suggestion dans la base de données
         const { outfit, error: saveError } = await createOutfitWithSuggestion(
           user.id,
           temperature,
@@ -90,7 +89,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw saveError;
         }
 
-        // Return the suggestion with detailed outfit information
+        // Retourner la suggestion avec les informations détaillées sur la tenue
         return {
           top: outfit?.top || null,
           bottom: outfit?.bottom || null,

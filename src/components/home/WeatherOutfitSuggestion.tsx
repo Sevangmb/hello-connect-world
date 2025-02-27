@@ -1,12 +1,11 @@
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import { ClothingItemCard } from "./components/ClothingItemCard";
 import { useOutfitSuggestion } from "./hooks/useOutfitSuggestion";
 import type { WeatherOutfitSuggestionProps } from "./types/weather";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
@@ -23,16 +22,18 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
 
   if (isLoading) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+      <Card className="p-6 animate-pulse">
+        <div className="flex items-center gap-2 mb-6">
+          <Sparkles className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
         </div>
-        <div className="flex justify-center items-center h-[300px]">
-          <div className="flex flex-col items-center gap-4">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-36" />
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-40 w-full rounded-lg" />
           </div>
         </div>
       </Card>
