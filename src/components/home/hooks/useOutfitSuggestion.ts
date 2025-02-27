@@ -35,15 +35,12 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
         if (!suggestionError && existingSuggestion?.outfits) {
           console.log("Using existing suggestion:", existingSuggestion);
           
-          const topItem = existingSuggestion.outfits.top || null;
-          const bottomItem = existingSuggestion.outfits.bottom || null;
-          const shoesItem = existingSuggestion.outfits.shoes || null;
-          
           return {
-            top: topItem,
-            bottom: bottomItem,
-            shoes: shoesItem,
-            explanation: `Pour ${temperature}°C avec un temps ${description}, ${existingSuggestion.outfits.description || 'cette tenue est appropriée.'}`,
+            top: existingSuggestion.outfits.top,
+            bottom: existingSuggestion.outfits.bottom,
+            shoes: existingSuggestion.outfits.shoes,
+            explanation: existingSuggestion.outfits.description || 
+              `Pour ${temperature}°C avec un temps ${description}, cette tenue est appropriée.`,
             temperature,
             description
           } as OutfitSuggestion;
@@ -78,26 +75,31 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
         }
 
         // Save the suggestion to the database
-        if (suggestion.top || suggestion.bottom || suggestion.shoes) {
-          const { error: saveError } = await createOutfitWithSuggestion(
-            user.id,
-            temperature,
-            description,
-            suggestion.explanation,
-            suggestion.top?.id || null,
-            suggestion.bottom?.id || null,
-            suggestion.shoes?.id || null
-          );
+        const { outfit, error: saveError } = await createOutfitWithSuggestion(
+          user.id,
+          temperature,
+          description,
+          suggestion.explanation,
+          suggestion.top?.id || null,
+          suggestion.bottom?.id || null,
+          suggestion.shoes?.id || null
+        );
 
-          if (saveError) {
-            console.error("Error saving suggestion:", saveError);
-          }
+        if (saveError) {
+          console.error("Error saving suggestion:", saveError);
+          throw saveError;
         }
 
-        // Invalidate outfits queries to force a refresh
-        queryClient.invalidateQueries({ queryKey: ["outfits"] });
+        // Return the suggestion with detailed outfit information
+        return {
+          top: outfit?.top || null,
+          bottom: outfit?.bottom || null,
+          shoes: outfit?.shoes || null,
+          explanation: suggestion.explanation,
+          temperature,
+          description
+        } as OutfitSuggestion;
 
-        return suggestion;
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
         toast({

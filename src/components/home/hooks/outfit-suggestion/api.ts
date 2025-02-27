@@ -18,19 +18,19 @@ export const fetchExistingSuggestion = async (userId: string, temperature: numbe
         id,
         name,
         description,
-        top:clothes!outfits_top_id_fkey (
+        top:clothes!outfits_top_id_fkey(
           id,
           name,
           image_url,
           brand
         ),
-        bottom:clothes!outfits_bottom_id_fkey (
+        bottom:clothes!outfits_bottom_id_fkey(
           id,
           name,
           image_url,
           brand
         ),
-        shoes:clothes!outfits_shoes_id_fkey (
+        shoes:clothes!outfits_shoes_id_fkey(
           id,
           name,
           image_url,
@@ -44,6 +44,21 @@ export const fetchExistingSuggestion = async (userId: string, temperature: numbe
     .gt('created_at', nowMinus15Minutes.toISOString())
     .order('created_at', { ascending: false })
     .maybeSingle();
+
+  if (existingSuggestion?.outfits) {
+    return {
+      existingSuggestion: {
+        ...existingSuggestion,
+        outfits: {
+          ...existingSuggestion.outfits,
+          top: existingSuggestion.outfits.top || null,
+          bottom: existingSuggestion.outfits.bottom || null,
+          shoes: existingSuggestion.outfits.shoes || null
+        }
+      },
+      suggestionError
+    };
+  }
 
   return { existingSuggestion, suggestionError };
 };
@@ -94,5 +109,47 @@ export const createOutfitWithSuggestion = async (
       weather_description: description
     });
 
-  return { outfitId: newOutfit.id, error: weatherSuggestionError };
+  if (weatherSuggestionError) {
+    console.error("Error creating weather suggestion:", weatherSuggestionError);
+  }
+
+  // Fetch the complete outfit with clothes details
+  const { data: completeOutfit, error: fetchError } = await supabase
+    .from('outfits')
+    .select(`
+      id,
+      name,
+      description,
+      top:clothes!outfits_top_id_fkey(
+        id,
+        name,
+        image_url,
+        brand
+      ),
+      bottom:clothes!outfits_bottom_id_fkey(
+        id,
+        name,
+        image_url,
+        brand
+      ),
+      shoes:clothes!outfits_shoes_id_fkey(
+        id,
+        name,
+        image_url,
+        brand
+      )
+    `)
+    .eq('id', newOutfit.id)
+    .single();
+
+  if (fetchError) {
+    console.error("Error fetching complete outfit:", fetchError);
+    return { error: fetchError };
+  }
+
+  return { 
+    outfitId: newOutfit.id,
+    outfit: completeOutfit,
+    error: null 
+  };
 };
