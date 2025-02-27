@@ -25,12 +25,8 @@ interface SuitcaseCardProps {
 }
 
 export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardProps) => {
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    suitcase.start_date ? new Date(suitcase.start_date) : undefined
-  );
-  const [endDate, setEndDate] = useState<Date | undefined>(
-    suitcase.end_date ? new Date(suitcase.end_date) : undefined
-  );
+  const startDate = suitcase.start_date ? new Date(suitcase.start_date) : undefined;
+  const endDate = suitcase.end_date ? new Date(suitcase.end_date) : undefined;
 
   const formatDateRange = () => {
     if (!startDate || !endDate) return null;
@@ -90,8 +86,6 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
               suitcaseId={suitcase.id}
               startDate={startDate}
               endDate={endDate}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
             />
           </div>
         )}
