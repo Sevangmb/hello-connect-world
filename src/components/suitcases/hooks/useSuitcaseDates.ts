@@ -25,8 +25,8 @@ export const useSuitcaseDates = (suitcaseId: string) => {
       const { error } = await supabase
         .from("suitcases")
         .update({
-          start_date: startDate?.toISOString() || null,
-          end_date: endDate?.toISOString() || null,
+          start_date: startDate ? startDate.toISOString() : null,
+          end_date: endDate ? endDate.toISOString() : null,
         })
         .eq("id", suitcaseId);
 

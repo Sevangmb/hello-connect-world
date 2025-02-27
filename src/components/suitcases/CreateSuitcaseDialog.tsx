@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -70,6 +71,9 @@ export const CreateSuitcaseDialog = () => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Créer une nouvelle valise</DialogTitle>
+          <DialogDescription>
+            Remplissez les champs ci-dessous pour créer une nouvelle valise
+          </DialogDescription>
         </DialogHeader>
         <CreateSuitcaseForm onSubmit={handleSubmit} isLoading={isLoading} />
       </DialogContent>
