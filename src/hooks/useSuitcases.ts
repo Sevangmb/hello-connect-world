@@ -28,7 +28,7 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
-        // Utiliser le type explicite pour éviter les erreurs de TypeScript
+        // On utilise le statut directement (supprimer le type explicite pour résoudre l'erreur)
         query = query.eq("status", filters.status);
       } else {
         // Par défaut, montrer uniquement les valises actives
