@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { OutfitSuggestion } from "../types/weather";
+import { fetchExistingSuggestion, fetchUserClothes, createOutfitWithSuggestion } from "./outfit-suggestion/api";
+import { generateAISuggestion } from "./outfit-suggestion/aiService";
 
 export const useOutfitSuggestion = (temperature: number, description: string) => {
   const { toast } = useToast();
@@ -25,60 +27,18 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw new Error("User not authenticated");
         }
 
-        // Vérifier d'abord si une suggestion récente existe déjà
-        const nowMinus15Minutes = new Date();
-        nowMinus15Minutes.setMinutes(nowMinus15Minutes.getMinutes() - 15);
+        // Check for existing recent suggestion
+        const { existingSuggestion, suggestionError } = await fetchExistingSuggestion(user.id, temperature, description);
         
-        const { data: existingSuggestion, error: suggestionError } = await supabase
-          .from('outfit_weather_suggestions')
-          .select(`
-            id,
-            temperature,
-            weather_description,
-            outfit_id,
-            created_at,
-            outfits:outfit_id (
-              id,
-              name,
-              description,
-              top:clothes!outfits_top_id_fkey (
-                id,
-                name,
-                image_url,
-                brand
-              ),
-              bottom:clothes!outfits_bottom_id_fkey (
-                id,
-                name,
-                image_url,
-                brand
-              ),
-              shoes:clothes!outfits_shoes_id_fkey (
-                id,
-                name,
-                image_url,
-                brand
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('temperature', temperature)
-          .ilike('weather_description', `%${description}%`)
-          .gt('created_at', nowMinus15Minutes.toISOString())
-          .order('created_at', { ascending: false })
-          .maybeSingle();
-
         console.log("Existing suggestion query result:", existingSuggestion);
         
         if (!suggestionError && existingSuggestion?.outfits) {
           console.log("Using existing suggestion:", existingSuggestion);
           
-          // Vérification que les champs nécessaires existent dans les données
           const topItem = existingSuggestion.outfits.top || null;
           const bottomItem = existingSuggestion.outfits.bottom || null;
           const shoesItem = existingSuggestion.outfits.shoes || null;
           
-          // Retour d'un objet OutfitSuggestion valide
           return {
             top: topItem,
             bottom: bottomItem,
@@ -89,19 +49,13 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           } as OutfitSuggestion;
         }
 
-        // Si aucune suggestion récente n'existe, on continue avec la logique actuelle
-        const { data: clothes, error: clothesError } = await supabase
-          .from('clothes')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('archived', false);
+        // If no recent suggestion exists, fetch user's clothes
+        const { data: clothes, error: clothesError } = await fetchUserClothes(user.id);
 
         if (clothesError) {
           console.error("Error fetching clothes:", clothesError);
           throw clothesError;
         }
-
-        console.log("Found clothes:", clothes?.length);
 
         if (!clothes || clothes.length === 0) {
           toast({
@@ -112,110 +66,38 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           throw new Error("No clothes available");
         }
 
-        // Ajouter une tentative avec retry pour la fonction edge
-        const maxRetries = 2;
-        let lastError = null;
-        
-        for (let attempt = 0; attempt <= maxRetries; attempt++) {
-          try {
-            const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
-              'generate-outfit-suggestion',
-              {
-                body: {
-                  temperature,
-                  description,
-                  clothes
-                }
-              }
-            );
+        // Generate new AI suggestion
+        const { suggestion, error: aiError } = await generateAISuggestion(
+          clothes,
+          temperature,
+          description
+        );
 
-            if (aiError) {
-              console.error(`Attempt ${attempt + 1} failed:`, aiError);
-              lastError = aiError;
-              
-              if (attempt < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                continue;
-              }
-              throw aiError;
-            }
+        if (aiError || !suggestion) {
+          throw aiError || new Error("Failed to generate suggestion");
+        }
 
-            console.log("Received AI suggestion:", aiSuggestion);
+        // Save the suggestion to the database
+        if (suggestion.top || suggestion.bottom || suggestion.shoes) {
+          const { error: saveError } = await createOutfitWithSuggestion(
+            user.id,
+            temperature,
+            description,
+            suggestion.explanation,
+            suggestion.top?.id || null,
+            suggestion.bottom?.id || null,
+            suggestion.shoes?.id || null
+          );
 
-            if (aiSuggestion?.suggestion) {
-              const { top, bottom, shoes } = aiSuggestion.suggestion;
-              
-              const topDetails = clothes?.find(c => c.id === top) || null;
-              const bottomDetails = clothes?.find(c => c.id === bottom) || null;
-              const shoesDetails = clothes?.find(c => c.id === shoes) || null;
-
-              // Enregistrer cette suggestion dans la base de données
-              if (topDetails || bottomDetails || shoesDetails) {
-                try {
-                  // Créer une nouvelle tenue
-                  const { data: newOutfit, error: outfitError } = await supabase
-                    .from('outfits')
-                    .insert({
-                      user_id: user.id,
-                      name: `Tenue pour ${temperature}°C, ${description}`,
-                      description: aiSuggestion.explanation,
-                      top_id: topDetails?.id || null,
-                      bottom_id: bottomDetails?.id || null,
-                      shoes_id: shoesDetails?.id || null
-                    })
-                    .select('id')
-                    .single();
-                      
-                  if (outfitError) {
-                    console.error("Error creating outfit:", outfitError);
-                  } else if (newOutfit) {
-                    // Enregistrer la suggestion météo
-                    const { error: weatherSuggestionError } = await supabase
-                      .from('outfit_weather_suggestions')
-                      .insert({
-                        user_id: user.id,
-                        outfit_id: newOutfit.id,
-                        temperature: temperature,
-                        weather_description: description
-                      });
-                      
-                    if (weatherSuggestionError) {
-                      console.error("Error saving weather suggestion:", weatherSuggestionError);
-                    }
-                  }
-                } catch (dbError) {
-                  console.error("Error saving suggestion to database:", dbError);
-                  // On continue même si l'enregistrement échoue
-                }
-              }
-
-              // Invalider les requêtes de tenues pour forcer un rafraîchissement
-              queryClient.invalidateQueries({ queryKey: ["outfits"] });
-
-              return {
-                top: topDetails,
-                bottom: bottomDetails,
-                shoes: shoesDetails,
-                explanation: aiSuggestion.explanation,
-                temperature,
-                description
-              } as OutfitSuggestion;
-            }
-
-            throw new Error("Invalid suggestion format");
-          } catch (retryError) {
-            console.error(`Attempt ${attempt + 1} error:`, retryError);
-            lastError = retryError;
-            
-            if (attempt === maxRetries) {
-              break;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 1000));
+          if (saveError) {
+            console.error("Error saving suggestion:", saveError);
           }
         }
-        
-        throw lastError || new Error("Failed to generate suggestion after multiple attempts");
+
+        // Invalidate outfits queries to force a refresh
+        queryClient.invalidateQueries({ queryKey: ["outfits"] });
+
+        return suggestion;
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
         toast({
