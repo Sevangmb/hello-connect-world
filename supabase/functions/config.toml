@@ -1,8 +1,14 @@
 
+# A string used as a secret for generating JWT tokens for Functions locally
 project_id = "jvmmgamfdbgdjjptfkgy"
-
-[functions.create-checkout]
-verify_jwt = false
-
-[functions.handle-stripe-webhook]
-verify_jwt = false
+generate-outfit-suggestion = "generate-outfit-suggestion/index.ts"
+get-suitcase-suggestions = "get-suitcase-suggestions/index.ts"
+get-weather = "get-weather/index.ts"
+get-weather-outfit = "get-weather-outfit/index.ts"
+handle-stripe-webhook = "handle-stripe-webhook/index.ts"
+detect-clothing = "detect-clothing/index.ts"
+extract-clothing = "extract-clothing/index.ts"
+generate-hashtags = "generate-hashtags/index.ts"
+scan-label = "scan-label/index.ts"
+virtual-tryon = "virtual-tryon/index.ts"
+create-checkout = "create-checkout/index.ts"
