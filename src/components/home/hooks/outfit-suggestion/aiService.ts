@@ -22,17 +22,18 @@ export const generateAISuggestion = async (
   clothes: any[],
   temperature: number,
   description: string,
+  useHuggingFace: boolean = false,
   maxRetries = 2
 ): Promise<{ suggestion: OutfitSuggestion | null; error: Error | null }> => {
   let lastError = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Tentative ${attempt + 1} de génération de suggestion`);
+      console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useHuggingFace ? 'Hugging Face' : 'Gemini'}`);
       console.log(`Envoi de ${clothes.length} vêtements à l'API`);
       
       const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
-        'generate-outfit-suggestion',
+        useHuggingFace ? 'generate-outfit-suggestion-hf' : 'generate-outfit-suggestion',
         {
           body: {
             temperature,
@@ -63,7 +64,6 @@ export const generateAISuggestion = async (
       
       console.log(`IDs reçus: top=${topId}, bottom=${bottomId}, shoes=${shoesId}`);
       
-      // Trouver les détails des vêtements correspondants
       const topDetails = clothes.find(c => c.id === topId);
       const bottomDetails = clothes.find(c => c.id === bottomId);
       const shoesDetails = clothes.find(c => c.id === shoesId);

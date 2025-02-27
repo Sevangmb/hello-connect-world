@@ -10,6 +10,9 @@ verify_jwt = false
 [functions.generate-outfit-suggestion]
 verify_jwt = true
 
+[functions.generate-outfit-suggestion-hf]
+verify_jwt = true
+
 [functions.get-weather]
 verify_jwt = false
 
