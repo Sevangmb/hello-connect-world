@@ -30,20 +30,13 @@ export const useDeleteSuitcase = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Utilisateur non authentifié");
 
-      // Supprimer d'abord les éléments de la valise via la RPC (procédure stockée)
-      const { error: itemsError } = await supabase.rpc('delete_suitcase_items', { suitcase_id_param: suitcaseId });
+      // Supprimer d'abord les éléments de la valise
+      const { error: itemsError } = await supabase
+        .from("suitcase_items")
+        .delete()
+        .eq("suitcase_id", suitcaseId);
       
-      if (itemsError) {
-        console.error("Erreur lors de la suppression des éléments:", itemsError);
-        
-        // Fallback: méthode classique si la RPC échoue
-        const { error: fallbackError } = await supabase
-          .from("suitcase_items")
-          .delete()
-          .eq("suitcase_id", suitcaseId);
-        
-        if (fallbackError) throw fallbackError;
-      }
+      if (itemsError) throw itemsError;
 
       // Puis supprimer la valise elle-même
       const { error: deleteError } = await supabase
