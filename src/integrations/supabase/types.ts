@@ -2267,6 +2267,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_suitcase_items: {
+        Args: {
+          suitcase_id_param: string
+        }
+        Returns: undefined
+      }
       handle_new_group: {
         Args: {
           group_name: string
