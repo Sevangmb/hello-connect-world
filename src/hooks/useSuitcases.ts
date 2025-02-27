@@ -28,8 +28,8 @@ export const useSuitcases = (filters: SuitcaseFilters = {}) => {
 
       // Filtrer par statut si spécifié
       if (filters.status && filters.status !== 'all') {
-        // Properly typed - filters.status is either 'active', 'archived', or 'deleted'
-        query = query.eq("status", filters.status);
+        // Use explicit casting to string to tell TypeScript this is valid
+        query = query.eq("status", filters.status as string);
       } else {
         // Par défaut, montrer uniquement les valises actives
         query = query.eq("status", "active");
