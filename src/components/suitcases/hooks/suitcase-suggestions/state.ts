@@ -2,11 +2,8 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import type { SuggestedClothesItem } from "../types/suitcaseSuggestionsTypes";
+import type { SuggestedClothesItem } from "./types";
 
-/**
- * Hook to manage the state for suitcase suggestions
- */
 export const useSuitcaseSuggestionsState = () => {
   const [suggestedClothes, setSuggestedClothes] = useState<SuggestedClothesItem[]>([]);
   const [aiExplanation, setAiExplanation] = useState<string>("");
@@ -17,18 +14,12 @@ export const useSuitcaseSuggestionsState = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  /**
-   * Reset suggestions state
-   */
   const resetSuggestionsState = () => {
     setSuggestedClothes([]);
     setAiExplanation("");
     setError(null);
   };
 
-  /**
-   * Update suggestions state with new data
-   */
   const updateSuggestionsState = (
     suggestions: SuggestedClothesItem[], 
     explanation: string

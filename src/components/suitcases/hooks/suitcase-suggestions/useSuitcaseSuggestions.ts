@@ -1,13 +1,13 @@
 
-import { useSuitcaseSuggestionsState } from "./state/useSuitcaseSuggestionsState";
 import { 
   fetchExistingItems, 
   fetchUserClothes, 
   getAISuggestions, 
   generateBasicSuggestions,
   addClothesToSuitcase
-} from "./api/suitcaseSuggestionsApi";
-import type { SuitcaseSuggestionsHookReturn } from "./types/suitcaseSuggestionsTypes";
+} from "./api";
+import { useSuitcaseSuggestionsState } from "./state";
+import type { SuitcaseSuggestionsHookReturn } from "./types";
 
 export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsHookReturn => {
   const {
@@ -27,9 +27,6 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     queryClient
   } = useSuitcaseSuggestionsState();
 
-  /**
-   * Get suggestions for clothes to add to a suitcase
-   */
   const getSuggestions = async (startDate: Date, endDate: Date) => {
     if (!suitcaseId) {
       toast({
@@ -53,13 +50,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     resetSuggestionsState();
 
     try {
-      // Récupérer les vêtements déjà dans la valise
       const existingItems = await fetchExistingItems(suitcaseId);
-      
-      // Récupérer tous les vêtements de l'utilisateur
       const userClothes = await fetchUserClothes();
 
-      // Filtrer les vêtements déjà dans la valise
       const existingClothesIds = existingItems?.map(item => item.clothes_id) || [];
       const availableClothes = userClothes.filter(cloth => !existingClothesIds.includes(cloth.id));
 
@@ -69,7 +62,6 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
       }
 
       try {
-        // Essayer d'utiliser la fonction Edge
         const { suggestedClothes, explanation } = await getAISuggestions(
           startDate, 
           endDate, 
@@ -81,7 +73,6 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
       } catch (edgeFunctionError) {
         console.error("Erreur avec la fonction Edge, utilisation de la méthode de secours:", edgeFunctionError);
         
-        // Méthode de secours si la fonction Edge échoue
         const { suggestedClothes, explanation } = generateBasicSuggestions(availableClothes, existingItems);
         updateSuggestionsState(suggestedClothes, explanation);
       }
@@ -98,9 +89,6 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     }
   };
 
-  /**
-   * Add suggested clothes to a suitcase
-   */
   const addSuggestedClothes = async () => {
     if (!suitcaseId || suggestedClothes.length === 0) {
       toast({
@@ -122,11 +110,8 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
         description: `${suggestedClothes.length} vêtements ont été ajoutés à la valise`,
       });
 
-      // Fermer le dialogue et réinitialiser l'état
       setShowSuggestionsDialog(false);
       resetSuggestionsState();
-
-      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (e: any) {
       console.error("Erreur lors de l'ajout des vêtements suggérés:", e);

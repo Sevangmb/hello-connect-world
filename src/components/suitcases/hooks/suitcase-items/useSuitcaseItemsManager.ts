@@ -1,15 +1,14 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ClothesItem } from "@/components/clothes/types";
+import { useSuitcaseItemsApi } from "./api";
+import type { SuitcaseItemsManagerHookReturn } from "./types";
 
-export const useSuitcaseItemsManager = (suitcaseId: string) => {
+export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManagerHookReturn => {
   const [isAdding, setIsAdding] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { checkExistingItem, addSuitcaseItem, removeSuitcaseItem, toast } = useSuitcaseItemsApi();
 
   const addItem = async (clothesId: string) => {
     if (!suitcaseId || !clothesId) {
@@ -23,16 +22,8 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
     
     setIsAdding(true);
     try {
-      // Vérification préalable pour voir si l'article existe déjà
-      const { data: existingItems, error: checkError } = await supabase
-        .from("suitcase_items")
-        .select("id")
-        .eq("suitcase_id", suitcaseId)
-        .eq("clothes_id", clothesId);
+      const existingItems = await checkExistingItem(suitcaseId, clothesId);
       
-      if (checkError) throw checkError;
-      
-      // Si l'article existe déjà, on ne l'ajoute pas à nouveau
       if (existingItems && existingItems.length > 0) {
         toast({
           title: "Information",
@@ -41,23 +32,13 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
         return;
       }
 
-      // Ajouter l'article
-      const { error } = await supabase
-        .from("suitcase_items")
-        .insert({
-          suitcase_id: suitcaseId,
-          clothes_id: clothesId,
-          quantity: 1
-        });
-
-      if (error) throw error;
+      await addSuitcaseItem(suitcaseId, clothesId);
 
       toast({
         title: "Vêtement ajouté",
         description: "Le vêtement a été ajouté à la valise",
       });
 
-      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
       console.error("Erreur lors de l'ajout d'un article à la valise:", error);
@@ -83,19 +64,13 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
     
     setIsRemoving(true);
     try {
-      const { error } = await supabase
-        .from("suitcase_items")
-        .delete()
-        .eq("id", itemId);
-
-      if (error) throw error;
+      await removeSuitcaseItem(itemId);
 
       toast({
         title: "Vêtement retiré",
         description: "Le vêtement a été retiré de la valise",
       });
 
-      // Invalider les requêtes pour rafraîchir les données
       queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
       console.error("Erreur lors de la suppression d'un article de la valise:", error);

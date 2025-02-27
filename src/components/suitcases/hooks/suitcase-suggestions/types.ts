@@ -1,28 +1,17 @@
 
-/**
- * Types related to suitcase suggestions functionality
- */
+import type { ClothesItem } from "@/components/clothes/types";
 
-/**
- * Represents a clothing item suggested for a suitcase
- */
 export interface SuggestedClothesItem {
   id: string;
   name: string;
   category: string;
 }
 
-/**
- * Response structure from the AI suggestions
- */
 export interface SuggestionResponse {
   suggestedClothes: SuggestedClothesItem[];
   explanation: string;
 }
 
-/**
- * State and methods returned by the useSuitcaseSuggestions hook
- */
 export interface SuitcaseSuggestionsHookReturn {
   suggestedClothes: SuggestedClothesItem[];
   aiExplanation: string;
@@ -33,4 +22,13 @@ export interface SuitcaseSuggestionsHookReturn {
   error: string | null;
   getSuggestions: (startDate: Date, endDate: Date) => Promise<void>;
   addSuggestedClothes: () => Promise<void>;
+}
+
+export interface SuggestionsState {
+  suggestedClothes: SuggestedClothesItem[];
+  aiExplanation: string;
+  isGettingSuggestions: boolean;
+  isAddingSuggestions: boolean;
+  showSuggestionsDialog: boolean;
+  error: string | null;
 }

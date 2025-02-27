@@ -1,11 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { ClothesItem } from "@/components/clothes/types";
-import type { SuggestedClothesItem, SuggestionResponse } from "../types/suitcaseSuggestionsTypes";
+import type { SuggestedClothesItem, SuggestionResponse } from "./types";
 
-/**
- * Fetch data functions - handle retrieving data from the database
- */
 export const fetchExistingItems = async (suitcaseId: string) => {
   const { data, error } = await supabase
     .from("suitcase_items")
@@ -33,9 +30,6 @@ export const fetchUserClothes = async (): Promise<ClothesItem[]> => {
   return data;
 };
 
-/**
- * AI suggestion functions - handle interaction with AI service
- */
 export const getAISuggestions = async (
   startDate: Date, 
   endDate: Date, 
@@ -49,21 +43,14 @@ export const getAISuggestions = async (
     availableClothes: availableClothes
   };
 
-  try {
-    const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
-      body: payload
-    });
+  const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
+    body: payload
+  });
 
-    if (error) throw error;
-    return validateAndFormatAIResponse(data);
-  } catch (error) {
-    throw error;
-  }
+  if (error) throw error;
+  return validateAndFormatAIResponse(data);
 };
 
-/**
- * Helper functions for data formatting and validation
- */
 const formatClothesForAI = (item: any) => ({
   id: item.clothes?.id,
   name: item.clothes?.name,
@@ -80,9 +67,6 @@ const validateAndFormatAIResponse = (data: any): SuggestionResponse => {
   throw new Error("Format de réponse invalide");
 };
 
-/**
- * Fallback suggestion generation - used when AI service is unavailable
- */
 export const generateBasicSuggestions = (
   availableClothes: ClothesItem[], 
   existingItems: any[]
@@ -105,9 +89,6 @@ export const generateBasicSuggestions = (
   };
 };
 
-/**
- * Helper functions for basic suggestions
- */
 const hasItemInCategory = (items: any[], category: string): boolean => {
   return items?.some(item => item.clothes?.category === category);
 };
@@ -127,9 +108,6 @@ const findAvailableItemInCategory = (
   return undefined;
 };
 
-/**
- * Database operations for managing suggestions
- */
 export const addClothesToSuitcase = async (
   suitcaseId: string, 
   suggestedClothes: SuggestedClothesItem[]
@@ -138,7 +116,11 @@ export const addClothesToSuitcase = async (
     throw new Error("Aucun vêtement à ajouter");
   }
   
-  const itemsToInsert = suggestedClothes.map(formatClothesForInsertion(suitcaseId));
+  const itemsToInsert = suggestedClothes.map(item => ({
+    suitcase_id: suitcaseId,
+    clothes_id: item.id,
+    quantity: 1
+  }));
 
   const { error } = await supabase
     .from("suitcase_items")
@@ -146,9 +128,3 @@ export const addClothesToSuitcase = async (
 
   if (error) throw error;
 };
-
-const formatClothesForInsertion = (suitcaseId: string) => (item: SuggestedClothesItem) => ({
-  suitcase_id: suitcaseId,
-  clothes_id: item.id,
-  quantity: 1
-});
