@@ -11,6 +11,15 @@ export const useDeleteSuitcase = () => {
   const queryClient = useQueryClient();
 
   const deleteSuitcase = async (suitcaseId: string) => {
+    if (!suitcaseId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "ID de valise manquant",
+      });
+      return;
+    }
+    
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette valise ?")) return;
     
     setIsDeleting(true);

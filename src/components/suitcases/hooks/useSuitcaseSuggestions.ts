@@ -21,6 +21,15 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
   const queryClient = useQueryClient();
 
   const getSuggestions = async (startDate: Date, endDate: Date) => {
+    if (!suitcaseId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "ID de valise manquant",
+      });
+      return;
+    }
+    
     if (!startDate || !endDate) {
       toast({
         variant: "destructive",
@@ -34,6 +43,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
     setError(null);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      
       const { data: existingItems, error: existingItemsError } = await supabase
         .from("suitcase_items")
         .select(`
@@ -41,6 +53,7 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
           clothes ( id, name, category )
         `)
         .eq("suitcase_id", suitcaseId);
+        
       if (existingItemsError) throw existingItemsError;
 
       const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
@@ -85,10 +98,17 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
   };
 
   const addSuggestedClothes = async () => {
+    if (!suitcaseId || suggestedClothes.length === 0) {
+      return;
+    }
+    
     setIsAddingSuggestions(true);
     setError(null);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      
       const { error: insertError } = await supabase
         .from("suitcase_items")
         .insert(

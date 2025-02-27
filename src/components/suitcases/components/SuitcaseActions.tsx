@@ -34,6 +34,16 @@ export const SuitcaseActions = ({
 
   const isDisabled = isDeleting || isGettingSuggestions || isAddingSuggestions;
 
+  const handleDeleteSuitcase = () => {
+    deleteSuitcase(suitcaseId);
+  };
+
+  const handleGetSuggestions = () => {
+    if (startDate && endDate) {
+      getSuggestions(startDate, endDate);
+    }
+  };
+
   return (
     <>
       <div className="flex justify-between">
@@ -48,7 +58,7 @@ export const SuitcaseActions = ({
           </Button>
           <Button
             variant="outline"
-            onClick={() => startDate && endDate && getSuggestions(startDate, endDate)}
+            onClick={handleGetSuggestions}
             disabled={isDisabled || !startDate || !endDate}
           >
             {isGettingSuggestions ? (
@@ -62,7 +72,7 @@ export const SuitcaseActions = ({
         <Button
           variant="outline"
           size="icon"
-          onClick={() => deleteSuitcase(suitcaseId)}
+          onClick={handleDeleteSuitcase}
           disabled={isDisabled}
         >
           {isDeleting ? (

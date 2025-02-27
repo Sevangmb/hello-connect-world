@@ -34,7 +34,7 @@ export const AddClothesDialog = ({
 
   const handleAddItem = async (clothesId: string) => {
     await addItem(clothesId);
-    setIsOpen(false);
+    // Ne pas fermer le dialogue après l'ajout pour permettre d'ajouter plusieurs vêtements
   };
 
   const categories = [...new Set(availableClothes.map(cloth => cloth.category))];

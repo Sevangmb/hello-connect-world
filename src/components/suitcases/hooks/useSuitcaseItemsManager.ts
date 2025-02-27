@@ -12,8 +12,20 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
   const queryClient = useQueryClient();
 
   const addItem = async (clothesId: string) => {
+    if (!suitcaseId || !clothesId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Identifiants de valise ou de vêtement manquants",
+      });
+      return;
+    }
+    
     setIsAdding(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { error } = await supabase
         .from("suitcase_items")
         .insert({
@@ -42,8 +54,20 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
   };
 
   const removeItem = async (itemId: string) => {
+    if (!itemId || !suitcaseId) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Identifiant d'élément manquant",
+      });
+      return;
+    }
+    
     setIsRemoving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
       const { error } = await supabase
         .from("suitcase_items")
         .delete()
