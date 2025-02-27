@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ClothesItem } from "@/components/clothes/types";
-import { useSuitcaseItemsManager } from "../hooks"; // Updated import path
+import { useSuitcaseItemsManager } from "../hooks"; // Import du hook
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
@@ -33,6 +33,7 @@ export const AddClothesDialog = ({
   const { isAdding, addItem } = useSuitcaseItemsManager(suitcaseId);
 
   const handleAddItem = async (clothesId: string) => {
+    console.log("Ajout du vêtement à la valise", { suitcaseId, clothesId });
     await addItem(clothesId);
     // Ne pas fermer le dialogue après l'ajout pour permettre d'ajouter plusieurs vêtements
   };

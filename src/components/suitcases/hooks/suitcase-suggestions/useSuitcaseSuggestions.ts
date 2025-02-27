@@ -1,139 +1,70 @@
 
-import { 
-  fetchExistingItems, 
-  fetchUserClothes, 
-  getAISuggestions, 
-  generateBasicSuggestions,
-  addClothesToSuitcase
-} from "./api";
-import { useSuitcaseSuggestionsState } from "./state";
-import type { SuitcaseSuggestionsHookReturn } from "./types";
+import { useState } from 'react';
+import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
+import { useClothes } from '@/hooks/useClothes';
+import { useSuggestionsApi } from './api';
+import { useSuitcaseItemsManager } from '../suitcase-items/useSuitcaseItemsManager';
+import type { SuitcaseSuggestionsHookReturn } from './types';
 
 export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsHookReturn => {
-  const {
-    suggestedClothes,
-    aiExplanation,
-    isGettingSuggestions,
-    isAddingSuggestions,
-    showSuggestionsDialog,
-    error,
-    setIsGettingSuggestions,
-    setIsAddingSuggestions,
-    setShowSuggestionsDialog,
-    setError,
-    resetSuggestionsState,
-    updateSuggestionsState,
-    toast,
-    queryClient
-  } = useSuitcaseSuggestionsState();
+  const [isGettingSuggestions, setIsGettingSuggestions] = useState(false);
+  const [suggestedClothes, setSuggestedClothes] = useState<Array<{ id: string; name: string; category: string }>>([]);
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState("");
+  
+  const { data: suitcaseItems } = useSuitcaseItems(suitcaseId);
+  const { data: allClothes } = useClothes({ source: "mine" });
+  const { isAddingBulk: isAddingSuggestions, addSuggestedClothes } = useSuitcaseItemsManager(suitcaseId);
+  const { getSuitcaseSuggestions, toast } = useSuggestionsApi();
 
   const getSuggestions = async (startDate: Date, endDate: Date) => {
-    if (!suitcaseId) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "ID de valise manquant",
-      });
-      return;
-    }
+    if (!suitcaseId || !allClothes) return;
     
-    if (!startDate || !endDate) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Dates de début et de fin manquantes",
-      });
-      return;
-    }
-
     setIsGettingSuggestions(true);
-    resetSuggestionsState();
-
+    
     try {
-      const existingItems = await fetchExistingItems(suitcaseId);
-      const userClothes = await fetchUserClothes();
+      // Extract current clothes in the suitcase
+      const currentClothes = suitcaseItems?.map(item => ({
+        id: item.clothes_id,
+        name: item.clothes.name,
+        category: item.clothes.category
+      })) || [];
 
-      const existingClothesIds = existingItems?.map(item => item.clothes_id) || [];
-      const availableClothes = userClothes.filter(cloth => !existingClothesIds.includes(cloth.id));
+      // Extract available clothes (not in the suitcase)
+      const suitcaseClothesIds = new Set(currentClothes.map(item => item.id));
+      const availableClothes = allClothes.filter(cloth => !suitcaseClothesIds.has(cloth.id));
 
-      if (availableClothes.length === 0) {
-        updateSuggestionsState([], "Vous avez déjà ajouté tous vos vêtements à cette valise.");
-        return;
-      }
+      // Get suggestions
+      const { suggestedClothes, explanation } = await getSuitcaseSuggestions(
+        startDate,
+        endDate,
+        currentClothes,
+        availableClothes
+      );
 
-      try {
-        const { suggestedClothes, explanation } = await getAISuggestions(
-          startDate, 
-          endDate, 
-          existingItems, 
-          availableClothes
-        );
-        
-        updateSuggestionsState(suggestedClothes, explanation);
-      } catch (edgeFunctionError) {
-        console.error("Erreur avec la fonction Edge, utilisation de la méthode de secours:", edgeFunctionError);
-        
-        const { suggestedClothes, explanation } = generateBasicSuggestions(availableClothes, existingItems);
-        updateSuggestionsState(suggestedClothes, explanation);
-      }
-    } catch (e: any) {
-      console.error("Erreur lors de la récupération des suggestions:", e);
-      setError(e.message || "Impossible de récupérer les suggestions");
+      // Update state
+      setSuggestedClothes(suggestedClothes);
+      setAiExplanation(explanation);
+      setShowSuggestionsDialog(true);
+    } catch (error: any) {
+      console.error("Erreur lors de l'obtention des suggestions:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: e.message || "Impossible de récupérer les suggestions",
+        description: error.message || "Impossible d'obtenir des suggestions pour cette valise",
       });
     } finally {
       setIsGettingSuggestions(false);
     }
   };
 
-  const addSuggestedClothes = async () => {
-    if (!suitcaseId || suggestedClothes.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Aucun vêtement à ajouter",
-      });
-      return;
-    }
-    
-    setIsAddingSuggestions(true);
-    setError(null);
-
-    try {
-      await addClothesToSuitcase(suitcaseId, suggestedClothes);
-
-      toast({
-        title: "Vêtements ajoutés",
-        description: `${suggestedClothes.length} vêtements ont été ajoutés à la valise`,
-      });
-
-      setShowSuggestionsDialog(false);
-      resetSuggestionsState();
-      queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
-    } catch (e: any) {
-      console.error("Erreur lors de l'ajout des vêtements suggérés:", e);
-      setError(e.message || "Impossible d'ajouter les vêtements suggérés");
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: e.message || "Impossible d'ajouter les vêtements suggérés",
-      });
-    } finally {
-      setIsAddingSuggestions(false);
-    }
-  };
-
   return {
-    suggestedClothes,
-    aiExplanation,
     isGettingSuggestions,
     isAddingSuggestions,
+    suggestedClothes,
     showSuggestionsDialog,
     setShowSuggestionsDialog,
-    error,
+    aiExplanation,
     getSuggestions,
     addSuggestedClothes,
   };
