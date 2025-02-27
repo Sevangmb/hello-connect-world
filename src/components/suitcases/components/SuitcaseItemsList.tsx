@@ -2,7 +2,7 @@
 import { X, Box, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SuitcaseItem } from "../utils/types";
-import { useSuitcaseItemsManager } from "../hooks/useSuitcaseItemsManager";
+import { useSuitcaseItemsManager } from "../hooks"; // Updated import path
 import { Badge } from "@/components/ui/badge";
 
 interface SuitcaseItemsListProps {

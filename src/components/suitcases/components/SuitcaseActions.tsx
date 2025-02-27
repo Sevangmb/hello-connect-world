@@ -2,7 +2,7 @@
 import { HelpCircle, Loader2, Package, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDeleteSuitcase } from "../hooks/useDeleteSuitcase";
-import { useSuitcaseSuggestions } from "../hooks/useSuitcaseSuggestions";
+import { useSuitcaseSuggestions } from "../hooks"; // Updated import path
 import { SuitcaseSuggestionsDialog } from "./SuitcaseSuggestionsDialog";
 
 interface SuitcaseActionsProps {

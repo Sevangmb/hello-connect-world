@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ClothesItem } from "@/components/clothes/types";
-import { useSuitcaseItemsManager } from "../hooks/useSuitcaseItemsManager";
+import { useSuitcaseItemsManager } from "../hooks"; // Updated import path
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
