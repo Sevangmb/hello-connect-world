@@ -78,8 +78,6 @@ export const SuitcaseCard = ({
               suitcaseId={suitcase.id}
               startDate={startDate}
               endDate={endDate}
-              onStartDateChange={() => {}}
-              onEndDateChange={() => {}}
             />
           </div>
         )}

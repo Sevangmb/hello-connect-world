@@ -82,8 +82,6 @@ export const SuitcaseListItem = ({
               suitcaseId={suitcase.id}
               startDate={startDate}
               endDate={endDate}
-              onStartDateChange={() => {}}
-              onEndDateChange={() => {}}
             />
             
             <SuitcaseItems suitcaseId={suitcase.id} />
