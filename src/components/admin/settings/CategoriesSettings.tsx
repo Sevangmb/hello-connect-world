@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Edit, Plus, Trash, AlertTriangle, Check, X, IconNames } from "lucide-react";
+import { Edit, Plus, Trash, AlertTriangle, Check, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -118,7 +118,7 @@ export function CategoriesSettings({ categories: initialCategories, isLoading: i
         .from("site_categories")
         .update({ 
           is_active: !category.is_active,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString() // Convert Date to ISO string
         })
         .eq("id", category.id);
 

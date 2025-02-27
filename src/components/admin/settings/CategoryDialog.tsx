@@ -100,7 +100,7 @@ export function CategoryDialog({
             icon: formData.icon,
             order_index: formData.order_index,
             is_active: formData.is_active,
-            updated_at: new Date().toISOString() // Convertir en string ISO
+            updated_at: new Date().toISOString() // Convert Date to ISO string
           })
           .eq("id", category.id);
 
