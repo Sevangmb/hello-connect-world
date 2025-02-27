@@ -41,19 +41,19 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               id,
               name,
               description,
-              top:top_id (
+              top:outfits (
                 id,
                 name,
                 image_url,
                 brand
               ),
-              bottom:bottom_id (
+              bottom:outfits (
                 id,
                 name,
                 image_url,
                 brand
               ),
-              shoes:shoes_id (
+              shoes:outfits (
                 id,
                 name,
                 image_url,
@@ -67,14 +67,22 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
           .gt('created_at', nowMinus15Minutes.toISOString())
           .order('created_at', { ascending: false })
           .maybeSingle();
-          
+
+        console.log("Existing suggestion query result:", existingSuggestion);
+        
         if (!suggestionError && existingSuggestion?.outfits) {
           console.log("Using existing suggestion:", existingSuggestion);
           
+          // Vérification que les champs nécessaires existent dans les données
+          const topItem = existingSuggestion.outfits.top || null;
+          const bottomItem = existingSuggestion.outfits.bottom || null;
+          const shoesItem = existingSuggestion.outfits.shoes || null;
+          
+          // Retour d'un objet OutfitSuggestion valide
           return {
-            top: existingSuggestion.outfits.top,
-            bottom: existingSuggestion.outfits.bottom,
-            shoes: existingSuggestion.outfits.shoes,
+            top: topItem,
+            bottom: bottomItem,
+            shoes: shoesItem,
             explanation: `Pour ${temperature}°C avec un temps ${description}, ${existingSuggestion.outfits.description || 'cette tenue est appropriée.'}`,
             temperature,
             description
