@@ -42,14 +42,13 @@ export const useSuitcaseItemsManager = (suitcaseId: string) => {
       }
 
       // Ajouter l'article
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("suitcase_items")
         .insert({
           suitcase_id: suitcaseId,
           clothes_id: clothesId,
           quantity: 1
-        })
-        .select();
+        });
 
       if (error) throw error;
 
