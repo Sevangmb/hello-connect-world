@@ -19,13 +19,13 @@ export const fetchExistingItems = async (suitcaseId: string) => {
   return data;
 };
 
-export const fetchUserClothes = async () => {
+export const fetchUserClothes = async (): Promise<ClothesItem[]> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non authentifié");
 
   const { data, error } = await supabase
     .from("clothes")
-    .select("id, name, category, weather_categories, color, style")
+    .select("id, name, category, weather_categories, color, style, image_url")
     .eq("user_id", user.id)
     .eq("archived", false);
 
@@ -40,7 +40,7 @@ export const getAISuggestions = async (
   startDate: Date, 
   endDate: Date, 
   existingItems: any[], 
-  availableClothes: any[]
+  availableClothes: ClothesItem[]
 ): Promise<SuggestionResponse> => {
   const payload = {
     startDate: startDate.toISOString(),
@@ -152,4 +152,3 @@ const formatClothesForInsertion = (suitcaseId: string) => (item: SuggestedClothe
   clothes_id: item.id,
   quantity: 1
 });
-
