@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -80,6 +80,7 @@ export const CreateSuitcaseForm = ({ onSubmit, isLoading }: CreateSuitcaseFormPr
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Date de début</FormLabel>
+                <FormDescription className="text-xs">Optionnelle</FormDescription>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
@@ -115,6 +116,7 @@ export const CreateSuitcaseForm = ({ onSubmit, isLoading }: CreateSuitcaseFormPr
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Date de fin</FormLabel>
+                <FormDescription className="text-xs">Optionnelle</FormDescription>
                 <Popover>
                   <PopoverTrigger asChild>
                     <FormControl>
