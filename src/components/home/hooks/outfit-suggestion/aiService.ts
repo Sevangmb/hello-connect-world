@@ -7,6 +7,7 @@ interface ClothingItem {
   name: string;
   image_url: string | null;
   brand?: string;
+  category: string;
 }
 
 interface AIResponse {
@@ -19,7 +20,7 @@ interface AIResponse {
 }
 
 export const generateAISuggestion = async (
-  clothes: any[],
+  clothes: ClothingItem[],
   temperature: number,
   description: string,
   useHuggingFace: boolean = false,
@@ -32,11 +33,31 @@ export const generateAISuggestion = async (
       console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useHuggingFace ? 'Hugging Face' : 'Gemini'}`);
       console.log(`Envoi de ${clothes.length} vêtements à l'API`);
       
-      // Assurons-nous que les vêtements sont bien organisés par catégorie
+      // Amélioration de la catégorisation des vêtements
       const categorizedClothes = {
-        tops: clothes.filter(c => c.category === 'Haut' || c.category === 'Top'),
-        bottoms: clothes.filter(c => c.category === 'Bas' || c.category === 'Bottom' || c.category === 'Pantalon'),
-        shoes: clothes.filter(c => c.category === 'Chaussures' || c.category === 'Shoes')
+        tops: clothes.filter(c => 
+          c.category?.toLowerCase() === 'haut' || 
+          c.category?.toLowerCase() === 'top' || 
+          c.category?.toLowerCase() === 't-shirt' || 
+          c.category?.toLowerCase() === 'chemise' || 
+          c.category?.toLowerCase() === 'pull' || 
+          c.category?.toLowerCase() === 'veste'
+        ),
+        bottoms: clothes.filter(c => 
+          c.category?.toLowerCase() === 'bas' || 
+          c.category?.toLowerCase() === 'bottom' || 
+          c.category?.toLowerCase() === 'pantalon' || 
+          c.category?.toLowerCase() === 'jean' || 
+          c.category?.toLowerCase() === 'jupe' || 
+          c.category?.toLowerCase() === 'short'
+        ),
+        shoes: clothes.filter(c => 
+          c.category?.toLowerCase() === 'chaussures' || 
+          c.category?.toLowerCase() === 'shoes' || 
+          c.category?.toLowerCase() === 'bottes' || 
+          c.category?.toLowerCase() === 'baskets' || 
+          c.category?.toLowerCase() === 'sandales'
+        )
       };
 
       console.log("Vêtements catégorisés:", {
@@ -72,8 +93,8 @@ export const generateAISuggestion = async (
         lastError = aiError;
         
         if (attempt < maxRetries) {
-          // Pause avant de réessayer
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          // Pause avant de réessayer avec un délai exponentiel
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
           continue;
         }
         throw aiError;
@@ -99,40 +120,29 @@ export const generateAISuggestion = async (
         shoes: shoesDetails ? shoesDetails.name : "non trouvé"
       });
 
-      // Si un des vêtements n'est pas trouvé, on réessaie
+      // Si un des vêtements n'est pas trouvé, on sélectionne des vêtements aléatoires pour les manquants
+      const finalTop = topDetails || getRandomItem(categorizedClothes.tops);
+      const finalBottom = bottomDetails || getRandomItem(categorizedClothes.bottoms);
+      const finalShoes = shoesDetails || getRandomItem(categorizedClothes.shoes);
+      
       if (!topDetails || !bottomDetails || !shoesDetails) {
-        console.error("Certains vêtements n'ont pas été trouvés dans la garde-robe");
-        
-        // Essayer de sélectionner des vêtements aléatoirement si certains sont manquants
-        const finalTop = topDetails || categorizedClothes.tops[Math.floor(Math.random() * categorizedClothes.tops.length)];
-        const finalBottom = bottomDetails || categorizedClothes.bottoms[Math.floor(Math.random() * categorizedClothes.bottoms.length)];
-        const finalShoes = shoesDetails || categorizedClothes.shoes[Math.floor(Math.random() * categorizedClothes.shoes.length)];
-        
-        console.log("Utilisation de vêtements par défaut:", {
-          top: finalTop.name,
-          bottom: finalBottom.name,
-          shoes: finalShoes.name
+        console.log("Utilisation de vêtements par défaut pour les manquants:", {
+          top: finalTop?.name || "aucun",
+          bottom: finalBottom?.name || "aucun",
+          shoes: finalShoes?.name || "aucun"
         });
-        
-        return {
-          suggestion: {
-            top: finalTop,
-            bottom: finalBottom,
-            shoes: finalShoes,
-            explanation: aiSuggestion.explanation || "Voici une tenue adaptée à la météo actuelle.",
-            temperature,
-            description
-          },
-          error: null
-        };
       }
-
-      // Tout est bien trouvé, on retourne la suggestion
+      
+      // Vérifier que tous les vêtements nécessaires sont disponibles
+      if (!finalTop || !finalBottom || !finalShoes) {
+        throw new Error("Impossible de composer une tenue complète avec les vêtements disponibles");
+      }
+      
       return {
         suggestion: {
-          top: topDetails,
-          bottom: bottomDetails,
-          shoes: shoesDetails,
+          top: finalTop,
+          bottom: finalBottom,
+          shoes: finalShoes,
           explanation: aiSuggestion.explanation || "Voici une tenue adaptée à la météo actuelle.",
           temperature,
           description
@@ -146,28 +156,53 @@ export const generateAISuggestion = async (
       if (attempt === maxRetries) {
         // Si on a épuisé toutes les tentatives, on essaie de choisir des vêtements au hasard
         try {
-          const tops = clothes.filter(c => c.category === 'Haut' || c.category === 'Top');
-          const bottoms = clothes.filter(c => c.category === 'Bas' || c.category === 'Bottom' || c.category === 'Pantalon');
-          const shoes = clothes.filter(c => c.category === 'Chaussures' || c.category === 'Shoes');
+          console.log("Génération d'une suggestion aléatoire de secours");
           
-          if (tops.length > 0 && bottoms.length > 0 && shoes.length > 0) {
-            const randomTop = tops[Math.floor(Math.random() * tops.length)];
-            const randomBottom = bottoms[Math.floor(Math.random() * bottoms.length)];
-            const randomShoes = shoes[Math.floor(Math.random() * shoes.length)];
+          // Catégoriser à nouveau pour s'assurer que la catégorisation est cohérente
+          const finalCategories = {
+            tops: clothes.filter(c => 
+              c.category?.toLowerCase() === 'haut' || 
+              c.category?.toLowerCase() === 'top' || 
+              c.category?.toLowerCase() === 't-shirt' || 
+              c.category?.toLowerCase() === 'chemise' || 
+              c.category?.toLowerCase() === 'pull' || 
+              c.category?.toLowerCase() === 'veste'
+            ),
+            bottoms: clothes.filter(c => 
+              c.category?.toLowerCase() === 'bas' || 
+              c.category?.toLowerCase() === 'bottom' || 
+              c.category?.toLowerCase() === 'pantalon' || 
+              c.category?.toLowerCase() === 'jean' || 
+              c.category?.toLowerCase() === 'jupe' || 
+              c.category?.toLowerCase() === 'short'
+            ),
+            shoes: clothes.filter(c => 
+              c.category?.toLowerCase() === 'chaussures' || 
+              c.category?.toLowerCase() === 'shoes' || 
+              c.category?.toLowerCase() === 'bottes' || 
+              c.category?.toLowerCase() === 'baskets' || 
+              c.category?.toLowerCase() === 'sandales'
+            )
+          };
+          
+          if (finalCategories.tops.length > 0 && finalCategories.bottoms.length > 0 && finalCategories.shoes.length > 0) {
+            const randomTop = getRandomItem(finalCategories.tops);
+            const randomBottom = getRandomItem(finalCategories.bottoms);
+            const randomShoes = getRandomItem(finalCategories.shoes);
             
-            console.log("Génération d'une suggestion aléatoire de secours");
-            
-            return {
-              suggestion: {
-                top: randomTop,
-                bottom: randomBottom,
-                shoes: randomShoes,
-                explanation: "Suggestion générée aléatoirement car l'IA n'a pas pu proposer une tenue.",
-                temperature,
-                description
-              },
-              error: null
-            };
+            if (randomTop && randomBottom && randomShoes) {
+              return {
+                suggestion: {
+                  top: randomTop,
+                  bottom: randomBottom,
+                  shoes: randomShoes,
+                  explanation: `Suggestion générée aléatoirement pour ${temperature}°C avec un temps ${description}.`,
+                  temperature,
+                  description
+                },
+                error: null
+              };
+            }
           }
         } catch (fallbackError) {
           console.error("Erreur lors de la génération de secours:", fallbackError);
@@ -176,8 +211,8 @@ export const generateAISuggestion = async (
         break;
       }
       
-      // Pause avant de réessayer, avec une durée qui augmente à chaque tentative
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      // Pause avant de réessayer, avec une durée qui augmente à chaque tentative (backoff exponentiel)
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
     }
   }
   
@@ -186,3 +221,9 @@ export const generateAISuggestion = async (
     error: lastError || new Error("Échec de génération de suggestion après plusieurs tentatives")
   };
 };
+
+// Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
+function getRandomItem<T>(items: T[]): T | undefined {
+  if (!items || items.length === 0) return undefined;
+  return items[Math.floor(Math.random() * items.length)];
+}
