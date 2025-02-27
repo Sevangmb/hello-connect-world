@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Edit, Plus, Trash, AlertTriangle, Check, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,17 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CategoryDialog } from "./CategoryDialog";
-
-interface Category {
-  id: string;
-  type: string;
-  name: string;
-  description: string;
-  icon: string;
-  order_index: number;
-  is_active: boolean;
-}
+import { CategoryDialog, Category } from "./categories";
 
 interface CategoriesSettingsProps {
   categories: Category[] | undefined;
