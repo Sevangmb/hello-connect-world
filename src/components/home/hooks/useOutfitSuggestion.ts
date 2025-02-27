@@ -150,51 +150,31 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
               const shoesDetails = clothes?.find(c => c.id === shoes) || null;
 
               // Enregistrer cette suggestion dans la base de données
-              if (topDetails && bottomDetails && shoesDetails) {
+              if (topDetails || bottomDetails || shoesDetails) {
                 try {
-                  // Vérifier d'abord si une tenue similaire existe déjà
-                  const { data: existingOutfit } = await supabase
+                  // Créer une nouvelle tenue
+                  const { data: newOutfit, error: outfitError } = await supabase
                     .from('outfits')
+                    .insert({
+                      user_id: user.id,
+                      name: `Tenue pour ${temperature}°C, ${description}`,
+                      description: aiSuggestion.explanation,
+                      top_id: topDetails?.id || null,
+                      bottom_id: bottomDetails?.id || null,
+                      shoes_id: shoesDetails?.id || null
+                    })
                     .select('id')
-                    .eq('user_id', user.id)
-                    .eq('top_id', topDetails.id)
-                    .eq('bottom_id', bottomDetails.id)
-                    .eq('shoes_id', shoesDetails.id)
-                    .maybeSingle();
-                  
-                  let outfitId;
-                  
-                  if (existingOutfit) {
-                    outfitId = existingOutfit.id;
-                  } else {
-                    // Créer une nouvelle tenue
-                    const { data: newOutfit, error: outfitError } = await supabase
-                      .from('outfits')
-                      .insert({
-                        user_id: user.id,
-                        name: `Tenue pour ${temperature}°C, ${description}`,
-                        description: aiSuggestion.explanation,
-                        top_id: topDetails.id,
-                        bottom_id: bottomDetails.id,
-                        shoes_id: shoesDetails.id
-                      })
-                      .select('id')
-                      .single();
+                    .single();
                       
-                    if (outfitError) {
-                      console.error("Error creating outfit:", outfitError);
-                    } else {
-                      outfitId = newOutfit.id;
-                    }
-                  }
-                  
-                  // Enregistrer la suggestion météo
-                  if (outfitId) {
+                  if (outfitError) {
+                    console.error("Error creating outfit:", outfitError);
+                  } else if (newOutfit) {
+                    // Enregistrer la suggestion météo
                     const { error: weatherSuggestionError } = await supabase
                       .from('outfit_weather_suggestions')
                       .insert({
                         user_id: user.id,
-                        outfit_id: outfitId,
+                        outfit_id: newOutfit.id,
                         temperature: temperature,
                         weather_description: description
                       });
