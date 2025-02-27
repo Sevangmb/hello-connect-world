@@ -5,9 +5,21 @@ import { Sparkles } from "lucide-react";
 import { ClothingItemCard } from "./components/ClothingItemCard";
 import { useOutfitSuggestion } from "./hooks/useOutfitSuggestion";
 import type { WeatherOutfitSuggestionProps } from "./types/weather";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
-  const { data: suggestion, isLoading, error } = useOutfitSuggestion(temperature, description);
+  const queryClient = useQueryClient();
+  const { data: suggestion, isLoading, error, refetch } = useOutfitSuggestion(temperature, description);
+
+  const handleRefresh = () => {
+    // Invalider le cache et relancer la requête
+    queryClient.invalidateQueries({
+      queryKey: ["outfit-suggestion", temperature, description]
+    });
+    refetch();
+  };
 
   if (isLoading) {
     return (
@@ -16,7 +28,13 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           <Sparkles className="h-5 w-5 text-primary animate-pulse" />
           <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
         </div>
-        <Skeleton className="h-[400px] w-full" />
+        <div className="flex justify-center items-center h-[300px]">
+          <div className="flex flex-col items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-36" />
+          </div>
+        </div>
       </Card>
     );
   }
@@ -24,22 +42,53 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
   if (error || !suggestion) {
     return (
       <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-destructive" />
-          <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-destructive" />
+            <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Réessayer
+          </Button>
         </div>
-        <p className="text-destructive">
-          {error instanceof Error ? error.message : "Impossible de générer une suggestion pour le moment."}
-        </p>
+        <div className="text-destructive p-4 bg-destructive/10 rounded-lg">
+          <p className="font-medium mb-1">Impossible de générer une suggestion</p>
+          <p className="text-sm">
+            {error instanceof Error 
+              ? error.message.includes("No clothes available")
+                ? "Veuillez d'abord ajouter des vêtements à votre garde-robe."
+                : error.message.includes("User not authenticated")
+                ? "Veuillez vous connecter pour voir les suggestions."
+                : "Une erreur technique est survenue. Veuillez réessayer plus tard."
+              : "Impossible de générer une suggestion pour le moment."}
+          </p>
+        </div>
       </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">Suggestion de tenue</h2>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh}
+          className="flex items-center gap-1"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Actualiser
+        </Button>
       </div>
       <p className="text-muted-foreground mb-4">
         Pour une température de {suggestion.temperature}°C et un temps {suggestion.description}
@@ -59,4 +108,3 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
     </Card>
   );
 };
-

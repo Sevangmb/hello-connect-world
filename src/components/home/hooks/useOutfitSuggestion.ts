@@ -21,7 +21,7 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
             title: "Non connecté",
             description: "Vous devez être connecté pour voir les suggestions de tenues."
           });
-          return null;
+          throw new Error("User not authenticated");
         }
 
         const { data: clothes, error: clothesError } = await supabase
@@ -43,45 +43,73 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
             title: "Aucun vêtement",
             description: "Vous devez d'abord ajouter des vêtements à votre garde-robe."
           });
-          return null;
+          throw new Error("No clothes available");
         }
 
-        const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
-          'generate-outfit-suggestion',
-          {
-            body: {
-              temperature,
-              description,
-              clothes
+        // Ajouter une tentative avec retry pour la fonction edge
+        const maxRetries = 2;
+        let lastError = null;
+        
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
+              'generate-outfit-suggestion',
+              {
+                body: {
+                  temperature,
+                  description,
+                  clothes
+                }
+              }
+            );
+
+            if (aiError) {
+              console.error(`Attempt ${attempt + 1} failed:`, aiError);
+              lastError = aiError;
+              
+              // Attendre un peu avant de réessayer
+              if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              }
+              throw aiError;
             }
+
+            console.log("Received AI suggestion:", aiSuggestion);
+
+            if (aiSuggestion?.suggestion) {
+              const { top, bottom, shoes } = aiSuggestion.suggestion;
+              
+              const topDetails = clothes?.find(c => c.id === top) || null;
+              const bottomDetails = clothes?.find(c => c.id === bottom) || null;
+              const shoesDetails = clothes?.find(c => c.id === shoes) || null;
+
+              return {
+                top: topDetails,
+                bottom: bottomDetails,
+                shoes: shoesDetails,
+                explanation: aiSuggestion.explanation,
+                temperature,
+                description
+              } as OutfitSuggestion;
+            }
+
+            throw new Error("Invalid suggestion format");
+          } catch (retryError) {
+            console.error(`Attempt ${attempt + 1} error:`, retryError);
+            lastError = retryError;
+            
+            if (attempt === maxRetries) {
+              break;
+            }
+            
+            // Attendre un peu avant de réessayer
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-        );
-
-        if (aiError) {
-          console.error("AI suggestion error:", aiError);
-          throw aiError;
         }
-
-        console.log("Received AI suggestion:", aiSuggestion);
-
-        if (aiSuggestion?.suggestion) {
-          const { top, bottom, shoes } = aiSuggestion.suggestion;
-          
-          const topDetails = clothes?.find(c => c.id === top) || null;
-          const bottomDetails = clothes?.find(c => c.id === bottom) || null;
-          const shoesDetails = clothes?.find(c => c.id === shoes) || null;
-
-          return {
-            top: topDetails,
-            bottom: bottomDetails,
-            shoes: shoesDetails,
-            explanation: aiSuggestion.explanation,
-            temperature,
-            description
-          } as OutfitSuggestion;
-        }
-
-        return null;
+        
+        // Si toutes les tentatives ont échoué
+        throw lastError || new Error("Failed to generate suggestion after multiple attempts");
       } catch (error) {
         console.error("Error in outfit suggestion query:", error);
         toast({
@@ -92,7 +120,8 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
         throw error;
       }
     },
-    enabled: !!temperature && !!description,
+    enabled: Boolean(temperature) && Boolean(description),
+    retry: 1,
+    staleTime: 1000 * 60 * 15, // 15 minutes
   });
 };
-
