@@ -19,9 +19,9 @@ export interface SuitcaseSuggestionsHookReturn {
   isAddingSuggestions: boolean;
   showSuggestionsDialog: boolean;
   setShowSuggestionsDialog: (show: boolean) => void;
-  error: string | null;
+  error?: string | null;
   getSuggestions: (startDate: Date, endDate: Date) => Promise<void>;
-  addSuggestedClothes: () => Promise<void>;
+  addSuggestedClothes: (clothesIds: string[]) => Promise<void>;
 }
 
 export interface SuggestionsState {

@@ -11,16 +11,18 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
   const [suggestedClothes, setSuggestedClothes] = useState<Array<{ id: string; name: string; category: string }>>([]);
   const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
   const [aiExplanation, setAiExplanation] = useState("");
+  const [error, setError] = useState<string | null>(null);
   
   const { data: suitcaseItems } = useSuitcaseItems(suitcaseId);
   const { data: allClothes } = useClothes({ source: "mine" });
-  const { isAddingBulk: isAddingSuggestions, addSuggestedClothes } = useSuitcaseItemsManager(suitcaseId);
+  const { isAddingBulk: isAddingSuggestions, addMultipleItems } = useSuitcaseItemsManager(suitcaseId);
   const { getSuitcaseSuggestions, toast } = useSuggestionsApi();
 
   const getSuggestions = async (startDate: Date, endDate: Date) => {
     if (!suitcaseId || !allClothes) return;
     
     setIsGettingSuggestions(true);
+    setError(null);
     
     try {
       // Extract current clothes in the suitcase
@@ -48,6 +50,7 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
       setShowSuggestionsDialog(true);
     } catch (error: any) {
       console.error("Erreur lors de l'obtention des suggestions:", error);
+      setError(error.message || "Impossible d'obtenir des suggestions pour cette valise");
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -58,6 +61,25 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     }
   };
 
+  const addSuggestedClothes = async (clothesIds: string[]) => {
+    if (!clothesIds.length) return;
+    
+    try {
+      await addMultipleItems(clothesIds);
+      toast({
+        title: "Succès",
+        description: "Les vêtements suggérés ont été ajoutés à votre valise",
+      });
+    } catch (error: any) {
+      console.error("Erreur lors de l'ajout des vêtements suggérés:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message || "Impossible d'ajouter les vêtements suggérés",
+      });
+    }
+  };
+
   return {
     isGettingSuggestions,
     isAddingSuggestions,
@@ -65,6 +87,7 @@ export const useSuitcaseSuggestions = (suitcaseId: string): SuitcaseSuggestionsH
     showSuggestionsDialog,
     setShowSuggestionsDialog,
     aiExplanation,
+    error,
     getSuggestions,
     addSuggestedClothes,
   };

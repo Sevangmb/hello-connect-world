@@ -1,8 +1,8 @@
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSuitcaseItemsApi } from "./api";
-import type { SuitcaseItemsManagerHookReturn } from "./types";
+import { useState } from 'react';
+import { useSuitcaseItemsApi } from './api';
+import type { SuitcaseItemsManagerHookReturn } from './types';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManagerHookReturn => {
   const [isAdding, setIsAdding] = useState(false);
@@ -12,120 +12,101 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
   const { checkExistingItem, addSuitcaseItem, addMultipleSuitcaseItems, removeSuitcaseItem, toast } = useSuitcaseItemsApi();
 
   const addItem = async (clothesId: string) => {
-    if (!suitcaseId || !clothesId) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Identifiants de valise ou de vêtement manquants",
-      });
-      return;
-    }
-    
     setIsAdding(true);
     try {
-      console.log(`Tentative d'ajout du vêtement ${clothesId} à la valise ${suitcaseId}`);
+      // Vérifier si l'article existe déjà dans la valise
       const existingItems = await checkExistingItem(suitcaseId, clothesId);
       
-      if (existingItems && existingItems.length > 0) {
+      if (existingItems.length > 0) {
         toast({
-          title: "Information",
-          description: "Ce vêtement est déjà dans la valise",
+          title: "Déjà ajouté",
+          description: "Cet article est déjà dans votre valise",
         });
         return;
       }
 
+      // Ajouter l'article à la valise
       await addSuitcaseItem(suitcaseId, clothesId);
-
+      
+      // Invalider la requête pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });
+      
       toast({
-        title: "Vêtement ajouté",
-        description: "Le vêtement a été ajouté à la valise",
+        title: "Ajouté",
+        description: "L'article a été ajouté à votre valise",
       });
-
-      queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
-      console.error("Erreur lors de l'ajout d'un article à la valise:", error);
+      console.error("Erreur lors de l'ajout d'un article:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.message || "Impossible d'ajouter le vêtement à la valise",
+        description: error.message || "Impossible d'ajouter l'article à la valise",
       });
     } finally {
       setIsAdding(false);
     }
   };
 
-  const addSuggestedClothes = async (clothesIds: string[]) => {
-    if (!suitcaseId || !clothesIds.length) {
+  const removeItem = async (itemId: string) => {
+    setIsRemoving(true);
+    try {
+      await removeSuitcaseItem(itemId);
+      
+      // Invalider la requête pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });
+      
+      toast({
+        title: "Supprimé",
+        description: "L'article a été retiré de votre valise",
+      });
+    } catch (error: any) {
+      console.error("Erreur lors de la suppression d'un article:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Identifiants de valise ou de vêtements manquants",
+        description: error.message || "Impossible de retirer l'article de la valise",
       });
-      return;
+    } finally {
+      setIsRemoving(false);
     }
+  };
+
+  const addMultipleItems = async (clothesIds: string[]) => {
+    if (!clothesIds.length) return;
     
     setIsAddingBulk(true);
     try {
-      console.log(`Tentative d'ajout de ${clothesIds.length} vêtements à la valise ${suitcaseId}`);
-      
-      // Créer des objets pour chaque vêtement
-      const items = clothesIds.map(clothesId => ({
+      // Créer un tableau d'objets pour l'insertion en masse
+      const itemsToAdd = clothesIds.map(id => ({
         suitcase_id: suitcaseId,
-        clothes_id: clothesId,
+        clothes_id: id,
         quantity: 1
       }));
       
-      // Ajouter les vêtements à la valise
-      const result = await addMultipleSuitcaseItems(items);
+      // Ajouter les articles en masse
+      await addMultipleSuitcaseItems(itemsToAdd);
+      
+      // Invalider la requête pour rafraîchir les données
+      queryClient.invalidateQueries({ queryKey: ['suitcase-items', suitcaseId] });
       
       toast({
-        title: "Vêtements ajoutés",
-        description: `${result.length} vêtement(s) ont été ajoutés à la valise`,
+        title: "Ajoutés",
+        description: `${clothesIds.length} articles ont été ajoutés à votre valise`,
       });
-
-      queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
     } catch (error: any) {
-      console.error("Erreur lors de l'ajout des suggestions:", error);
+      console.error("Erreur lors de l'ajout en masse:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.message || "Impossible d'ajouter les vêtements suggérés",
+        description: error.message || "Impossible d'ajouter les articles à la valise",
       });
     } finally {
       setIsAddingBulk(false);
     }
   };
-
-  const removeItem = async (itemId: string) => {
-    if (!itemId || !suitcaseId) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Identifiant d'élément manquant",
-      });
-      return;
-    }
-    
-    setIsRemoving(true);
-    try {
-      await removeSuitcaseItem(itemId);
-
-      toast({
-        title: "Vêtement retiré",
-        description: "Le vêtement a été retiré de la valise",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["suitcase-items", suitcaseId] });
-    } catch (error: any) {
-      console.error("Erreur lors de la suppression d'un article de la valise:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: error.message || "Impossible de retirer le vêtement de la valise",
-      });
-    } finally {
-      setIsRemoving(false);
-    }
+  
+  const addSuggestedClothes = async (clothesIds: string[]) => {
+    await addMultipleItems(clothesIds);
   };
 
   return {
@@ -134,6 +115,6 @@ export const useSuitcaseItemsManager = (suitcaseId: string): SuitcaseItemsManage
     isAddingBulk,
     addItem,
     removeItem,
-    addSuggestedClothes
+    addSuggestedClothes,
   };
 };

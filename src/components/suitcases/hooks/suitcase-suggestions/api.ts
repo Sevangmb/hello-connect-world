@@ -1,62 +1,47 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { ClothesItem } from "@/components/clothes/types";
 import type { SuggestedClothesItem, SuggestionResponse } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
-export const fetchExistingItems = async (suitcaseId: string) => {
-  const { data, error } = await supabase
-    .from("suitcase_items")
-    .select(`
-      id, clothes_id,
-      clothes ( id, name, category )
-    `)
-    .eq("suitcase_id", suitcaseId);
-    
-  if (error) throw error;
-  return data;
-};
+export const useSuggestionsApi = () => {
+  const { toast } = useToast();
 
-export const fetchUserClothes = async (): Promise<ClothesItem[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Utilisateur non authentifié");
+  const getSuitcaseSuggestions = async (
+    startDate: Date,
+    endDate: Date,
+    currentClothes: SuggestedClothesItem[],
+    availableClothes: ClothesItem[]
+  ): Promise<SuggestionResponse> => {
+    try {
+      const payload = {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        currentClothes: currentClothes,
+        availableClothes: availableClothes
+      };
 
-  const { data, error } = await supabase
-    .from("clothes")
-    .select("id, name, category, weather_categories, color, style, image_url")
-    .eq("user_id", user.id)
-    .eq("archived", false);
+      const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
+        body: payload
+      });
 
-  if (error) throw error;
-  return data;
-};
-
-export const getAISuggestions = async (
-  startDate: Date, 
-  endDate: Date, 
-  existingItems: any[], 
-  availableClothes: ClothesItem[]
-): Promise<SuggestionResponse> => {
-  const payload = {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
-    currentClothes: existingItems?.map(formatClothesForAI) || [],
-    availableClothes: availableClothes
+      if (error) throw error;
+      
+      return validateAndFormatAIResponse(data);
+    } catch (error: any) {
+      console.error("Erreur lors de l'obtention des suggestions:", error);
+      // Générer des suggestions basiques en cas d'erreur
+      return generateBasicSuggestions(availableClothes, currentClothes);
+    }
   };
 
-  const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
-    body: payload
-  });
-
-  if (error) throw error;
-  return validateAndFormatAIResponse(data);
+  return {
+    getSuitcaseSuggestions,
+    toast
+  };
 };
 
-const formatClothesForAI = (item: any) => ({
-  id: item.clothes?.id,
-  name: item.clothes?.name,
-  category: item.clothes?.category
-});
-
+// Fonctions utilitaires
 const validateAndFormatAIResponse = (data: any): SuggestionResponse => {
   if (data && data.suggestedClothes) {
     return {
@@ -67,9 +52,9 @@ const validateAndFormatAIResponse = (data: any): SuggestionResponse => {
   throw new Error("Format de réponse invalide");
 };
 
-export const generateBasicSuggestions = (
+const generateBasicSuggestions = (
   availableClothes: ClothesItem[], 
-  existingItems: any[]
+  existingItems: SuggestedClothesItem[]
 ): SuggestionResponse => {
   const essentialCategories = ["Hauts", "Bas", "Chaussures", "Accessoires"];
   const suggestedItems: SuggestedClothesItem[] = [];
@@ -89,8 +74,8 @@ export const generateBasicSuggestions = (
   };
 };
 
-const hasItemInCategory = (items: any[], category: string): boolean => {
-  return items?.some(item => item.clothes?.category === category);
+const hasItemInCategory = (items: SuggestedClothesItem[], category: string): boolean => {
+  return items?.some(item => item.category === category);
 };
 
 const findAvailableItemInCategory = (
@@ -106,25 +91,4 @@ const findAvailableItemInCategory = (
     };
   }
   return undefined;
-};
-
-export const addClothesToSuitcase = async (
-  suitcaseId: string, 
-  suggestedClothes: SuggestedClothesItem[]
-) => {
-  if (!suitcaseId || suggestedClothes.length === 0) {
-    throw new Error("Aucun vêtement à ajouter");
-  }
-  
-  const itemsToInsert = suggestedClothes.map(item => ({
-    suitcase_id: suitcaseId,
-    clothes_id: item.id,
-    quantity: 1
-  }));
-
-  const { error } = await supabase
-    .from("suitcase_items")
-    .insert(itemsToInsert);
-
-  if (error) throw error;
 };
