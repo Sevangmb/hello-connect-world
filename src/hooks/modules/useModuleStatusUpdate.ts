@@ -91,7 +91,7 @@ export const useModuleStatusUpdate = () => {
     isEnabled: boolean,
     updateFeature: Function,
     setModules: Function,
-    setFeatures: Function
+    features: Record<string, Record<string, boolean>>
   ) => {
     // Vérifier si c'est une fonctionnalité du module Admin
     if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
@@ -99,7 +99,7 @@ export const useModuleStatusUpdate = () => {
       return false;
     }
     
-    await updateFeature(moduleCode, featureCode, isEnabled, setModules, setFeatures);
+    await updateFeature(moduleCode, featureCode, isEnabled, setModules, features);
     
     // Broadcast the change to other tabs
     broadcastFeatureStatusChange(moduleCode, featureCode, isEnabled);

@@ -6,6 +6,7 @@
 
 import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
+import { ModuleStatus } from "./types";
 
 export const useModules = () => {
   // Récupérer les fonctionnalités de base
