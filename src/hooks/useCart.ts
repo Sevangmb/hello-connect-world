@@ -45,7 +45,7 @@ export function useCart(userId: string | null) {
             seller_id,
             shop_id,
             shops:shop_id (name),
-            clothes:clothes_id (
+            clothes:clothes_id!shop_items_clothes_id_fkey (
               name,
               description,
               image_url,
@@ -111,7 +111,7 @@ export function useCart(userId: string | null) {
         .select(`
           id, 
           price,
-          clothes:clothes_id (
+          clothes:clothes_id!shop_items_clothes_id_fkey (
             name,
             stock
           )
@@ -215,7 +215,7 @@ export function useCart(userId: string | null) {
         .from("shop_items")
         .select(`
           id,
-          clothes:clothes_id (
+          clothes:clothes_id!shop_items_clothes_id_fkey (
             name,
             stock
           )
