@@ -1,15 +1,15 @@
 
-import { Toast } from "@/hooks/use-toast";
+import { toast as toastFunction } from "@/hooks/use-toast";
 import { OutfitSuggestionState, OutfitSuggestionResult } from "../types/suggestionTypes";
 import { fetchUserClothes } from "./api";
-import { generateSuggestion } from "../aiService";
-import { ClothingItem, OutfitSuggestion } from "../types/aiTypes";
+import { generateAISuggestion } from "../aiService";
+import { ClothingItem } from "../types/aiTypes";
 import { manageErrorResponse } from "./errorHandling";
 import { categorizeClothingItems } from "./clothingCategorization";
-import { getCurrentUser } from "../../outfit-suggestion/utils/authManager";
+import { getCurrentUser } from "./authManager";
 
 export async function handleSuggestionProcess(
-  toast: Toast,
+  toast: typeof toastFunction,
   temperature: number,
   description: string,
   toastId: string,
@@ -21,6 +21,7 @@ export async function handleSuggestionProcess(
     if (!user) {
       dismissToast();
       return {
+        suggestion: null,
         error: new Error("User not authenticated"),
         errorCode: "AUTH_ERROR"
       };
@@ -38,6 +39,7 @@ export async function handleSuggestionProcess(
     if (!clothes || clothes.length === 0) {
       dismissToast();
       return {
+        suggestion: null,
         error: new Error("No clothes available"),
         errorCode: "NO_CLOTHES_ERROR"
       };
@@ -61,28 +63,27 @@ export async function handleSuggestionProcess(
     });
 
     // Étape 7: Générer la suggestion de tenue
-    const suggestion = await generateSuggestion({
-      userId: user.id,
+    const result = await generateAISuggestion(
+      clothes,
       temperature,
-      weatherDescription: description,
-      clothes: categorizedClothes,
-    });
+      description
+    );
+
+    if (result.error) {
+      throw result.error;
+    }
 
     // Étape 8: Fermer le toast et retourner le résultat
     dismissToast();
+
+    // Ajout de l'id manquant pour la compatibilité
+    const suggestion = result.suggestion ? {
+      ...result.suggestion,
+      id: `suggestion-${Date.now()}`
+    } : null;
     
     return {
-      suggestion: {
-        id: `suggestion-${Date.now()}`,
-        temperature: temperature,
-        description: description,
-        explanation: suggestion.explanation,
-        top: suggestion.top,
-        bottom: suggestion.bottom,
-        shoes: suggestion.shoes,
-        // outerwear est un champ optionnel qui n'est pas dans le type OutfitSuggestion
-        // Nous l'omettons pour éviter l'erreur TypeScript
-      }
+      suggestion
     };
   } catch (error) {
     dismissToast();

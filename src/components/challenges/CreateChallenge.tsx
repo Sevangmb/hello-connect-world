@@ -5,6 +5,7 @@ import { ChallengeBasicInfo } from "./forms/ChallengeBasicInfo";
 import { ChallengeDates } from "./forms/ChallengeDates";
 import { ChallengeParticipationSettings } from "./forms/ChallengeParticipationSettings";
 import { useChallengeSubmit } from "@/hooks/useChallengeSubmit";
+import { useEffect, useState } from "react";
 
 export const CreateChallenge = () => {
   const {
@@ -13,8 +14,8 @@ export const CreateChallenge = () => {
       description,
       rules,
       rewardDescription,
-      startDate,
-      endDate,
+      startDate: startDateString,
+      endDate: endDateString,
       participationType,
       isVotingEnabled,
     },
@@ -23,14 +24,40 @@ export const CreateChallenge = () => {
       setDescription,
       setRules,
       setRewardDescription,
-      setStartDate,
-      setEndDate,
+      setStartDate: setStartDateString,
+      setEndDate: setEndDateString,
       setParticipationType,
       setIsVotingEnabled,
       setHashtags,
     },
     handleSubmit,
   } = useChallengeSubmit();
+
+  // États locaux pour les dates au format Date, convertis à partir des chaînes de dates
+  const [startDate, setStartDate] = useState(startDateString ? new Date(startDateString) : new Date());
+  const [endDate, setEndDate] = useState(endDateString ? new Date(endDateString) : new Date());
+
+  // Propagation des changements de dates entre les états Date et les chaînes de date
+  useEffect(() => {
+    if (startDateString) {
+      setStartDate(new Date(startDateString));
+    }
+  }, [startDateString]);
+
+  useEffect(() => {
+    if (endDateString) {
+      setEndDate(new Date(endDateString));
+    }
+  }, [endDateString]);
+
+  // Handlers pour gérer les changements de dates
+  const handleStartDateChange = (value: string) => {
+    setStartDateString(value);
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDateString(value);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -46,16 +73,16 @@ export const CreateChallenge = () => {
       />
       
       <ChallengeDates
-        startDate={startDate}
-        endDate={endDate}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
+        startDate={startDateString || ""}
+        endDate={endDateString || ""}
+        onStartDateChange={handleStartDateChange}
+        onEndDateChange={handleEndDateChange}
       />
       
       <ChallengeParticipationSettings
-        participationType={participationType}
+        participationType={participationType as "virtual" | "photo"}
         isVotingEnabled={isVotingEnabled}
-        onParticipationTypeChange={setParticipationType}
+        onParticipationTypeChange={(value) => setParticipationType(value)}
         onVotingEnabledChange={setIsVotingEnabled}
       />
       

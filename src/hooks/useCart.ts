@@ -39,8 +39,7 @@ export function useCart(userId: string | null) {
         .select(`
           id,
           quantity,
-          shop_item_id,
-          shop_items (
+          shop_items!inner (
             id,
             name,
             description,
@@ -49,7 +48,7 @@ export function useCart(userId: string | null) {
             stock,
             seller_id,
             shop_id,
-            shops(name)
+            shops:shops!inner(name)
           )
         `)
         .eq("user_id", userId);
@@ -58,6 +57,7 @@ export function useCart(userId: string | null) {
         throw error;
       }
 
+      // Convertir explicitement le résultat au type attendu
       return data.map(item => ({
         id: item.id,
         quantity: item.quantity,
@@ -307,9 +307,9 @@ export function useCart(userId: string | null) {
   const isCartLoading = cartItems.isLoading;
   const cartItemsData = cartItems.data || [];
   
-  // Add this updateQuantity utility function to maintain compatibility with existing code
+  // Utility function to maintain compatibility with existing code
   const updateQuantity = (params: { cartItemId: string; quantity: number }) => {
-    return updateCartItem.mutate(params);
+    updateCartItem.mutate(params);
   };
 
   return {

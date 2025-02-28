@@ -50,6 +50,11 @@ export function useNotificationSettings(userId: string | null) {
         preferences.notifications = {};
       }
       
+      // Vérifier si preferences.notifications est bien un objet avant d'y accéder
+      if (typeof preferences.notifications !== 'object' || preferences.notifications === null) {
+        preferences.notifications = {};
+      }
+      
       // Set the notification type preference
       preferences.notifications[type] = false;
 
@@ -123,6 +128,11 @@ export function useNotificationSettings(userId: string | null) {
       
       // Initialize nested objects if they don't exist
       if (!preferences.notifications) {
+        preferences.notifications = {};
+      }
+      
+      // Vérifier si preferences.notifications est bien un objet avant d'y accéder
+      if (typeof preferences.notifications !== 'object' || preferences.notifications === null) {
         preferences.notifications = {};
       }
       

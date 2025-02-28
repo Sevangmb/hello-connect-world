@@ -1,5 +1,5 @@
 
-import { Toast } from "@/hooks/use-toast";
+import { toast as toastFunction, Toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 interface ToastOptions {
@@ -8,7 +8,7 @@ interface ToastOptions {
   duration?: number;
 }
 
-export const showLoadingToast = (toast: Toast, options: ToastOptions) => {
+export const showLoadingToast = (toast: typeof toastFunction, options: ToastOptions) => {
   const { title, description, duration = 10000 } = options;
   
   // Créer un toast avec un indicateur de chargement
@@ -29,7 +29,7 @@ export const showLoadingToast = (toast: Toast, options: ToastOptions) => {
   };
 };
 
-export const showErrorToast = (toast: Toast, options: ToastOptions) => {
+export const showErrorToast = (toast: typeof toastFunction, options: ToastOptions) => {
   const { title, description, duration = 5000 } = options;
   
   toast({
@@ -40,7 +40,7 @@ export const showErrorToast = (toast: Toast, options: ToastOptions) => {
   });
 };
 
-export const showSuccessToast = (toast: Toast, options: ToastOptions) => {
+export const showSuccessToast = (toast: typeof toastFunction, options: ToastOptions) => {
   const { title, description, duration = 3000 } = options;
   
   toast({
@@ -50,7 +50,7 @@ export const showSuccessToast = (toast: Toast, options: ToastOptions) => {
   });
 };
 
-export const updateToast = (toast: Toast, id: string, options: ToastOptions) => {
+export const updateToast = (toast: typeof toastFunction, id: string, options: ToastOptions) => {
   const { title, description, duration } = options;
   
   toast({

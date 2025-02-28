@@ -18,4 +18,11 @@ export interface OutfitSuggestionState {
 export interface OutfitSuggestionResult {
   suggestion: OutfitSuggestion | null;
   error: Error | null;
+  errorCode?: string;
+}
+
+export interface OutfitSuggestionError {
+  error: Error;
+  errorCode: string;
+  message: string;
 }

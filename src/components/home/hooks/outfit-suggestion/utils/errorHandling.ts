@@ -1,8 +1,8 @@
 
-import { Toast } from "@/hooks/use-toast";
+import { toast as toastFunction } from "@/hooks/use-toast";
 import { OutfitSuggestionError } from "../types/suggestionTypes";
 
-export const manageErrorResponse = (toast: Toast, error: Error | unknown, toastId?: string): OutfitSuggestionError => {
+export const manageErrorResponse = (toast: typeof toastFunction, error: Error | unknown, toastId?: string): OutfitSuggestionError => {
   console.error("Error in outfit suggestion:", error);
   
   let errorMessage = "Une erreur est survenue lors de la génération de votre suggestion de tenue.";
@@ -51,4 +51,50 @@ export const manageErrorResponse = (toast: Toast, error: Error | unknown, toastI
     errorCode,
     message: errorMessage
   };
+};
+
+// Ajout des fonctions manquantes utilisées dans aiService.ts
+export const exponentialDelay = async (attempt: number): Promise<void> => {
+  const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+  return new Promise(resolve => setTimeout(resolve, delay));
+};
+
+export const generateFallbackSuggestion = async (
+  clothes: any[],
+  temperature: number,
+  description: string,
+  categorizedClothes: any
+) => {
+  try {
+    // Sélection aléatoire de vêtements par catégorie
+    const getRandomItem = (items: any[]) => {
+      if (!items || items.length === 0) return null;
+      return items[Math.floor(Math.random() * items.length)];
+    };
+    
+    const top = getRandomItem(categorizedClothes.tops);
+    const bottom = getRandomItem(categorizedClothes.bottoms);
+    const shoes = getRandomItem(categorizedClothes.shoes);
+    
+    if (!top || !bottom || !shoes) {
+      throw new Error("Impossible de générer une tenue de secours avec les vêtements disponibles");
+    }
+    
+    return {
+      suggestion: {
+        top,
+        bottom,
+        shoes,
+        explanation: "Voici une tenue générée à partir de votre garde-robe.",
+        temperature,
+        description
+      },
+      error: null
+    };
+  } catch (error) {
+    return {
+      suggestion: null,
+      error: error instanceof Error ? error : new Error("Échec de génération de tenue de secours")
+    };
+  }
 };

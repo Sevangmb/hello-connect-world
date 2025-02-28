@@ -10,7 +10,7 @@ interface ModuleDegradedProps {
 export function ModuleDegraded({ moduleCode }: ModuleDegradedProps) {
   return (
     <div className="mb-4">
-      <Alert variant="warning">
+      <Alert variant="default" className="bg-amber-50 text-amber-700 border-amber-300">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Fonctionnement dégradé</AlertTitle>
         <AlertDescription>
