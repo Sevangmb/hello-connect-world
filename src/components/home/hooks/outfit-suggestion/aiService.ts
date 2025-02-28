@@ -23,14 +23,14 @@ export const generateAISuggestion = async (
   clothes: ClothingItem[],
   temperature: number,
   description: string,
-  useHuggingFace: boolean = false,
+  useMistral: boolean = true,
   maxRetries = 3
 ): Promise<{ suggestion: OutfitSuggestion | null; error: Error | null }> => {
   let lastError = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useHuggingFace ? 'Hugging Face' : 'Gemini'}`);
+      console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useMistral ? 'Mistral' : 'autre modèle'}`);
       console.log(`Envoi de ${clothes.length} vêtements à l'API`);
       
       // Amélioration de la catégorisation des vêtements
@@ -75,7 +75,7 @@ export const generateAISuggestion = async (
       
       // Appel de la fonction Edge de Supabase
       const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
-        useHuggingFace ? 'generate-outfit-suggestion-hf' : 'generate-outfit-suggestion',
+        useMistral ? 'generate-mistral-suggestion' : 'generate-outfit-suggestion',
         {
           body: {
             temperature,

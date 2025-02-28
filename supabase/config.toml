@@ -18,3 +18,9 @@ verify_jwt = false
 
 [functions.get-suitcase-suggestions]
 verify_jwt = true
+
+[functions.generate-mistral-suggestion]
+verify_jwt = true
+
+[functions.get-suitcase-suggestions-mistral]
+verify_jwt = true

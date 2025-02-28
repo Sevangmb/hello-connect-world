@@ -2,6 +2,7 @@
 import {
   Home,
   Lightbulb,
+  Sparkles
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,18 @@ export const HomeSection = () => {
             >
               <Lightbulb className="h-4 w-4" />
               Suggestions
+            </Button>
+          )}
+          {isModuleActive('ai-recommendations') && (
+            <Button
+              variant="ghost"
+              className={cn("w-full justify-start gap-2", {
+                "bg-custom-blue text-white": location.pathname === "/ai-recommendations",
+              })}
+              onClick={() => navigate("/ai-recommendations")}
+            >
+              <Sparkles className="h-4 w-4" />
+              Recommandations IA
             </Button>
           )}
         </div>

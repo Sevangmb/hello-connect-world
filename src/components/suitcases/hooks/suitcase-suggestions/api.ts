@@ -21,7 +21,8 @@ export const useSuggestionsApi = () => {
         availableClothes: availableClothes
       };
 
-      const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions", {
+      // Utiliser la nouvelle fonction basée sur Mistral
+      const { data, error } = await supabase.functions.invoke("get-suitcase-suggestions-mistral", {
         body: payload
       });
 
