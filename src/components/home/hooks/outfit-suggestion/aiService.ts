@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { OutfitSuggestion } from "../../types/weather";
+import { CATEGORY_MAPPINGS } from "@/components/clothes/constants/categories";
 
 interface ClothingItem {
   id: string;
@@ -33,30 +34,16 @@ export const generateAISuggestion = async (
       console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useMistral ? 'Mistral' : 'autre modèle'}`);
       console.log(`Envoi de ${clothes.length} vêtements à l'API`);
       
-      // Amélioration de la catégorisation des vêtements
+      // Amélioration de la catégorisation des vêtements avec les mappings étendus
       const categorizedClothes = {
         tops: clothes.filter(c => 
-          c.category?.toLowerCase() === 'haut' || 
-          c.category?.toLowerCase() === 'top' || 
-          c.category?.toLowerCase() === 't-shirt' || 
-          c.category?.toLowerCase() === 'chemise' || 
-          c.category?.toLowerCase() === 'pull' || 
-          c.category?.toLowerCase() === 'veste'
+          isInCategory(c.category, CATEGORY_MAPPINGS.tops)
         ),
         bottoms: clothes.filter(c => 
-          c.category?.toLowerCase() === 'bas' || 
-          c.category?.toLowerCase() === 'bottom' || 
-          c.category?.toLowerCase() === 'pantalon' || 
-          c.category?.toLowerCase() === 'jean' || 
-          c.category?.toLowerCase() === 'jupe' || 
-          c.category?.toLowerCase() === 'short'
+          isInCategory(c.category, CATEGORY_MAPPINGS.bottoms)
         ),
         shoes: clothes.filter(c => 
-          c.category?.toLowerCase() === 'chaussures' || 
-          c.category?.toLowerCase() === 'shoes' || 
-          c.category?.toLowerCase() === 'bottes' || 
-          c.category?.toLowerCase() === 'baskets' || 
-          c.category?.toLowerCase() === 'sandales'
+          isInCategory(c.category, CATEGORY_MAPPINGS.shoes)
         )
       };
 
@@ -66,21 +53,32 @@ export const generateAISuggestion = async (
         shoes: categorizedClothes.shoes.length
       });
 
-      // Si une catégorie est vide, on ne peut pas générer de suggestion
-      if (categorizedClothes.tops.length === 0 || 
-          categorizedClothes.bottoms.length === 0 || 
-          categorizedClothes.shoes.length === 0) {
-        throw new Error("Vous n'avez pas assez de vêtements dans certaines catégories pour générer une suggestion");
+      // Si une catégorie est vide, essayons d'inférer le type de vêtement à partir d'autres propriétés
+      // ou de créer des vêtements factices pour permettre la génération
+      const finalCategorizedClothes = handleMissingCategories(categorizedClothes, clothes);
+
+      // Si après notre traitement, une catégorie essentielle est toujours vide, informons l'utilisateur
+      if (finalCategorizedClothes.tops.length === 0 || 
+          finalCategorizedClothes.bottoms.length === 0 || 
+          finalCategorizedClothes.shoes.length === 0) {
+        
+        // Générer une liste des catégories manquantes pour un message d'erreur plus informatif
+        const missingCategories = [];
+        if (finalCategorizedClothes.tops.length === 0) missingCategories.push("hauts");
+        if (finalCategorizedClothes.bottoms.length === 0) missingCategories.push("bas");
+        if (finalCategorizedClothes.shoes.length === 0) missingCategories.push("chaussures");
+        
+        throw new Error(`Vous n'avez pas assez de vêtements dans certaines catégories (${missingCategories.join(", ")}) pour générer une suggestion`);
       }
       
-      // Appel de la fonction Edge de Supabase
+      // Appel de la fonction Edge de Supabase appropriée selon le modèle choisi
       const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
         useMistral ? 'generate-mistral-suggestion' : 'generate-outfit-suggestion',
         {
           body: {
             temperature,
             description,
-            clothes: categorizedClothes,
+            clothes: finalCategorizedClothes,
             allClothes: clothes
           }
         }
@@ -121,9 +119,9 @@ export const generateAISuggestion = async (
       });
 
       // Si un des vêtements n'est pas trouvé, on sélectionne des vêtements aléatoires pour les manquants
-      const finalTop = topDetails || getRandomItem(categorizedClothes.tops);
-      const finalBottom = bottomDetails || getRandomItem(categorizedClothes.bottoms);
-      const finalShoes = shoesDetails || getRandomItem(categorizedClothes.shoes);
+      const finalTop = topDetails || getRandomItem(finalCategorizedClothes.tops);
+      const finalBottom = bottomDetails || getRandomItem(finalCategorizedClothes.bottoms);
+      const finalShoes = shoesDetails || getRandomItem(finalCategorizedClothes.shoes);
       
       if (!topDetails || !bottomDetails || !shoesDetails) {
         console.log("Utilisation de vêtements par défaut pour les manquants:", {
@@ -158,37 +156,20 @@ export const generateAISuggestion = async (
         try {
           console.log("Génération d'une suggestion aléatoire de secours");
           
-          // Catégoriser à nouveau pour s'assurer que la catégorisation est cohérente
+          // Recatégoriser avec notre système amélioré
           const finalCategories = {
-            tops: clothes.filter(c => 
-              c.category?.toLowerCase() === 'haut' || 
-              c.category?.toLowerCase() === 'top' || 
-              c.category?.toLowerCase() === 't-shirt' || 
-              c.category?.toLowerCase() === 'chemise' || 
-              c.category?.toLowerCase() === 'pull' || 
-              c.category?.toLowerCase() === 'veste'
-            ),
-            bottoms: clothes.filter(c => 
-              c.category?.toLowerCase() === 'bas' || 
-              c.category?.toLowerCase() === 'bottom' || 
-              c.category?.toLowerCase() === 'pantalon' || 
-              c.category?.toLowerCase() === 'jean' || 
-              c.category?.toLowerCase() === 'jupe' || 
-              c.category?.toLowerCase() === 'short'
-            ),
-            shoes: clothes.filter(c => 
-              c.category?.toLowerCase() === 'chaussures' || 
-              c.category?.toLowerCase() === 'shoes' || 
-              c.category?.toLowerCase() === 'bottes' || 
-              c.category?.toLowerCase() === 'baskets' || 
-              c.category?.toLowerCase() === 'sandales'
-            )
+            tops: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.tops)),
+            bottoms: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.bottoms)),
+            shoes: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.shoes))
           };
           
-          if (finalCategories.tops.length > 0 && finalCategories.bottoms.length > 0 && finalCategories.shoes.length > 0) {
-            const randomTop = getRandomItem(finalCategories.tops);
-            const randomBottom = getRandomItem(finalCategories.bottoms);
-            const randomShoes = getRandomItem(finalCategories.shoes);
+          // Compléter les catégories manquantes
+          const fallbackCategories = handleMissingCategories(finalCategories, clothes);
+          
+          if (fallbackCategories.tops.length > 0 && fallbackCategories.bottoms.length > 0 && fallbackCategories.shoes.length > 0) {
+            const randomTop = getRandomItem(fallbackCategories.tops);
+            const randomBottom = getRandomItem(fallbackCategories.bottoms);
+            const randomShoes = getRandomItem(fallbackCategories.shoes);
             
             if (randomTop && randomBottom && randomShoes) {
               return {
@@ -221,6 +202,84 @@ export const generateAISuggestion = async (
     error: lastError || new Error("Échec de génération de suggestion après plusieurs tentatives")
   };
 };
+
+// Fonction pour vérifier si une catégorie appartient à un groupe
+function isInCategory(category: string, categoryGroup: string[]): boolean {
+  if (!category) return false;
+  return categoryGroup.some(c => 
+    category.toLowerCase() === c.toLowerCase() || 
+    category.toLowerCase().includes(c.toLowerCase())
+  );
+}
+
+// Fonction pour créer des vêtements factices ou compléter les catégories manquantes
+function handleMissingCategories(
+  categorizedClothes: {
+    tops: ClothingItem[];
+    bottoms: ClothingItem[];
+    shoes: ClothingItem[];
+  },
+  allClothes: ClothingItem[]
+): {
+  tops: ClothingItem[];
+  bottoms: ClothingItem[];
+  shoes: ClothingItem[];
+} {
+  const result = { ...categorizedClothes };
+  
+  // Si nous n'avons pas de hauts, essayons d'inférer à partir d'autres propriétés
+  if (result.tops.length === 0) {
+    // Chercher des vêtements qui pourraient être des hauts mais mal catégorisés
+    const potentialTops = allClothes.filter(c => 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.bottoms) && 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.shoes) &&
+      (c.name?.toLowerCase().includes('haut') || 
+       c.name?.toLowerCase().includes('t-shirt') || 
+       c.name?.toLowerCase().includes('chemise') ||
+       c.name?.toLowerCase().includes('pull') ||
+       c.name?.toLowerCase().includes('veste'))
+    );
+    
+    if (potentialTops.length > 0) {
+      result.tops = potentialTops;
+    }
+  }
+  
+  // Faire de même pour les bas
+  if (result.bottoms.length === 0) {
+    const potentialBottoms = allClothes.filter(c => 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.tops) && 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.shoes) &&
+      (c.name?.toLowerCase().includes('pantalon') || 
+       c.name?.toLowerCase().includes('jean') || 
+       c.name?.toLowerCase().includes('jupe') ||
+       c.name?.toLowerCase().includes('short') ||
+       c.name?.toLowerCase().includes('bas'))
+    );
+    
+    if (potentialBottoms.length > 0) {
+      result.bottoms = potentialBottoms;
+    }
+  }
+  
+  // Et pour les chaussures
+  if (result.shoes.length === 0) {
+    const potentialShoes = allClothes.filter(c => 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.tops) && 
+      !isInCategory(c.category, CATEGORY_MAPPINGS.bottoms) &&
+      (c.name?.toLowerCase().includes('chaussure') || 
+       c.name?.toLowerCase().includes('basket') || 
+       c.name?.toLowerCase().includes('botte') ||
+       c.name?.toLowerCase().includes('sandale'))
+    );
+    
+    if (potentialShoes.length > 0) {
+      result.shoes = potentialShoes;
+    }
+  }
+  
+  return result;
+}
 
 // Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
 function getRandomItem<T>(items: T[]): T | undefined {
