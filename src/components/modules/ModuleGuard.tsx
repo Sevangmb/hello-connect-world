@@ -8,6 +8,7 @@ interface ModuleGuardProps {
   degradedView?: React.ReactNode;
   children: React.ReactNode;
   loadingView?: React.ReactNode;
+  debug?: boolean;
 }
 
 export const ModuleGuard: React.FC<ModuleGuardProps> = ({ 
@@ -15,9 +16,18 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   fallback = null, 
   degradedView = null,
   loadingView = null,
-  children 
+  children,
+  debug = false
 }) => {
   const { isModuleActive, isModuleDegraded, loading } = useModules();
+
+  // Afficher des informations de débogage si demandé
+  if (debug && !loading) {
+    console.debug(`ModuleGuard [${moduleCode}]:`, {
+      isActive: isModuleActive(moduleCode),
+      isDegraded: isModuleDegraded(moduleCode)
+    });
+  }
 
   // Pendant le chargement, afficher la vue de chargement ou rien
   if (loading) return <>{loadingView}</>;
