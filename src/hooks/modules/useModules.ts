@@ -115,11 +115,16 @@ export const useModules = () => {
         description: "Le statut du module a été modifié avec succès",
       });
 
-      // Rafraîchir les données
-      // Note: On peut garder ces appels pour être sûr que tout est synchronisé
-      // mais l'UI sera déjà mise à jour grâce au setModules ci-dessus
-      fetchModules();
-      fetchDependencies();
+      // Si le module est désactivé, désactiver automatiquement toutes ses fonctionnalités
+      if (status === 'inactive') {
+        const module = modules.find(m => m.id === moduleId);
+        if (module && module.features) {
+          Object.keys(module.features).forEach(featureCode => {
+            // Désactiver chaque fonctionnalité silencieusement (sans toast)
+            updateFeatureStatusSilent(module.code, featureCode, false);
+          });
+        }
+      }
       
       // Déclencher une mise à jour immédiate pour tous les composants qui utilisent ModuleGuard
       window.dispatchEvent(new CustomEvent('module_status_changed'));
@@ -133,6 +138,47 @@ export const useModules = () => {
     }
   };
 
+  // Mettre à jour l'état d'une fonctionnalité sans toast de confirmation (pour les mises à jour en masse)
+  const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    try {
+      await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
+
+      // Mettre à jour le statut local
+      setFeatures(prevFeatures => {
+        const updatedFeatures = { ...prevFeatures };
+        
+        if (!updatedFeatures[moduleCode]) {
+          updatedFeatures[moduleCode] = {};
+        }
+        
+        updatedFeatures[moduleCode][featureCode] = isEnabled;
+        
+        return updatedFeatures;
+      });
+      
+      // Mettre à jour les modules avec les nouvelles valeurs
+      setModules(prevModules => {
+        return prevModules.map(module => {
+          if (module.code === moduleCode && module.features) {
+            return {
+              ...module,
+              features: {
+                ...module.features,
+                [featureCode]: isEnabled
+              }
+            };
+          }
+          return module;
+        });
+      });
+      
+      // Déclencher une mise à jour
+      window.dispatchEvent(new CustomEvent('feature_status_changed'));
+    } catch (error: any) {
+      console.error("Erreur lors de la mise à jour silencieuse de la fonctionnalité:", error);
+    }
+  };
+  
   // Mettre à jour l'état d'une fonctionnalité spécifique (pour les admins)
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     try {
@@ -190,9 +236,32 @@ export const useModules = () => {
         fetchModules();
       })
       .subscribe();
+      
+    const featureChannel = supabase
+      .channel('module_features_changes')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'module_features' 
+      }, () => {
+        // Rafraîchir les features quand il y a un changement
+        const updateFeatures = async () => {
+          const updatedFeatures = await fetchFeatureFlagsApi();
+          setFeatures(updatedFeatures);
+          
+          // Mettre à jour les modules avec les nouvelles valeurs
+          setModules(prevModules => 
+            combineModulesWithFeatures(prevModules, updatedFeatures)
+          );
+        };
+        
+        updateFeatures();
+      })
+      .subscribe();
 
     return () => {
       supabase.removeChannel(moduleChannel);
+      supabase.removeChannel(featureChannel);
     };
   }, []);
 
@@ -211,6 +280,7 @@ export const useModules = () => {
     isFeatureEnabled,
     updateModuleStatus,
     updateFeatureStatus,
+    updateFeatureStatusSilent,
     refreshModules: fetchModules,
     refreshDependencies: fetchDependencies,
   };
