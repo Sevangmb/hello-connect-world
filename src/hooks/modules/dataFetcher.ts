@@ -24,11 +24,23 @@ export const useModuleDataFetcher = () => {
       if (cachedModules && cachedModules.length > 0) {
         console.log("Modules chargés depuis le cache:", cachedModules.length);
         setModules(cachedModules);
+        // Set loading to false if we have cached modules
+        setTimeout(() => setLoading(false), 500);
       }
     };
     
     loadFromCache();
-  }, []);
+    
+    // Set a timeout to stop loading state after 5 seconds regardless
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("Forcing loading state to end after timeout");
+        setLoading(false);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   /**
    * Récupérer tous les modules depuis l'API
@@ -55,9 +67,11 @@ export const useModuleDataFetcher = () => {
             if (Object.keys(features).length > 0) {
               const combinedModules = combineModulesWithFeatures(directData, features);
               setModules(combinedModules);
+              setLoading(false);
               return combinedModules;
             } else {
               setModules(directData);
+              setLoading(false);
               return directData;
             }
           }
@@ -73,9 +87,11 @@ export const useModuleDataFetcher = () => {
       if (Object.keys(features).length > 0) {
         const combinedModules = combineModulesWithFeatures(modulesData, features);
         setModules(combinedModules);
+        setLoading(false);
         return combinedModules;
       } else {
         setModules(modulesData);
+        setLoading(false);
         return modulesData;
       }
     } catch (err: any) {
@@ -83,9 +99,12 @@ export const useModuleDataFetcher = () => {
       setError(err.message || "Failed to fetch modules");
       
       // En cas d'erreur, retourner les modules du cache ou un tableau vide
-      return modules.length > 0 ? modules : [];
-    } finally {
+      const result = modules.length > 0 ? modules : [];
       setLoading(false);
+      return result;
+    } finally {
+      // Make sure loading is set to false regardless
+      setTimeout(() => setLoading(false), 1000);
     }
   };
 

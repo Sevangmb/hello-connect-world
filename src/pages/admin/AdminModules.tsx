@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function AdminModules() {
   const [showAlert, setShowAlert] = useState(false);
   const [databaseConnected, setDatabaseConnected] = useState(true);
+  const [connectionChecked, setConnectionChecked] = useState(false);
 
   // Vérifier la connexion à Supabase au chargement
   useEffect(() => {
@@ -32,6 +33,8 @@ export default function AdminModules() {
       } catch (err) {
         console.error("Exception lors de la vérification de la connexion:", err);
         setDatabaseConnected(false);
+      } finally {
+        setConnectionChecked(true);
       }
     };
 
@@ -48,7 +51,7 @@ export default function AdminModules() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!databaseConnected && (
+          {!databaseConnected && connectionChecked && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               <p className="font-bold">Erreur de connexion à la base de données</p>
               <p>Impossible de se connecter à Supabase. Veuillez vérifier votre connexion internet et les clés d'API.</p>

@@ -28,6 +28,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
   const { toast } = useToast();
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [localLoading, setLocalLoading] = useState<boolean>(true);
+  const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
   
   const {
     pendingChanges,
@@ -53,7 +54,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       try {
         await refreshModules();
         console.log("Modules chargés initialement:", modules.length);
-        // Même si loading est toujours true, forcer l'affichage après 2 secondes
+        // Après 2 secondes, forcer l'affichage même si loading est toujours true
         setTimeout(() => {
           setLocalLoading(false);
         }, 2000);
@@ -64,6 +65,17 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     };
     
     initialLoad();
+    
+    // Force stop loading after 5 seconds no matter what
+    const timer = setTimeout(() => {
+      if (localLoading) {
+        console.log("Force stop loading after timeout");
+        setLocalLoading(false);
+        setLoadingTimeout(true);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // Mettre à jour localLoading quand le chargement principal change
@@ -135,9 +147,23 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     }
   };
 
-  // Utiliser localLoading au lieu de loading pour éviter le problème de chargement infini
-  if (localLoading && modules.length === 0) {
-    return <div className="flex justify-center p-8">Chargement des modules...</div>;
+  // Soit nous utilisons localLoading, soit nous vérifions si les modules sont vides après le timeout
+  const isLoading = localLoading && (!loadingTimeout || modules.length === 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <div className="mb-4">Chargement des modules...</div>
+        {loadingTimeout && (
+          <button 
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            Rafraîchir manuellement
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -151,7 +177,13 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       <CardContent>
         {modules.length === 0 ? (
           <div className="text-center py-8">
-            Aucun module trouvé. Veuillez rafraîchir la page ou vérifier la connexion à la base de données.
+            <p className="mb-4">Aucun module trouvé. Veuillez rafraîchir la page ou vérifier la connexion à la base de données.</p>
+            <button 
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Rafraîchir maintenant
+            </button>
           </div>
         ) : (
           <ModulesTable

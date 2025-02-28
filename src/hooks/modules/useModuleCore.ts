@@ -22,6 +22,7 @@ export const useModuleCore = () => {
   // État local pour les modules
   const [localModules, setLocalModules] = useState<AppModule[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [forcedInitComplete, setForcedInitComplete] = useState(false);
   
   // Récupérer les données des modules et dépendances
   const {
@@ -93,6 +94,17 @@ export const useModuleCore = () => {
     };
     
     initializeModules();
+    
+    // Force initialization to complete after a timeout
+    const timer = setTimeout(() => {
+      if (!isInitialized) {
+        console.log("Forcing initialization completion after timeout");
+        setIsInitialized(true);
+        setForcedInitComplete(true);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
   }, [moduleApi, setModules, isInitialized, fetchModules]);
   
   // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
@@ -105,6 +117,23 @@ export const useModuleCore = () => {
           if (directModules.length > 0) {
             setLocalModules(directModules);
             setModules(directModules);
+          } else if (forcedInitComplete) {
+            // If we completed initialization via timeout and still don't have modules,
+            // try one more direct fetch from Supabase
+            try {
+              const { data } = await supabase
+                .from('app_modules')
+                .select('*')
+                .order('name');
+                
+              if (data && data.length > 0) {
+                console.log("Modules chargés via fetch de secours:", data.length);
+                setLocalModules(data);
+                setModules(data);
+              }
+            } catch (e) {
+              console.error("Erreur lors du fetch de secours:", e);
+            }
           }
         } catch (e) {
           console.error("Erreur lors du rechargement des modules:", e);
@@ -113,7 +142,7 @@ export const useModuleCore = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [isInitialized, localModules.length, modules.length, fetchModules, setModules]);
+  }, [isInitialized, localModules.length, modules.length, fetchModules, setModules, forcedInitComplete]);
 
   return {
     modules: localModules.length > 0 ? localModules : modules,
