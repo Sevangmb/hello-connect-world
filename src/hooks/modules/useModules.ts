@@ -1,82 +1,31 @@
 
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { AppModule, ModuleDependency, ModuleStatus } from "./types";
-import { 
-  fetchModules as fetchModulesApi, 
-  fetchDependencies as fetchDependenciesApi,
-  fetchFeatureFlags as fetchFeatureFlagsApi,
-  updateModuleStatus as updateModuleStatusApi,
-  updateFeatureStatus as updateFeatureStatusApi
-} from "./api";
-import { 
-  checkModuleActive, 
-  checkModuleDegraded, 
-  checkFeatureEnabled,
-  combineModulesWithFeatures,
-  cacheModuleStatuses,
-  getModuleStatusesFromCache
-} from "./utils";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { checkModuleActive, checkModuleDegraded, checkFeatureEnabled } from "./utils";
+import { ModuleStatus } from "./types";
+import { useModuleDataFetcher } from "./dataFetcher";
+import { useStatusManager } from "./statusManager";
+import { createModuleSubscriptions } from "./subscriptions";
 
 export const useModules = () => {
-  const [modules, setModules] = useState<AppModule[]>([]);
-  const [dependencies, setDependencies] = useState<ModuleDependency[]>([]);
-  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const [initialized, setInitialized] = useState(false);
+  // Récupérer les données des modules et dépendances
+  const {
+    modules,
+    setModules,
+    dependencies,
+    features,
+    setFeatures,
+    loading,
+    error,
+    fetchModules,
+    fetchDependencies
+  } = useModuleDataFetcher();
 
-  // Récupérer tous les modules
-  const fetchModules = async () => {
-    try {
-      setLoading(true);
-      const modulesData = await fetchModulesApi();
-      
-      // Récupérer les feature flags pour chaque module
-      const moduleFeatures = await fetchFeatureFlagsApi();
-      
-      // Combiner les modules avec leurs feature flags
-      const modulesWithFeatures = combineModulesWithFeatures(modulesData, moduleFeatures);
-      
-      setModules(modulesWithFeatures);
-      setFeatures(moduleFeatures);
-      setInitialized(true);
-      
-      // Mettre en cache les statuts des modules
-      cacheModuleStatuses(modulesWithFeatures);
-    } catch (error: any) {
-      console.error("Erreur lors de la récupération des modules:", error);
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les modules de l'application",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Récupérer toutes les dépendances
-  const fetchDependencies = async () => {
-    try {
-      setLoading(true);
-      const dependenciesData = await fetchDependenciesApi();
-      setDependencies(dependenciesData);
-    } catch (error: any) {
-      console.error("Erreur lors de la récupération des dépendances:", error);
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les dépendances entre modules",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Obtenir les fonctions de gestion des statuts
+  const {
+    updateModuleStatus: updateModule,
+    updateFeatureStatus: updateFeature,
+    updateFeatureStatusSilent: updateFeatureSilent
+  } = useStatusManager();
 
   // Vérifier si un module est actif
   const isModuleActive = (moduleCode: string): boolean => {
@@ -95,174 +44,50 @@ export const useModules = () => {
 
   // Mettre à jour l'état d'un module (pour les admins)
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
-    try {
-      await updateModuleStatusApi(moduleId, status);
-
-      // Mettre à jour le statut local pour une réponse plus rapide de l'UI
-      setModules(prevModules => {
-        const updatedModules = prevModules.map(module => 
-          module.id === moduleId ? { ...module, status } : module
-        );
-        
-        // Mettre à jour le cache
-        cacheModuleStatuses(updatedModules);
-        
-        return updatedModules;
-      });
-
-      toast({
-        title: "Module mis à jour",
-        description: "Le statut du module a été modifié avec succès",
-      });
-
-      // Si le module est désactivé, désactiver automatiquement toutes ses fonctionnalités
-      if (status === 'inactive') {
-        const module = modules.find(m => m.id === moduleId);
-        if (module && module.features) {
-          Object.keys(module.features).forEach(featureCode => {
-            // Désactiver chaque fonctionnalité silencieusement (sans toast)
-            updateFeatureStatusSilent(module.code, featureCode, false);
-          });
-        }
-      }
-      
-      // Déclencher une mise à jour immédiate pour tous les composants qui utilisent ModuleGuard
-      window.dispatchEvent(new CustomEvent('module_status_changed'));
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour du module:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut du module",
-      });
-    }
+    await updateModule(moduleId, status, modules, setModules);
   };
 
-  // Mettre à jour l'état d'une fonctionnalité sans toast de confirmation (pour les mises à jour en masse)
+  // Mettre à jour l'état d'une fonctionnalité silencieuse
   const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-    try {
-      await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
-
-      // Mettre à jour le statut local
-      setFeatures(prevFeatures => {
-        const updatedFeatures = { ...prevFeatures };
-        
-        if (!updatedFeatures[moduleCode]) {
-          updatedFeatures[moduleCode] = {};
-        }
-        
-        updatedFeatures[moduleCode][featureCode] = isEnabled;
-        
-        return updatedFeatures;
-      });
-      
-      // Mettre à jour les modules avec les nouvelles valeurs
-      setModules(prevModules => {
-        return prevModules.map(module => {
-          if (module.code === moduleCode && module.features) {
-            return {
-              ...module,
-              features: {
-                ...module.features,
-                [featureCode]: isEnabled
-              }
-            };
-          }
-          return module;
-        });
-      });
-      
-      // Déclencher une mise à jour
-      window.dispatchEvent(new CustomEvent('feature_status_changed'));
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour silencieuse de la fonctionnalité:", error);
-    }
+    await updateFeatureSilent(moduleCode, featureCode, isEnabled, setModules);
   };
   
-  // Mettre à jour l'état d'une fonctionnalité spécifique (pour les admins)
+  // Mettre à jour l'état d'une fonctionnalité avec notification
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-    try {
-      await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
-
-      // Mettre à jour le statut local pour une réponse plus rapide
-      setFeatures(prevFeatures => {
-        const updatedFeatures = { ...prevFeatures };
-        
-        if (!updatedFeatures[moduleCode]) {
-          updatedFeatures[moduleCode] = {};
-        }
-        
-        updatedFeatures[moduleCode][featureCode] = isEnabled;
-        
-        return updatedFeatures;
-      });
-
-      toast({
-        title: "Fonctionnalité mise à jour",
-        description: `La fonctionnalité "${featureCode}" a été ${isEnabled ? 'activée' : 'désactivée'} avec succès`,
-      });
-
-      // Rafraîchir les feature flags
-      const updatedFeatures = await fetchFeatureFlagsApi();
-      setFeatures(updatedFeatures);
-      
-      // Mettre à jour les modules avec les nouvelles valeurs de feature flags
-      setModules(prevModules => 
-        combineModulesWithFeatures(prevModules, updatedFeatures)
-      );
-      
-      // Déclencher une mise à jour immédiate pour tous les composants qui utilisent FeatureGuard
-      window.dispatchEvent(new CustomEvent('feature_status_changed'));
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour de la fonctionnalité:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut de la fonctionnalité",
-      });
-    }
+    await updateFeature(moduleCode, featureCode, isEnabled, setModules, setFeatures);
   };
 
   // S'abonner aux changements de modules via l'API temps réel de Supabase
   useEffect(() => {
-    const moduleChannel = supabase
-      .channel('app_modules_changes')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'app_modules' 
-      }, () => {
+    const { cleanup } = createModuleSubscriptions({
+      onModuleChange: () => {
         // Rafraîchir les modules quand il y a un changement
         fetchModules();
-      })
-      .subscribe();
-      
-    const featureChannel = supabase
-      .channel('module_features_changes')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'module_features' 
-      }, () => {
+      },
+      onFeatureChange: () => {
         // Rafraîchir les features quand il y a un changement
         const updateFeatures = async () => {
-          const updatedFeatures = await fetchFeatureFlagsApi();
-          setFeatures(updatedFeatures);
-          
-          // Mettre à jour les modules avec les nouvelles valeurs
-          setModules(prevModules => 
-            combineModulesWithFeatures(prevModules, updatedFeatures)
-          );
+          try {
+            const updatedFeatures = await fetchFeatures();
+            if (updatedFeatures) {
+              setFeatures(updatedFeatures);
+              
+              // Mettre à jour les modules avec les nouvelles valeurs
+              setModules(prevModules => 
+                combineModulesWithFeatures(prevModules, updatedFeatures)
+              );
+            }
+          } catch (error) {
+            console.error("Erreur lors de la mise à jour des fonctionnalités:", error);
+          }
         };
         
         updateFeatures();
-      })
-      .subscribe();
+      }
+    });
 
-    return () => {
-      supabase.removeChannel(moduleChannel);
-      supabase.removeChannel(featureChannel);
-    };
+    // Nettoyer les abonnements à la destruction du composant
+    return cleanup;
   }, []);
 
   // Charger les données au montage du composant
@@ -285,3 +110,7 @@ export const useModules = () => {
     refreshDependencies: fetchDependencies,
   };
 };
+
+// Ajouter l'import manquant pour fetchFeatures et combineModulesWithFeatures
+import { fetchFeatureFlags as fetchFeatures } from "./api";
+import { combineModulesWithFeatures } from "./utils";
