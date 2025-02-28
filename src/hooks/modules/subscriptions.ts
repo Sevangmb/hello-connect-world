@@ -132,7 +132,9 @@ export const createModuleSubscriptions = (options: SubscriptionOptions) => {
       console.log('Module change detected:', payload);
       
       // Vérifier si c'est le module Admin qui est modifié
-      if (payload.new && payload.new.code === ADMIN_MODULE_CODE && payload.new.status !== 'active') {
+      if (payload.new && typeof payload.new === 'object' && 'code' in payload.new && 
+          'status' in payload.new && payload.new.code === ADMIN_MODULE_CODE && 
+          payload.new.status !== 'active') {
         console.warn("Tentative de désactivation du module Admin via Realtime, blocage...");
         // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
       }
@@ -147,7 +149,9 @@ export const createModuleSubscriptions = (options: SubscriptionOptions) => {
       console.log('Feature change detected:', payload);
       
       // Vérifier si c'est une fonctionnalité du module Admin
-      if (payload.new && payload.new.module_code === ADMIN_MODULE_CODE && !payload.new.is_enabled) {
+      if (payload.new && typeof payload.new === 'object' && 'module_code' in payload.new && 
+          'is_enabled' in payload.new && payload.new.module_code === ADMIN_MODULE_CODE && 
+          !payload.new.is_enabled) {
         console.warn("Tentative de désactivation d'une fonctionnalité Admin via Realtime, blocage...");
         // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
       }
