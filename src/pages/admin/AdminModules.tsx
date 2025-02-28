@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModulesList } from "@/components/admin/modules/ModulesList";
@@ -7,8 +7,11 @@ import { ModuleDependencies } from "@/components/admin/modules/ModuleDependencie
 import { ModuleDependencyGraph } from "@/components/admin/modules/ModuleDependencyGraph";
 import { ModuleFeatures } from "@/components/admin/modules/ModuleFeatures";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { ModuleStatusAlert } from "@/components/admin/modules/components/ModuleStatusAlert";
 
 export default function AdminModules() {
+  const [showAlert, setShowAlert] = useState(false);
+
   return (
     <AdminRoute>
       <div className="container mx-auto p-4">
@@ -20,6 +23,8 @@ export default function AdminModules() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {showAlert && <ModuleStatusAlert onDismiss={() => setShowAlert(false)} />}
+            
             <Tabs defaultValue="modules" className="w-full">
               <TabsList className="mb-4">
                 <TabsTrigger value="modules">Modules</TabsTrigger>
@@ -29,7 +34,7 @@ export default function AdminModules() {
               </TabsList>
 
               <TabsContent value="modules">
-                <ModulesList />
+                <ModulesList onStatusChange={() => setShowAlert(true)} />
               </TabsContent>
 
               <TabsContent value="features">

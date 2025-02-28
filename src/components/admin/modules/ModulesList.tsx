@@ -7,8 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 import { ModuleStatus } from "@/hooks/modules/types";
 import { ModuleRow } from "./components/ModuleRow";
 import { SaveChangesButton } from "./components/SaveChangesButton";
+import { supabase } from "@/integrations/supabase/client";
+import { triggerModuleStatusChanged } from "@/hooks/modules/events";
 
-export const ModulesList = () => {
+interface ModulesListProps {
+  onStatusChange?: () => void;
+}
+
+export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
   const { 
     modules, 
     dependencies, 
@@ -54,14 +60,24 @@ export const ModulesList = () => {
     try {
       setSaving(true);
       
+      // Utiliser Supabase pour les transactions
+      const { error: transactionError } = await supabase.rpc('update_modules_batch', {
+        module_updates: Object.entries(pendingChanges).map(([moduleId, newStatus]) => ({
+          id: moduleId,
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        }))
+      });
+
+      if (transactionError) {
+        throw transactionError;
+      }
+      
       // Appliquer tous les changements de modules
       const updatePromises = Object.entries(pendingChanges).map(async ([moduleId, newStatus]) => {
         // Trouver le module
         const module = modules.find(m => m.id === moduleId);
         if (!module) return;
-        
-        // Mettre à jour le statut du module
-        await updateModuleStatus(moduleId, newStatus);
         
         // Si le module est désactivé, désactiver également toutes ses fonctionnalités
         if (newStatus === 'inactive' && module.features) {
@@ -82,15 +98,20 @@ export const ModulesList = () => {
         description: "Les modules et leurs fonctionnalités ont été mis à jour",
       });
       
-      // Déclencher un événement personnalisé pour informer que les modules ont été mis à jour
-      window.dispatchEvent(new CustomEvent('module_status_changed'));
+      // Déclencher l'événement personnalisé pour les mises à jour des modules
+      triggerModuleStatusChanged();
+      
+      // Notifier le parent que les statuts ont changé
+      if (onStatusChange) {
+        onStatusChange();
+      }
       
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde des modifications:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'enregistrer les modifications",
+        description: "Impossible d'enregistrer les modifications: " + error.message,
       });
     } finally {
       setSaving(false);

@@ -26,7 +26,9 @@ export const createModuleSubscriptions = (callbacks: SubscriptionCallbacks) => {
       console.log('Module change detected:', payload);
       onModuleChange(payload);
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Module subscription status:', status);
+    });
     
   // 2. Créer un canal pour les changements de fonctionnalités
   const featureChannel = supabase
@@ -39,7 +41,9 @@ export const createModuleSubscriptions = (callbacks: SubscriptionCallbacks) => {
       console.log('Feature change detected:', payload);
       onFeatureChange(payload);
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Feature subscription status:', status);
+    });
 
   // 3. Créer un canal pour les changements de dépendances
   const dependencyChannel = supabase
@@ -52,7 +56,9 @@ export const createModuleSubscriptions = (callbacks: SubscriptionCallbacks) => {
       console.log('Dependency change detected:', payload);
       onDependencyChange(payload);
     })
-    .subscribe();
+    .subscribe((status) => {
+      console.log('Dependency subscription status:', status);
+    });
 
   // Fonction pour nettoyer les abonnements
   const cleanup = () => {
@@ -165,4 +171,21 @@ export const fetchFeatureFlagsRealtime = async () => {
   });
 
   return featuresMap;
+};
+
+// Fonction d'aide pour rafraîchir manuellement les abonnements
+export const refreshModuleSubscriptions = async () => {
+  try {
+    // Forcer la reconnexion aux canaux Supabase
+    await supabase.removeAllChannels();
+    console.log('Tous les canaux Supabase ont été supprimés');
+    
+    // Un court délai pour permettre à Supabase de nettoyer les connexions
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return true;
+  } catch (error) {
+    console.error('Erreur lors du rafraîchissement des abonnements:', error);
+    return false;
+  }
 };

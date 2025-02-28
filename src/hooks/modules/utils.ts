@@ -72,3 +72,23 @@ export const getModuleStatusesFromCache = (): Record<string, ModuleStatus> | nul
     return null;
   }
 };
+
+// Vérifier l'état d'un canal Supabase
+export const checkChannelStatus = (channel: any): string => {
+  if (!channel) return 'non initialisé';
+  
+  return channel.state || 'inconnu';
+};
+
+// Fonction pour gérer les erreurs Supabase de manière cohérente
+export const handleSupabaseError = (error: any): string => {
+  if (!error) return 'Erreur inconnue';
+  
+  if (typeof error === 'string') return error;
+  
+  if (error.message) return error.message;
+  
+  if (error.error_description) return error.error_description;
+  
+  return 'Une erreur est survenue avec Supabase';
+};
