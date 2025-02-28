@@ -13,8 +13,11 @@ import {
   checkModuleActive, 
   checkModuleDegraded, 
   checkFeatureEnabled,
-  combineModulesWithFeatures
+  combineModulesWithFeatures,
+  cacheModuleStatuses,
+  getModuleStatusesFromCache
 } from "./utils";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useModules = () => {
   const [modules, setModules] = useState<AppModule[]>([]);
@@ -40,6 +43,9 @@ export const useModules = () => {
       setModules(modulesWithFeatures);
       setFeatures(moduleFeatures);
       setInitialized(true);
+      
+      // Mettre en cache les statuts des modules
+      cacheModuleStatuses(modulesWithFeatures);
     } catch (error: any) {
       console.error("Erreur lors de la récupération des modules:", error);
       setError(error.message);
@@ -92,14 +98,31 @@ export const useModules = () => {
     try {
       await updateModuleStatusApi(moduleId, status);
 
+      // Mettre à jour le statut local pour une réponse plus rapide de l'UI
+      setModules(prevModules => {
+        const updatedModules = prevModules.map(module => 
+          module.id === moduleId ? { ...module, status } : module
+        );
+        
+        // Mettre à jour le cache
+        cacheModuleStatuses(updatedModules);
+        
+        return updatedModules;
+      });
+
       toast({
         title: "Module mis à jour",
         description: "Le statut du module a été modifié avec succès",
       });
 
       // Rafraîchir les données
+      // Note: On peut garder ces appels pour être sûr que tout est synchronisé
+      // mais l'UI sera déjà mise à jour grâce au setModules ci-dessus
       fetchModules();
       fetchDependencies();
+      
+      // Déclencher une mise à jour immédiate pour tous les composants qui utilisent ModuleGuard
+      window.dispatchEvent(new CustomEvent('module_status_changed'));
     } catch (error: any) {
       console.error("Erreur lors de la mise à jour du module:", error);
       toast({
@@ -115,6 +138,19 @@ export const useModules = () => {
     try {
       await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
 
+      // Mettre à jour le statut local pour une réponse plus rapide
+      setFeatures(prevFeatures => {
+        const updatedFeatures = { ...prevFeatures };
+        
+        if (!updatedFeatures[moduleCode]) {
+          updatedFeatures[moduleCode] = {};
+        }
+        
+        updatedFeatures[moduleCode][featureCode] = isEnabled;
+        
+        return updatedFeatures;
+      });
+
       toast({
         title: "Fonctionnalité mise à jour",
         description: `La fonctionnalité "${featureCode}" a été ${isEnabled ? 'activée' : 'désactivée'} avec succès`,
@@ -128,6 +164,9 @@ export const useModules = () => {
       setModules(prevModules => 
         combineModulesWithFeatures(prevModules, updatedFeatures)
       );
+      
+      // Déclencher une mise à jour immédiate pour tous les composants qui utilisent FeatureGuard
+      window.dispatchEvent(new CustomEvent('feature_status_changed'));
     } catch (error: any) {
       console.error("Erreur lors de la mise à jour de la fonctionnalité:", error);
       toast({
@@ -137,6 +176,25 @@ export const useModules = () => {
       });
     }
   };
+
+  // S'abonner aux changements de modules via l'API temps réel de Supabase
+  useEffect(() => {
+    const moduleChannel = supabase
+      .channel('app_modules_changes')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'app_modules' 
+      }, () => {
+        // Rafraîchir les modules quand il y a un changement
+        fetchModules();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(moduleChannel);
+    };
+  }, []);
 
   // Charger les données au montage du composant
   useEffect(() => {
