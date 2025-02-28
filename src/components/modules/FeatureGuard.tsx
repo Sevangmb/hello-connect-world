@@ -1,8 +1,6 @@
 
 import React from "react";
-import { useModules } from "@/hooks/modules";
-import { useEffect, useState } from "react";
-import { onFeatureStatusChanged } from "@/hooks/modules/events";
+import { useModuleApiContext } from "@/hooks/modules/ModuleApiContext";
 
 interface FeatureGuardProps {
   children: React.ReactNode;
@@ -11,23 +9,13 @@ interface FeatureGuardProps {
   fallback?: React.ReactNode;
 }
 
+/**
+ * Composant qui affiche conditionnellement son contenu en fonction
+ * de l'état d'activation d'une fonctionnalité spécifique
+ */
 export function FeatureGuard({ children, moduleCode, featureCode, fallback }: FeatureGuardProps) {
-  const { isFeatureEnabled } = useModules();
-  const [isEnabled, setIsEnabled] = useState(isFeatureEnabled(moduleCode, featureCode));
-
-  useEffect(() => {
-    const handleFeatureChange = () => {
-      setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
-    };
-    
-    // Initial check
-    setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
-    
-    // Subscribe to feature changes
-    const cleanup = onFeatureStatusChanged(handleFeatureChange);
-    
-    return cleanup;
-  }, [moduleCode, featureCode, isFeatureEnabled]);
+  const { getFeatureEnabledStatus } = useModuleApiContext();
+  const isEnabled = getFeatureEnabledStatus(moduleCode, featureCode);
 
   if (!isEnabled) {
     return fallback ? <>{fallback}</> : null;
@@ -35,3 +23,6 @@ export function FeatureGuard({ children, moduleCode, featureCode, fallback }: Fe
 
   return <>{children}</>;
 }
+
+// Exporter aussi par défaut pour assurer la compatibilité
+export default FeatureGuard;

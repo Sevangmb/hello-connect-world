@@ -1,10 +1,9 @@
 
 import React, { useEffect, useState } from "react";
-import { useModules } from "@/hooks/modules";
+import { useModuleApiContext } from "@/hooks/modules/ModuleApiContext";
 import { ModuleUnavailable } from "./ModuleUnavailable";
 import { ModuleDegraded } from "./ModuleDegraded";
 import { onModuleStatusChanged } from "@/hooks/modules/events";
-import { getModuleStatusesFromCache } from "@/hooks/modules/utils";
 
 interface ModuleGuardProps {
   children: React.ReactNode;
@@ -13,29 +12,20 @@ interface ModuleGuardProps {
 }
 
 export function ModuleGuard({ children, moduleCode, fallback }: ModuleGuardProps) {
-  const { isModuleActive, isModuleDegraded, refreshModules } = useModules();
-  const [isActive, setIsActive] = useState(() => {
-    // Vérifier d'abord le cache pour une réponse immédiate
-    const cachedStatuses = getModuleStatusesFromCache();
-    if (cachedStatuses && cachedStatuses[moduleCode]) {
-      return cachedStatuses[moduleCode] === 'active';
-    }
-    return isModuleActive(moduleCode);
-  });
-  const [isDegraded, setIsDegraded] = useState(() => {
-    // Vérifier d'abord le cache pour une réponse immédiate
-    const cachedStatuses = getModuleStatusesFromCache();
-    if (cachedStatuses && cachedStatuses[moduleCode]) {
-      return cachedStatuses[moduleCode] === 'degraded';
-    }
-    return isModuleDegraded(moduleCode);
-  });
+  const { 
+    getModuleActiveStatus, 
+    getModuleDegradedStatus, 
+    refreshModules 
+  } = useModuleApiContext();
+  
+  const [isActive, setIsActive] = useState(() => getModuleActiveStatus(moduleCode));
+  const [isDegraded, setIsDegraded] = useState(() => getModuleDegradedStatus(moduleCode));
 
   useEffect(() => {
     const handleModuleChange = () => {
       console.log(`Module status check for ${moduleCode}`);
-      const moduleActive = isModuleActive(moduleCode);
-      const moduleDegraded = isModuleDegraded(moduleCode);
+      const moduleActive = getModuleActiveStatus(moduleCode);
+      const moduleDegraded = getModuleDegradedStatus(moduleCode);
       
       console.log(`Module ${moduleCode} status: active=${moduleActive}, degraded=${moduleDegraded}`);
       
@@ -63,17 +53,17 @@ export function ModuleGuard({ children, moduleCode, fallback }: ModuleGuardProps
       cleanup();
       clearInterval(intervalId);
     };
-  }, [moduleCode, isModuleActive, isModuleDegraded, refreshModules]);
+  }, [moduleCode, getModuleActiveStatus, getModuleDegradedStatus, refreshModules]);
 
-  // Force re-evaluation when isModuleActive changes
+  // Forcer la réévaluation quand getModuleActiveStatus change
   useEffect(() => {
-    setIsActive(isModuleActive(moduleCode));
-  }, [isModuleActive, moduleCode]);
+    setIsActive(getModuleActiveStatus(moduleCode));
+  }, [getModuleActiveStatus, moduleCode]);
 
-  // Force re-evaluation when isModuleDegraded changes
+  // Forcer la réévaluation quand getModuleDegradedStatus change
   useEffect(() => {
-    setIsDegraded(isModuleDegraded(moduleCode));
-  }, [isModuleDegraded, moduleCode]);
+    setIsDegraded(getModuleDegradedStatus(moduleCode));
+  }, [getModuleDegradedStatus, moduleCode]);
 
   if (!isActive) {
     return fallback ? <>{fallback}</> : <ModuleUnavailable moduleCode={moduleCode} />;
