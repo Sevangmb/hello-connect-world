@@ -16,6 +16,35 @@ export const useModuleDataFetcher = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+
+  // Vérifier la connexion à Supabase au démarrage
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        // Faire une simple requête pour vérifier la connexion
+        const { data, error } = await supabase
+          .from('app_modules')
+          .select('id')
+          .limit(1);
+          
+        if (error) {
+          console.error("Erreur de connexion à Supabase:", error);
+          setConnectionStatus('disconnected');
+          setError("Problème de connexion à la base de données");
+        } else {
+          console.log("Connexion à Supabase établie avec succès");
+          setConnectionStatus('connected');
+        }
+      } catch (err) {
+        console.error("Exception lors de la vérification de la connexion:", err);
+        setConnectionStatus('disconnected');
+        setError("Problème de connexion à la base de données");
+      }
+    };
+    
+    checkConnection();
+  }, []);
 
   // Essayer de charger depuis le cache au démarrage
   useEffect(() => {
@@ -74,6 +103,10 @@ export const useModuleDataFetcher = () => {
               setLoading(false);
               return directData;
             }
+          } else if (directError) {
+            console.error("Erreur lors du chargement direct:", directError);
+            setError(directError.message || "Échec du chargement des modules");
+            setConnectionStatus('disconnected');
           }
         } catch (altErr) {
           console.error("Erreur lors du chargement alternatif des modules:", altErr);
@@ -161,6 +194,7 @@ export const useModuleDataFetcher = () => {
     error,
     fetchModules,
     fetchDependencies,
-    fetchFeatures
+    fetchFeatures,
+    connectionStatus
   };
 };

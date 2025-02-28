@@ -11,6 +11,7 @@ import { useModuleActive } from "./useModuleActive";
 import { useModuleEffects } from "./useModuleEffects";
 import { useModuleApiContext } from "./ModuleApiContext";
 import { AppModule } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Hook principal pour la gestion des modules
@@ -36,7 +37,8 @@ export const useModuleCore = () => {
     error,
     fetchModules,
     fetchDependencies,
-    fetchFeatures
+    fetchFeatures,
+    connectionStatus
   } = useModuleDataFetcher();
 
   // Obtenir les fonctions de gestion des statuts
@@ -159,6 +161,7 @@ export const useModuleCore = () => {
     fetchModules,
     fetchDependencies,
     fetchFeatures,
-    setModules
+    setModules,
+    connectionStatus
   };
 };

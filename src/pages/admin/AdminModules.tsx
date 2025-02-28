@@ -8,11 +8,16 @@ import { ModuleDependencyGraph } from "@/components/admin/modules/ModuleDependen
 import { ModuleFeatures } from "@/components/admin/modules/ModuleFeatures";
 import { ModuleStatusAlert } from "@/components/admin/modules/components/ModuleStatusAlert";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useModules } from "@/hooks/modules";
 
 export default function AdminModules() {
   const [showAlert, setShowAlert] = useState(false);
   const [databaseConnected, setDatabaseConnected] = useState(true);
   const [connectionChecked, setConnectionChecked] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const { toast } = useToast();
+  const { connectionStatus } = useModules();
 
   // Vérifier la connexion à Supabase au chargement
   useEffect(() => {
@@ -26,6 +31,12 @@ export default function AdminModules() {
         if (error) {
           console.error("Erreur de connexion à Supabase:", error);
           setDatabaseConnected(false);
+          
+          toast({
+            variant: "destructive",
+            title: "Erreur de connexion",
+            description: "Impossible de se connecter à la base de données. Vérifiez votre connexion internet.",
+          });
         } else {
           console.log("Connexion à Supabase établie avec succès");
           setDatabaseConnected(true);
@@ -39,7 +50,36 @@ export default function AdminModules() {
     };
 
     checkConnection();
-  }, []);
+  }, [retryCount, toast]);
+
+  // Si la connexion échoue, essayer à nouveau après un délai
+  useEffect(() => {
+    if (!databaseConnected && connectionChecked) {
+      const retryTimer = setTimeout(() => {
+        console.log("Tentative de reconnexion à Supabase...");
+        setRetryCount(prev => prev + 1);
+      }, 5000); // Essayer toutes les 5 secondes
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [databaseConnected, connectionChecked]);
+
+  // Suivre les changements de statut de connexion depuis useModules
+  useEffect(() => {
+    if (connectionStatus === 'disconnected') {
+      setDatabaseConnected(false);
+    } else if (connectionStatus === 'connected') {
+      setDatabaseConnected(true);
+    }
+  }, [connectionStatus]);
+
+  const handleRetryConnection = () => {
+    setRetryCount(prev => prev + 1);
+    toast({
+      title: "Nouvelle tentative",
+      description: "Tentative de reconnexion en cours...",
+    });
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -55,6 +95,12 @@ export default function AdminModules() {
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               <p className="font-bold">Erreur de connexion à la base de données</p>
               <p>Impossible de se connecter à Supabase. Veuillez vérifier votre connexion internet et les clés d'API.</p>
+              <button 
+                onClick={handleRetryConnection}
+                className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Réessayer la connexion
+              </button>
             </div>
           )}
           

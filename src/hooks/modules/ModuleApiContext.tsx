@@ -67,7 +67,7 @@ export const useModuleApiContext = () => {
   const context = useContext(ModuleApiContext);
   
   if (context === undefined) {
-    throw new Error('useModuleApiContext doit être utilisé à l'intérieur d'un ModuleApiProvider');
+    throw new Error('useModuleApiContext doit être utilisé à l\'intérieur d\'un ModuleApiProvider');
   }
   
   return context;
