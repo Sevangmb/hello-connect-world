@@ -22,7 +22,6 @@ interface ModuleNodeData {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
-  [key: string]: unknown; // ajout de l'index signature pour satisfaire la contrainte Record<string, unknown>
 }
 
 export const ModuleDependencyGraph = () => {
