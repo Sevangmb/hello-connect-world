@@ -4,7 +4,8 @@ import {
   Search,
   ShoppingBag,
   Users,
-  User
+  User,
+  Bell
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const MENU_ITEMS = [
   {
@@ -57,12 +59,19 @@ const MENU_ITEMS = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { notifications } = useNotifications();
+  
+  // Compteur de notifications non lues
+  const unreadCount = notifications?.filter(n => !n.read).length || 0;
 
   // Fonction pour générer un bouton de navigation
   const renderNavButton = (item: typeof MENU_ITEMS[0]) => {
     const isActive = item.path === "/" 
       ? location.pathname === "/" 
       : location.pathname.startsWith(item.path);
+    
+    // Si c'est le bouton Social, on affiche aussi le badge des notifications
+    const isNotifications = item.path === "/friends";
       
     const button = (
       <TooltipProvider key={item.path}>
@@ -83,7 +92,14 @@ export const BottomNav = () => {
                   <item.icon className="h-6 w-6" />
                 </div>
               ) : (
-                <item.icon className="h-5 w-5" />
+                <div className="relative">
+                  <item.icon className="h-5 w-5" />
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </div>
               )}
               <span className={cn(
                 "text-xs mt-1",
@@ -114,9 +130,28 @@ export const BottomNav = () => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
-      <div className="flex justify-around items-center relative">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50 shadow-lg">
+      <div className="flex justify-around items-center relative px-1 pt-1 pb-2">
         {MENU_ITEMS.map(renderNavButton)}
+      </div>
+
+      {/* Indicateur de position (petit trait) */}
+      <div className="absolute top-0 left-0 w-full flex justify-around">
+        {MENU_ITEMS.map((item, index) => {
+          const isActive = item.path === "/" 
+            ? location.pathname === "/" 
+            : location.pathname.startsWith(item.path);
+          
+          return (
+            <div 
+              key={`indicator-${index}`}
+              className={cn(
+                "h-0.5 w-12 rounded-full transition-all duration-300",
+                isActive ? "bg-facebook-primary" : "bg-transparent"
+              )}
+            />
+          );
+        })}
       </div>
     </nav>
   );
