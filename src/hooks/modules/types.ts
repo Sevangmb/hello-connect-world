@@ -1,5 +1,5 @@
 
-// Garder le contenu existant s'il y en a, et ajouter les types manquants ci-dessous:
+// Types pour les modules et les fonctionnalités
 
 export type ModuleStatus = 'active' | 'inactive' | 'degraded';
 
