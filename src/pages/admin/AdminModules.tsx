@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModulesList } from "@/components/admin/modules/ModulesList";
 import { ModuleDependencies } from "@/components/admin/modules/ModuleDependencies";
+import { ModuleDependencyGraph } from "@/components/admin/modules/ModuleDependencyGraph";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 
 export default function AdminModules() {
@@ -22,6 +23,7 @@ export default function AdminModules() {
               <TabsList className="mb-4">
                 <TabsTrigger value="modules">Modules</TabsTrigger>
                 <TabsTrigger value="dependencies">Dépendances</TabsTrigger>
+                <TabsTrigger value="graph">Graphe</TabsTrigger>
               </TabsList>
 
               <TabsContent value="modules">
@@ -30,6 +32,10 @@ export default function AdminModules() {
 
               <TabsContent value="dependencies">
                 <ModuleDependencies />
+              </TabsContent>
+              
+              <TabsContent value="graph">
+                <ModuleDependencyGraph />
               </TabsContent>
             </Tabs>
           </CardContent>
