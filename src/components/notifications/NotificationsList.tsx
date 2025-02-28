@@ -24,7 +24,7 @@ export const NotificationsList = () => {
     });
     
     return unsubscribe;
-  }, [toast]);
+  }, [toast, subscribeToNotifications]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -133,4 +133,4 @@ export const NotificationsList = () => {
       )}
     </div>
   );
-};
+}
