@@ -27,10 +27,10 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
     getModuleDegradedStatus 
   } = useModuleApiContext();
 
-  // Vérifier si c'est un module Admin
+  // Vérifier si c'est un module Admin - toujours retourner le contenu
   const isAdminModule = moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin');
   
-  // Toujours afficher le contenu si c'est un module Admin
+  // Si c'est un module Admin, toujours afficher le contenu
   if (isAdminModule) {
     return <>{children}</>;
   }

@@ -21,7 +21,6 @@ interface MainSidebarProps {
 
 export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
-  const { isModuleActive } = useModules();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -29,6 +28,21 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        try {
+          // Essayer d'abord avec RPC
+          const { data: isUserAdmin } = await supabase.rpc('is_admin', {
+            user_id: user.id
+          });
+          
+          if (isUserAdmin !== undefined) {
+            setIsAdmin(!!isUserAdmin);
+            return;
+          }
+        } catch (error) {
+          console.log("RPC not available, using direct query:", error);
+        }
+
+        // Fallback à la requête directe
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -40,6 +54,16 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         console.error("Error checking admin status:", error);
       }
     };
+
+    // Mode développement: permettre l'accès admin plus facilement
+    if (process.env.NODE_ENV === 'development') {
+      const devBypass = localStorage.getItem('dev_admin_bypass');
+      if (devBypass === 'true') {
+        console.warn("DEV MODE: Admin bypass enabled in sidebar");
+        setIsAdmin(true);
+        return;
+      }
+    }
 
     checkAdminStatus();
   }, []);

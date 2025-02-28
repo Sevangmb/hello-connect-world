@@ -21,25 +21,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useModules } from "@/hooks/modules";
-import { useEffect } from "react";
 
 export const AdminSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive } = useModules();
-
-  // Vérifier que le module admin est actif au chargement
-  useEffect(() => {
-    const checkAdminModule = async () => {
-      const isActive = await isModuleActive('admin');
-      if (!isActive) {
-        console.warn('Le module Admin doit être actif pour cette section');
-      }
-    };
-    
-    checkAdminModule();
-  }, [isModuleActive]);
 
   const handleNavigation = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault();

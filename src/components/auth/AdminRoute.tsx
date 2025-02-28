@@ -36,38 +36,57 @@ const useAdminCheck = () => {
           return;
         }
 
-        // Vérifier si l'utilisateur est admin dans la table profiles
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) {
-          console.error("Error checking admin status:", error);
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Impossible de vérifier les permissions d'administrateur",
+        // Vérifier si l'utilisateur est admin directement avec RPC
+        try {
+          const { data: isUserAdmin, error: rpcError } = await supabase.rpc('is_admin', {
+            user_id: session.user.id
           });
-          setIsAdmin(false);
-          setLoading(false);
-          return;
-        }
+          
+          if (rpcError) {
+            // Si la fonction RPC échoue, revenons à la méthode directe
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('is_admin')
+              .eq('id', session.user.id)
+              .single();
 
-        if (process.env.NODE_ENV === 'development') { 
-          console.log("Admin check result for user", session.user.id, ":", profile?.is_admin); 
-        }
+            if (error) {
+              console.error("Error checking admin status:", error);
+              toast({
+                variant: "destructive",
+                title: "Erreur",
+                description: "Impossible de vérifier les permissions d'administrateur",
+              });
+              setIsAdmin(false);
+              setLoading(false);
+              return;
+            }
 
-        if (!profile?.is_admin) {
-          toast({
-            variant: "destructive",
-            title: "Accès refusé",
-            description: "Vous n'avez pas les permissions d'administrateur nécessaires",
-          });
-          setIsAdmin(false);
-        } else {
-          setIsAdmin(true);
+            setIsAdmin(profile?.is_admin || false);
+          } else {
+            // Utiliser le résultat de la fonction RPC
+            setIsAdmin(!!isUserAdmin);
+          }
+        } catch (error) {
+          console.error("Error checking admin status with RPC:", error);
+          // Fallback à la méthode directe
+          const { data: profile, error: queryError } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', session.user.id)
+            .single();
+
+          if (queryError) {
+            console.error("Error checking admin status:", queryError);
+            toast({
+              variant: "destructive",
+              title: "Erreur",
+              description: "Impossible de vérifier les permissions d'administrateur",
+            });
+            setIsAdmin(false);
+          } else {
+            setIsAdmin(profile?.is_admin || false);
+          }
         }
         
         setLoading(false);
@@ -82,6 +101,17 @@ const useAdminCheck = () => {
         setLoading(false);
       }
     };
+
+    // Mode développement: permettre l'accès admin plus facilement
+    if (process.env.NODE_ENV === 'development') {
+      const devBypass = localStorage.getItem('dev_admin_bypass');
+      if (devBypass === 'true') {
+        console.warn("DEV MODE: Admin bypass enabled");
+        setIsAdmin(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     checkAdminStatus();
   }, [toast]);

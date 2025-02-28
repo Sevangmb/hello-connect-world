@@ -8,7 +8,6 @@ import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
 import { ModuleStatus } from "./types";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 // Constante pour identifier le module Admin
 export const ADMIN_MODULE_CODE = "admin";
@@ -21,9 +20,9 @@ export const useModules = () => {
     loading,
     error,
     features,
-    isModuleActive,
-    isModuleDegraded,
-    isFeatureEnabled,
+    isModuleActive: baseIsModuleActive,
+    isModuleDegraded: baseIsModuleDegraded,
+    isFeatureEnabled: baseIsFeatureEnabled,
     updateModule,
     updateFeature,
     updateFeatureSilent,
@@ -54,12 +53,36 @@ export const useModules = () => {
     checkAdminModuleStatus();
   }, [modules]);
 
+  // Surcharger isModuleActive pour toujours retourner true pour le module Admin
+  const isModuleActive = (moduleCode: string): boolean => {
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
+      return true;
+    }
+    return baseIsModuleActive(moduleCode);
+  };
+
+  // Surcharger isModuleDegraded pour toujours retourner false pour le module Admin
+  const isModuleDegraded = (moduleCode: string): boolean => {
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
+      return false;
+    }
+    return baseIsModuleDegraded(moduleCode);
+  };
+
+  // Surcharger isFeatureEnabled pour toujours retourner true pour les fonctionnalités du module Admin
+  const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
+      return true;
+    }
+    return baseIsFeatureEnabled(moduleCode, featureCode);
+  };
+
   // Wrapper pour mettre à jour le statut d'un module
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
     const moduleToUpdate = modules.find(m => m.id === moduleId);
     
     // Empêcher la désactivation du module Admin
-    if (moduleToUpdate && moduleToUpdate.code === ADMIN_MODULE_CODE && status !== 'active') {
+    if (moduleToUpdate && (moduleToUpdate.code === ADMIN_MODULE_CODE || moduleToUpdate.code.startsWith('admin')) && status !== 'active') {
       console.error("Le module Admin ne peut pas être désactivé");
       return false;
     }
@@ -70,7 +93,7 @@ export const useModules = () => {
   // Wrapper pour mettre à jour le statut d'une fonctionnalité
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     // Empêcher la désactivation des fonctionnalités du module Admin
-    if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
+    if ((moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) && !isEnabled) {
       console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
       return false;
     }
@@ -81,7 +104,7 @@ export const useModules = () => {
   // Wrapper pour mettre à jour le statut d'une fonctionnalité silencieusement
   const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     // Empêcher la désactivation des fonctionnalités du module Admin
-    if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
+    if ((moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) && !isEnabled) {
       console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
       return false;
     }
