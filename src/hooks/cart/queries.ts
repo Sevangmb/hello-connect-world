@@ -8,7 +8,7 @@ export async function fetchCartItems(userId: string | null): Promise<CartItem[]>
     return [];
   }
 
-  // First, get the cart items with shop_items basic data
+  // First, get the cart items
   const { data: cartItemsData, error: cartError } = await supabase
     .from("cart_items")
     .select(`
@@ -27,16 +27,14 @@ export async function fetchCartItems(userId: string | null): Promise<CartItem[]>
     return [];
   }
 
-  // Now fetch all the shop_items and clothes details in separate queries
+  // Now fetch all the shop_items data
   const shopItemIds = cartItemsData.map(item => item.shop_item_id);
   
-  // Get shop_items details
   const { data: shopItemsData, error: shopItemsError } = await supabase
     .from("shop_items")
     .select(`
       id,
       price,
-      seller_id,
       shop_id,
       clothes_id,
       shops:shop_id (name)
@@ -57,8 +55,7 @@ export async function fetchCartItems(userId: string | null): Promise<CartItem[]>
       id,
       name,
       description,
-      image_url,
-      stock
+      image_url
     `)
     .in("id", clothesIds);
 
@@ -88,8 +85,8 @@ export async function fetchCartItems(userId: string | null): Promise<CartItem[]>
         description: clothesItem.description || null,
         price: shopItem.price,
         image_url: clothesItem.image_url || null,
-        stock: clothesItem.stock || 0,
-        seller_id: shopItem.seller_id,
+        stock: 0, // Remplacé par une valeur par défaut puisque cette colonne n'existe pas
+        seller_id: "", // Remplacé par une valeur par défaut puisque cette colonne n'existe pas
         shop_id: shopItem.shop_id,
         shops: {
           name: shopItem.shops?.name || "Boutique inconnue"
@@ -141,8 +138,7 @@ export async function fetchItemDetails(itemId: string) {
   const { data: clothesData, error: clothesError } = await supabase
     .from("clothes")
     .select(`
-      name,
-      stock
+      name
     `)
     .eq("id", shopItemData.clothes_id)
     .single();
@@ -152,9 +148,13 @@ export async function fetchItemDetails(itemId: string) {
     throw new Error("Impossible de récupérer les détails du vêtement");
   }
 
+  // Puisque 'stock' n'existe pas, nous utilisons une valeur par défaut
   return {
     shopItemData,
-    clothesData
+    clothesData: {
+      ...clothesData,
+      stock: 999 // Utilisation d'une valeur par défaut élevée
+    }
   };
 }
 
@@ -243,8 +243,7 @@ export async function getCartItemWithStock(cartItemId: string) {
   const { data: clothesData, error: clothesError } = await supabase
     .from("clothes")
     .select(`
-      name,
-      stock
+      name
     `)
     .eq("id", shopItemData.clothes_id)
     .single();
@@ -254,9 +253,13 @@ export async function getCartItemWithStock(cartItemId: string) {
     throw new Error("Impossible de récupérer les détails du vêtement");
   }
 
+  // Puisque 'stock' n'existe pas, nous utilisons une valeur par défaut
   return {
     cartItem,
     shopItemData,
-    clothesData
+    clothesData: {
+      ...clothesData,
+      stock: 999 // Utilisation d'une valeur par défaut élevée
+    }
   };
 }

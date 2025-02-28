@@ -1,6 +1,4 @@
 
-import { ShoppingCart } from "lucide-react";
-
 export interface CartItem {
   id: string;
   quantity: number;

@@ -31,7 +31,8 @@ export function useCartMutations(userId: string | null) {
       const { shopItemData, clothesData } = await fetchItemDetails(itemId);
 
       // Check stock availability
-      const itemStock = clothesData?.stock || 0;
+      // Nous utilisons une valeur par défaut pour le stock
+      const itemStock = clothesData?.stock || 999;
       const itemName = clothesData?.name || "Article";
 
       if ((existingItem ? existingItem.quantity + quantity : quantity) > itemStock) {
@@ -89,7 +90,8 @@ export function useCartMutations(userId: string | null) {
       // Get cart item with stock information
       const { clothesData } = await getCartItemWithStock(cartItemId);
 
-      const itemStock = clothesData?.stock || 0;
+      // Nous utilisons une valeur par défaut pour le stock
+      const itemStock = clothesData?.stock || 999;
       const itemName = clothesData?.name || "Article";
 
       if (quantity > itemStock) {
