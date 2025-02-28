@@ -32,7 +32,8 @@ export const AdminSection = () => {
   // Vérifier que le module admin est actif au chargement
   useEffect(() => {
     const checkAdminModule = async () => {
-      if (!isModuleActive('admin')) {
+      const isActive = await isModuleActive('admin');
+      if (!isActive) {
         console.warn('Le module Admin doit être actif pour cette section');
       }
     };

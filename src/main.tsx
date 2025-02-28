@@ -125,9 +125,6 @@ const App = () => {
         }
       />
 
-      {/* Route par défaut redirige vers landing */}
-      <Route path="*" element={<Navigate to="/landing" replace />} />
-
       {/* Routes d'administration (protégées par AdminRoute) */}
       <Route
         path="/admin"

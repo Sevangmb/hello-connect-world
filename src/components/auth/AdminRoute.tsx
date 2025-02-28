@@ -1,3 +1,4 @@
+
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,9 @@ const useAdminCheck = () => {
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
+        setLoading(true);
+        
+        // Vérifier la session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (process.env.NODE_ENV === 'development') { 
@@ -27,10 +31,12 @@ const useAdminCheck = () => {
             title: "Accès refusé",
             description: "Veuillez vous connecter pour accéder à cette page",
           });
+          setIsAdmin(false);
           setLoading(false);
           return;
         }
 
+        // Vérifier si l'utilisateur est admin dans la table profiles
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -44,6 +50,7 @@ const useAdminCheck = () => {
             title: "Erreur",
             description: "Impossible de vérifier les permissions d'administrateur",
           });
+          setIsAdmin(false);
           setLoading(false);
           return;
         }
@@ -58,9 +65,11 @@ const useAdminCheck = () => {
             title: "Accès refusé",
             description: "Vous n'avez pas les permissions d'administrateur nécessaires",
           });
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(true);
         }
-
-        setIsAdmin(profile?.is_admin || false);
+        
         setLoading(false);
       } catch (error) {
         console.error("Error in admin check:", error);
@@ -69,6 +78,7 @@ const useAdminCheck = () => {
           title: "Erreur",
           description: "Une erreur est survenue lors de la vérification des permissions",
         });
+        setIsAdmin(false);
         setLoading(false);
       }
     };

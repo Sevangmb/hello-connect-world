@@ -32,8 +32,8 @@ export const useModuleApi = () => {
    * Utilise le cache et effectue une vérification en temps réel si nécessaire
    */
   const isModuleActive = useCallback(async (moduleCode: string): Promise<boolean> => {
-    // Si c'est le module Admin, toujours retourner true
-    if (moduleCode === ADMIN_MODULE_CODE) return true;
+    // Si c'est le module Admin ou commence par 'admin', toujours retourner true
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return true;
 
     // Essayer d'abord le cache en mémoire
     if (inMemoryModulesCache) {
@@ -74,8 +74,8 @@ export const useModuleApi = () => {
    * Utilise le cache et effectue une vérification en temps réel si nécessaire
    */
   const isModuleDegraded = useCallback(async (moduleCode: string): Promise<boolean> => {
-    // Si c'est le module Admin, jamais en mode dégradé
-    if (moduleCode === ADMIN_MODULE_CODE) return false;
+    // Si c'est le module Admin ou commence par 'admin', jamais en mode dégradé
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return false;
 
     // Essayer d'abord le cache en mémoire
     if (inMemoryModulesCache) {
@@ -116,8 +116,8 @@ export const useModuleApi = () => {
    * Utilise le cache et effectue une vérification en temps réel si nécessaire
    */
   const isFeatureEnabled = useCallback(async (moduleCode: string, featureCode: string): Promise<boolean> => {
-    // Si c'est le module Admin, toujours activer ses fonctionnalités
-    if (moduleCode === ADMIN_MODULE_CODE) return true;
+    // Si c'est le module Admin ou commence par 'admin', toujours activer ses fonctionnalités
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return true;
 
     // Vérifier d'abord si le module est actif
     const moduleActive = await isModuleActive(moduleCode);
@@ -157,8 +157,8 @@ export const useModuleApi = () => {
    * Utilise uniquement le cache, pour une utilisation dans les rendus React
    */
   const getModuleActiveStatus = useCallback((moduleCode: string): boolean => {
-    // Si c'est le module Admin, toujours retourner true
-    if (moduleCode === ADMIN_MODULE_CODE) return true;
+    // Si c'est le module Admin ou commence par 'admin', toujours retourner true
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return true;
 
     // Essayer d'abord le cache en mémoire
     if (inMemoryModulesCache) {
@@ -183,8 +183,8 @@ export const useModuleApi = () => {
    * Utilise uniquement le cache, pour une utilisation dans les rendus React
    */
   const getModuleDegradedStatus = useCallback((moduleCode: string): boolean => {
-    // Si c'est le module Admin, jamais en mode dégradé
-    if (moduleCode === ADMIN_MODULE_CODE) return false;
+    // Si c'est le module Admin ou commence par 'admin', jamais en mode dégradé
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return false;
 
     // Essayer d'abord le cache en mémoire
     if (inMemoryModulesCache) {
@@ -209,8 +209,8 @@ export const useModuleApi = () => {
    * Utilise uniquement le cache, pour une utilisation dans les rendus React
    */
   const getFeatureEnabledStatus = useCallback((moduleCode: string, featureCode: string): boolean => {
-    // Si c'est le module Admin, toujours activer ses fonctionnalités
-    if (moduleCode === ADMIN_MODULE_CODE) return true;
+    // Si c'est le module Admin ou commence par 'admin', toujours activer ses fonctionnalités
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return true;
 
     // Vérifier d'abord si le module est actif
     const moduleActive = getModuleActiveStatus(moduleCode);
@@ -313,7 +313,7 @@ export const useModuleApi = () => {
       
       data.forEach(feature => {
         // S'assurer que les fonctionnalités Admin sont toujours activées
-        if (feature.module_code === ADMIN_MODULE_CODE && !feature.is_enabled) {
+        if ((feature.module_code === ADMIN_MODULE_CODE || feature.module_code.startsWith('admin')) && !feature.is_enabled) {
           // Réparer automatiquement
           supabase
             .from('module_features')
@@ -357,7 +357,7 @@ export const useModuleApi = () => {
     // Vérifier si le module est le module Admin
     if (inMemoryModulesCache) {
       const moduleToUpdate = inMemoryModulesCache.find(m => m.id === moduleId);
-      if (moduleToUpdate && moduleToUpdate.code === ADMIN_MODULE_CODE && status !== 'active') {
+      if (moduleToUpdate && (moduleToUpdate.code === ADMIN_MODULE_CODE || moduleToUpdate.code.startsWith('admin')) && status !== 'active') {
         console.error("Le module Admin ne peut pas être désactivé");
         return false;
       }
@@ -412,7 +412,7 @@ export const useModuleApi = () => {
     isEnabled: boolean
   ): Promise<boolean> => {
     // Vérifier si c'est une fonctionnalité du module Admin
-    if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
+    if ((moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) && !isEnabled) {
       console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
       return false;
     }
