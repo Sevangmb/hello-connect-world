@@ -51,7 +51,7 @@ export const HomeSection = () => {
               Suggestions
             </Button>
           )}
-          {isModuleActive('ai-recommendations') && (
+          {isModuleActive('ai') && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
