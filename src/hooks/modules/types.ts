@@ -1,26 +1,26 @@
 
+// Garder le contenu existant s'il y en a, et ajouter les types manquants ci-dessous:
+
 export type ModuleStatus = 'active' | 'inactive' | 'degraded';
 
 export interface AppModule {
   id: string;
-  name: string;
   code: string;
-  description: string | null;
+  name: string;
+  description: string;
   status: ModuleStatus;
   is_core: boolean;
-  created_at: string;
-  updated_at: string;
   features?: Record<string, boolean>;
 }
 
 export interface ModuleDependency {
+  id: string;
   module_id: string;
-  module_code: string;
-  module_name: string;
-  module_status: ModuleStatus;
-  dependency_id: string | null;
-  dependency_code: string | null;
-  dependency_name: string | null;
-  dependency_status: ModuleStatus | null;
-  is_required: boolean | null;
+  module_code?: string;
+  module_name?: string;
+  module_status?: ModuleStatus;
+  dependency_id: string;
+  dependency_code?: string;
+  dependency_name?: string;
+  is_required: boolean;
 }
