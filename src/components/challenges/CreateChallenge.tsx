@@ -14,8 +14,8 @@ export const CreateChallenge = () => {
       description,
       rules,
       rewardDescription,
-      startDate: startDateString,
-      endDate: endDateString,
+      startDate: startDateFromHook,
+      endDate: endDateFromHook,
       participationType,
       isVotingEnabled,
     },
@@ -24,8 +24,8 @@ export const CreateChallenge = () => {
       setDescription,
       setRules,
       setRewardDescription,
-      setStartDate: setStartDateString,
-      setEndDate: setEndDateString,
+      setStartDate: setStartDateInHook,
+      setEndDate: setEndDateInHook,
       setParticipationType,
       setIsVotingEnabled,
       setHashtags,
@@ -34,31 +34,31 @@ export const CreateChallenge = () => {
   } = useChallengeSubmit();
 
   // Convertir les chaînes de dates en objets Date pour l'interface utilisateur
-  const [startDate, setStartDate] = useState<string>(startDateString || "");
-  const [endDate, setEndDate] = useState<string>(endDateString || "");
+  const [startDate, setStartDate] = useState<string>(startDateFromHook || "");
+  const [endDate, setEndDate] = useState<string>(endDateFromHook || "");
 
   // Synchroniser les valeurs quand elles changent dans useChallengeSubmit
   useEffect(() => {
-    if (startDateString) {
-      setStartDate(startDateString);
+    if (startDateFromHook) {
+      setStartDate(startDateFromHook);
     }
-  }, [startDateString]);
+  }, [startDateFromHook]);
 
   useEffect(() => {
-    if (endDateString) {
-      setEndDate(endDateString);
+    if (endDateFromHook) {
+      setEndDate(endDateFromHook);
     }
-  }, [endDateString]);
+  }, [endDateFromHook]);
 
   // Gestionnaires pour les changements de dates
   const handleStartDateChange = (value: string) => {
     setStartDate(value);
-    setStartDateString(value);
+    setStartDateInHook(value);
   };
 
   const handleEndDateChange = (value: string) => {
     setEndDate(value);
-    setEndDateString(value);
+    setEndDateInHook(value);
   };
 
   return (

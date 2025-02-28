@@ -13,10 +13,10 @@ export interface NotificationData {
   title?: string;
   message?: string;
   data?: Record<string, any>;
-  actor?: {
+  actor: { // Changed from optional to required but can be null
     username: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
 export interface NotificationSettings {

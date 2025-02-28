@@ -86,11 +86,16 @@ export function useCart(userId: string | null) {
         .maybeSingle();
 
       // Get item details for the toast
-      const { data: itemDetails } = await supabase
+      const { data: itemDetails, error: itemError } = await supabase
         .from("shop_items")
         .select("name, stock")
         .eq("id", itemId)
         .single();
+
+      if (itemError) {
+        console.error("Error fetching item details:", itemError);
+        throw new Error("Impossible de récupérer les détails de l'article");
+      }
 
       // Check stock availability
       if (itemDetails && (existingItem ? existingItem.quantity + quantity : quantity) > itemDetails.stock) {
@@ -165,22 +170,27 @@ export function useCart(userId: string | null) {
       }
 
       // Get cart item details
-      const { data: cartItem } = await supabase
+      const { data: cartItem, error: cartItemError } = await supabase
         .from("cart_items")
         .select("shop_item_id")
         .eq("id", cartItemId)
         .single();
 
-      if (!cartItem) {
+      if (cartItemError || !cartItem) {
         throw new Error("Article introuvable dans votre panier");
       }
 
       // Check stock availability
-      const { data: itemDetails } = await supabase
+      const { data: itemDetails, error: itemError } = await supabase
         .from("shop_items")
         .select("stock, name")
         .eq("id", cartItem.shop_item_id)
         .single();
+
+      if (itemError) {
+        console.error("Error fetching item details:", itemError);
+        throw new Error("Impossible de récupérer les détails de l'article");
+      }
 
       if (itemDetails && quantity > itemDetails.stock) {
         throw new Error(`Quantité non disponible. Stock restant: ${itemDetails.stock}`);

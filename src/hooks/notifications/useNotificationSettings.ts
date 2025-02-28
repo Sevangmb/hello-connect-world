@@ -4,9 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, BellOff, AlertCircle } from "lucide-react";
 
-// Since the user_notification_settings table isn't defined in the Supabase types,
-// we'll use a direct approach with custom SQL queries instead
-
 export function useNotificationSettings(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -46,8 +43,11 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Create notifications object if it doesn't exist
-      if (!preferences.notifications) {
-        preferences.notifications = {};
+      if (!preferences.hasOwnProperty('notifications')) {
+        preferences = {
+          ...preferences,
+          notifications: {}
+        };
       }
       
       // Set the notification type preference
@@ -128,8 +128,11 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Create notifications object if it doesn't exist
-      if (!preferences.notifications) {
-        preferences.notifications = {};
+      if (!preferences.hasOwnProperty('notifications')) {
+        preferences = {
+          ...preferences,
+          notifications: {}
+        };
       }
       
       // Set the notification type preference

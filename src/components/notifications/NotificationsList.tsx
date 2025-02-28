@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Notification } from "./types";
@@ -8,6 +9,7 @@ import { Loader2, Bell, BellOff } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { NotificationData } from "@/hooks/notifications/types";
 
 export function NotificationsList() {
   const { user } = useAuth();
@@ -26,10 +28,28 @@ export function NotificationsList() {
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Convertir NotificationData en Notification pour compatibilité
+  const convertToNotification = (data: NotificationData): Notification => {
+    return {
+      id: data.id,
+      type: data.type,
+      actor_id: data.actor_id,
+      post_id: data.post_id,
+      read: data.read || data.is_read,
+      created_at: data.created_at,
+      actor: data.actor || { username: null, avatar_url: null },
+      message: data.message,
+      data: data.data,
+    };
+  };
+
+  // Convertir les notifications
+  const convertedNotifications = notifications?.map(convertToNotification) || [];
+
   // Filtrer les notifications selon l'onglet actif
   const filteredNotifications = activeTab === "unread"
-    ? notifications?.filter(notification => !notification.read)
-    : notifications;
+    ? convertedNotifications.filter(notification => !notification.read)
+    : convertedNotifications;
 
   // Fonction pour rafraîchir manuellement les notifications
   const handleRefresh = async () => {

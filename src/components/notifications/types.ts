@@ -9,7 +9,7 @@ export type Notification = {
   actor: {
     username: string | null;
     avatar_url: string | null;
-  } | null;
+  } | null; // Changed from required to nullable
   post?: {
     content: string;
   };

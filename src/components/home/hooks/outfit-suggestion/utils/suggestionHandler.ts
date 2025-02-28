@@ -88,6 +88,11 @@ export async function handleSuggestionProcess(
     };
   } catch (error) {
     dismissToast();
-    return manageErrorResponse(toast, error);
+    const errorResult = manageErrorResponse(toast, error);
+    // Ensure the returned error object has a suggestion property set to null
+    return {
+      ...errorResult,
+      suggestion: null
+    };
   }
 }
