@@ -28,8 +28,8 @@ interface ModuleNodeData {
 
 export const ModuleDependencyGraph = () => {
   const { dependencies, modules, loading, error } = useModules();
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<ModuleNodeData>[]>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<ModuleNodeData>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Construire le graphe à partir des données des modules
   useEffect(() => {
