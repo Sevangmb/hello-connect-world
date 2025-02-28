@@ -50,6 +50,7 @@ import AdminMarketplace from "@/pages/admin/AdminMarketplace";
 import AdminContent from "@/pages/admin/AdminContent";
 import AdminStats from "@/pages/admin/AdminStats";
 import AdminMarketing from "@/pages/admin/AdminMarketing";
+import AdminModules from "@/pages/admin/AdminModules";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
 import Checkout from "@/pages/Checkout";
@@ -133,6 +134,7 @@ const App = () => {
         <Route path="content" element={<AdminContent />} />
         <Route path="stats" element={<AdminStats />} />
         <Route path="marketing" element={<AdminMarketing />} />
+        <Route path="modules" element={<AdminModules />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="help" element={<AdminHelp />} />
       </Route>
