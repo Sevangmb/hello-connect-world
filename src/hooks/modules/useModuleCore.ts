@@ -21,6 +21,7 @@ export const useModuleCore = () => {
   const moduleApi = useModuleApiContext();
   // État local pour les modules
   const [localModules, setLocalModules] = useState<AppModule[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Récupérer les données des modules et dépendances
   const {
@@ -56,15 +57,63 @@ export const useModuleCore = () => {
 
   // Utiliser les modules du cache si disponibles, sinon charger depuis Supabase
   useEffect(() => {
-    if (!moduleApi.loading && moduleApi.isInitialized) {
-      moduleApi.refreshModules().then(modulesData => {
-        if (modulesData && modulesData.length > 0) {
-          setLocalModules(modulesData);
-          setModules(modulesData);
+    const initializeModules = async () => {
+      try {
+        if (!isInitialized) {
+          console.log("Initialisation des modules dans useModuleCore");
+          
+          if (!moduleApi.loading && moduleApi.isInitialized) {
+            const modulesData = await moduleApi.refreshModules(true);
+            console.log("Modules chargés depuis l'API:", modulesData?.length || 0);
+            
+            if (modulesData && modulesData.length > 0) {
+              setLocalModules(modulesData);
+              setModules(modulesData);
+            } else {
+              // Essayer de charger directement depuis le fetcher
+              const directModules = await fetchModules();
+              console.log("Modules chargés directement:", directModules?.length || 0);
+              setLocalModules(directModules);
+            }
+          } else {
+            // Si l'API n'est pas prête, charger directement
+            console.log("API non prête, chargement direct des modules");
+            const directModules = await fetchModules();
+            console.log("Modules chargés directement:", directModules?.length || 0);
+            setLocalModules(directModules);
+          }
+          
+          setIsInitialized(true);
         }
-      });
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation des modules:", error);
+        // Essayer de continuer même en cas d'erreur
+        setIsInitialized(true);
+      }
+    };
+    
+    initializeModules();
+  }, [moduleApi, setModules, isInitialized, fetchModules]);
+  
+  // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
+  useEffect(() => {
+    if (isInitialized && (localModules.length === 0 || modules.length === 0)) {
+      const timer = setTimeout(async () => {
+        console.log("Tentative de rechargement des modules après timeout");
+        try {
+          const directModules = await fetchModules();
+          if (directModules.length > 0) {
+            setLocalModules(directModules);
+            setModules(directModules);
+          }
+        } catch (e) {
+          console.error("Erreur lors du rechargement des modules:", e);
+        }
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
-  }, [moduleApi, setModules]);
+  }, [isInitialized, localModules.length, modules.length, fetchModules, setModules]);
 
   return {
     modules: localModules.length > 0 ? localModules : modules,

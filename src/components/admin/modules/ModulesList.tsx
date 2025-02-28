@@ -27,6 +27,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
   
   const { toast } = useToast();
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [localLoading, setLocalLoading] = useState<boolean>(true);
   
   const {
     pendingChanges,
@@ -45,6 +46,32 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     resetPendingChanges,
     onStatusChange
   });
+
+  // Effet initial pour charger les modules
+  useEffect(() => {
+    const initialLoad = async () => {
+      try {
+        await refreshModules();
+        console.log("Modules chargés initialement:", modules.length);
+        // Même si loading est toujours true, forcer l'affichage après 2 secondes
+        setTimeout(() => {
+          setLocalLoading(false);
+        }, 2000);
+      } catch (error) {
+        console.error("Erreur lors du chargement initial des modules:", error);
+        setLocalLoading(false);
+      }
+    };
+    
+    initialLoad();
+  }, []);
+
+  // Mettre à jour localLoading quand le chargement principal change
+  useEffect(() => {
+    if (!loading && modules.length > 0) {
+      setLocalLoading(false);
+    }
+  }, [loading, modules]);
 
   // Refresh modules data periodically to ensure it's up to date
   useEffect(() => {
@@ -88,8 +115,10 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
   // Rafraîchir manuellement les modules
   const handleRefresh = async () => {
     try {
+      setLocalLoading(true);
       await refreshModules();
       setLastRefresh(new Date());
+      setLocalLoading(false);
       
       toast({
         title: "Données rafraîchies",
@@ -97,6 +126,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       });
     } catch (error) {
       console.error("Erreur lors du rafraîchissement des modules:", error);
+      setLocalLoading(false);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -105,7 +135,8 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     }
   };
 
-  if (loading) {
+  // Utiliser localLoading au lieu de loading pour éviter le problème de chargement infini
+  if (localLoading && modules.length === 0) {
     return <div className="flex justify-center p-8">Chargement des modules...</div>;
   }
 
@@ -118,15 +149,21 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
         />
       </CardHeader>
       <CardContent>
-        <ModulesTable
-          modules={modules}
-          dependencies={dependencies}
-          pendingChanges={pendingChanges}
-          isModuleActive={isModuleActive}
-          canToggleModule={canToggleModule}
-          handleToggleModule={handleToggleModule}
-          getModuleStatus={getModuleStatus}
-        />
+        {modules.length === 0 ? (
+          <div className="text-center py-8">
+            Aucun module trouvé. Veuillez rafraîchir la page ou vérifier la connexion à la base de données.
+          </div>
+        ) : (
+          <ModulesTable
+            modules={modules}
+            dependencies={dependencies}
+            pendingChanges={pendingChanges}
+            isModuleActive={isModuleActive}
+            canToggleModule={canToggleModule}
+            handleToggleModule={handleToggleModule}
+            getModuleStatus={getModuleStatus}
+          />
+        )}
       </CardContent>
       <CardFooter>
         <ModulesFooter
