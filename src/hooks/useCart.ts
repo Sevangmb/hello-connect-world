@@ -1,215 +1,237 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Check, Loader2, ShoppingCart } from "lucide-react";
+import { Check, Loader2, ShoppingCart, AlertCircle } from "lucide-react";
 
-// Types pour le panier
-interface CartItem {
-  id: string;
-  product_id: string;
-  user_id: string;
-  quantity: number;
-  product?: {
-    id: string;
-    name: string;
-    price: number;
-    image_url?: string;
-    seller_id: string;
-  };
-}
-
-export const useCart = () => {
+export function useCart(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
 
-  // Vérifier si l'utilisateur est connecté
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || null);
-    };
-    
-    checkUser();
-    
-    // Écouter les changements d'authentification
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUserId(session?.user?.id || null);
-    });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-
-  // Récupérer les éléments du panier
-  const cartQuery = useQuery({
+  // Fetch cart items
+  const cartItems = useQuery({
     queryKey: ["cart", userId],
     queryFn: async () => {
-      if (!userId) return [];
-      
+      if (!userId) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("cart_items")
         .select(`
           id,
-          product_id,
-          user_id,
           quantity,
-          product:products(
+          shop_items (
             id,
             name,
+            description,
             price,
             image_url,
-            seller_id
+            stock,
+            seller_id,
+            shop_id,
+            shops(name)
           )
         `)
         .eq("user_id", userId);
-        
+
       if (error) {
-        console.error("Error fetching cart:", error);
         throw error;
       }
-      
-      return data as CartItem[];
+
+      return data.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+        item: item.shop_items,
+      }));
     },
     enabled: !!userId,
+    staleTime: 1000 * 60, // 1 minute
   });
 
-  // Calculer le total du panier
-  const cartTotal = cartQuery.data?.reduce((total, item) => {
-    return total + (item.product?.price || 0) * item.quantity;
-  }, 0) || 0;
-
-  // Ajouter un produit au panier
+  // Add item to cart
   const addToCart = useMutation({
-    mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
+    mutationFn: async ({
+      itemId,
+      quantity = 1,
+    }: {
+      itemId: string;
+      quantity?: number;
+    }) => {
       if (!userId) {
-        toast({
-          variant: "destructive",
-          title: "Non connecté",
-          description: "Vous devez être connecté pour ajouter des articles au panier",
-          icon: <AlertCircle className="h-4 w-4" />,
-        });
-        throw new Error("Not authenticated");
+        throw new Error("Vous devez être connecté pour ajouter des articles au panier");
       }
-      
-      // Vérifier si le produit existe déjà dans le panier
-      const { data: existingItems } = await supabase
+
+      // Check if item is already in cart
+      const { data: existingItem } = await supabase
         .from("cart_items")
-        .select()
+        .select("id, quantity")
         .eq("user_id", userId)
-        .eq("product_id", productId)
+        .eq("item_id", itemId)
         .maybeSingle();
-        
-      if (existingItems) {
-        // Mettre à jour la quantité
-        const { data, error } = await supabase
-          .from("cart_items")
-          .update({ quantity: existingItems.quantity + quantity })
-          .eq("id", existingItems.id)
-          .select();
-          
-        if (error) throw error;
-        return data;
-      } else {
-        // Ajouter un nouvel élément
-        const { data, error } = await supabase
-          .from("cart_items")
-          .insert({ user_id: userId, product_id: productId, quantity })
-          .select();
-          
-        if (error) throw error;
-        return data;
+
+      // Get item details for the toast
+      const { data: itemDetails } = await supabase
+        .from("shop_items")
+        .select("name, stock")
+        .eq("id", itemId)
+        .single();
+
+      // Check stock availability
+      if (itemDetails && (existingItem ? existingItem.quantity + quantity : quantity) > itemDetails.stock) {
+        throw new Error(`Quantité non disponible. Stock restant: ${itemDetails.stock}`);
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
+
+      let result;
+      if (existingItem) {
+        // Update quantity if item is already in cart
+        const { data, error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq("id", existingItem.id)
+          .select();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Add new item to cart
+        const { data, error } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: userId,
+            item_id: itemId,
+            quantity,
+          })
+          .select();
+
+        if (error) throw error;
+        result = data;
+      }
+
       toast({
-        title: "Article ajouté",
-        description: "L'article a été ajouté à votre panier",
+        title: "Article ajouté au panier",
+        description: itemDetails ? `${itemDetails.name} a été ajouté à votre panier` : "Article ajouté à votre panier",
         icon: <ShoppingCart className="h-4 w-4" />,
         duration: 3000,
       });
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
     },
     onError: (error) => {
       console.error("Error adding to cart:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'ajouter cet article au panier",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
         icon: <AlertCircle className="h-4 w-4" />,
+        duration: 5000,
       });
-    }
+    },
   });
 
-  // Mettre à jour la quantité d'un produit
-  const updateQuantity = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-      if (!userId) throw new Error("Not authenticated");
-      
-      if (quantity <= 0) {
-        // Supprimer l'élément si la quantité est 0 ou négative
-        const { data, error } = await supabase
-          .from("cart_items")
-          .delete()
-          .eq("id", itemId)
-          .eq("user_id", userId)
-          .select();
-          
-        if (error) throw error;
-        return data;
-      } else {
-        // Mettre à jour la quantité
-        const { data, error } = await supabase
-          .from("cart_items")
-          .update({ quantity })
-          .eq("id", itemId)
-          .eq("user_id", userId)
-          .select();
-          
-        if (error) throw error;
-        return data;
+  // Update cart item quantity
+  const updateCartItem = useMutation({
+    mutationFn: async ({
+      cartItemId,
+      quantity,
+    }: {
+      cartItemId: string;
+      quantity: number;
+    }) => {
+      if (!userId) {
+        throw new Error("Vous devez être connecté pour modifier votre panier");
       }
+
+      if (quantity <= 0) {
+        throw new Error("La quantité doit être supérieure à 0");
+      }
+
+      // Get cart item details
+      const { data: cartItem } = await supabase
+        .from("cart_items")
+        .select("item_id")
+        .eq("id", cartItemId)
+        .single();
+
+      if (!cartItem) {
+        throw new Error("Article introuvable dans votre panier");
+      }
+
+      // Check stock availability
+      const { data: itemDetails } = await supabase
+        .from("shop_items")
+        .select("stock, name")
+        .eq("id", cartItem.item_id)
+        .single();
+
+      if (itemDetails && quantity > itemDetails.stock) {
+        throw new Error(`Quantité non disponible. Stock restant: ${itemDetails.stock}`);
+      }
+
+      // Update quantity
+      const { data, error } = await supabase
+        .from("cart_items")
+        .update({ quantity })
+        .eq("id", cartItemId)
+        .eq("user_id", userId)
+        .select();
+
+      if (error) throw error;
+
+      toast({
+        title: "Panier mis à jour",
+        description: "La quantité a été mise à jour",
+        icon: <Check className="h-4 w-4 text-green-500" />,
+        duration: 3000,
+      });
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", userId] });
     },
     onError: (error) => {
-      console.error("Error updating quantity:", error);
+      console.error("Error updating cart item:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible de mettre à jour la quantité",
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
         icon: <AlertCircle className="h-4 w-4" />,
+        duration: 5000,
       });
-    }
+    },
   });
 
-  // Supprimer un produit du panier
+  // Remove item from cart
   const removeFromCart = useMutation({
-    mutationFn: async (itemId: string) => {
-      if (!userId) throw new Error("Not authenticated");
-      
+    mutationFn: async (cartItemId: string) => {
+      if (!userId) {
+        throw new Error("Vous devez être connecté pour supprimer des articles du panier");
+      }
+
       const { data, error } = await supabase
         .from("cart_items")
         .delete()
-        .eq("id", itemId)
+        .eq("id", cartItemId)
         .eq("user_id", userId)
         .select();
-        
+
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
+
       toast({
         title: "Article supprimé",
         description: "L'article a été retiré de votre panier",
         icon: <Check className="h-4 w-4 text-green-500" />,
         duration: 3000,
       });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
     },
     onError: (error) => {
       console.error("Error removing from cart:", error);
@@ -218,41 +240,37 @@ export const useCart = () => {
         title: "Erreur",
         description: "Impossible de supprimer cet article du panier",
         icon: <AlertCircle className="h-4 w-4" />,
-      });
-    }
-  });
-
-  // Vider le panier
-  const clearCart = useMutation({
-    mutationFn: async () => {
-      if (!userId) throw new Error("Not authenticated");
-      
-      // Toast de chargement
-      const { dismiss } = toast({
-        title: "Traitement en cours",
-        description: "Vidage du panier en cours...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
         duration: 5000,
       });
-      
-      const { error } = await supabase
+    },
+  });
+
+  // Clear cart
+  const clearCart = useMutation({
+    mutationFn: async () => {
+      if (!userId) {
+        throw new Error("Vous devez être connecté pour vider votre panier");
+      }
+
+      const { data, error } = await supabase
         .from("cart_items")
         .delete()
-        .eq("user_id", userId);
-        
-      dismiss();
-      
+        .eq("user_id", userId)
+        .select();
+
       if (error) throw error;
-      return true;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
+
       toast({
         title: "Panier vidé",
         description: "Tous les articles ont été retirés de votre panier",
         icon: <Check className="h-4 w-4 text-green-500" />,
         duration: 3000,
       });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart", userId] });
     },
     onError: (error) => {
       console.error("Error clearing cart:", error);
@@ -261,20 +279,16 @@ export const useCart = () => {
         title: "Erreur",
         description: "Impossible de vider votre panier",
         icon: <AlertCircle className="h-4 w-4" />,
+        duration: 5000,
       });
-    }
+    },
   });
 
   return {
-    cart: cartQuery.data || [],
-    isLoading: cartQuery.isLoading,
-    error: cartQuery.error,
-    cartTotal,
+    cartItems,
     addToCart,
-    updateQuantity,
+    updateCartItem,
     removeFromCart,
     clearCart,
   };
-};
-
-export type { CartItem };
+}
