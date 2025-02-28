@@ -10,25 +10,27 @@ import {
   Node,
   Edge,
   Position,
-  MarkerType
+  MarkerType,
+  NodeTypes
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useModules } from '@/hooks/useModules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
-// Type pour les nœuds du graphe
-interface ModuleNode extends Node {
-  data: {
-    label: string;
-    status: 'active' | 'inactive' | 'degraded';
-    isCore: boolean;
-  };
+// Type pour les données du nœud
+interface ModuleNodeData {
+  label: string;
+  status: 'active' | 'inactive' | 'degraded';
+  isCore: boolean;
 }
+
+// Type personnalisé pour les nœuds du graphe
+type ModuleNode = Node<ModuleNodeData>;
 
 export const ModuleDependencyGraph = () => {
   const { dependencies, modules, loading, error } = useModules();
-  const [nodes, setNodes, onNodesChange] = useNodesState<ModuleNode[]>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<ModuleNodeData>[]>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
 
   // Construire le graphe à partir des données des modules
