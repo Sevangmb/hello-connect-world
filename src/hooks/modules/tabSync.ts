@@ -132,4 +132,3 @@ export const updateLocalCacheFromSync = (modules: AppModule[], message: ModuleSt
   cacheModuleStatuses(updatedModules);
   return updatedModules;
 };
-
