@@ -17,16 +17,18 @@ import { useModules } from '@/hooks/modules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
-// Définition du type pour les données du nœud
+// Définition du type pour les données du nœud avec un index signature
 interface ModuleNodeData {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
+  [key: string]: unknown; // Permet d'ajouter des propriétés supplémentaires
 }
 
 export const ModuleDependencyGraph = () => {
   const { dependencies, modules, loading, error } = useModules();
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<ModuleNodeData>>([]);
+  // Utiliser les types génériques natifs de React Flow
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Construire le graphe à partir des données des modules
@@ -34,7 +36,7 @@ export const ModuleDependencyGraph = () => {
     if (loading || modules.length === 0) return;
 
     // Créer les nœuds du graphe
-    const graphNodes: Node<ModuleNodeData>[] = modules.map((module, index) => ({
+    const graphNodes: Node[] = modules.map((module, index) => ({
       id: module.id,
       type: 'default',
       position: calculateNodePosition(index, modules.length),
