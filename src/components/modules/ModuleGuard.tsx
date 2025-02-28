@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useModules } from "@/hooks/useModules";
+import { useModules } from "@/hooks/modules";
 
 interface ModuleGuardProps {
   moduleCode: string;

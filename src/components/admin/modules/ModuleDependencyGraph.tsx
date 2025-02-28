@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -7,14 +7,13 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  Position,
   MarkerType,
   Node,
   Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './dependency-graph.css';
-import { useModules } from '@/hooks/useModules';
+import { useModules } from '@/hooks/modules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
@@ -36,7 +35,7 @@ export const ModuleDependencyGraph = () => {
     if (loading || modules.length === 0) return;
 
     // Créer les nœuds du graphe
-    const graphNodes = modules.map((module, index) => ({
+    const graphNodes: Node<ModuleNodeData>[] = modules.map((module, index) => ({
       id: module.id,
       type: 'default',
       position: calculateNodePosition(index, modules.length),
