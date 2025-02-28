@@ -1,94 +1,91 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { OutfitSuggestion } from "@/components/home/types/weather";
-import { showErrorToast, showLoadingToast, showSuccessToast, updateLoadingToast } from "./toastManager";
-import { checkUserAuthenticated } from "./authManager";
+import { Toast } from "@/hooks/use-toast";
+import { OutfitSuggestionState, OutfitSuggestionResult } from "../types/suggestionTypes";
+import { fetchUserClothes } from "./api";
+import { generateSuggestion } from "../aiService";
+import { ClothingItem, OutfitSuggestion } from "../types/aiTypes";
 import { manageErrorResponse } from "./errorHandling";
 import { categorizeClothingItems } from "./clothingCategorization";
-import { Toast } from "@/hooks/use-toast";
+import { getCurrentUser } from "../../outfit-suggestion/utils/authManager";
 
-export async function fetchOutfitSuggestion(
-  weatherData: any,
+export async function handleSuggestionProcess(
   toast: Toast,
-  setState: (value: React.SetStateAction<{
-    toastId: string | null;
-  }>) => void
-): Promise<OutfitSuggestion | null> {
-  if (!weatherData) {
-    showErrorToast(toast, {
-      title: "Données météo manquantes",
-      description: "Impossible de générer une suggestion sans données météo."
-    });
-    return null;
-  }
-
-  // Check if user is authenticated
-  const isAuthenticated = await checkUserAuthenticated(toast);
-  if (!isAuthenticated) return null;
-
-  // Show initial loading toast
-  const { id: toastId, dismiss } = showLoadingToast(toast, {
-    title: "Création de suggestion",
-    description: "Analyse des données météo en cours..."
-  });
-
-  setState({ toastId });
-
+  temperature: number,
+  description: string,
+  toastId: string,
+  dismissToast: () => void
+): Promise<OutfitSuggestionResult> {
   try {
-    // Update toast with new status
-    updateLoadingToast(toast, toastId, {
-      title: "Analyse en cours",
-      description: "Recherche des vêtements adaptés à la météo actuelle..."
-    });
-
-    // Fetch user's clothing items
-    const { data: clothingItems, error: clothingError } = await supabase
-      .from('clothes')
-      .select('*')
-      .eq('archived', false);
-
-    if (clothingError) throw clothingError;
-
-    if (!clothingItems || clothingItems.length === 0) {
-      dismiss();
-      showErrorToast(toast, {
-        title: "Garde-robe vide",
-        description: "Vous n'avez pas encore ajouté de vêtements dans votre garde-robe."
-      });
-      return null;
+    // Étape 1: Vérifier l'authentification
+    const user = await getCurrentUser(toast);
+    if (!user) {
+      dismissToast();
+      return {
+        error: new Error("User not authenticated"),
+        errorCode: "AUTH_ERROR"
+      };
     }
 
-    // Categorize clothing items
-    const categorizedItems = categorizeClothingItems(clothingItems);
-
-    // Update toast with AI generation status
-    updateLoadingToast(toast, toastId, {
-      title: "Génération en cours",
-      description: "Notre IA analyse la météo et votre garde-robe pour créer un ensemble adapté..."
+    // Étape 2: Mettre à jour le toast pour indiquer le progrès
+    toast({
+      id: toastId,
+      title: "Analyse de votre garde-robe",
+      description: "Nous récupérons vos vêtements..."
     });
 
-    // Mocked suggestion result for now
-    const suggestion: OutfitSuggestion = {
-      top: categorizedItems.tops[0] || null,
-      bottom: categorizedItems.bottoms[0] || null,
-      outerwear: categorizedItems.outerwear[0] || null,
-      shoes: categorizedItems.shoes[0] || null,
-      description: `Tenue adaptée pour ${weatherData.current.weather[0].description} et ${Math.round(weatherData.current.temp)}°C`,
-      temperature: weatherData.current.temp,
+    // Étape 3: Récupérer les vêtements de l'utilisateur
+    const clothes = await fetchUserClothes(user.id);
+    if (!clothes || clothes.length === 0) {
+      dismissToast();
+      return {
+        error: new Error("No clothes available"),
+        errorCode: "NO_CLOTHES_ERROR"
+      };
+    }
+
+    // Étape 4: Mettre à jour le toast pour indiquer l'analyse
+    toast({
+      id: toastId,
+      title: "Analyse des conditions météo",
+      description: "Nous analysons la température et les conditions..."
+    });
+
+    // Étape 5: Catégoriser les vêtements
+    const categorizedClothes = categorizeClothingItems(clothes);
+
+    // Étape 6: Mettre à jour le toast pour indiquer la génération
+    toast({
+      id: toastId,
+      title: "Création de la tenue",
+      description: "Notre IA génère une tenue adaptée à votre style et à la météo..."
+    });
+
+    // Étape 7: Générer la suggestion de tenue
+    const suggestion = await generateSuggestion({
+      userId: user.id,
+      temperature,
+      weatherDescription: description,
+      clothes: categorizedClothes,
+    });
+
+    // Étape 8: Fermer le toast et retourner le résultat
+    dismissToast();
+    
+    return {
+      suggestion: {
+        id: `suggestion-${Date.now()}`,
+        temperature: temperature,
+        description: description,
+        explanation: suggestion.explanation,
+        top: suggestion.top,
+        bottom: suggestion.bottom,
+        shoes: suggestion.shoes,
+        // outerwear est un champ optionnel qui n'est pas dans le type OutfitSuggestion
+        // Nous l'omettons pour éviter l'erreur TypeScript
+      }
     };
-
-    // Success toast
-    dismiss();
-    showSuccessToast(toast, {
-      title: "Suggestion créée",
-      description: "Votre tenue pour aujourd'hui est prête!"
-    });
-
-    return suggestion;
   } catch (error) {
-    console.error("Error generating outfit suggestion:", error);
-    dismiss();
-    manageErrorResponse(error, toast);
-    return null;
+    dismissToast();
+    return manageErrorResponse(toast, error);
   }
 }

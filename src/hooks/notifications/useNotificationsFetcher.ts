@@ -18,9 +18,7 @@ export function useNotificationsFetcher(userId: string | null) {
           post_id,
           read,
           created_at,
-          type,
-          message,
-          data
+          type
         `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -34,10 +32,11 @@ export function useNotificationsFetcher(userId: string | null) {
         actor_id: notification.actor_id,
         post_id: notification.post_id,
         is_read: notification.read || false,
+        read: notification.read || false, // Dupliquer pour compatibilité
         created_at: notification.created_at,
         type: notification.type,
-        message: notification.message || '',
-        data: notification.data || {}
+        message: '', // Valeur par défaut
+        data: {} // Valeur par défaut
       })) as NotificationData[];
     },
     enabled: !!userId,

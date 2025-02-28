@@ -38,8 +38,19 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to disable this notification type
-      const preferences = userProfile.preferences || {};
-      preferences.notifications = preferences.notifications || {};
+      let preferences = userProfile.preferences || {};
+      
+      // Ensure preferences is an object if it's a string or other type
+      if (typeof preferences !== 'object' || preferences === null) {
+        preferences = {};
+      }
+      
+      // Initialize nested objects if they don't exist
+      if (!preferences.notifications) {
+        preferences.notifications = {};
+      }
+      
+      // Set the notification type preference
       preferences.notifications[type] = false;
 
       // Save updated preferences
@@ -103,8 +114,19 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to enable this notification type
-      const preferences = userProfile.preferences || {};
-      preferences.notifications = preferences.notifications || {};
+      let preferences = userProfile.preferences || {};
+      
+      // Ensure preferences is an object if it's a string or other type
+      if (typeof preferences !== 'object' || preferences === null) {
+        preferences = {};
+      }
+      
+      // Initialize nested objects if they don't exist
+      if (!preferences.notifications) {
+        preferences.notifications = {};
+      }
+      
+      // Set the notification type preference
       preferences.notifications[type] = true;
 
       // Save updated preferences

@@ -1,35 +1,29 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell, Loader2 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationItem } from "./NotificationItem";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Notification } from "./types";
+import { NotificationData } from "@/hooks/notifications/types";
 import { useToast } from "@/hooks/use-toast";
 
 export const NotificationsList = () => {
-  const { notifications, isLoading, markAsRead, subscribeToNotifications, refreshNotifications } = useNotifications();
+  const { 
+    notifications, 
+    isLoading, 
+    markAsRead, 
+    markAllAsRead, 
+    refetch,
+    subscribeToNotifications,
+  } = useNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
-  
-  // Configure realtime subscription
-  useEffect(() => {
-    const unsubscribe = subscribeToNotifications((notification: Notification) => {
-      // Afficher une notification toast lorsqu'une nouvelle notification arrive
-      toast({
-        title: "Nouvelle notification",
-        description: "Vous avez reçu une nouvelle notification",
-      });
-    });
-    
-    return unsubscribe;
-  }, [toast, subscribeToNotifications]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshNotifications();
+      await refetch();
       toast({
         title: "Notifications actualisées",
         description: "Vos notifications ont été mises à jour",
@@ -51,13 +45,11 @@ export const NotificationsList = () => {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const unreadNotifications = notifications?.filter(n => !n.read) || [];
+      const unreadNotifications = notifications?.filter(n => !n.is_read) || [];
       if (unreadNotifications.length === 0) return;
       
       // Marquer toutes les notifications comme lues
-      for (const notification of unreadNotifications) {
-        await markAsRead(notification.id);
-      }
+      markAllAsRead();
       
       toast({
         title: "Notifications marquées comme lues",
@@ -101,7 +93,7 @@ export const NotificationsList = () => {
           <span>{isRefreshing ? "Actualisation..." : "Actualiser"}</span>
         </button>
         
-        {(notifications?.some(n => !n.read)) && (
+        {(notifications?.some(n => !n.is_read)) && (
           <button 
             onClick={handleMarkAllAsRead}
             className="py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors"
@@ -122,11 +114,18 @@ export const NotificationsList = () => {
         </Card>
       ) : (
         <div className="space-y-3 md:space-y-4">
-          {notifications.map((notification) => (
+          {notifications.map((notification: NotificationData) => (
             <NotificationItem 
               key={notification.id}
-              notification={notification}
-              onMarkAsRead={markAsRead}
+              notification={{
+                ...notification,
+                read: notification.is_read,
+                actor: notification.actor || {
+                  username: null,
+                  avatar_url: null
+                }
+              }}
+              onMarkAsRead={(id) => markAsRead(id)}
             />
           ))}
         </div>

@@ -1,101 +1,93 @@
 
-import { CATEGORY_MAPPINGS } from "@/components/clothes/constants/categories";
+import { ClothingItem } from "../types/aiTypes";
 
-interface ClothingItem {
-  id: string;
-  name: string;
-  image_url: string | null;
-  brand?: string;
-  category: string;
-}
-
-export interface CategorizedClothes {
+interface CategorizedClothes {
   tops: ClothingItem[];
   bottoms: ClothingItem[];
   shoes: ClothingItem[];
+  outerwear: ClothingItem[];
+  accessories: ClothingItem[];
+  dresses: ClothingItem[];
 }
 
-// Fonction pour vérifier si une catégorie appartient à un groupe
-export function isInCategory(category: string, categoryGroup: string[]): boolean {
-  if (!category) return false;
-  return categoryGroup.some(c => 
-    category.toLowerCase() === c.toLowerCase() || 
-    category.toLowerCase().includes(c.toLowerCase())
-  );
-}
-
-// Fonction pour catégoriser les vêtements
-export function categorizeClothes(clothes: ClothingItem[]): CategorizedClothes {
-  return {
-    tops: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.tops)),
-    bottoms: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.bottoms)),
-    shoes: clothes.filter(c => isInCategory(c.category, CATEGORY_MAPPINGS.shoes))
+export const categorizeClothes = (clothes: ClothingItem[]): CategorizedClothes => {
+  const initialCategories: CategorizedClothes = {
+    tops: [],
+    bottoms: [],
+    shoes: [],
+    outerwear: [],
+    accessories: [],
+    dresses: []
   };
-}
+  
+  return clothes.reduce((acc, item) => {
+    const category = item.category?.toLowerCase() || "";
+    const subcategory = item.subcategory?.toLowerCase() || "";
+    
+    // Top categories
+    if (category === "hauts" || 
+        category === "tops" || 
+        subcategory.includes("t-shirt") || 
+        subcategory.includes("chemise") ||
+        subcategory.includes("polo") ||
+        subcategory.includes("blouse") ||
+        subcategory.includes("pull") ||
+        subcategory.includes("sweat")) {
+      acc.tops.push(item);
+    }
+    // Bottom categories
+    else if (category === "bas" || 
+             category === "bottoms" || 
+             subcategory.includes("pantalon") || 
+             subcategory.includes("jeans") ||
+             subcategory.includes("short") ||
+             subcategory.includes("jupe")) {
+      acc.bottoms.push(item);
+    }
+    // Shoe categories
+    else if (category === "chaussures" || 
+             category === "shoes" || 
+             subcategory.includes("sneakers") || 
+             subcategory.includes("bottes") ||
+             subcategory.includes("sandales") ||
+             subcategory.includes("mocassins")) {
+      acc.shoes.push(item);
+    }
+    // Outerwear categories
+    else if (category === "vestes" || 
+             category === "manteaux" || 
+             subcategory.includes("veste") || 
+             subcategory.includes("manteau") ||
+             subcategory.includes("blouson") ||
+             subcategory.includes("parka") ||
+             subcategory.includes("trench")) {
+      acc.outerwear.push(item);
+    }
+    // Accessory categories
+    else if (category === "accessoires" || 
+             category === "accessories" || 
+             subcategory.includes("bijou") || 
+             subcategory.includes("sac") ||
+             subcategory.includes("ceinture") ||
+             subcategory.includes("écharpe") ||
+             subcategory.includes("gants")) {
+      acc.accessories.push(item);
+    }
+    // Dress categories
+    else if (category === "robes" || 
+             category === "dresses" || 
+             subcategory.includes("robe")) {
+      acc.dresses.push(item);
+    }
+    // Default to tops if we can't categorize
+    else {
+      console.warn(`Uncategorized clothing item: ${item.name}, category: ${category}, subcategory: ${subcategory}`);
+      acc.tops.push(item);
+    }
+    
+    return acc;
+  }, initialCategories);
+};
 
-// Fonction pour compléter les catégories manquantes
-export function handleMissingCategories(
-  categorizedClothes: CategorizedClothes,
-  allClothes: ClothingItem[]
-): CategorizedClothes {
-  const result = { ...categorizedClothes };
-  
-  // Si nous n'avons pas de hauts, essayons d'inférer à partir d'autres propriétés
-  if (result.tops.length === 0) {
-    // Chercher des vêtements qui pourraient être des hauts mais mal catégorisés
-    const potentialTops = allClothes.filter(c => 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.bottoms) && 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.shoes) &&
-      (c.name?.toLowerCase().includes('haut') || 
-       c.name?.toLowerCase().includes('t-shirt') || 
-       c.name?.toLowerCase().includes('chemise') ||
-       c.name?.toLowerCase().includes('pull') ||
-       c.name?.toLowerCase().includes('veste'))
-    );
-    
-    if (potentialTops.length > 0) {
-      result.tops = potentialTops;
-    }
-  }
-  
-  // Faire de même pour les bas
-  if (result.bottoms.length === 0) {
-    const potentialBottoms = allClothes.filter(c => 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.tops) && 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.shoes) &&
-      (c.name?.toLowerCase().includes('pantalon') || 
-       c.name?.toLowerCase().includes('jean') || 
-       c.name?.toLowerCase().includes('jupe') ||
-       c.name?.toLowerCase().includes('short') ||
-       c.name?.toLowerCase().includes('bas'))
-    );
-    
-    if (potentialBottoms.length > 0) {
-      result.bottoms = potentialBottoms;
-    }
-  }
-  
-  // Et pour les chaussures
-  if (result.shoes.length === 0) {
-    const potentialShoes = allClothes.filter(c => 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.tops) && 
-      !isInCategory(c.category, CATEGORY_MAPPINGS.bottoms) &&
-      (c.name?.toLowerCase().includes('chaussure') || 
-       c.name?.toLowerCase().includes('basket') || 
-       c.name?.toLowerCase().includes('botte') ||
-       c.name?.toLowerCase().includes('sandale'))
-    );
-    
-    if (potentialShoes.length > 0) {
-      result.shoes = potentialShoes;
-    }
-  }
-  
-  return result;
-}
-
-// Fonction utilitaire pour obtenir un élément aléatoire d'un tableau
-export function getRandomItem<T>(items: T[]): T | undefined {
-  if (!items || items.length === 0) return undefined;
-  return items[Math.floor(Math.random() * items.length)];
-}
+// Alias pour assurer la compatibilité avec le code existant
+export const categorizeClothingItems = categorizeClothes;

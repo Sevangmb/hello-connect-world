@@ -47,3 +47,6 @@ export function ModuleGuard({ children, moduleCode, fallback }: ModuleGuardProps
 
   return <>{children}</>;
 }
+
+// Exporter aussi par défaut pour assurer la compatibilité
+export default ModuleGuard;

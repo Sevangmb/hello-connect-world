@@ -39,6 +39,7 @@ export function useCart(userId: string | null) {
         .select(`
           id,
           quantity,
+          shop_item_id,
           shop_items (
             id,
             name,
@@ -57,7 +58,11 @@ export function useCart(userId: string | null) {
         throw error;
       }
 
-      return data as CartItem[];
+      return data.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        shop_items: item.shop_items
+      })) as CartItem[];
     },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute

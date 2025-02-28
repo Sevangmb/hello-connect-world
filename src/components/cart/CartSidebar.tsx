@@ -6,13 +6,15 @@ import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { formatPrice } from "@/lib/utils";
 import { CheckoutButton } from "@/components/shop/CheckoutButton";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CartSidebarProps {
   onClose: () => void;
 }
 
 export function CartSidebar({ onClose }: CartSidebarProps) {
-  const { cartItems, isCartLoading, updateQuantity, removeFromCart } = useCart();
+  const { user } = useAuth();
+  const { cartItems, isCartLoading, updateQuantity, removeFromCart } = useCart(user?.id || null);
 
   const total = cartItems?.reduce((sum, item) => 
     sum + (item.shop_items.price * item.quantity), 0
@@ -54,16 +56,16 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
               <div className="space-y-4 py-4">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex items-start gap-3">
-                    {item.shop_items.clothes.image_url && (
+                    {item.shop_items.image_url && (
                       <img
-                        src={item.shop_items.clothes.image_url}
-                        alt={item.shop_items.clothes.name}
+                        src={item.shop_items.image_url}
+                        alt={item.shop_items.name}
                         className="h-16 w-16 rounded-md object-cover"
                       />
                     )}
                     <div className="flex-1 space-y-1">
                       <h3 className="text-sm font-medium">
-                        {item.shop_items.clothes.name}
+                        {item.shop_items.name}
                       </h3>
                       <p className="text-sm font-bold">
                         {formatPrice(item.shop_items.price)}
@@ -75,7 +77,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                           className="h-8 w-8"
                           onClick={() => {
                             if (item.quantity > 1) {
-                              updateQuantity.mutate({
+                              updateQuantity({
                                 cartItemId: item.id,
                                 quantity: item.quantity - 1
                               });
@@ -90,7 +92,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => 
-                            updateQuantity.mutate({
+                            updateQuantity({
                               cartItemId: item.id,
                               quantity: item.quantity + 1
                             })
@@ -104,7 +106,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => removeFromCart.mutate(item.id)}
+                      onClick={() => removeFromCart(item.id)}
                     >
                       <X className="h-4 w-4" />
                     </Button>

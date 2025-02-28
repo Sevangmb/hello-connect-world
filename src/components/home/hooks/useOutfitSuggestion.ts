@@ -18,20 +18,20 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
         console.log("Fetching outfit suggestion for:", { temperature, description });
         
         // Toast de chargement initial
-        const { id, dismiss } = showLoadingToast(toast, {
+        const toastResult = showLoadingToast(toast, {
           title: "Préparation de votre tenue",
           description: "Nous recherchons la tenue idéale pour aujourd'hui..."
         });
         
-        setState({ toastId: id });
+        setState({ toastId: toastResult.id });
         
         // Processus de suggestion
         const result = await handleSuggestionProcess(
           toast,
           temperature,
           description,
-          id,
-          dismiss
+          toastResult.id,
+          toastResult.dismiss
         );
         
         if (result.error) {

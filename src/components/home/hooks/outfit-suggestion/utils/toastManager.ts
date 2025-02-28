@@ -1,66 +1,62 @@
 
-import { AlertCircle, Loader2, Shirt } from "lucide-react";
-import { ToastOptions } from "@/hooks/use-toast";
 import { Toast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
-export interface ToastConfig {
-  id?: string;
+interface ToastOptions {
   title: string;
   description: string;
-  icon?: any;
   duration?: number;
-  variant?: "default" | "destructive";
 }
 
-export function showLoadingToast(
-  toast: Toast,
-  config: Omit<ToastConfig, "variant" | "icon" | "duration">
-): { id: string; dismiss: () => void } {
-  const { id, dismiss } = toast({
-    title: config.title,
-    description: config.description,
-    icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
-    duration: 60000, // 1 minute max
+export const showLoadingToast = (toast: Toast, options: ToastOptions) => {
+  const { title, description, duration = 10000 } = options;
+  
+  // Créer un toast avec un indicateur de chargement
+  const toastObject = toast({
+    title,
+    description,
+    duration,
+    icon: { 
+      type: "icon", 
+      icon: Loader2, 
+      className: "h-4 w-4 animate-spin"
+    }
   });
   
-  return { id, dismiss };
-}
+  return {
+    id: toastObject.id,
+    dismiss: toastObject.dismiss
+  };
+};
 
-export function showErrorToast(
-  toast: Toast,
-  config: Omit<ToastConfig, "variant" | "icon">
-): void {
+export const showErrorToast = (toast: Toast, options: ToastOptions) => {
+  const { title, description, duration = 5000 } = options;
+  
   toast({
     variant: "destructive",
-    title: config.title,
-    description: config.description,
-    icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
-    duration: config.duration || 5000,
+    title,
+    description,
+    duration
   });
-}
+};
 
-export function showSuccessToast(
-  toast: Toast,
-  config: Omit<ToastConfig, "variant" | "icon">
-): void {
+export const showSuccessToast = (toast: Toast, options: ToastOptions) => {
+  const { title, description, duration = 3000 } = options;
+  
   toast({
-    title: config.title,
-    description: config.description,
-    icon: { type: "icon", icon: Shirt, className: "h-4 w-4 text-green-500" },
-    duration: config.duration || 5000,
+    title,
+    description,
+    duration
   });
-}
+};
 
-export function updateLoadingToast(
-  toast: Toast,
-  id: string,
-  config: Omit<ToastConfig, "variant" | "icon" | "duration">
-): void {
+export const updateToast = (toast: Toast, id: string, options: ToastOptions) => {
+  const { title, description, duration } = options;
+  
   toast({
     id,
-    title: config.title,
-    description: config.description,
-    icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
-    duration: 60000,
+    title,
+    description,
+    duration
   });
-}
+};

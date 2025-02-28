@@ -1,72 +1,54 @@
 
-import { type CategorizedClothes, getRandomItem } from "./clothingCategorization";
+import { Toast } from "@/hooks/use-toast";
+import { OutfitSuggestionError } from "../types/suggestionTypes";
 
-interface ClothingItem {
-  id: string;
-  name: string;
-  image_url: string | null;
-  brand?: string;
-  category: string;
-}
-
-// Gestion de la génération de secours en cas d'échec
-export async function generateFallbackSuggestion(
-  clothes: ClothingItem[],
-  temperature: number,
-  description: string,
-  categorizedClothes: CategorizedClothes
-): Promise<{
-  suggestion: {
-    top: ClothingItem;
-    bottom: ClothingItem;
-    shoes: ClothingItem;
-    explanation: string;
-    temperature: number;
-    description: string;
-  } | null;
-  error: Error | null;
-}> {
-  try {
-    console.log("Génération d'une suggestion aléatoire de secours");
+export const manageErrorResponse = (toast: Toast, error: Error | unknown, toastId?: string): OutfitSuggestionError => {
+  console.error("Error in outfit suggestion:", error);
+  
+  let errorMessage = "Une erreur est survenue lors de la génération de votre suggestion de tenue.";
+  let errorCode = "UNKNOWN_ERROR";
+  
+  // Handle specific error types
+  if (error instanceof Error) {
+    errorMessage = error.message;
     
-    if (categorizedClothes.tops.length > 0 && 
-        categorizedClothes.bottoms.length > 0 && 
-        categorizedClothes.shoes.length > 0) {
-      
-      const randomTop = getRandomItem(categorizedClothes.tops);
-      const randomBottom = getRandomItem(categorizedClothes.bottoms);
-      const randomShoes = getRandomItem(categorizedClothes.shoes);
-      
-      if (randomTop && randomBottom && randomShoes) {
-        return {
-          suggestion: {
-            top: randomTop,
-            bottom: randomBottom,
-            shoes: randomShoes,
-            explanation: `Suggestion générée aléatoirement pour ${temperature}°C avec un temps ${description}.`,
-            temperature,
-            description
-          },
-          error: null
-        };
-      }
+    if (error.message.includes("User not authenticated")) {
+      errorCode = "AUTH_ERROR";
+      errorMessage = "Veuillez vous connecter pour utiliser cette fonctionnalité.";
+    } 
+    else if (error.message.includes("No clothes available")) {
+      errorCode = "NO_CLOTHES";
+      errorMessage = "Vous n'avez pas encore ajouté de vêtements à votre garde-robe.";
     }
-    
-    return {
-      suggestion: null,
-      error: new Error("Impossible de générer une suggestion aléatoire")
-    };
-  } catch (error) {
-    console.error("Erreur lors de la génération de secours:", error);
-    return {
-      suggestion: null,
-      error: error instanceof Error ? error : new Error("Erreur inconnue")
-    };
+    else if (error.message.includes("API rate limit")) {
+      errorCode = "RATE_LIMIT";
+      errorMessage = "Limite de requêtes atteinte. Veuillez réessayer plus tard.";
+    }
+    else if (error.message.includes("Network")) {
+      errorCode = "NETWORK_ERROR";
+      errorMessage = "Problème de connexion réseau. Vérifiez votre connexion internet.";
+    }
   }
-}
-
-// Utilitaire pour implémenter un délai exponentiel
-export function exponentialDelay(attempt: number): Promise<void> {
-  const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s, etc.
-  return new Promise(resolve => setTimeout(resolve, delay));
-}
+  
+  // Update or create a new error toast
+  if (toastId) {
+    toast({
+      id: toastId,
+      variant: "destructive",
+      title: "Erreur",
+      description: errorMessage,
+    });
+  } else {
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: errorMessage,
+    });
+  }
+  
+  return {
+    error: new Error(errorMessage),
+    errorCode,
+    message: errorMessage
+  };
+};

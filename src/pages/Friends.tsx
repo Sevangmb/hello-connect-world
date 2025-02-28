@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/navigation/BottomNav";
 import { FriendsList } from "@/components/friends/FriendsList";
 import { AddFriend } from "@/components/friends/AddFriend";
 import { Users } from "lucide-react";
-import ModuleGuard from "@/components/modules/ModuleGuard";
+import { ModuleGuard } from "@/components/modules/ModuleGuard";
 
 const Friends = () => {
   return (
