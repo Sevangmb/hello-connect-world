@@ -9,6 +9,7 @@ import { PersonalSection } from "./sidebar/PersonalSection";
 import { CommunitySection } from "./sidebar/CommunitySection";
 import { ProfileSection } from "./sidebar/ProfileSection";
 import { AdminSection } from "./sidebar/AdminSection";
+import { useModules } from "@/hooks/useModules";
 import { X } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -19,6 +20,7 @@ interface MainSidebarProps {
 
 export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
+  const { isModuleActive } = useModules();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -67,10 +69,10 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         <ScrollArea className="h-full px-4 py-6">
           <Accordion type="single" collapsible defaultValue="personal">
             <HomeSection />
-            <ExploreSection />
-            <PersonalSection />
-            <CommunitySection />
-            <ProfileSection />
+            {isModuleActive('explore') && <ExploreSection />}
+            {isModuleActive('wardrobe') && <PersonalSection />}
+            {isModuleActive('community') && <CommunitySection />}
+            {isModuleActive('profile') && <ProfileSection />}
             {isAdmin && <AdminSection />}
           </Accordion>
         </ScrollArea>

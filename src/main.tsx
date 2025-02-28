@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -65,46 +66,55 @@ const queryClient = new QueryClient({
   },
 });
 
-const routeComponents = {
-  '/suggestions': Suggestions,
-  '/feed': Feed,
-  '/challenges': Challenges,
-  '/challenge/:id': Challenge,
-  '/search': Search,
-  '/trending/outfits': TrendingOutfits,
-  '/hashtags': Hashtags,
-  '/explore': Explore,
-  '/boutiques': Boutiques,
-  '/shops/:id': ShopDetail,
-  '/shops/create': CreateShop,
-  '/clothes': Clothes,
-  '/outfits': Outfits,
-  '/personal': Personal,
-  '/suitcases': Suitcases,
-  '/community': Community,
-  '/messages': Messages,
-  '/groups': Groups,
-  '/notifications': Notifications,
-  '/friends': Friends,
-  '/find-friends': FindFriends,
-  '/profile': Profile,
-  '/profile/settings': Settings,
-  '/marketplace': Shops,
-  '/help': HelpAndSupport,
-  '/virtual-tryon': VirtualTryOn,
-  '/cart': Cart,
-  '/checkout': Checkout,
-  '/favorites': Favorites,
-  '/calendar': Calendar,
+// Configuration des modules pour chaque route
+const moduleRoutes = {
+  '/suggestions': { component: Suggestions, moduleCode: 'suggestions' },
+  '/feed': { component: Feed, moduleCode: 'social_feed' },
+  '/challenges': { component: Challenges, moduleCode: 'challenges' },
+  '/challenge/:id': { component: Challenge, moduleCode: 'challenges' },
+  '/search': { component: Search, moduleCode: 'search' },
+  '/trending/outfits': { component: TrendingOutfits, moduleCode: 'trending' },
+  '/hashtags': { component: Hashtags, moduleCode: 'hashtags' },
+  '/explore': { component: Explore, moduleCode: 'explore' },
+  '/boutiques': { component: Boutiques, moduleCode: 'marketplace' },
+  '/shops/:id': { component: ShopDetail, moduleCode: 'marketplace' },
+  '/shops/create': { component: CreateShop, moduleCode: 'marketplace' },
+  '/clothes': { component: Clothes, moduleCode: 'wardrobe' },
+  '/outfits': { component: Outfits, moduleCode: 'outfits' },
+  '/personal': { component: Personal, moduleCode: 'profile' },
+  '/suitcases': { component: Suitcases, moduleCode: 'suitcases' },
+  '/community': { component: Community, moduleCode: 'community' },
+  '/messages': { component: Messages, moduleCode: 'messaging' },
+  '/groups': { component: Groups, moduleCode: 'groups' },
+  '/notifications': { component: Notifications, moduleCode: 'notifications' },
+  '/friends': { component: Friends, moduleCode: 'friends' },
+  '/find-friends': { component: FindFriends, moduleCode: 'friends' },
+  '/profile': { component: Profile, moduleCode: 'profile' },
+  '/profile/settings': { component: Settings, moduleCode: 'profile' },
+  '/marketplace': { component: Shops, moduleCode: 'marketplace' },
+  '/help': { component: HelpAndSupport, moduleCode: 'help' },
+  '/virtual-tryon': { component: VirtualTryOn, moduleCode: 'virtual_tryon' },
+  '/cart': { component: Cart, moduleCode: 'shopping' },
+  '/checkout': { component: Checkout, moduleCode: 'shopping' },
+  '/favorites': { component: Favorites, moduleCode: 'favorites' },
+  '/calendar': { component: Calendar, moduleCode: 'calendar' },
 };
+
+// Routes qui sont toujours disponibles (core)
+const alwaysAvailableRoutes = [
+  { path: "/landing", element: <Landing /> },
+  { path: "/auth", element: <Auth /> },
+  { path: "/auth/login", element: <Auth /> },
+  { path: "/auth/admin", element: <AdminLogin /> },
+];
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/auth/login" element={<Auth />} />
-      <Route path="/auth/admin" element={<AdminLogin />} />
+      {/* Routes toujours disponibles */}
+      {alwaysAvailableRoutes.map(route => (
+        <Route key={route.path} path={route.path} element={route.element} />
+      ))}
 
       <Route
         path="/"
@@ -117,6 +127,7 @@ const App = () => {
 
       <Route path="/" element={<Navigate to="/landing" replace />} />
 
+      {/* Routes d'administration (toujours disponibles pour les admins) */}
       <Route
         path="/admin"
         element={
@@ -139,13 +150,19 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {Object.entries(routeComponents).map(([path, Component]) => (
+      {/* Routes modulaires */}
+      {Object.entries(moduleRoutes).map(([path, { component: Component, moduleCode }]) => (
         <Route
           key={path}
           path={path}
           element={
             <PrivateRoute>
-              <Component />
+              <ModuleGuard 
+                moduleCode={moduleCode} 
+                fallback={<Navigate to="/" replace />}
+              >
+                <Component />
+              </ModuleGuard>
             </PrivateRoute>
           }
         />
