@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -106,7 +105,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart.mutate(item.id)}
                     >
                       <X className="h-4 w-4" />
                     </Button>

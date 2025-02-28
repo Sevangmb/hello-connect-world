@@ -1,9 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { showErrorToast } from "./toastManager";
-import { Toast } from "@/hooks/use-toast";
+import { toast as toastFunction } from "@/hooks/use-toast";
 
-export async function getCurrentUser(toast: Toast) {
+export async function getCurrentUser(toast: typeof toastFunction) {
   try {
     const { data, error } = await supabase.auth.getUser();
     
@@ -27,7 +27,7 @@ export async function getCurrentUser(toast: Toast) {
   }
 }
 
-export async function checkUserAuthenticated(toast: Toast) {
+export async function checkUserAuthenticated(toast: typeof toastFunction) {
   const user = await getCurrentUser(toast);
   return !!user;
 }

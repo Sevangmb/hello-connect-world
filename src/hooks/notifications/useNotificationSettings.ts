@@ -44,24 +44,25 @@ export function useNotificationSettings(userId: string | null) {
       if (typeof preferences !== 'object' || preferences === null) {
         preferences = {};
       }
-      
-      // Initialize nested objects if they don't exist
+
+      // Create notifications object if it doesn't exist
       if (!preferences.notifications) {
         preferences.notifications = {};
       }
       
-      // Vérifier si preferences.notifications est bien un objet avant d'y accéder
-      if (typeof preferences.notifications !== 'object' || preferences.notifications === null) {
-        preferences.notifications = {};
-      }
-      
       // Set the notification type preference
-      preferences.notifications[type] = false;
+      const notificationsObj = preferences.notifications as Record<string, boolean>;
+      notificationsObj[type] = false;
 
       // Save updated preferences
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ preferences })
+        .update({ 
+          preferences: {
+            ...preferences,
+            notifications: notificationsObj
+          }
+        })
         .eq("id", userId);
 
       if (updateError) {
@@ -125,24 +126,25 @@ export function useNotificationSettings(userId: string | null) {
       if (typeof preferences !== 'object' || preferences === null) {
         preferences = {};
       }
-      
-      // Initialize nested objects if they don't exist
+
+      // Create notifications object if it doesn't exist
       if (!preferences.notifications) {
         preferences.notifications = {};
       }
       
-      // Vérifier si preferences.notifications est bien un objet avant d'y accéder
-      if (typeof preferences.notifications !== 'object' || preferences.notifications === null) {
-        preferences.notifications = {};
-      }
-      
       // Set the notification type preference
-      preferences.notifications[type] = true;
+      const notificationsObj = preferences.notifications as Record<string, boolean>;
+      notificationsObj[type] = true;
 
       // Save updated preferences
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ preferences })
+        .update({ 
+          preferences: {
+            ...preferences,
+            notifications: notificationsObj
+          }
+        })
         .eq("id", userId);
 
       if (updateError) {

@@ -39,7 +39,7 @@ export function useCart(userId: string | null) {
         .select(`
           id,
           quantity,
-          shop_items!inner (
+          shop_items:shop_item_id (
             id,
             name,
             description,
@@ -48,7 +48,7 @@ export function useCart(userId: string | null) {
             stock,
             seller_id,
             shop_id,
-            shops:shops!inner(name)
+            shops:shop_id (name)
           )
         `)
         .eq("user_id", userId);
@@ -58,11 +58,7 @@ export function useCart(userId: string | null) {
       }
 
       // Convertir explicitement le résultat au type attendu
-      return data.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        shop_items: item.shop_items
-      })) as CartItem[];
+      return data as unknown as CartItem[];
     },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
@@ -248,6 +244,10 @@ export function useCart(userId: string | null) {
       });
 
       return data;
+    },
+    onMutate: async (cartItemId) => {
+      // Cette fonction est appelée avant la mutation
+      return { cartItemId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", userId] });

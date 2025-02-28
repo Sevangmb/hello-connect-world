@@ -25,4 +25,5 @@ export interface OutfitSuggestionError {
   error: Error;
   errorCode: string;
   message: string;
+  suggestion?: null;
 }

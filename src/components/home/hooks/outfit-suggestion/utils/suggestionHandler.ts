@@ -83,7 +83,8 @@ export async function handleSuggestionProcess(
     } : null;
     
     return {
-      suggestion
+      suggestion,
+      error: null
     };
   } catch (error) {
     dismissToast();

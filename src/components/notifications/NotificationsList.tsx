@@ -1,135 +1,199 @@
-
-import { useState } from "react";
-import { Bell, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Notification } from "./types";
 import { NotificationItem } from "./NotificationItem";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { NotificationData } from "@/hooks/notifications/types";
-import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Bell, BellOff } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useAuth } from "@/hooks/useAuth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export const NotificationsList = () => {
-  const { 
-    notifications, 
-    isLoading, 
-    markAsRead, 
-    markAllAsRead, 
-    refetch,
-    subscribeToNotifications,
+export function NotificationsList() {
+  const { user } = useAuth();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refreshNotifications,
+    realtimeStatus,
   } = useNotifications();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const { toast } = useToast();
 
+  const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Filtrer les notifications selon l'onglet actif
+  const filteredNotifications = activeTab === "unread"
+    ? notifications?.filter(notification => !notification.read)
+    : notifications;
+
+  // Fonction pour rafraîchir manuellement les notifications
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refetch();
-      toast({
-        title: "Notifications actualisées",
-        description: "Vos notifications ont été mises à jour",
-      });
+      await refreshNotifications();
     } catch (error) {
-      console.error("Erreur lors de l'actualisation des notifications:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'actualiser les notifications",
-      });
+      console.error("Error refreshing notifications:", error);
     } finally {
-      // Attendre un peu pour l'animation
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 1000);
+      setIsRefreshing(false);
     }
   };
 
-  const handleMarkAllAsRead = async () => {
-    try {
-      const unreadNotifications = notifications?.filter(n => !n.is_read) || [];
-      if (unreadNotifications.length === 0) return;
-      
-      // Marquer toutes les notifications comme lues
-      markAllAsRead();
-      
-      toast({
-        title: "Notifications marquées comme lues",
-        description: "Toutes les notifications ont été marquées comme lues",
-      });
-    } catch (error) {
-      console.error("Erreur lors du marquage des notifications:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de marquer les notifications comme lues",
-      });
-    }
+  // Marquer une notification comme lue
+  const handleMarkAsRead = async (notification: Notification) => {
+    return Promise.resolve(markAsRead(notification.id));
   };
+
+  // Marquer toutes les notifications comme lues
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+  };
+
+  // Supprimer une notification
+  const handleDeleteNotification = (id: string) => {
+    deleteNotification(id);
+  };
+
+  // Effet pour marquer automatiquement les notifications comme lues lorsqu'elles sont affichées
+  useEffect(() => {
+    if (activeTab === "unread" && filteredNotifications?.length > 0) {
+      // Optionnel: marquer automatiquement comme lues après un délai
+      const timer = setTimeout(() => {
+        handleMarkAllAsRead();
+      }, 5000); // 5 secondes après l'affichage
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, filteredNotifications]);
+
+  if (!user) {
+    return (
+      <Alert>
+        <AlertDescription>
+          Vous devez être connecté pour voir vos notifications.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-10">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-facebook-primary mb-2" />
-          <p className="text-sm text-muted-foreground">Chargement des notifications...</p>
-        </div>
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Une erreur est survenue lors du chargement des notifications.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div 
-        className={cn(
-          "transition-all duration-300 ease-in-out pb-4 mb-4 border-b flex justify-between items-center", 
-          isRefreshing ? "opacity-50" : "opacity-100"
-        )}
-      >
-        <button 
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5" />
+          <h2 className="text-lg font-medium">Vos notifications</h2>
+          {unreadCount > 0 && (
+            <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={handleRefresh}
-          className="py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors flex-1"
           disabled={isRefreshing}
         >
-          <Loader2 className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
-          <span>{isRefreshing ? "Actualisation..." : "Actualiser"}</span>
-        </button>
-        
-        {(notifications?.some(n => !n.is_read)) && (
-          <button 
-            onClick={handleMarkAllAsRead}
-            className="py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors"
-            disabled={isRefreshing}
-          >
-            <span>Tout marquer comme lu</span>
-          </button>
-        )}
+          {isRefreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            "Actualiser"
+          )}
+        </Button>
       </div>
 
-      {!notifications?.length ? (
-        <Card className="p-8 text-center bg-gray-50/50 border border-gray-100">
-          <Bell className="h-10 w-10 mx-auto text-muted-foreground mb-3 opacity-40" />
-          <p className="text-muted-foreground font-medium">Aucune notification</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Les notifications apparaîtront ici
-          </p>
-        </Card>
-      ) : (
-        <div className="space-y-3 md:space-y-4">
-          {notifications.map((notification: NotificationData) => (
-            <NotificationItem 
-              key={notification.id}
-              notification={{
-                ...notification,
-                read: notification.is_read,
-                actor: notification.actor || {
-                  username: null,
-                  avatar_url: null
-                }
-              }}
-              onMarkAsRead={(id) => markAsRead(id)}
-            />
-          ))}
-        </div>
+      {!realtimeStatus.connected && (
+        <Alert variant="default" className="bg-yellow-50 border-yellow-200">
+          <AlertDescription className="text-yellow-800">
+            Les notifications en temps réel ne sont pas disponibles actuellement.
+          </AlertDescription>
+        </Alert>
       )}
+
+      <Tabs defaultValue="all" value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "unread")}>
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="all">Toutes</TabsTrigger>
+            <TabsTrigger value="unread">Non lues {unreadCount > 0 && `(${unreadCount})`}</TabsTrigger>
+          </TabsList>
+          
+          {filteredNotifications?.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMarkAllAsRead}
+              className="text-xs"
+            >
+              <BellOff className="h-3 w-3 mr-1" />
+              Tout marquer comme lu
+            </Button>
+          )}
+        </div>
+
+        <TabsContent value="all" className="mt-4">
+          {filteredNotifications?.length === 0 ? (
+            <EmptyState
+              icon={Bell}
+              title="Pas de notifications"
+              description="Vous n'avez pas encore de notifications."
+            />
+          ) : (
+            <div className="space-y-2">
+              {filteredNotifications?.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={() => handleMarkAsRead(notification)}
+                  onDelete={() => handleDeleteNotification(notification.id)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="unread" className="mt-4">
+          {filteredNotifications?.length === 0 ? (
+            <EmptyState
+              icon={BellOff}
+              title="Pas de notifications non lues"
+              description="Vous avez lu toutes vos notifications."
+            />
+          ) : (
+            <div className="space-y-2">
+              {filteredNotifications?.map((notification) => (
+                <NotificationItem
+                  key={notification.id}
+                  notification={notification}
+                  onMarkAsRead={() => handleMarkAsRead(notification)}
+                  onDelete={() => handleDeleteNotification(notification.id)}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

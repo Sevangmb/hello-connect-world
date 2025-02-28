@@ -33,29 +33,31 @@ export const CreateChallenge = () => {
     handleSubmit,
   } = useChallengeSubmit();
 
-  // États locaux pour les dates au format Date, convertis à partir des chaînes de dates
-  const [startDate, setStartDate] = useState(startDateString ? new Date(startDateString) : new Date());
-  const [endDate, setEndDate] = useState(endDateString ? new Date(endDateString) : new Date());
+  // Convertir les chaînes de dates en objets Date pour l'interface utilisateur
+  const [startDate, setStartDate] = useState<string>(startDateString || "");
+  const [endDate, setEndDate] = useState<string>(endDateString || "");
 
-  // Propagation des changements de dates entre les états Date et les chaînes de date
+  // Synchroniser les valeurs quand elles changent dans useChallengeSubmit
   useEffect(() => {
     if (startDateString) {
-      setStartDate(new Date(startDateString));
+      setStartDate(startDateString);
     }
   }, [startDateString]);
 
   useEffect(() => {
     if (endDateString) {
-      setEndDate(new Date(endDateString));
+      setEndDate(endDateString);
     }
   }, [endDateString]);
 
-  // Handlers pour gérer les changements de dates
+  // Gestionnaires pour les changements de dates
   const handleStartDateChange = (value: string) => {
+    setStartDate(value);
     setStartDateString(value);
   };
 
   const handleEndDateChange = (value: string) => {
+    setEndDate(value);
     setEndDateString(value);
   };
 
@@ -73,8 +75,8 @@ export const CreateChallenge = () => {
       />
       
       <ChallengeDates
-        startDate={startDateString || ""}
-        endDate={endDateString || ""}
+        startDate={startDate}
+        endDate={endDate}
         onStartDateChange={handleStartDateChange}
         onEndDateChange={handleEndDateChange}
       />
