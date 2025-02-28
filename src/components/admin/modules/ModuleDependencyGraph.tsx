@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertCircle } from 'lucide-react';
 
 // Définition du type pour les données du nœud
-interface ModuleNodeData {
+interface ModuleNodeData extends Record<string, unknown> {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
@@ -35,7 +35,7 @@ export const ModuleDependencyGraph = () => {
     if (loading || modules.length === 0) return;
 
     // Créer les nœuds du graphe
-    const graphNodes: Node<ModuleNodeData>[] = modules.map((module, index) => ({
+    const graphNodes = modules.map((module, index) => ({
       id: module.id,
       type: 'default',
       position: calculateNodePosition(index, modules.length),
