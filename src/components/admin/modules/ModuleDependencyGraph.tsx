@@ -17,7 +17,7 @@ import { useModules } from '@/hooks/useModules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
-// Types pour les nœuds du graphe
+// Type pour les nœuds du graphe
 interface ModuleNode extends Node {
   data: {
     label: string;
