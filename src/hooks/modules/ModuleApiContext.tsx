@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useModuleApi } from './useModuleApi';
-import { ModuleStatus } from './types';
+import { ModuleStatus, AppModule } from './types';
 
 // Interface pour le contexte
 interface ModuleApiContextType {
@@ -16,8 +16,8 @@ interface ModuleApiContextType {
   getFeatureEnabledStatus: (moduleCode: string, featureCode: string) => boolean;
   
   // Fonctions de rafraîchissement
-  refreshModules: (force?: boolean) => Promise<any>;
-  refreshFeatures: (force?: boolean) => Promise<any>;
+  refreshModules: (force?: boolean) => Promise<AppModule[]>;
+  refreshFeatures: (force?: boolean) => Promise<Record<string, Record<string, boolean>>>;
   
   // Fonctions de mise à jour
   updateModuleStatus: (moduleId: string, status: ModuleStatus) => Promise<boolean>;

@@ -24,7 +24,6 @@ export const useModules = () => {
     updateFeatureSilent,
     fetchModules,
     fetchDependencies,
-    fetchFeatures,
     setModules
   } = useModuleCore();
 

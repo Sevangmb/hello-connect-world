@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { ModuleStatus } from "./types";
+import { ModuleStatus, AppModule } from "./types";
 import { broadcastModuleStatusChange, broadcastFeatureStatusChange } from "./tabSync";
 import { cacheModuleStatuses } from "./utils";
 
@@ -18,7 +18,7 @@ export const useModuleStatusUpdate = () => {
   const updateModuleStatus = async (
     moduleId: string, 
     status: ModuleStatus, 
-    modules: any[], 
+    modules: AppModule[], 
     updateModule: Function, 
     setModules: Function
   ) => {
