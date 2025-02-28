@@ -9,7 +9,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ModuleStatus } from "@/hooks/modules/types";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface ModuleToggleProps {
@@ -34,31 +33,22 @@ export const ModuleToggle: React.FC<ModuleToggleProps> = ({
     try {
       setIsUpdating(true);
       
-      // Appeler la fonction de toggle fournie par le parent
+      // Appeler uniquement la fonction de toggle fournie par le parent
+      // qui utilisera ensuite updateModuleStatus du hook useModules
+      // pour assurer la cohérence entre l'UI et la base de données
       onToggle(moduleId, currentStatus);
-      
-      // Enregistrer directement la modification dans Supabase pour temps réel
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      const { error } = await supabase
-        .from('app_modules')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', moduleId);
-      
-      if (error) {
-        console.error("Erreur lors de la mise à jour du module:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "La mise à jour du module a échoué. Veuillez réessayer.",
-        });
-      }
     } catch (err) {
       console.error("Erreur lors du toggle du module:", err);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "La mise à jour du module a échoué. Veuillez réessayer.",
+      });
     } finally {
-      setIsUpdating(false);
+      // On laisse le composant parent gérer l'état de chargement pour une meilleure UX
+      setTimeout(() => {
+        setIsUpdating(false);
+      }, 500);
     }
   };
 
