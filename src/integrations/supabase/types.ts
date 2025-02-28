@@ -808,6 +808,61 @@ export type Database = {
           },
         ]
       }
+      module_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          feature_code: string
+          feature_name: string
+          id: string
+          is_enabled: boolean
+          module_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          feature_code: string
+          feature_name: string
+          id?: string
+          is_enabled?: boolean
+          module_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          feature_code?: string
+          feature_name?: string
+          id?: string
+          is_enabled?: boolean
+          module_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_features_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "module_features_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["module_code"]
+          },
+          {
+            foreignKeyName: "module_features_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["dependency_code"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
