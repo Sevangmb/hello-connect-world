@@ -3,6 +3,7 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModulesList } from "@/components/admin/modules/ModulesList";
+import { ModuleDependencies } from "@/components/admin/modules/ModuleDependencies";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 
 export default function AdminModules() {
@@ -28,16 +29,7 @@ export default function AdminModules() {
               </TabsContent>
 
               <TabsContent value="dependencies">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Graphe de Dépendances</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      Cette fonctionnalité sera implémentée dans une prochaine version.
-                    </p>
-                  </CardContent>
-                </Card>
+                <ModuleDependencies />
               </TabsContent>
             </Tabs>
           </CardContent>

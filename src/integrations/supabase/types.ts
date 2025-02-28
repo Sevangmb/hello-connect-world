@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_modules: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_core: boolean
+          name: string
+          status: Database["public"]["Enums"]["module_status"]
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_core?: boolean
+          name: string
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_core?: boolean
+          name?: string
+          status?: Database["public"]["Enums"]["module_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           created_at: string
@@ -707,6 +740,73 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      module_dependencies: {
+        Row: {
+          created_at: string
+          dependency_id: string
+          id: string
+          is_required: boolean
+          module_id: string
+        }
+        Insert: {
+          created_at?: string
+          dependency_id: string
+          id?: string
+          is_required?: boolean
+          module_id: string
+        }
+        Update: {
+          created_at?: string
+          dependency_id?: string
+          id?: string
+          is_required?: boolean
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_dependencies_dependency_id_fkey"
+            columns: ["dependency_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_dependencies_dependency_id_fkey"
+            columns: ["dependency_id"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "module_dependencies_dependency_id_fkey"
+            columns: ["dependency_id"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["dependency_id"]
+          },
+          {
+            foreignKeyName: "module_dependencies_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_dependencies_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "module_dependencies_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["dependency_id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -2258,7 +2358,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      module_dependencies_view: {
+        Row: {
+          dependency_code: string | null
+          dependency_id: string | null
+          dependency_name: string | null
+          dependency_status: Database["public"]["Enums"]["module_status"] | null
+          is_required: boolean | null
+          module_code: string | null
+          module_id: string | null
+          module_name: string | null
+          module_status: Database["public"]["Enums"]["module_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_and_award_badges: {
@@ -2282,6 +2395,12 @@ export type Database = {
       is_admin: {
         Args: {
           user_id: string
+        }
+        Returns: boolean
+      }
+      is_module_active: {
+        Args: {
+          module_code: string
         }
         Returns: boolean
       }
@@ -2309,6 +2428,7 @@ export type Database = {
     }
     Enums: {
       challenge_status: "active" | "completed"
+      module_status: "active" | "inactive" | "degraded"
       shipping_carrier_type: "integrated" | "manual"
       suitcase_status: "active" | "archived"
     }
