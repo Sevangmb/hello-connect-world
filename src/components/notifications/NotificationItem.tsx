@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, ExternalLink, Bell } from "lucide-react";
+import { Check, ExternalLink, Bell, Trash } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Notification } from "./types";
 import { NotificationIcon } from "./NotificationIcon";
@@ -14,10 +14,11 @@ import { motion } from "framer-motion";
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => Promise<void>;
+  onDelete?: (id: string) => void;
   isNew?: boolean;
 }
 
-export const NotificationItem = ({ notification, onMarkAsRead, isNew = false }: NotificationItemProps) => {
+export const NotificationItem = ({ notification, onMarkAsRead, onDelete, isNew = false }: NotificationItemProps) => {
   const { message, icon } = NotificationIcon.getNotificationContent(notification);
   const navigate = useNavigate();
   const [showNewBadge, setShowNewBadge] = useState(isNew);
@@ -90,19 +91,34 @@ export const NotificationItem = ({ notification, onMarkAsRead, isNew = false }: 
               {notification.post_id && <ExternalLink className="h-3 w-3" />}
             </p>
           </div>
-          {!notification.read && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hover:bg-primary/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMarkAsRead(notification.id);
-              }}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {!notification.read && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hover:bg-primary/10 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkAsRead(notification.id);
+                }}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hover:bg-red-100 text-red-500 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(notification.id);
+                }}
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
     </motion.div>

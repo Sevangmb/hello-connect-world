@@ -23,8 +23,8 @@ export function useChallengeSubmit() {
   const [description, setDescription] = useState("");
   const [rules, setRules] = useState("");
   const [rewardDescription, setRewardDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [participationType, setParticipationType] = useState<string>("virtual");
   const [isVotingEnabled, setIsVotingEnabled] = useState<boolean>(true);
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -44,8 +44,8 @@ export function useChallengeSubmit() {
           description,
           rules,
           reward_description: rewardDescription,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          start_date: startDate,
+          end_date: endDate,
           participation_type: participationType,
           is_voting_enabled: isVotingEnabled,
           status: 'active'

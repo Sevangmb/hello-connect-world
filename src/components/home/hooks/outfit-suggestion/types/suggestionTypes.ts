@@ -25,5 +25,5 @@ export interface OutfitSuggestionError {
   error: Error;
   errorCode: string;
   message: string;
-  suggestion: null; // Changed from optional to required but null
+  suggestion: null;
 }

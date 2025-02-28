@@ -33,20 +33,34 @@ export const CreateChallenge = () => {
     handleSubmit,
   } = useChallengeSubmit();
 
-  // Convertir les chaînes de dates en objets Date pour l'interface utilisateur
-  const [startDate, setStartDate] = useState<string>(startDateFromHook || "");
-  const [endDate, setEndDate] = useState<string>(endDateFromHook || "");
+  // Convertir les dates en chaînes pour l'interface utilisateur
+  const [startDate, setStartDate] = useState<string>(
+    startDateFromHook ? 
+    (typeof startDateFromHook === 'string' ? startDateFromHook : startDateFromHook.toISOString().split('T')[0]) : 
+    ""
+  );
+  const [endDate, setEndDate] = useState<string>(
+    endDateFromHook ? 
+    (typeof endDateFromHook === 'string' ? endDateFromHook : endDateFromHook.toISOString().split('T')[0]) : 
+    ""
+  );
 
   // Synchroniser les valeurs quand elles changent dans useChallengeSubmit
   useEffect(() => {
     if (startDateFromHook) {
-      setStartDate(startDateFromHook);
+      const formattedDate = typeof startDateFromHook === 'string' 
+        ? startDateFromHook 
+        : startDateFromHook.toISOString().split('T')[0];
+      setStartDate(formattedDate);
     }
   }, [startDateFromHook]);
 
   useEffect(() => {
     if (endDateFromHook) {
-      setEndDate(endDateFromHook);
+      const formattedDate = typeof endDateFromHook === 'string' 
+        ? endDateFromHook 
+        : endDateFromHook.toISOString().split('T')[0];
+      setEndDate(formattedDate);
     }
   }, [endDateFromHook]);
 

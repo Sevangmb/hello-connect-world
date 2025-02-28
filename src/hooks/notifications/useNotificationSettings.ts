@@ -4,6 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, BellOff, AlertCircle } from "lucide-react";
 
+interface NotificationPreferences {
+  notifications?: Record<string, boolean>;
+  [key: string]: any;
+}
+
 export function useNotificationSettings(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -35,7 +40,7 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to disable this notification type
-      let preferences = userProfile.preferences || {};
+      let preferences: NotificationPreferences = userProfile?.preferences || {};
       
       // Ensure preferences is an object if it's a string or other type
       if (typeof preferences !== 'object' || preferences === null) {
@@ -43,26 +48,17 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Create notifications object if it doesn't exist
-      if (!preferences.hasOwnProperty('notifications')) {
-        preferences = {
-          ...preferences,
-          notifications: {}
-        };
+      if (!preferences.notifications) {
+        preferences.notifications = {};
       }
       
       // Set the notification type preference
-      const notificationsObj = preferences.notifications as Record<string, boolean>;
-      notificationsObj[type] = false;
+      preferences.notifications[type] = false;
 
       // Save updated preferences
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ 
-          preferences: {
-            ...preferences,
-            notifications: notificationsObj
-          }
-        })
+        .update({ preferences })
         .eq("id", userId);
 
       if (updateError) {
@@ -120,7 +116,7 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to enable this notification type
-      let preferences = userProfile.preferences || {};
+      let preferences: NotificationPreferences = userProfile?.preferences || {};
       
       // Ensure preferences is an object if it's a string or other type
       if (typeof preferences !== 'object' || preferences === null) {
@@ -128,26 +124,17 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Create notifications object if it doesn't exist
-      if (!preferences.hasOwnProperty('notifications')) {
-        preferences = {
-          ...preferences,
-          notifications: {}
-        };
+      if (!preferences.notifications) {
+        preferences.notifications = {};
       }
       
       // Set the notification type preference
-      const notificationsObj = preferences.notifications as Record<string, boolean>;
-      notificationsObj[type] = true;
+      preferences.notifications[type] = true;
 
       // Save updated preferences
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ 
-          preferences: {
-            ...preferences,
-            notifications: notificationsObj
-          }
-        })
+        .update({ preferences })
         .eq("id", userId);
 
       if (updateError) {
