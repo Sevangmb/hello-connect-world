@@ -6,6 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Boxes, ArrowRightCircle, AlertCircle, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ModuleDependencyGraph from "./ModuleDependencyGraph";
+import "./dependency-graph.css";
 
 export const ModuleDependencies = () => {
   const { dependencies, loading, error } = useModules();
@@ -88,65 +91,78 @@ export const ModuleDependencies = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Boxes className="h-5 w-5" />
-          Graphe de Dépendances
+          Vue des Dépendances
         </CardTitle>
         <CardDescription>
           Visualisez les dépendances entre les différents modules de l'application
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <TooltipProvider>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Module</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Dépendances</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {modules.map((module) => (
-                <TableRow 
-                  key={module.id}
-                  className={selectedModule === module.code ? 'bg-blue-50' : ''}
-                  onClick={() => setSelectedModule(selectedModule === module.code ? null : module.code)}
-                >
-                  <TableCell className="font-medium">{module.name}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(module.status)}>
-                      {module.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {module.dependencies.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 items-center">
-                        {module.dependencies.map((dep: any) => (
-                          <div key={dep.id} className="flex items-center gap-1">
-                            <ArrowRightCircle className="h-4 w-4 text-gray-400" />
-                            <span>{dep.name}</span>
-                            <Badge className={getStatusColor(dep.status)}>
-                              {dep.status}
-                            </Badge>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Info className="h-4 w-4 text-blue-500" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{dep.isRequired ? 'Dépendance obligatoire' : 'Dépendance optionnelle'}</p>
-                              </TooltipContent>
-                            </Tooltip>
+        <Tabs defaultValue="graph">
+          <TabsList className="mb-4">
+            <TabsTrigger value="graph">Graphe</TabsTrigger>
+            <TabsTrigger value="table">Tableau</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="graph">
+            <ModuleDependencyGraph />
+          </TabsContent>
+          
+          <TabsContent value="table">
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Module</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Dépendances</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {modules.map((module) => (
+                    <TableRow 
+                      key={module.id}
+                      className={selectedModule === module.code ? 'bg-blue-50' : ''}
+                      onClick={() => setSelectedModule(selectedModule === module.code ? null : module.code)}
+                    >
+                      <TableCell className="font-medium">{module.name}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(module.status)}>
+                          {module.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {module.dependencies.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {module.dependencies.map((dep: any) => (
+                              <div key={dep.id} className="flex items-center gap-1">
+                                <ArrowRightCircle className="h-4 w-4 text-gray-400" />
+                                <span>{dep.name}</span>
+                                <Badge className={getStatusColor(dep.status)}>
+                                  {dep.status}
+                                </Badge>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Info className="h-4 w-4 text-blue-500" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{dep.isRequired ? 'Dépendance obligatoire' : 'Dépendance optionnelle'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">Aucune dépendance</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TooltipProvider>
+                        ) : (
+                          <span className="text-gray-500">Aucune dépendance</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
