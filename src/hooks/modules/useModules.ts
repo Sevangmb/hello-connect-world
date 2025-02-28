@@ -28,7 +28,8 @@ export const useModules = () => {
     updateFeatureSilent,
     fetchModules,
     fetchDependencies,
-    setModules
+    setModules,
+    connectionStatus
   } = useModuleCore();
 
   // Récupérer les fonctions de mise à jour de statut
@@ -132,5 +133,8 @@ export const useModules = () => {
     // Fonctions de rafraîchissement
     refreshModules: fetchModules,
     refreshDependencies: fetchDependencies,
+    
+    // Statut de connexion
+    connectionStatus
   };
 };

@@ -255,7 +255,13 @@ export const useModuleApi = () => {
 
       // S'assurer que le module Admin est toujours actif
       const modulesData = data.map(module => {
-        if (module.code === ADMIN_MODULE_CODE && module.status !== 'active') {
+        // Vérifier que le status est bien une valeur valide de ModuleStatus
+        let validStatus: ModuleStatus = 'inactive';
+        if (module.status === 'active' || module.status === 'degraded' || module.status === 'inactive') {
+          validStatus = module.status as ModuleStatus;
+        }
+        
+        if (module.code === ADMIN_MODULE_CODE && validStatus !== 'active') {
           // Réparer automatiquement
           supabase
             .from('app_modules')
@@ -264,10 +270,10 @@ export const useModuleApi = () => {
             .then(() => {
               console.log('Module Admin réactivé automatiquement');
             });
-          return { ...module, status: 'active' };
+          return { ...module, status: 'active' as ModuleStatus };
         }
-        return module;
-      });
+        return { ...module, status: validStatus };
+      }) as AppModule[];
 
       // Mettre à jour le cache
       inMemoryModulesCache = modulesData;

@@ -9,6 +9,8 @@ import {
 import { combineModulesWithFeatures, getFullModulesFromCache } from "./utils";
 import { supabase } from "@/integrations/supabase/client";
 
+export type ConnectionStatus = 'connected' | 'disconnected' | 'checking';
+
 export const useModuleDataFetcher = () => {
   const [modules, setModules] = useState<AppModule[]>([]);
   const [dependencies, setDependencies] = useState<ModuleDependency[]>([]);
@@ -16,7 +18,7 @@ export const useModuleDataFetcher = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('checking');
 
   // Vérifier la connexion à Supabase au démarrage
   useEffect(() => {
@@ -92,16 +94,26 @@ export const useModuleDataFetcher = () => {
           if (!directError && directData && directData.length > 0) {
             console.log("Modules chargés via méthode alternative:", directData.length);
             
+            // Convertir les statuts en ModuleStatus valide
+            const typedModules = directData.map(module => {
+              let status = module.status;
+              // S'assurer que le statut est un ModuleStatus valide
+              if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
+                status = 'inactive';
+              }
+              return { ...module, status } as AppModule;
+            });
+            
             // Si nous avons déjà des features, les combiner avec les modules
             if (Object.keys(features).length > 0) {
-              const combinedModules = combineModulesWithFeatures(directData, features);
+              const combinedModules = combineModulesWithFeatures(typedModules, features);
               setModules(combinedModules);
               setLoading(false);
               return combinedModules;
             } else {
-              setModules(directData);
+              setModules(typedModules);
               setLoading(false);
-              return directData;
+              return typedModules;
             }
           } else if (directError) {
             console.error("Erreur lors du chargement direct:", directError);

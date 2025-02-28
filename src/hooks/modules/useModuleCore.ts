@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useModuleDataFetcher } from "./dataFetcher";
+import { useModuleDataFetcher, ConnectionStatus } from "./dataFetcher";
 import { useStatusManager } from "./statusManager";
 import { useModuleActive } from "./useModuleActive";
 import { useModuleEffects } from "./useModuleEffects";
@@ -129,9 +129,19 @@ export const useModuleCore = () => {
                 .order('name');
                 
               if (data && data.length > 0) {
-                console.log("Modules chargés via fetch de secours:", data.length);
-                setLocalModules(data);
-                setModules(data);
+                // Ensure we have proper ModuleStatus types
+                const typedModules = data.map(module => {
+                  let status = module.status;
+                  // Make sure status is a valid ModuleStatus
+                  if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
+                    status = 'inactive';
+                  }
+                  return { ...module, status } as AppModule;
+                });
+                
+                console.log("Modules chargés via fetch de secours:", typedModules.length);
+                setLocalModules(typedModules);
+                setModules(typedModules);
               }
             } catch (e) {
               console.error("Erreur lors du fetch de secours:", e);
