@@ -11,6 +11,7 @@ import {
   Settings,
   HelpCircle,
   Package,
+  Boxes,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,16 @@ export const AdminSection = () => {
           >
             <Megaphone className="h-4 w-4" />
             Marketing
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-custom-blue text-white": location.pathname === "/admin/modules",
+            })}
+            onClick={() => navigate("/admin/modules")}
+          >
+            <Boxes className="h-4 w-4" />
+            Modules
           </Button>
           <Button
             variant="ghost"
