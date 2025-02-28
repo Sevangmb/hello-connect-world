@@ -1,35 +1,32 @@
 
 import React from "react";
-import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { BadgeCheck, ShieldAlert } from "lucide-react";
 
 interface ModuleNameProps {
   name: string;
   isCore: boolean;
+  isAdmin?: boolean;
 }
 
-export const ModuleName: React.FC<ModuleNameProps> = ({ name, isCore }) => {
+export const ModuleName: React.FC<ModuleNameProps> = ({ name, isCore, isAdmin }) => {
   return (
-    <div className="font-medium">
-      {name}
+    <div className="flex items-center gap-2">
+      <span className="font-medium">{name}</span>
       {isCore && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="ml-2">
-                <Info className="h-4 w-4 inline text-blue-500" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Module core (toujours actif)</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <BadgeCheck className="h-4 w-4 text-blue-500" />
+      )}
+      {isAdmin && (
+        <ShieldAlert className="h-4 w-4 text-red-500" />
+      )}
+      {isCore && (
+        <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-0.5">
+          Core
+        </span>
+      )}
+      {isAdmin && (
+        <span className="text-xs bg-red-100 text-red-800 rounded-full px-2 py-0.5">
+          Admin
+        </span>
       )}
     </div>
   );

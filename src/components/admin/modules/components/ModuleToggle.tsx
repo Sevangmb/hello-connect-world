@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +15,7 @@ interface ModuleToggleProps {
   moduleId: string;
   currentStatus: ModuleStatus;
   isCore: boolean;
+  isAdmin?: boolean;
   canToggle: boolean;
   onToggle: (moduleId: string, currentStatus: ModuleStatus) => void;
 }
@@ -23,6 +24,7 @@ export const ModuleToggle: React.FC<ModuleToggleProps> = ({
   moduleId,
   currentStatus,
   isCore,
+  isAdmin,
   canToggle,
   onToggle,
 }) => {
@@ -30,6 +32,16 @@ export const ModuleToggle: React.FC<ModuleToggleProps> = ({
   const { toast } = useToast();
 
   const handleToggle = async () => {
+    // Si c'est le module Admin et qu'on tente de le désactiver, bloquer
+    if (isAdmin && currentStatus === 'active') {
+      toast({
+        variant: "destructive",
+        title: "Module protégé",
+        description: "Le module Admin ne peut pas être désactivé",
+      });
+      return;
+    }
+    
     try {
       setIsUpdating(true);
       
@@ -66,12 +78,25 @@ export const ModuleToggle: React.FC<ModuleToggleProps> = ({
         <Switch
           checked={isActive}
           onCheckedChange={handleToggle}
-          disabled={!canToggle || isUpdating}
+          disabled={!canToggle || isUpdating || (isAdmin && isActive)}
           className={isActive ? "bg-green-500" : ""}
         />
       )}
       
-      {!canToggle && isCore && (
+      {isAdmin && isActive && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ShieldCheck className="h-4 w-4 text-red-500" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Module Admin protégé, ne peut pas être désactivé</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+      
+      {!canToggle && isCore && !isAdmin && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -84,7 +109,7 @@ export const ModuleToggle: React.FC<ModuleToggleProps> = ({
         </TooltipProvider>
       )}
       
-      {!canToggle && !isCore && (
+      {!canToggle && !isCore && !isAdmin && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

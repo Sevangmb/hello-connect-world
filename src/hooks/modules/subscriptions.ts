@@ -7,6 +7,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { AppModule, ModuleDependency } from "./types";
 
+// Constante pour identifier le module Admin
+const ADMIN_MODULE_CODE = "admin";
+
 // Interface pour les options d'abonnement
 interface SubscriptionOptions {
   onModuleChange: (payload: any) => void;
@@ -26,6 +29,22 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
   if (error) {
     console.error("Error fetching modules:", error);
     throw error;
+  }
+
+  // S'assurer que le module Admin est toujours actif
+  if (data) {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].code === ADMIN_MODULE_CODE && data[i].status !== 'active') {
+        console.warn("Module Admin trouvé inactif, réparation automatique...");
+        data[i].status = 'active';
+        
+        // Mettre à jour en base de données
+        await supabase
+          .from('app_modules')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', data[i].id);
+      }
+    }
   }
 
   return data || [];
@@ -77,6 +96,18 @@ export const fetchFeatureFlagsRealtime = async (): Promise<Record<string, Record
   const featuresByModule: Record<string, Record<string, boolean>> = {};
   
   (data || []).forEach(feature => {
+    // S'assurer que les fonctionnalités Admin sont toujours activées
+    if (feature.module_code === ADMIN_MODULE_CODE && !feature.is_enabled) {
+      console.warn("Fonctionnalité Admin trouvée inactive, réparation automatique...");
+      feature.is_enabled = true;
+      
+      // Mettre à jour en base de données
+      supabase
+        .from('module_features')
+        .update({ is_enabled: true, updated_at: new Date().toISOString() })
+        .eq('id', feature.id);
+    }
+    
     if (!featuresByModule[feature.module_code]) {
       featuresByModule[feature.module_code] = {};
     }
@@ -99,6 +130,13 @@ export const createModuleSubscriptions = (options: SubscriptionOptions) => {
       table: 'app_modules'
     }, (payload) => {
       console.log('Module change detected:', payload);
+      
+      // Vérifier si c'est le module Admin qui est modifié
+      if (payload.new && payload.new.code === ADMIN_MODULE_CODE && payload.new.status !== 'active') {
+        console.warn("Tentative de désactivation du module Admin via Realtime, blocage...");
+        // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
+      }
+      
       options.onModuleChange(payload);
     })
     .on('postgres_changes', {
@@ -107,6 +145,13 @@ export const createModuleSubscriptions = (options: SubscriptionOptions) => {
       table: 'module_features'
     }, (payload) => {
       console.log('Feature change detected:', payload);
+      
+      // Vérifier si c'est une fonctionnalité du module Admin
+      if (payload.new && payload.new.module_code === ADMIN_MODULE_CODE && !payload.new.is_enabled) {
+        console.warn("Tentative de désactivation d'une fonctionnalité Admin via Realtime, blocage...");
+        // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
+      }
+      
       options.onFeatureChange(payload);
     })
     .on('postgres_changes', {
