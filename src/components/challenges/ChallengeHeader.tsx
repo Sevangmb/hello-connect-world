@@ -31,6 +31,13 @@ export const ChallengeHeader = ({ challenge, onJoin, onVote }: ChallengeHeaderPr
           challengeId={challenge.id}
           onJoin={onJoin}
         />
+        <button
+          className="flex items-center gap-1 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-sm font-medium hover:bg-secondary/80 transition-colors"
+          onClick={() => setIsVotingOpen(true)}
+        >
+          <Vote className="h-4 w-4" />
+          Voter
+        </button>
         <VotingDialog
           isOpen={isVotingOpen}
           onClose={() => setIsVotingOpen(false)}

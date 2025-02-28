@@ -6,12 +6,12 @@ import { ChallengeSubmissionData } from "./challenges/types";
 export type { ChallengeSubmissionData };
 
 export function useChallengeSubmit() {
-  const { submitChallenge, isSubmitting } = useChallengeSubmission();
-  const { voteSubmission } = useChallengeVoting();
+  const { submitChallenge } = useChallengeSubmission();
+  const { voteForParticipant } = useChallengeVoting();
 
   return {
     submitChallenge,
-    voteSubmission,
-    isSubmitting
+    voteForParticipant,
+    isSubmitting: submitChallenge.isPending
   };
 }
