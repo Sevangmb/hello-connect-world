@@ -8,51 +8,95 @@ export async function fetchCartItems(userId: string | null): Promise<CartItem[]>
     return [];
   }
 
-  const { data, error } = await supabase
+  // First, get the cart items with shop_items basic data
+  const { data: cartItemsData, error: cartError } = await supabase
     .from("cart_items")
     .select(`
       id,
       quantity,
-      shop_items:shop_item_id (
-        id,
-        price,
-        seller_id,
-        shop_id,
-        shops:shop_id (name)
-      ),
-      shop_items_clothes:shop_item_id (
-        clothes (
-          name,
-          description,
-          image_url,
-          stock
-        )
-      )
+      shop_item_id
     `)
     .eq("user_id", userId);
 
-  if (error) {
-    throw error;
+  if (cartError) {
+    console.error("Error fetching cart items:", cartError);
+    throw cartError;
   }
 
-  // Transformer les données pour correspondre à l'interface CartItem
-  return (data as CartQueryResult[]).map((item) => ({
-    id: item.id,
-    quantity: item.quantity,
-    shop_items: {
-      id: item.shop_items.id,
-      name: item.shop_items_clothes?.clothes?.name || "Produit sans nom",
-      description: item.shop_items_clothes?.clothes?.description || null,
-      price: item.shop_items.price,
-      image_url: item.shop_items_clothes?.clothes?.image_url || null,
-      stock: item.shop_items_clothes?.clothes?.stock || 0,
-      seller_id: item.shop_items.seller_id,
-      shop_id: item.shop_items.shop_id,
-      shops: {
-        name: item.shop_items.shops?.name || "Boutique inconnue"
-      }
+  if (!cartItemsData || cartItemsData.length === 0) {
+    return [];
+  }
+
+  // Now fetch all the shop_items and clothes details in separate queries
+  const shopItemIds = cartItemsData.map(item => item.shop_item_id);
+  
+  // Get shop_items details
+  const { data: shopItemsData, error: shopItemsError } = await supabase
+    .from("shop_items")
+    .select(`
+      id,
+      price,
+      seller_id,
+      shop_id,
+      clothes_id,
+      shops:shop_id (name)
+    `)
+    .in("id", shopItemIds);
+
+  if (shopItemsError) {
+    console.error("Error fetching shop items:", shopItemsError);
+    throw shopItemsError;
+  }
+
+  // Get clothes details for the shop items
+  const clothesIds = shopItemsData.map(item => item.clothes_id);
+  
+  const { data: clothesData, error: clothesError } = await supabase
+    .from("clothes")
+    .select(`
+      id,
+      name,
+      description,
+      image_url,
+      stock
+    `)
+    .in("id", clothesIds);
+
+  if (clothesError) {
+    console.error("Error fetching clothes details:", clothesError);
+    throw clothesError;
+  }
+
+  // Map the data together to return the expected CartItem[] format
+  return cartItemsData.map(cartItem => {
+    const shopItem = shopItemsData.find(item => item.id === cartItem.shop_item_id);
+    if (!shopItem) {
+      throw new Error(`Shop item with id ${cartItem.shop_item_id} not found`);
     }
-  }));
+    
+    const clothesItem = clothesData.find(item => item.id === shopItem.clothes_id);
+    if (!clothesItem) {
+      throw new Error(`Clothes item for shop item ${shopItem.id} not found`);
+    }
+
+    return {
+      id: cartItem.id,
+      quantity: cartItem.quantity,
+      shop_items: {
+        id: shopItem.id,
+        name: clothesItem.name || "Produit sans nom",
+        description: clothesItem.description || null,
+        price: shopItem.price,
+        image_url: clothesItem.image_url || null,
+        stock: clothesItem.stock || 0,
+        seller_id: shopItem.seller_id,
+        shop_id: shopItem.shop_id,
+        shops: {
+          name: shopItem.shops?.name || "Boutique inconnue"
+        }
+      }
+    };
+  });
 }
 
 // Check if item exists in cart
@@ -82,7 +126,8 @@ export async function fetchItemDetails(itemId: string) {
     .from("shop_items")
     .select(`
       id, 
-      price
+      price,
+      clothes_id
     `)
     .eq("id", itemId)
     .single();
@@ -183,7 +228,8 @@ export async function getCartItemWithStock(cartItemId: string) {
   const { data: shopItemData, error: shopItemError } = await supabase
     .from("shop_items")
     .select(`
-      id
+      id,
+      clothes_id
     `)
     .eq("id", cartItem.shop_item_id)
     .single();
