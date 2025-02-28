@@ -41,22 +41,34 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
     fetchMessages();
 
     // Configurer l'abonnement aux nouveaux messages
-    const channel = supabase
-      .channel("private_chat")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "private_messages",
-          filter: `sender_id=eq.${recipientId},receiver_id=eq.${recipientId}`,
-        },
-        handleNewMessage
-      )
-      .subscribe();
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      const channel = supabase
+        .channel('private_chat_messages')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'private_messages',
+            filter: `or(and(sender_id.eq.${user.id},receiver_id.eq.${recipientId}),and(sender_id.eq.${recipientId},receiver_id.eq.${user.id}))`,
+          },
+          handleNewMessage
+        )
+        .subscribe((status) => {
+          console.log("Realtime subscription status:", status);
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    const cleanup = setupRealtimeSubscription();
     return () => {
-      supabase.removeChannel(channel);
+      cleanup.then(unsubscribe => unsubscribe && unsubscribe());
     };
   }, [recipientId]);
 
@@ -79,6 +91,8 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
         return;
       }
 
+      console.log("Fetching messages between", user.id, "and", recipientId);
+
       const { data, error } = await supabase
         .from("private_messages")
         .select(`
@@ -92,9 +106,11 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
         .order("created_at", { ascending: true });
 
       if (error) {
+        console.error("Error fetching messages:", error);
         throw error;
       }
 
+      console.log("Fetched messages:", data);
       setMessages(data as PrivateMessage[] || []);
     } catch (error: any) {
       console.error("Error fetching messages:", error);
@@ -109,6 +125,8 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
   };
 
   const handleNewMessage = (payload: RealtimePostgresChangesPayload<PrivateMessage>) => {
+    console.log("New message received:", payload);
+    
     // Optimisation: ajouter directement le nouveau message au lieu de refaire une requête
     if (payload.new) {
       // Nous devons récupérer les infos sur l'expéditeur pour l'affichage
@@ -121,6 +139,8 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
     if (!newMessage.trim() || !currentUser) return;
 
     try {
+      console.log("Sending message to:", recipientId, "from:", currentUser.id);
+      
       const { error } = await supabase.from("private_messages").insert({
         content: newMessage,
         receiver_id: recipientId,
@@ -128,6 +148,7 @@ export const PrivateChat = ({ recipientId, recipientName }: PrivateChatProps) =>
       });
 
       if (error) {
+        console.error("Error sending message:", error);
         throw error;
       }
 

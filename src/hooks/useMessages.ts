@@ -9,6 +9,18 @@ export const useMessages = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    
+    getCurrentUser();
+  }, []);
 
   /**
    * Récupère toutes les conversations de l'utilisateur
@@ -84,40 +96,45 @@ export const useMessages = () => {
    * Gestionnaire d'événements pour les changements en temps réel
    */
   const handleRealtimeChanges = (payload: RealtimePostgresChangesPayload<any>) => {
-    const { eventType, new: newRecord } = payload;
+    console.log("Realtime change detected:", payload);
     
-    if (eventType === 'INSERT') {
-      // Plutôt que de refaire une requête complète, nous pouvons mettre à jour
-      // l'état localement pour de meilleures performances
+    // Actualiser les conversations lorsqu'un nouveau message est inséré
+    if (payload.eventType === 'INSERT') {
       fetchConversations();
     }
   }
 
   useEffect(() => {
-    fetchConversations();
-
-    // Abonnement aux changements en temps réel avec un gestionnaire unique
-    const channel = supabase
-      .channel('private_messages_channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'private_messages'
-        },
-        handleRealtimeChanges
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+    if (currentUserId) {
+      fetchConversations();
+  
+      // Abonnement aux changements en temps réel avec un gestionnaire unique
+      const channel = supabase
+        .channel('private_messages_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'private_messages',
+            filter: `sender_id=eq.${currentUserId},receiver_id=eq.${currentUserId}`
+          },
+          handleRealtimeChanges
+        )
+        .subscribe((status) => {
+          console.log("Supabase realtime subscription status:", status);
+        });
+  
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [currentUserId]);
 
   return {
     conversations,
     loading,
-    refreshConversations: fetchConversations
+    refreshConversations: fetchConversations,
+    currentUserId
   };
 };
