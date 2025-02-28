@@ -142,7 +142,9 @@ export const useChallengeSubmit = ({ onSuccess }: UseChallengeSubmitProps = {}) 
       // Invalidate and reset
       queryClient.invalidateQueries({ queryKey: ['challenges'] });
       resetForm();
-      onSuccess?.();
+      if (onSuccess) {
+        onSuccess();
+      }
 
       dismiss();
       toast({

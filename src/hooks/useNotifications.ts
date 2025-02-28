@@ -40,55 +40,70 @@ export const useNotifications = () => {
       }
 
       return (data as unknown as Notification[]) || [];
-    },
+    }
   });
 
   // Subscribe to realtime changes
   const subscribeToNotifications = useCallback((onNewNotification?: (notification: Notification) => void) => {
-    const channel = supabase
-      .channel('notifications-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${supabase.auth.getUser().then(({ data }) => data.user?.id)}`
-        },
-        (payload) => {
-          console.log('Realtime notification update:', payload);
-          
-          // Refresh notifications
-          refreshNotifications();
-          
-          // S'il s'agit d'une nouvelle notification et qu'un callback est fourni
-          if (payload.eventType === 'INSERT' && onNewNotification) {
-            // Récupérer les détails complets de la notification
-            supabase
-              .from("notifications")
-              .select(`
-                *,
-                actor:profiles!notifications_actor_id_fkey(username, avatar_url),
-                post:posts(content)
-              `)
-              .eq("id", payload.new.id)
-              .single()
-              .then(({ data, error }) => {
-                if (!error && data) {
-                  const notification = data as unknown as Notification;
-                  onNewNotification(notification);
-                  
-                  // Afficher une toast pour la nouvelle notification
-                  showNotificationToast(notification);
-                }
-              });
+    const asyncSubscribe = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return () => {};
+      
+      const channel = supabase
+        .channel('notifications-channel')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('Realtime notification update:', payload);
+            
+            // Refresh notifications
+            refreshNotifications();
+            
+            // S'il s'agit d'une nouvelle notification et qu'un callback est fourni
+            if (payload.eventType === 'INSERT' && onNewNotification) {
+              // Récupérer les détails complets de la notification
+              supabase
+                .from("notifications")
+                .select(`
+                  *,
+                  actor:profiles!notifications_actor_id_fkey(username, avatar_url),
+                  post:posts(content)
+                `)
+                .eq("id", payload.new.id)
+                .single()
+                .then(({ data, error }) => {
+                  if (!error && data) {
+                    const notification = data as unknown as Notification;
+                    onNewNotification(notification);
+                    
+                    // Afficher une toast pour la nouvelle notification
+                    showNotificationToast(notification);
+                  }
+                });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+    
+    const unsubscribe = asyncSubscribe();
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe.then(fn => {
+        if (typeof fn === 'function') {
+          fn();
+        }
+      });
     };
   }, [queryClient, toast]);
 

@@ -202,8 +202,8 @@ export function useCart() {
         icon: <AlertCircle className="h-4 w-4" />,
       });
     },
-    onSettled: (_, __, { cartItemId }) => {
-      setProcessingItems(prev => ({ ...prev, [cartItemId]: false }));
+    onSettled: (_, __, variables) => {
+      setProcessingItems(prev => ({ ...prev, [variables.cartItemId]: false }));
     }
   });
 
@@ -253,8 +253,9 @@ export function useCart() {
 
   // Abonnement aux changements de panier en temps réel
   useEffect(() => {
-    const subscribeToCartChanges = () => {
-      const userId = supabase.auth.getUser().then(({ data }) => data.user?.id);
+    const subscribeToCartChanges = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
       if (!userId) return () => {};
       
       const channel = supabase
@@ -281,7 +282,9 @@ export function useCart() {
     
     const unsubscribe = subscribeToCartChanges();
     return () => {
-      unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [queryClient]);
 
