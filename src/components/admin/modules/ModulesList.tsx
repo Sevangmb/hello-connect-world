@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody } from "@/components/ui/table";
 import { useModules } from "@/hooks/modules";
@@ -21,12 +21,39 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     loading, 
     isModuleActive, 
     updateModuleStatus,
-    updateFeatureStatus
+    updateFeatureStatus,
+    refreshModules
   } = useModules();
   
   const { toast } = useToast();
   const [pendingChanges, setPendingChanges] = useState<Record<string, ModuleStatus>>({});
   const [saving, setSaving] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Refresh modules data periodically to ensure it's up to date
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      refreshModules().then(() => {
+        setLastRefresh(new Date());
+        console.log("Modules refreshed automatically at", new Date().toLocaleTimeString());
+      });
+    }, 30000); // Refresh every 30 seconds
+    
+    // Listen for module status changed events from other tabs
+    const handleModuleStatusChanged = () => {
+      refreshModules().then(() => {
+        setLastRefresh(new Date());
+        console.log("Modules refreshed due to status change at", new Date().toLocaleTimeString());
+      });
+    };
+    
+    window.addEventListener('module_status_changed', handleModuleStatusChanged);
+    
+    return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener('module_status_changed', handleModuleStatusChanged);
+    };
+  }, [refreshModules]);
 
   // Vérifier si on peut changer le statut d'un module
   const canToggleModule = (moduleId: string, isCore: boolean) => {
@@ -86,6 +113,9 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
           );
           await Promise.all(featurePromises);
         }
+        
+        // Mettre à jour le statut du module
+        await updateModuleStatus(moduleId, newStatus);
       });
       
       await Promise.all(updatePromises);
@@ -100,6 +130,10 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       
       // Déclencher l'événement personnalisé pour les mises à jour des modules
       triggerModuleStatusChanged();
+      
+      // Rafraîchir les données
+      await refreshModules();
+      setLastRefresh(new Date());
       
       // Notifier le parent que les statuts ont changé
       if (onStatusChange) {
@@ -118,6 +152,26 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     }
   };
 
+  // Rafraîchir manuellement les modules
+  const handleRefresh = async () => {
+    try {
+      await refreshModules();
+      setLastRefresh(new Date());
+      
+      toast({
+        title: "Données rafraîchies",
+        description: "Les modules ont été actualisés avec succès",
+      });
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des modules:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de rafraîchir les modules",
+      });
+    }
+  };
+
   // Vérifier s'il y a des changements en attente
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
 
@@ -127,8 +181,17 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Gestion des Modules</CardTitle>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Dernière mise à jour: {lastRefresh.toLocaleTimeString()}</span>
+          <button 
+            onClick={handleRefresh} 
+            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+          >
+            Actualiser
+          </button>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -160,7 +223,10 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
           </TableBody>
         </Table>
       </CardContent>
-      <CardFooter className="flex justify-end">
+      <CardFooter className="flex justify-between">
+        <div className="text-sm text-muted-foreground">
+          {modules.length} modules disponibles
+        </div>
         <SaveChangesButton
           hasPendingChanges={hasPendingChanges}
           saving={saving}

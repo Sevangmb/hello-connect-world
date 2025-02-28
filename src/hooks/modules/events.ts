@@ -1,32 +1,48 @@
 
-// Custom events for module status changes
-export const MODULE_STATUS_CHANGED = 'module_status_changed';
-export const FEATURE_STATUS_CHANGED = 'feature_status_changed';
+/**
+ * Custom events for module status changes
+ */
 
-// Trigger events to notify components that module statuses have changed
-export const triggerModuleStatusChanged = () => {
-  window.dispatchEvent(new CustomEvent(MODULE_STATUS_CHANGED));
+// Define event names
+const MODULE_STATUS_CHANGED = 'module_status_changed';
+const FEATURE_STATUS_CHANGED = 'feature_status_changed';
+
+/**
+ * Trigger a custom event when a module status changes
+ */
+export const triggerModuleStatusChanged = (detail: any = {}) => {
+  const event = new CustomEvent(MODULE_STATUS_CHANGED, { 
+    detail,
+    bubbles: true 
+  });
+  window.dispatchEvent(event);
+  console.log('Module status changed event triggered', detail);
 };
 
-export const triggerFeatureStatusChanged = () => {
-  window.dispatchEvent(new CustomEvent(FEATURE_STATUS_CHANGED));
+/**
+ * Trigger a custom event when a feature status changes
+ */
+export const triggerFeatureStatusChanged = (detail: any = {}) => {
+  const event = new CustomEvent(FEATURE_STATUS_CHANGED, { 
+    detail,
+    bubbles: true 
+  });
+  window.dispatchEvent(event);
+  console.log('Feature status changed event triggered', detail);
 };
 
-// Listener setup helper
-export const listenToModuleChanges = (callback: () => void) => {
-  window.addEventListener(MODULE_STATUS_CHANGED, callback);
-  
-  // Return cleanup function
-  return () => {
-    window.removeEventListener(MODULE_STATUS_CHANGED, callback);
-  };
+/**
+ * Add an event listener for module status changes
+ */
+export const onModuleStatusChanged = (callback: (event: CustomEvent) => void) => {
+  window.addEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
+  return () => window.removeEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
 };
 
-export const listenToFeatureChanges = (callback: () => void) => {
-  window.addEventListener(FEATURE_STATUS_CHANGED, callback);
-  
-  // Return cleanup function
-  return () => {
-    window.removeEventListener(FEATURE_STATUS_CHANGED, callback);
-  };
+/**
+ * Add an event listener for feature status changes
+ */
+export const onFeatureStatusChanged = (callback: (event: CustomEvent) => void) => {
+  window.addEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
+  return () => window.removeEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
 };

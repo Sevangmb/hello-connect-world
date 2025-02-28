@@ -5,6 +5,8 @@ import { ModuleStatus } from "./types";
 import { useModuleDataFetcher } from "./dataFetcher";
 import { useStatusManager } from "./statusManager";
 import { createModuleSubscriptions } from "./subscriptions";
+import { combineModulesWithFeatures } from "./utils";
+import { initTabSync, broadcastModuleStatusChange, broadcastFeatureStatusChange, cleanupTabSync } from "./tabSync";
 
 export const useModules = () => {
   // Récupérer les données des modules et dépendances
@@ -47,20 +49,32 @@ export const useModules = () => {
   // Mettre à jour l'état d'un module (pour les admins)
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
     await updateModule(moduleId, status, modules, setModules);
+    
+    // Broadcast the change to other tabs
+    broadcastModuleStatusChange(moduleId, status);
   };
 
   // Mettre à jour l'état d'une fonctionnalité silencieuse
   const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     await updateFeatureSilent(moduleCode, featureCode, isEnabled, setModules);
+    
+    // Broadcast the change to other tabs
+    broadcastFeatureStatusChange(moduleCode, featureCode, isEnabled);
   };
   
   // Mettre à jour l'état d'une fonctionnalité avec notification
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     await updateFeature(moduleCode, featureCode, isEnabled, setModules, setFeatures);
+    
+    // Broadcast the change to other tabs
+    broadcastFeatureStatusChange(moduleCode, featureCode, isEnabled);
   };
 
   // S'abonner aux changements de modules via l'API temps réel de Supabase
   useEffect(() => {
+    // Initialize tab synchronization
+    initTabSync();
+    
     // Charger les données initiales
     Promise.all([fetchModules(), fetchDependencies(), fetchFeatures()]);
     
@@ -99,7 +113,10 @@ export const useModules = () => {
     });
 
     // Nettoyer les abonnements à la destruction du composant
-    return cleanup;
+    return () => {
+      cleanup();
+      cleanupTabSync();
+    };
   }, []);
 
   return {
@@ -117,6 +134,3 @@ export const useModules = () => {
     refreshDependencies: fetchDependencies,
   };
 };
-
-// Ajouter l'import manquant pour combineModulesWithFeatures
-import { combineModulesWithFeatures } from "./utils";
