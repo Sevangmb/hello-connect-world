@@ -1,3 +1,7 @@
+
+# This file is used to configure your Supabase Function
+# Refer to the documentation at https://supabase.com/docs/functions
+
 project_id = "YOUR_SUPABASE_PROJECT_ID"
 
 [api]
@@ -41,3 +45,6 @@ client_id = ""
 secret = ""
 redirect_uri = ""
 url = ""
+
+[functions]
+serve_port = 54321

@@ -21,10 +21,29 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useModules } from "@/hooks/modules";
+import { useEffect } from "react";
 
 export const AdminSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isModuleActive } = useModules();
+
+  // Vérifier que le module admin est actif au chargement
+  useEffect(() => {
+    const checkAdminModule = async () => {
+      if (!isModuleActive('admin')) {
+        console.warn('Le module Admin doit être actif pour cette section');
+      }
+    };
+    
+    checkAdminModule();
+  }, [isModuleActive]);
+
+  const handleNavigation = (path: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(path);
+  };
 
   return (
     <AccordionItem value="admin" className="border-none">
@@ -41,7 +60,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/dashboard",
             })}
-            onClick={() => navigate("/admin/dashboard")}
+            onClick={handleNavigation("/admin/dashboard")}
           >
             <LayoutDashboard className="h-4 w-4" />
             Tableau de Bord
@@ -51,7 +70,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/users",
             })}
-            onClick={() => navigate("/admin/users")}
+            onClick={handleNavigation("/admin/users")}
           >
             <Users className="h-4 w-4" />
             Utilisateurs
@@ -61,7 +80,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/shops",
             })}
-            onClick={() => navigate("/admin/shops")}
+            onClick={handleNavigation("/admin/shops")}
           >
             <Store className="h-4 w-4" />
             Boutiques
@@ -71,7 +90,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/orders",
             })}
-            onClick={() => navigate("/admin/orders")}
+            onClick={handleNavigation("/admin/orders")}
           >
             <Package className="h-4 w-4" />
             Commandes
@@ -81,7 +100,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/marketplace",
             })}
-            onClick={() => navigate("/admin/marketplace")}
+            onClick={handleNavigation("/admin/marketplace")}
           >
             <ShoppingBag className="h-4 w-4" />
             Vide-Dressing
@@ -91,7 +110,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/content",
             })}
-            onClick={() => navigate("/admin/content")}
+            onClick={handleNavigation("/admin/content")}
           >
             <BookOpen className="h-4 w-4" />
             Contenu
@@ -101,7 +120,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/stats",
             })}
-            onClick={() => navigate("/admin/stats")}
+            onClick={handleNavigation("/admin/stats")}
           >
             <ChartBar className="h-4 w-4" />
             Statistiques
@@ -111,7 +130,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/marketing",
             })}
-            onClick={() => navigate("/admin/marketing")}
+            onClick={handleNavigation("/admin/marketing")}
           >
             <Megaphone className="h-4 w-4" />
             Marketing
@@ -121,7 +140,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/modules",
             })}
-            onClick={() => navigate("/admin/modules")}
+            onClick={handleNavigation("/admin/modules")}
           >
             <Boxes className="h-4 w-4" />
             Modules
@@ -131,7 +150,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/settings",
             })}
-            onClick={() => navigate("/admin/settings")}
+            onClick={handleNavigation("/admin/settings")}
           >
             <Settings className="h-4 w-4" />
             Paramètres
@@ -141,7 +160,7 @@ export const AdminSection = () => {
             className={cn("w-full justify-start gap-2", {
               "bg-custom-blue text-white": location.pathname === "/admin/help",
             })}
-            onClick={() => navigate("/admin/help")}
+            onClick={handleNavigation("/admin/help")}
           >
             <HelpCircle className="h-4 w-4" />
             Aide & Support

@@ -125,9 +125,10 @@ const App = () => {
         }
       />
 
-      <Route path="/" element={<Navigate to="/landing" replace />} />
+      {/* Route par défaut redirige vers landing */}
+      <Route path="*" element={<Navigate to="/landing" replace />} />
 
-      {/* Routes d'administration (toujours disponibles pour les admins) */}
+      {/* Routes d'administration (protégées par AdminRoute) */}
       <Route
         path="/admin"
         element={
@@ -168,6 +169,7 @@ const App = () => {
         />
       ))}
 
+      {/* Catch-all route pour les URLs non reconnues */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
