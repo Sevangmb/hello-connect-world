@@ -22,5 +22,6 @@ export interface ModuleDependency {
   dependency_id: string;
   dependency_code?: string;
   dependency_name?: string;
+  dependency_status?: ModuleStatus;
   is_required: boolean;
 }

@@ -12,12 +12,14 @@ export const useModules = () => {
     modules,
     setModules,
     dependencies,
+    setDependencies,
     features,
     setFeatures,
     loading,
     error,
     fetchModules,
-    fetchDependencies
+    fetchDependencies,
+    fetchFeatures
   } = useModuleDataFetcher();
 
   // Obtenir les fonctions de gestion des statuts
@@ -59,40 +61,45 @@ export const useModules = () => {
 
   // S'abonner aux changements de modules via l'API temps réel de Supabase
   useEffect(() => {
+    // Charger les données initiales
+    Promise.all([fetchModules(), fetchDependencies(), fetchFeatures()]);
+    
+    // Configurer les abonnements temps réel
     const { cleanup } = createModuleSubscriptions({
-      onModuleChange: () => {
-        // Rafraîchir les modules quand il y a un changement
-        fetchModules();
-      },
-      onFeatureChange: () => {
-        // Rafraîchir les features quand il y a un changement
-        const updateFeatures = async () => {
-          try {
-            const updatedFeatures = await fetchFeatures();
-            if (updatedFeatures) {
-              setFeatures(updatedFeatures);
-              
-              // Mettre à jour les modules avec les nouvelles valeurs
-              setModules(prevModules => 
-                combineModulesWithFeatures(prevModules, updatedFeatures)
-              );
+      onModuleChange: (payload) => {
+        console.log('Module changed, refreshing data:', payload);
+        fetchModules().then(newModules => {
+          // Si un module a été mis à jour en 'inactive', vérifier les impacts sur les features
+          if (payload?.eventType === 'UPDATE' && payload?.new?.status === 'inactive') {
+            const moduleCode = newModules.find(m => m.id === payload.new.id)?.code;
+            if (moduleCode) {
+              // Rafraîchir les features également
+              fetchFeatures();
             }
-          } catch (error) {
-            console.error("Erreur lors de la mise à jour des fonctionnalités:", error);
           }
-        };
-        
-        updateFeatures();
+        });
+      },
+      onFeatureChange: (payload) => {
+        console.log('Feature changed, refreshing data:', payload);
+        fetchFeatures().then(newFeatures => {
+          // Mettre à jour les modules avec les nouvelles valeurs
+          if (modules.length > 0) {
+            const updatedModules = combineModulesWithFeatures(modules, newFeatures);
+            setModules(updatedModules);
+          }
+        });
+      },
+      onDependencyChange: (payload) => {
+        console.log('Dependency changed, refreshing data:', payload);
+        fetchDependencies().then(() => {
+          // Vérifier si des modules sont impactés par ce changement de dépendance
+          fetchModules();
+        });
       }
     });
 
     // Nettoyer les abonnements à la destruction du composant
     return cleanup;
-  }, []);
-
-  // Charger les données au montage du composant
-  useEffect(() => {
-    Promise.all([fetchModules(), fetchDependencies()]);
   }, []);
 
   return {
@@ -111,6 +118,5 @@ export const useModules = () => {
   };
 };
 
-// Ajouter l'import manquant pour fetchFeatures et combineModulesWithFeatures
-import { fetchFeatureFlags as fetchFeatures } from "./api";
+// Ajouter l'import manquant pour combineModulesWithFeatures
 import { combineModulesWithFeatures } from "./utils";

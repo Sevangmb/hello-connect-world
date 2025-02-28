@@ -1,78 +1,83 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { AppModule, ModuleDependency } from "./types";
 import { 
-  fetchModules as fetchModulesApi, 
-  fetchDependencies as fetchDependenciesApi,
-  fetchFeatureFlags as fetchFeatureFlagsApi
-} from "./api";
-import { 
-  combineModulesWithFeatures,
-  cacheModuleStatuses
-} from "./utils";
+  fetchModulesRealtime, 
+  fetchDependenciesRealtime, 
+  fetchFeatureFlagsRealtime 
+} from "./subscriptions";
+import { combineModulesWithFeatures } from "./utils";
 
-/**
- * Hook pour récupérer les données des modules et dépendances
- */
 export const useModuleDataFetcher = () => {
   const [modules, setModules] = useState<AppModule[]>([]);
   const [dependencies, setDependencies] = useState<ModuleDependency[]>([]);
   const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
-  const { toast } = useToast();
 
   /**
-   * Récupérer tous les modules et leurs fonctionnalités
+   * Récupérer tous les modules depuis l'API
    */
-  const fetchModules = async () => {
+  const fetchModules = async (): Promise<AppModule[]> => {
     try {
       setLoading(true);
-      const modulesData = await fetchModulesApi();
+      const modulesData = await fetchModulesRealtime();
       
-      // Récupérer les feature flags pour chaque module
-      const moduleFeatures = await fetchFeatureFlagsApi();
-      
-      // Combiner les modules avec leurs feature flags
-      const modulesWithFeatures = combineModulesWithFeatures(modulesData, moduleFeatures);
-      
-      setModules(modulesWithFeatures);
-      setFeatures(moduleFeatures);
-      setInitialized(true);
-      
-      // Mettre en cache les statuts des modules
-      cacheModuleStatuses(modulesWithFeatures);
-    } catch (error: any) {
-      console.error("Erreur lors de la récupération des modules:", error);
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les modules de l'application",
-      });
+      // Si nous avons déjà des features, les combiner avec les modules
+      if (Object.keys(features).length > 0) {
+        const combinedModules = combineModulesWithFeatures(modulesData, features);
+        setModules(combinedModules);
+        return combinedModules;
+      } else {
+        setModules(modulesData);
+        return modulesData;
+      }
+    } catch (err: any) {
+      console.error("Error fetching modules:", err);
+      setError(err.message || "Failed to fetch modules");
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Récupérer toutes les dépendances entre modules
+   * Récupérer toutes les dépendances des modules
    */
-  const fetchDependencies = async () => {
+  const fetchDependencies = async (): Promise<ModuleDependency[]> => {
     try {
       setLoading(true);
-      const dependenciesData = await fetchDependenciesApi();
+      const dependenciesData = await fetchDependenciesRealtime();
       setDependencies(dependenciesData);
-    } catch (error: any) {
-      console.error("Erreur lors de la récupération des dépendances:", error);
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les dépendances entre modules",
-      });
+      return dependenciesData;
+    } catch (err: any) {
+      console.error("Error fetching dependencies:", err);
+      setError(err.message || "Failed to fetch dependencies");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Récupérer tous les feature flags
+   */
+  const fetchFeatures = async () => {
+    try {
+      setLoading(true);
+      const featuresData = await fetchFeatureFlagsRealtime();
+      setFeatures(featuresData);
+      
+      // Mettre à jour les modules avec les nouvelles features
+      if (modules.length > 0) {
+        setModules(combineModulesWithFeatures(modules, featuresData));
+      }
+      
+      return featuresData;
+    } catch (err: any) {
+      console.error("Error fetching features:", err);
+      setError(err.message || "Failed to fetch features");
+      return {};
     } finally {
       setLoading(false);
     }
@@ -87,8 +92,8 @@ export const useModuleDataFetcher = () => {
     setFeatures,
     loading,
     error,
-    initialized,
     fetchModules,
-    fetchDependencies
+    fetchDependencies,
+    fetchFeatures
   };
 };
