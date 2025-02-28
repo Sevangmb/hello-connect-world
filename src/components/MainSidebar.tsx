@@ -9,9 +9,10 @@ import { PersonalSection } from "./sidebar/PersonalSection";
 import { CommunitySection } from "./sidebar/CommunitySection";
 import { ProfileSection } from "./sidebar/ProfileSection";
 import { AdminSection } from "./sidebar/AdminSection";
-import { useModules } from "@/hooks/useModules";
+import { useModules } from "@/hooks/modules";
 import { X } from "lucide-react";
 import { Button } from "./ui/button";
+import { ModuleGuard } from "./modules/ModuleGuard";
 
 interface MainSidebarProps {
   isOpen?: boolean;
@@ -69,10 +70,23 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         <ScrollArea className="h-full px-4 py-6">
           <Accordion type="single" collapsible defaultValue="personal">
             <HomeSection />
-            {isModuleActive('explore') && <ExploreSection />}
-            {isModuleActive('wardrobe') && <PersonalSection />}
-            {isModuleActive('community') && <CommunitySection />}
-            {isModuleActive('profile') && <ProfileSection />}
+            
+            <ModuleGuard moduleCode="explore">
+              <ExploreSection />
+            </ModuleGuard>
+            
+            <ModuleGuard moduleCode="wardrobe">
+              <PersonalSection />
+            </ModuleGuard>
+            
+            <ModuleGuard moduleCode="community">
+              <CommunitySection />
+            </ModuleGuard>
+            
+            <ModuleGuard moduleCode="profile">
+              <ProfileSection />
+            </ModuleGuard>
+            
             {isAdmin && <AdminSection />}
           </Accordion>
         </ScrollArea>
