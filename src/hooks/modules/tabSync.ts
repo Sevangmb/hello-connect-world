@@ -1,134 +1,131 @@
 
 /**
- * This module provides cross-tab synchronization for module statuses
- * using the BroadcastChannel API.
+ * Système de synchronisation entre onglets pour les modules
+ * Ce fichier permet de synchroniser les changements de statut des modules entre différents onglets
  */
 
-import { AppModule, ModuleStatus } from "./types";
-import { cacheModuleStatuses } from "./utils";
-import { triggerModuleStatusChanged } from "./events";
+import { ModuleStatus } from "./types";
 
-// Type definitions for the messages
-interface ModuleStatusSyncMessage {
-  type: 'MODULE_STATUS_CHANGE';
-  data: {
-    moduleId: string;
-    newStatus: ModuleStatus;
-    timestamp: number;
-  };
+// Évènements de broadcast entre onglets (localStorage)
+const MODULE_STATUS_CHANGE_EVENT = "module_status_change_broadcast";
+const FEATURE_STATUS_CHANGE_EVENT = "feature_status_change_broadcast";
+
+// Interface pour les messages de statut des modules
+interface ModuleStatusChangeMessage {
+  moduleId: string;
+  status: ModuleStatus;
+  timestamp: number;
 }
 
-interface FeatureStatusSyncMessage {
-  type: 'FEATURE_STATUS_CHANGE';
-  data: {
-    moduleCode: string;
-    featureCode: string;
-    isEnabled: boolean;
-    timestamp: number;
-  };
+// Interface pour les messages de statut des fonctionnalités
+interface FeatureStatusChangeMessage {
+  moduleCode: string;
+  featureCode: string;
+  isEnabled: boolean;
+  timestamp: number;
 }
-
-type SyncMessage = ModuleStatusSyncMessage | FeatureStatusSyncMessage;
-
-// Create a broadcast channel for cross-tab communication
-let broadcastChannel: BroadcastChannel | null = null;
 
 /**
- * Initialize the broadcast channel for cross-tab synchronization
+ * Initialiser la synchronisation entre onglets
  */
 export const initTabSync = () => {
-  // Check if BroadcastChannel is supported by the browser
-  if (typeof BroadcastChannel !== 'undefined') {
-    try {
-      broadcastChannel = new BroadcastChannel('module_status_sync');
-      
-      // Listen for messages from other tabs
-      broadcastChannel.onmessage = (event: MessageEvent<SyncMessage>) => {
-        const message = event.data;
-        
-        console.log('Received sync message from another tab:', message);
-        
-        if (message.type === 'MODULE_STATUS_CHANGE') {
-          // Trigger module status changed event to update UI
-          triggerModuleStatusChanged();
-        } else if (message.type === 'FEATURE_STATUS_CHANGE') {
-          // Trigger feature status changed event to update UI
-          triggerModuleStatusChanged();
-        }
-      };
-      
-      console.log('Tab synchronization initialized');
-      return true;
-    } catch (error) {
-      console.error('Error initializing tab sync:', error);
-      return false;
-    }
-  } else {
-    console.warn('BroadcastChannel API not supported by this browser. Tab synchronization disabled.');
-    return false;
-  }
+  // Ajouter les écouteurs d'événements pour le stockage local
+  window.addEventListener("storage", handleStorageEvent);
+
+  // Log pour confirmer l'initialisation
+  console.log("Module tab synchronization initialized");
 };
 
 /**
- * Broadcast module status change to other tabs
- */
-export const broadcastModuleStatusChange = (moduleId: string, newStatus: ModuleStatus) => {
-  if (broadcastChannel) {
-    const message: ModuleStatusSyncMessage = {
-      type: 'MODULE_STATUS_CHANGE',
-      data: {
-        moduleId,
-        newStatus,
-        timestamp: Date.now()
-      }
-    };
-    
-    broadcastChannel.postMessage(message);
-    console.log('Broadcasted module status change to other tabs:', message);
-  }
-};
-
-/**
- * Broadcast feature status change to other tabs
- */
-export const broadcastFeatureStatusChange = (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-  if (broadcastChannel) {
-    const message: FeatureStatusSyncMessage = {
-      type: 'FEATURE_STATUS_CHANGE',
-      data: {
-        moduleCode,
-        featureCode,
-        isEnabled,
-        timestamp: Date.now()
-      }
-    };
-    
-    broadcastChannel.postMessage(message);
-    console.log('Broadcasted feature status change to other tabs:', message);
-  }
-};
-
-/**
- * Clean up the broadcast channel
+ * Nettoyer les écouteurs lors du démontage du composant
  */
 export const cleanupTabSync = () => {
-  if (broadcastChannel) {
-    broadcastChannel.close();
-    broadcastChannel = null;
-    console.log('Tab synchronization cleaned up');
+  window.removeEventListener("storage", handleStorageEvent);
+};
+
+/**
+ * Gérer les événements de stockage local pour la synchronisation entre onglets
+ */
+const handleStorageEvent = (event: StorageEvent) => {
+  if (!event.key) return;
+
+  try {
+    // Traiter les changements de statut de module
+    if (event.key === MODULE_STATUS_CHANGE_EVENT && event.newValue) {
+      const data: ModuleStatusChangeMessage = JSON.parse(event.newValue);
+      console.log("Received module status change from another tab:", data);
+      
+      // Déclencher l'événement DOM pour que les composants puissent mettre à jour leur état
+      const moduleEvent = new CustomEvent("module_status_changed", {
+        detail: data
+      });
+      window.dispatchEvent(moduleEvent);
+    }
+    
+    // Traiter les changements de statut de fonctionnalité
+    if (event.key === FEATURE_STATUS_CHANGE_EVENT && event.newValue) {
+      const data: FeatureStatusChangeMessage = JSON.parse(event.newValue);
+      console.log("Received feature status change from another tab:", data);
+      
+      // Déclencher l'événement DOM pour que les composants puissent mettre à jour leur état
+      const featureEvent = new CustomEvent("feature_status_changed", {
+        detail: data
+      });
+      window.dispatchEvent(featureEvent);
+    }
+  } catch (err) {
+    console.error("Error handling storage event:", err);
   }
 };
 
 /**
- * Update local cache from sync message
+ * Diffuser un changement de statut de module à tous les onglets
+ * @param moduleId Identifiant du module
+ * @param status Nouveau statut du module
  */
-export const updateLocalCacheFromSync = (modules: AppModule[], message: ModuleStatusSyncMessage) => {
-  const updatedModules = modules.map(module => 
-    module.id === message.data.moduleId 
-      ? { ...module, status: message.data.newStatus } 
-      : module
-  );
-  
-  cacheModuleStatuses(updatedModules);
-  return updatedModules;
+export const broadcastModuleStatusChange = (moduleId: string, status: ModuleStatus) => {
+  try {
+    const message: ModuleStatusChangeMessage = {
+      moduleId,
+      status,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem(MODULE_STATUS_CHANGE_EVENT, JSON.stringify(message));
+    // Puis supprimer pour permettre de futures mises à jour du même module
+    setTimeout(() => {
+      localStorage.removeItem(MODULE_STATUS_CHANGE_EVENT);
+    }, 100);
+    
+    console.log("Broadcasting module status change:", message);
+  } catch (err) {
+    console.error("Error broadcasting module status change:", err);
+  }
+};
+
+/**
+ * Diffuser un changement de statut de fonctionnalité à tous les onglets
+ * @param moduleCode Code du module
+ * @param featureCode Code de la fonctionnalité
+ * @param isEnabled Nouvel état de la fonctionnalité
+ */
+export const broadcastFeatureStatusChange = (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+  try {
+    const message: FeatureStatusChangeMessage = {
+      moduleCode,
+      featureCode,
+      isEnabled,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem(FEATURE_STATUS_CHANGE_EVENT, JSON.stringify(message));
+    // Puis supprimer pour permettre de futures mises à jour de la même fonctionnalité
+    setTimeout(() => {
+      localStorage.removeItem(FEATURE_STATUS_CHANGE_EVENT);
+    }, 100);
+    
+    console.log("Broadcasting feature status change:", message);
+  } catch (err) {
+    console.error("Error broadcasting feature status change:", err);
+  }
 };

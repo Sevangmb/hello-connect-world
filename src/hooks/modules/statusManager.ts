@@ -1,152 +1,139 @@
 
-import { ModuleStatus, AppModule } from "./types";
-import { 
-  updateModuleStatus as updateModuleStatusApi,
-  updateFeatureStatus as updateFeatureStatusApi,
-  fetchFeatureFlags as fetchFeatureFlagsApi
-} from "./api";
-import { 
-  cacheModuleStatuses,
-  combineModulesWithFeatures 
-} from "./utils";
-import { 
-  triggerModuleStatusChanged, 
-  triggerFeatureStatusChanged 
-} from "./events";
-import { useToast } from "@/hooks/use-toast";
-
 /**
- * Hook pour gérer les statuts des modules et fonctionnalités
+ * Gestionnaire de statut des modules
+ * Ce fichier centralise les fonctions de mise à jour des statuts de modules et fonctionnalités
  */
-export const useStatusManager = () => {
-  const { toast } = useToast();
 
+import { AppModule, ModuleStatus } from "./types";
+import { triggerModuleStatusChanged, triggerFeatureStatusChanged } from "./events";
+
+export const useStatusManager = () => {
   /**
    * Mettre à jour le statut d'un module
+   * @param moduleId Identifiant du module
+   * @param status Nouveau statut du module
+   * @param modules Liste des modules actuels
+   * @param setModules Fonction pour mettre à jour la liste des modules
    */
   const updateModuleStatus = async (
-    moduleId: string, 
-    status: ModuleStatus, 
+    moduleId: string,
+    status: ModuleStatus,
     modules: AppModule[],
     setModules: React.Dispatch<React.SetStateAction<AppModule[]>>
   ) => {
     try {
-      await updateModuleStatusApi(moduleId, status);
-
-      // Mettre à jour le statut local pour une réponse plus rapide de l'UI
-      setModules(prevModules => {
-        const updatedModules = prevModules.map(module => 
-          module.id === moduleId ? { ...module, status } : module
-        );
-        
-        // Mettre à jour le cache
-        cacheModuleStatuses(updatedModules);
-        
-        return updatedModules;
-      });
-
-      toast({
-        title: "Module mis à jour",
-        description: "Le statut du module a été modifié avec succès",
-      });
-
-      // Si le module est désactivé, désactiver automatiquement toutes ses fonctionnalités
-      if (status === 'inactive') {
-        const module = modules.find(m => m.id === moduleId);
-        if (module && module.features) {
-          Object.keys(module.features).forEach(featureCode => {
-            // Désactiver chaque fonctionnalité silencieusement (sans toast)
-            updateFeatureStatusSilent(module.code, featureCode, false, setModules);
-          });
+      // Mettre à jour localement
+      const updatedModules = modules.map(module => {
+        if (module.id === moduleId) {
+          return { ...module, status };
         }
-      }
-      
-      // Déclencher une mise à jour immédiate pour tous les composants qui utilisent ModuleGuard
-      triggerModuleStatusChanged();
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour du module:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut du module",
+        return module;
       });
+
+      // Mettre à jour l'état
+      setModules(updatedModules);
+      
+      // Déclencher l'événement
+      triggerModuleStatusChanged();
+      
+      return true;
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour du statut du module:", err);
+      return false;
     }
   };
 
   /**
-   * Mettre à jour l'état d'une fonctionnalité sans toast de confirmation
+   * Mettre à jour l'état d'une fonctionnalité (silencieusement, sans notifications)
+   * @param moduleCode Code du module
+   * @param featureCode Code de la fonctionnalité
+   * @param isEnabled Nouvel état de la fonctionnalité
+   * @param setModules Fonction pour mettre à jour la liste des modules
    */
   const updateFeatureStatusSilent = async (
-    moduleCode: string, 
-    featureCode: string, 
+    moduleCode: string,
+    featureCode: string,
     isEnabled: boolean,
     setModules: React.Dispatch<React.SetStateAction<AppModule[]>>
   ) => {
     try {
-      await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
-
-      // Mettre à jour les modules avec les nouvelles valeurs
-      setModules(prevModules => {
-        return prevModules.map(module => {
-          if (module.code === moduleCode && module.features) {
+      // Mettre à jour localement dans les modules
+      setModules(prevModules => 
+        prevModules.map(module => {
+          if (module.code === moduleCode) {
             return {
               ...module,
               features: {
-                ...module.features,
+                ...(module.features || {}),
                 [featureCode]: isEnabled
               }
             };
           }
           return module;
-        });
-      });
+        })
+      );
       
-      // Déclencher une mise à jour
-      triggerFeatureStatusChanged();
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour silencieuse de la fonctionnalité:", error);
+      return true;
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour silencieuse de la fonctionnalité:", err);
+      return false;
     }
   };
   
   /**
    * Mettre à jour l'état d'une fonctionnalité avec notification
+   * @param moduleCode Code du module
+   * @param featureCode Code de la fonctionnalité
+   * @param isEnabled Nouvel état de la fonctionnalité
+   * @param setModules Fonction pour mettre à jour la liste des modules
+   * @param setFeatures Fonction pour mettre à jour les features (optionnelle)
    */
   const updateFeatureStatus = async (
-    moduleCode: string, 
-    featureCode: string, 
+    moduleCode: string,
+    featureCode: string,
     isEnabled: boolean,
     setModules: React.Dispatch<React.SetStateAction<AppModule[]>>,
-    setFeatures: React.Dispatch<React.SetStateAction<Record<string, Record<string, boolean>>>>
+    setFeatures?: React.Dispatch<React.SetStateAction<Record<string, Record<string, boolean>>>>
   ) => {
     try {
-      await updateFeatureStatusApi(moduleCode, featureCode, isEnabled);
-
-      toast({
-        title: "Fonctionnalité mise à jour",
-        description: `La fonctionnalité "${featureCode}" a été ${isEnabled ? 'activée' : 'désactivée'} avec succès`,
-      });
-
-      // Rafraîchir les feature flags
-      const updatedFeatures = await fetchFeatureFlagsApi();
-      setFeatures(updatedFeatures);
-      
-      // Mettre à jour les modules avec les nouvelles valeurs de feature flags
+      // Mettre à jour localement dans les modules
       setModules(prevModules => 
-        combineModulesWithFeatures(prevModules, updatedFeatures)
+        prevModules.map(module => {
+          if (module.code === moduleCode) {
+            return {
+              ...module,
+              features: {
+                ...(module.features || {}),
+                [featureCode]: isEnabled
+              }
+            };
+          }
+          return module;
+        })
       );
       
-      // Déclencher une mise à jour immédiate
+      // Mettre à jour les features dans l'état si disponible
+      if (setFeatures) {
+        setFeatures(prevFeatures => {
+          const newFeatures = { ...prevFeatures };
+          if (!newFeatures[moduleCode]) {
+            newFeatures[moduleCode] = {};
+          }
+          newFeatures[moduleCode][featureCode] = isEnabled;
+          return newFeatures;
+        });
+      }
+      
+      // Déclencher l'événement
       triggerFeatureStatusChanged();
-    } catch (error: any) {
-      console.error("Erreur lors de la mise à jour de la fonctionnalité:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut de la fonctionnalité",
-      });
+      
+      return true;
+    } catch (err) {
+      console.error("Erreur lors de la mise à jour de la fonctionnalité:", err);
+      return false;
     }
   };
-
+  
   return {
     updateModuleStatus,
     updateFeatureStatus,

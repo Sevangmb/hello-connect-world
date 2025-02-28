@@ -1,80 +1,21 @@
 
-import { RealtimeChannel } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { AppModule, ModuleDependency, RawModuleDependency } from "./types";
+/**
+ * Gestion des abonnements aux données de modules via Supabase Realtime
+ * Ce fichier centralise les fonctions de récupération de données et d'abonnement aux changements
+ */
 
-interface SubscriptionCallbacks {
-  onModuleChange: (payload?: any) => void;
-  onFeatureChange: (payload?: any) => void;
-  onDependencyChange: (payload?: any) => void;
+import { supabase } from "@/integrations/supabase/client";
+import { AppModule, ModuleDependency } from "./types";
+
+// Interface pour les options d'abonnement
+interface SubscriptionOptions {
+  onModuleChange: (payload: any) => void;
+  onFeatureChange: (payload: any) => void;
+  onDependencyChange: (payload: any) => void;
 }
 
 /**
- * Créer des abonnements temps réel aux tables de modules et fonctionnalités
- */
-export const createModuleSubscriptions = (callbacks: SubscriptionCallbacks) => {
-  const { onModuleChange, onFeatureChange, onDependencyChange } = callbacks;
-  
-  // 1. Créer un canal pour les changements de modules
-  const moduleChannel = supabase
-    .channel('app_modules_changes')
-    .on('postgres_changes', { 
-      event: '*', // Écouter tous les événements (INSERT, UPDATE, DELETE)
-      schema: 'public', 
-      table: 'app_modules' 
-    }, (payload) => {
-      console.log('Module change detected:', payload);
-      onModuleChange(payload);
-    })
-    .subscribe((status) => {
-      console.log('Module subscription status:', status);
-    });
-    
-  // 2. Créer un canal pour les changements de fonctionnalités
-  const featureChannel = supabase
-    .channel('module_features_changes')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'module_features' 
-    }, (payload) => {
-      console.log('Feature change detected:', payload);
-      onFeatureChange(payload);
-    })
-    .subscribe((status) => {
-      console.log('Feature subscription status:', status);
-    });
-
-  // 3. Créer un canal pour les changements de dépendances
-  const dependencyChannel = supabase
-    .channel('module_dependencies_changes')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'module_dependencies' 
-    }, (payload) => {
-      console.log('Dependency change detected:', payload);
-      onDependencyChange(payload);
-    })
-    .subscribe((status) => {
-      console.log('Dependency subscription status:', status);
-    });
-
-  // Fonction pour nettoyer les abonnements
-  const cleanup = () => {
-    supabase.removeChannel(moduleChannel);
-    supabase.removeChannel(featureChannel);
-    supabase.removeChannel(dependencyChannel);
-  };
-
-  return { 
-    cleanup, 
-    channels: [moduleChannel, featureChannel, dependencyChannel] 
-  };
-};
-
-/**
- * Fetch tous les modules depuis Supabase
+ * Récupérer tous les modules en temps réel
  */
 export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
   const { data, error } = await supabase
@@ -83,7 +24,7 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
     .order('name');
 
   if (error) {
-    console.error('Error fetching modules:', error);
+    console.error("Error fetching modules:", error);
     throw error;
   }
 
@@ -91,101 +32,87 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
 };
 
 /**
- * Fetch toutes les dépendances des modules depuis Supabase
+ * Récupérer toutes les dépendances en temps réel
  */
 export const fetchDependenciesRealtime = async (): Promise<ModuleDependency[]> => {
-  // Requête simplifiée pour éviter les problèmes de parsing
   const { data, error } = await supabase
-    .from('module_dependencies')
-    .select(`
-      id,
-      module_id,
-      dependency_id,
-      is_required
-    `);
+    .from('module_dependencies_view')
+    .select('*');
 
   if (error) {
-    console.error('Error fetching dependencies:', error);
+    console.error("Error fetching dependencies:", error);
     throw error;
   }
-  
-  // Récupérer tous les modules pour avoir les infos (code, name, status)
-  const { data: modules, error: modulesError } = await supabase
-    .from('app_modules')
-    .select('id, code, name, status');
-    
-  if (modulesError) {
-    console.error('Error fetching modules for dependencies:', modulesError);
-    throw modulesError;
-  }
-  
-  // Créer un mapping des modules par ID pour faciliter l'accès
-  const moduleMap = new Map();
-  modules.forEach(module => {
-    moduleMap.set(module.id, module);
-  });
 
-  // Transformer les données pour correspondre à l'interface ModuleDependency
-  const dependencies = data.map(dep => {
-    const moduleInfo = moduleMap.get(dep.module_id);
-    const dependencyInfo = moduleMap.get(dep.dependency_id);
-    
-    return {
-      id: dep.id,
-      module_id: dep.module_id,
-      module_code: moduleInfo?.code,
-      module_name: moduleInfo?.name,
-      module_status: moduleInfo?.status,
-      dependency_id: dep.dependency_id,
-      dependency_code: dependencyInfo?.code,
-      dependency_name: dependencyInfo?.name,
-      dependency_status: dependencyInfo?.status,
-      is_required: dep.is_required
-    } as ModuleDependency;
-  });
-
-  return dependencies;
+  return data || [];
 };
 
 /**
- * Fetch tous les feature flags depuis Supabase
+ * Récupérer tous les feature flags en temps réel
  */
-export const fetchFeatureFlagsRealtime = async () => {
+export const fetchFeatureFlagsRealtime = async (): Promise<Record<string, Record<string, boolean>>> => {
   const { data, error } = await supabase
     .from('module_features')
     .select('*');
 
   if (error) {
-    console.error('Error fetching feature flags:', error);
+    console.error("Error fetching features:", error);
     throw error;
   }
 
-  // Transformer en Map pour un accès plus facile
-  const featuresMap: Record<string, Record<string, boolean>> = {};
+  // Organiser les features par module
+  const featuresByModule: Record<string, Record<string, boolean>> = {};
   
-  data.forEach((feature) => {
-    if (!featuresMap[feature.module_code]) {
-      featuresMap[feature.module_code] = {};
+  (data || []).forEach(feature => {
+    if (!featuresByModule[feature.module_code]) {
+      featuresByModule[feature.module_code] = {};
     }
-    featuresMap[feature.module_code][feature.feature_code] = feature.is_enabled;
+    featuresByModule[feature.module_code][feature.feature_code] = feature.is_enabled;
   });
 
-  return featuresMap;
+  return featuresByModule;
 };
 
-// Fonction d'aide pour rafraîchir manuellement les abonnements
-export const refreshModuleSubscriptions = async () => {
-  try {
-    // Forcer la reconnexion aux canaux Supabase
-    await supabase.removeAllChannels();
-    console.log('Tous les canaux Supabase ont été supprimés');
-    
-    // Un court délai pour permettre à Supabase de nettoyer les connexions
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return true;
-  } catch (error) {
-    console.error('Erreur lors du rafraîchissement des abonnements:', error);
-    return false;
-  }
+/**
+ * Créer des abonnements Supabase Realtime pour les tables de modules
+ */
+export const createModuleSubscriptions = (options: SubscriptionOptions) => {
+  // Créer un canal pour toutes les tables liées aux modules
+  const channel = supabase
+    .channel('module-changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'app_modules'
+    }, (payload) => {
+      console.log('Module change detected:', payload);
+      options.onModuleChange(payload);
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'module_features'
+    }, (payload) => {
+      console.log('Feature change detected:', payload);
+      options.onFeatureChange(payload);
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'module_dependencies'
+    }, (payload) => {
+      console.log('Dependency change detected:', payload);
+      options.onDependencyChange(payload);
+    })
+    .subscribe((status) => {
+      console.log('Realtime subscription status:', status);
+    });
+
+  // Retourner une fonction de nettoyage
+  return {
+    cleanup: () => {
+      console.log('Cleaning up Supabase module subscriptions');
+      supabase.removeChannel(channel);
+    }
+  };
 };

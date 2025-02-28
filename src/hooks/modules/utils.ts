@@ -1,4 +1,9 @@
 
+/**
+ * Utilitaires pour les modules
+ * Ce fichier centralise les fonctions utilitaires pour la gestion des modules
+ */
+
 import { AppModule, ModuleStatus } from "./types";
 
 // Vérifier si un module est actif
