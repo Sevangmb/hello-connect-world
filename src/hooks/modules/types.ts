@@ -25,3 +25,21 @@ export interface ModuleDependency {
   dependency_status?: ModuleStatus;
   is_required: boolean;
 }
+
+// Type pour la réponse brute de Supabase pour les dépendances
+export interface RawModuleDependency {
+  id: string;
+  module_id: string;
+  dependency_id: string;
+  is_required: boolean;
+  modules?: {
+    module_code?: string;
+    module_name?: string;
+    module_status?: ModuleStatus;
+  };
+  dependencies?: {
+    dependency_code?: string;
+    dependency_name?: string;
+    dependency_status?: ModuleStatus;
+  };
+}

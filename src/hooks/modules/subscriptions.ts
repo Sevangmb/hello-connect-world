@@ -1,7 +1,7 @@
 
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { AppModule, ModuleDependency } from "./types";
+import { AppModule, ModuleDependency, RawModuleDependency } from "./types";
 
 interface SubscriptionCallbacks {
   onModuleChange: (payload?: any) => void;
@@ -88,43 +88,55 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
  * Fetch toutes les dépendances des modules depuis Supabase
  */
 export const fetchDependenciesRealtime = async (): Promise<ModuleDependency[]> => {
+  // Requête simplifiée pour éviter les problèmes de parsing
   const { data, error } = await supabase
     .from('module_dependencies')
     .select(`
       id,
       module_id,
       dependency_id,
-      is_required,
-      modules:app_modules!module_dependencies_module_id_fkey (
-        code as module_code,
-        name as module_name,
-        status as module_status
-      ),
-      dependencies:app_modules!module_dependencies_dependency_id_fkey (
-        code as dependency_code,
-        name as dependency_name,
-        status as dependency_status
-      )
+      is_required
     `);
 
   if (error) {
     console.error('Error fetching dependencies:', error);
     throw error;
   }
+  
+  // Récupérer tous les modules pour avoir les infos (code, name, status)
+  const { data: modules, error: modulesError } = await supabase
+    .from('app_modules')
+    .select('id, code, name, status');
+    
+  if (modulesError) {
+    console.error('Error fetching modules for dependencies:', modulesError);
+    throw modulesError;
+  }
+  
+  // Créer un mapping des modules par ID pour faciliter l'accès
+  const moduleMap = new Map();
+  modules.forEach(module => {
+    moduleMap.set(module.id, module);
+  });
 
   // Transformer les données pour correspondre à l'interface ModuleDependency
-  const dependencies = data.map((dep) => ({
-    id: dep.id,
-    module_id: dep.module_id,
-    module_code: dep.modules?.module_code,
-    module_name: dep.modules?.module_name,
-    module_status: dep.modules?.module_status,
-    dependency_id: dep.dependency_id,
-    dependency_code: dep.dependencies?.dependency_code,
-    dependency_name: dep.dependencies?.dependency_name,
-    dependency_status: dep.dependencies?.dependency_status,
-    is_required: dep.is_required
-  })) as ModuleDependency[];
+  const dependencies = data.map(dep => {
+    const moduleInfo = moduleMap.get(dep.module_id);
+    const dependencyInfo = moduleMap.get(dep.dependency_id);
+    
+    return {
+      id: dep.id,
+      module_id: dep.module_id,
+      module_code: moduleInfo?.code,
+      module_name: moduleInfo?.name,
+      module_status: moduleInfo?.status,
+      dependency_id: dep.dependency_id,
+      dependency_code: dependencyInfo?.code,
+      dependency_name: dependencyInfo?.name,
+      dependency_status: dependencyInfo?.status,
+      is_required: dep.is_required
+    } as ModuleDependency;
+  });
 
   return dependencies;
 };
