@@ -7,20 +7,18 @@ import {
   Background,
   useNodesState,
   useEdgesState,
-  Node,
-  Edge,
   Position,
   MarkerType,
-  NodeTypes,
-  NodeProps
+  Node,
+  Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useModules } from '@/hooks/useModules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
-// Interface pour les données du nœud conforme à Record<string, unknown>
-interface ModuleNodeData extends Record<string, unknown> {
+// Définition du type pour les données du nœud
+interface ModuleNodeData {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
@@ -44,7 +42,7 @@ export const ModuleDependencyGraph = () => {
         label: module.name,
         status: module.status,
         isCore: module.is_core
-      } as ModuleNodeData,
+      },
       className: `module-node status-${module.status} ${module.is_core ? 'core-module' : ''}`,
     }));
 
