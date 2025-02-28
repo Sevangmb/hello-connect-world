@@ -1,210 +1,251 @@
 
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, Trophy, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Check, AlertCircle } from "lucide-react";
 
-interface UseChallengeSubmitProps {
-  onSuccess?: () => void;
+export interface ChallengeSubmissionData {
+  challengeId: string;
+  outfitId?: string;
+  clothesIds?: string[];
+  description?: string;
+  additionalData?: Record<string, any>;
 }
 
-export const useChallengeSubmit = ({ onSuccess }: UseChallengeSubmitProps = {}) => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [rules, setRules] = useState("");
-  const [rewardDescription, setRewardDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [participationType, setParticipationType] = useState<"virtual" | "photo">("virtual");
-  const [isVotingEnabled, setIsVotingEnabled] = useState(true);
-  const [hashtags, setHashtags] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
+export function useChallengeSubmit() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const addHashtag = async (hashtag: string) => {
-    try {
-      const { data: existingHashtag } = await supabase
-        .from("hashtags")
-        .select("id")
-        .eq("name", hashtag)
-        .single();
-    
-      if (existingHashtag) {
-        return existingHashtag.id;
-      }
-    
-      const { data: newHashtag, error } = await supabase
-        .from("hashtags")
-        .insert({ name: hashtag })
-        .select("id")
-        .single();
+  // Mutation pour soumettre une participation au challenge
+  const submitChallenge = useMutation({
+    mutationFn: async (data: ChallengeSubmissionData) => {
+      setIsSubmitting(true);
       
-      if (error) {
-        console.error("Error adding hashtag:", error);
-        throw error;
-      }
-    
-      return newHashtag?.id;
-    } catch (error) {
-      console.error("Error in addHashtag:", error);
-      return null;
-    }
-  };
+      // Toast de chargement
+      const { dismiss } = toast({
+        title: "Soumission en cours",
+        description: "Envoi de votre participation au challenge...",
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        duration: 10000,
+      });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Toast de chargement
-    const { dismiss } = toast({
-      title: "Création du défi",
-      description: "Votre défi est en cours de création...",
-      icon: <Loader2 className="h-4 w-4 animate-spin" />,
-      duration: 30000,
-    });
-    
-    try {
-      if (!user?.id) {
-        throw new Error("User not authenticated");
-      }
+      try {
+        // Vérifier si l'utilisateur est connecté
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError || !authData.user) {
+          throw new Error("Vous devez être connecté pour participer");
+        }
 
-      // Step 1: Create challenge
-      const { data: challengeData, error: challengeError } = await supabase
-        .from("challenges")
-        .insert({
-          title,
-          description,
-          rules,
-          reward_description: rewardDescription,
-          start_date: startDate,
-          end_date: endDate,
-          creator_id: user.id,
-          status: "active",
-          participation_type: participationType,
-          is_voting_enabled: isVotingEnabled
-        })
-        .select()
-        .single();
+        const userId = authData.user.id;
+        
+        // Vérifier si l'utilisateur a déjà participé à ce challenge
+        const { data: existingSubmission, error: checkError } = await supabase
+          .from('challenge_submissions')
+          .select('id')
+          .eq('challenge_id', data.challengeId)
+          .eq('user_id', userId)
+          .maybeSingle();
+          
+        if (checkError) {
+          throw new Error("Erreur lors de la vérification des participations");
+        }
+        
+        if (existingSubmission) {
+          throw new Error("Vous avez déjà participé à ce challenge");
+        }
 
-      if (challengeError) {
-        console.error("Error creating challenge:", challengeError);
-        throw challengeError;
-      }
-
-      // Step 2: Process hashtags (if any)
-      let addedHashtags = 0;
-      if (hashtags.length && challengeData?.id) {
-        for (const hashtag of hashtags) {
-          const hashtagId = await addHashtag(hashtag);
-          if (hashtagId) {
-            const { error: linkError } = await supabase
-              .from("challenge_hashtags")
-              .insert({
-                challenge_id: challengeData.id,
-                hashtag_id: hashtagId
-              });
+        // Si un outfit existant est utilisé
+        if (data.outfitId) {
+          // Vérifier que l'outfit appartient bien à l'utilisateur
+          const { data: outfit, error: outfitError } = await supabase
+            .from('outfits')
+            .select('id')
+            .eq('id', data.outfitId)
+            .eq('user_id', userId)
+            .single();
             
-            if (!linkError) {
-              addedHashtags++;
-            }
+          if (outfitError || !outfit) {
+            throw new Error("La tenue sélectionnée n'est pas valide");
           }
         }
-      }
-
-      // Step 3: Notify followers if available
-      try {
-        const { data: followers } = await supabase
-          .from("followers")
-          .select("follower_id")
-          .eq("following_id", user.id);
+        
+        // Insérer la soumission au challenge
+        const { data: submission, error: submissionError } = await supabase
+          .from('challenge_submissions')
+          .insert({
+            challenge_id: data.challengeId,
+            user_id: userId,
+            outfit_id: data.outfitId || null,
+            description: data.description || null,
+            additional_data: data.additionalData || null,
+            status: 'pending',
+            submission_date: new Date().toISOString()
+          })
+          .select('*')
+          .single();
           
-        if (followers && followers.length > 0) {
-          const notifications = followers.map(follower => ({
-            type: "challenge_accepted",
-            user_id: follower.follower_id,
-            actor_id: user.id,
-            message: `a créé un nouveau défi : "${title}"`,
-            data: { challenge_id: challengeData.id }
+        if (submissionError) {
+          throw submissionError;
+        }
+        
+        // Si des vêtements individuels sont soumis, les lier à la soumission
+        if (data.clothesIds && data.clothesIds.length > 0) {
+          const clothesSubmissions = data.clothesIds.map(clothesId => ({
+            submission_id: submission.id,
+            clothes_id: clothesId
           }));
           
-          await supabase.from("notifications").insert(notifications);
+          const { error: clothesError } = await supabase
+            .from('challenge_submission_clothes')
+            .insert(clothesSubmissions);
+            
+          if (clothesError) {
+            console.error("Erreur lors de l'ajout des vêtements:", clothesError);
+            // On ne fait pas échouer la soumission complète si cette partie échoue
+          }
         }
-      } catch (notifyError) {
-        console.error("Error notifying followers:", notifyError);
-        // Non-critical error, continue
+        
+        // Incrémenter le compteur de participations du challenge
+        const { error: updateError } = await supabase.rpc('increment_challenge_submissions_count', {
+          challenge_id: data.challengeId
+        });
+        
+        if (updateError) {
+          console.error("Erreur lors de la mise à jour du compteur:", updateError);
+          // Ne pas faire échouer la soumission pour cette raison
+        }
+        
+        // Toast de succès
+        dismiss();
+        toast({
+          title: "Participation réussie",
+          description: "Votre participation au challenge a été enregistrée avec succès !",
+          icon: <Check className="h-4 w-4 text-green-500" />,
+          duration: 5000,
+        });
+        
+        return submission;
+      } catch (error: any) {
+        dismiss();
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: error.message || "Une erreur est survenue lors de la soumission",
+          icon: <AlertCircle className="h-4 w-4" />,
+          duration: 5000,
+        });
+        throw error;
       }
-
-      // Invalidate and reset
+    },
+    onSuccess: () => {
+      // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['challenges'] });
-      resetForm();
-      if (onSuccess) {
-        onSuccess();
-      }
+      queryClient.invalidateQueries({ queryKey: ['challenge-submissions'] });
+    },
+    onError: (error: any) => {
+      console.error("Error submitting challenge:", error);
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    }
+  });
 
-      dismiss();
-      toast({
-        title: "Défi créé",
-        description: `Le défi "${title}" a été créé avec succès ${addedHashtags > 0 ? `avec ${addedHashtags} hashtags` : ''}`,
-        icon: <Trophy className="h-4 w-4 text-amber-500" />,
+  // Mutation pour voter pour une soumission
+  const voteSubmission = useMutation({
+    mutationFn: async ({ submissionId, vote }: { submissionId: string, vote: number }) => {
+      // Toast de chargement
+      const { dismiss } = toast({
+        title: "Vote en cours",
+        description: "Enregistrement de votre vote...",
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
         duration: 5000,
       });
-    } catch (error) {
-      console.error("Error submitting challenge:", error);
+      
+      // Vérifier si l'utilisateur est connecté
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        throw new Error("Vous devez être connecté pour voter");
+      }
+      
+      const userId = authData.user.id;
+      
+      // Vérifier si l'utilisateur a déjà voté pour cette soumission
+      const { data: existingVote, error: checkError } = await supabase
+        .from('challenge_submission_votes')
+        .select('id, vote')
+        .eq('submission_id', submissionId)
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (checkError) {
+        throw new Error("Erreur lors de la vérification des votes");
+      }
+      
+      let result;
+      
+      if (existingVote) {
+        // Mettre à jour le vote existant
+        const { data, error } = await supabase
+          .from('challenge_submission_votes')
+          .update({ vote })
+          .eq('id', existingVote.id)
+          .select();
+          
+        if (error) throw error;
+        result = data;
+      } else {
+        // Créer un nouveau vote
+        const { data, error } = await supabase
+          .from('challenge_submission_votes')
+          .insert({
+            submission_id: submissionId,
+            user_id: userId,
+            vote
+          })
+          .select();
+          
+        if (error) throw error;
+        result = data;
+      }
+      
+      // Mettre à jour le score total de la soumission
+      const { error: updateError } = await supabase.rpc('update_submission_vote_count', {
+        target_submission_id: submissionId
+      });
+      
+      if (updateError) {
+        console.error("Erreur lors de la mise à jour du score:", updateError);
+      }
       
       dismiss();
       toast({
+        title: "Vote enregistré",
+        description: "Votre vote a été pris en compte",
+        icon: <Check className="h-4 w-4 text-green-500" />,
+        duration: 3000,
+      });
+      
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['challenge-submissions'] });
+    },
+    onError: (error: any) => {
+      console.error("Error voting:", error);
+      toast({
         variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de créer le défi. Veuillez réessayer.",
+        title: "Erreur de vote",
+        description: error.message || "Une erreur est survenue lors du vote",
         icon: <AlertCircle className="h-4 w-4" />,
       });
-    } finally {
-      setIsSubmitting(false);
     }
-  };
-
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setRules("");
-    setRewardDescription("");
-    setStartDate("");
-    setEndDate("");
-    setHashtags([]);
-    setParticipationType("virtual");
-    setIsVotingEnabled(true);
-  };
+  });
 
   return {
-    formData: {
-      title,
-      description,
-      rules,
-      rewardDescription,
-      startDate,
-      endDate,
-      participationType,
-      isVotingEnabled,
-      hashtags,
-    },
-    setters: {
-      setTitle,
-      setDescription,
-      setRules,
-      setRewardDescription,
-      setStartDate,
-      setEndDate,
-      setParticipationType,
-      setIsVotingEnabled,
-      setHashtags,
-    },
-    handleSubmit,
-    isSubmitting,
-    resetForm
+    submitChallenge,
+    voteSubmission,
+    isSubmitting
   };
-};
+}
