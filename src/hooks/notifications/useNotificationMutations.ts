@@ -49,7 +49,7 @@ export function useNotificationMutations(userId: string | null) {
       const { dismiss } = toast({
         title: "En cours",
         description: "Marquage de toutes les notifications comme lues...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
         duration: 5000,
       });
 
@@ -69,7 +69,7 @@ export function useNotificationMutations(userId: string | null) {
       toast({
         title: "Terminé",
         description: "Toutes les notifications ont été marquées comme lues",
-        icon: <Check className="h-4 w-4 text-green-500" />,
+        icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
 
@@ -84,7 +84,7 @@ export function useNotificationMutations(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de marquer toutes les notifications comme lues",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
       });
     }
   });
@@ -113,7 +113,7 @@ export function useNotificationMutations(userId: string | null) {
       toast({
         title: "Notification supprimée",
         description: "La notification a été supprimée avec succès",
-        icon: <Check className="h-4 w-4 text-green-500" />,
+        icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
     },
@@ -123,7 +123,7 @@ export function useNotificationMutations(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de supprimer la notification",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
       });
     }
   });

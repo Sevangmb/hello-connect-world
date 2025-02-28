@@ -111,7 +111,7 @@ export function useCart(userId: string | null) {
       toast({
         title: "Article ajouté au panier",
         description: itemDetails ? `${itemDetails.name} a été ajouté à votre panier` : "Article ajouté à votre panier",
-        icon: <ShoppingCart className="h-4 w-4" />,
+        icon: { type: "icon", icon: ShoppingCart, className: "h-4 w-4" },
         duration: 3000,
       });
 
@@ -126,7 +126,7 @@ export function useCart(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     },
@@ -184,7 +184,7 @@ export function useCart(userId: string | null) {
       toast({
         title: "Panier mis à jour",
         description: "La quantité a été mise à jour",
-        icon: <Check className="h-4 w-4 text-green-500" />,
+        icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
 
@@ -199,7 +199,7 @@ export function useCart(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     },
@@ -224,7 +224,7 @@ export function useCart(userId: string | null) {
       toast({
         title: "Article supprimé",
         description: "L'article a été retiré de votre panier",
-        icon: <Check className="h-4 w-4 text-green-500" />,
+        icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
 
@@ -239,7 +239,7 @@ export function useCart(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de supprimer cet article du panier",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     },
@@ -263,7 +263,7 @@ export function useCart(userId: string | null) {
       toast({
         title: "Panier vidé",
         description: "Tous les articles ont été retirés de votre panier",
-        icon: <Check className="h-4 w-4 text-green-500" />,
+        icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
 
@@ -278,7 +278,7 @@ export function useCart(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de vider votre panier",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     },

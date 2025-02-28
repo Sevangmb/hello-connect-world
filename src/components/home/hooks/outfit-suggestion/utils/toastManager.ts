@@ -10,7 +10,7 @@ export function showLoadingToast(
   const { id, dismiss } = toast({
     title: config.title,
     description: config.description,
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
     duration: 60000, // 1 minute max
   });
   
@@ -25,7 +25,7 @@ export function showErrorToast(
     variant: "destructive",
     title: config.title,
     description: config.description,
-    icon: <AlertCircle className="h-4 w-4" />,
+    icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
     duration: config.duration || 5000,
   });
 }
@@ -37,7 +37,7 @@ export function showSuccessToast(
   toast({
     title: config.title,
     description: config.description,
-    icon: <Shirt className="h-4 w-4 text-green-500" />,
+    icon: { type: "icon", icon: Shirt, className: "h-4 w-4 text-green-500" },
     duration: config.duration || 5000,
   });
 }
@@ -51,7 +51,7 @@ export function updateLoadingToast(
     id,
     title: config.title,
     description: config.description,
-    icon: <Loader2 className="h-4 w-4 animate-spin" />,
+    icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
     duration: 60000,
   });
 }

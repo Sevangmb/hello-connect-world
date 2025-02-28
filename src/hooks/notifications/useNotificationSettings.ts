@@ -17,7 +17,7 @@ export function useNotificationSettings(userId: string | null) {
       const { dismiss } = toast({
         title: "En cours",
         description: `Désactivation des notifications de type "${type}"...`,
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
         duration: 5000,
       });
 
@@ -69,7 +69,7 @@ export function useNotificationSettings(userId: string | null) {
       toast({
         title: "Notifications désactivées",
         description: `Les notifications de type "${type}" ont été désactivées`,
-        icon: <BellOff className="h-4 w-4" />,
+        icon: { type: "icon", icon: BellOff, className: "h-4 w-4" },
         duration: 3000,
       });
 
@@ -84,7 +84,7 @@ export function useNotificationSettings(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible de désactiver ce type de notifications",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
       });
     }
   });
@@ -98,7 +98,7 @@ export function useNotificationSettings(userId: string | null) {
       const { dismiss } = toast({
         title: "En cours",
         description: `Activation des notifications de type "${type}"...`,
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
         duration: 5000,
       });
 
@@ -150,7 +150,7 @@ export function useNotificationSettings(userId: string | null) {
       toast({
         title: "Notifications activées",
         description: `Les notifications de type "${type}" ont été activées`,
-        icon: <Bell className="h-4 w-4" />,
+        icon: { type: "icon", icon: Bell, className: "h-4 w-4" },
         duration: 3000,
       });
 
@@ -165,7 +165,7 @@ export function useNotificationSettings(userId: string | null) {
         variant: "destructive",
         title: "Erreur",
         description: "Impossible d'activer ce type de notifications",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
       });
     }
   });

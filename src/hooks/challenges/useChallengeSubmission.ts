@@ -23,7 +23,7 @@ export function useChallengeSubmission() {
       const { dismiss } = toast({
         title: "Traitement en cours",
         description: "Votre participation au défi est en cours de soumission...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
         duration: 10000,
       });
 
@@ -93,7 +93,7 @@ export function useChallengeSubmission() {
         toast({
           title: "Participation soumise",
           description: "Votre participation au défi a été soumise avec succès",
-          icon: <Check className="h-4 w-4 text-green-500" />,
+          icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
           duration: 5000,
         });
 
@@ -113,7 +113,7 @@ export function useChallengeSubmission() {
         variant: "destructive",
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors de la soumission",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     }

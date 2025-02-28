@@ -154,7 +154,7 @@ export async function handleSuggestionProcess(
         variant: "destructive",
         title: "Erreur",
         description: "Une erreur est survenue lors de la génération de la suggestion.",
-        icon: <AlertCircle className="h-4 w-4" />
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
       });
     }
     return {

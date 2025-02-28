@@ -20,7 +20,7 @@ export function useChallengeVoting() {
       const { dismiss } = toast({
         title: "Vote en cours",
         description: "Votre vote est en cours d'enregistrement...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        icon: { type: "icon", icon: Loader2, className: "h-4 w-4 animate-spin" },
         duration: 10000,
       });
 
@@ -78,7 +78,7 @@ export function useChallengeVoting() {
         toast({
           title: "Vote enregistré",
           description: "Votre vote a été pris en compte",
-          icon: <Check className="h-4 w-4 text-green-500" />,
+          icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
           duration: 5000,
         });
 
@@ -97,7 +97,7 @@ export function useChallengeVoting() {
         variant: "destructive",
         title: "Erreur",
         description: error instanceof Error ? error.message : "Une erreur est survenue lors du vote",
-        icon: <AlertCircle className="h-4 w-4" />,
+        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" },
         duration: 5000,
       });
     }

@@ -1,11 +1,12 @@
 
 import { OutfitSuggestion } from "../../../types/weather";
+import { LucideIcon } from "lucide-react";
 
 export interface ToastConfig {
   id?: string;
   title: string;
   description: string;
-  icon?: React.ReactNode;
+  icon?: { type: "icon"; icon: LucideIcon; className?: string } | React.ReactNode;
   duration?: number;
   variant?: "default" | "destructive";
 }
