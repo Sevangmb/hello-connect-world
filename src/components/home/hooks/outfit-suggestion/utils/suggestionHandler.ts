@@ -4,7 +4,7 @@ import { OutfitSuggestionState, OutfitSuggestionResult } from "../types/suggesti
 import { fetchUserClothes } from "./api";
 import { generateAISuggestion } from "../aiService";
 import { ClothingItem } from "../types/aiTypes";
-import { manageErrorResponse } from "./errorHandling";
+import { createSuggestionError, determineErrorCode } from "./errorHandling";
 import { categorizeClothingItems } from "./clothingCategorization";
 import { getCurrentUser } from "./authManager";
 
@@ -88,10 +88,23 @@ export async function handleSuggestionProcess(
     };
   } catch (error) {
     dismissToast();
-    const errorResult = manageErrorResponse(toast, error);
-    // Ensure the returned error object has a suggestion property set to null
+    
+    // Gestion standardisée des erreurs
+    console.error("Error in suggestion process:", error);
+  
+    const errorObject = error instanceof Error ? error : new Error("Erreur inconnue");
+    const errorCode = determineErrorCode(errorObject);
+    
+    // Optionally show an error toast
+    toast({
+      variant: "destructive",
+      title: "Erreur",
+      description: errorObject.message || "Une erreur s'est produite lors de la génération de la suggestion",
+    });
+    
     return {
-      ...errorResult,
+      error: errorObject,
+      errorCode,
       suggestion: null
     };
   }

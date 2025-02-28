@@ -41,14 +41,16 @@ export function useCart(userId: string | null) {
           quantity,
           shop_items:shop_item_id (
             id,
-            name,
-            description,
             price,
-            image_url,
-            stock,
             seller_id,
             shop_id,
-            shops:shop_id (name)
+            shops:shop_id (name),
+            clothes:clothes_id (
+              name,
+              description,
+              image_url,
+              stock
+            )
           )
         `)
         .eq("user_id", userId);
@@ -57,8 +59,26 @@ export function useCart(userId: string | null) {
         throw error;
       }
 
-      // Convertir explicitement le résultat au type attendu
-      return data as unknown as CartItem[];
+      // Transformer les données pour correspondre à l'interface CartItem
+      const processedData = data.map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        shop_items: {
+          id: item.shop_items.id,
+          name: item.shop_items.clothes?.name || "Produit sans nom",
+          description: item.shop_items.clothes?.description || null,
+          price: item.shop_items.price,
+          image_url: item.shop_items.clothes?.image_url || null,
+          stock: item.shop_items.clothes?.stock || 0,
+          seller_id: item.shop_items.seller_id,
+          shop_id: item.shop_items.shop_id,
+          shops: {
+            name: item.shop_items.shops?.name || "Boutique inconnue"
+          }
+        }
+      }));
+
+      return processedData;
     },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
@@ -86,9 +106,16 @@ export function useCart(userId: string | null) {
         .maybeSingle();
 
       // Get item details for the toast
-      const { data: itemDetails, error: itemError } = await supabase
+      const { data: shopItem, error: itemError } = await supabase
         .from("shop_items")
-        .select("name, stock")
+        .select(`
+          id, 
+          price,
+          clothes:clothes_id (
+            name,
+            stock
+          )
+        `)
         .eq("id", itemId)
         .single();
 
@@ -98,8 +125,11 @@ export function useCart(userId: string | null) {
       }
 
       // Check stock availability
-      if (itemDetails && (existingItem ? existingItem.quantity + quantity : quantity) > itemDetails.stock) {
-        throw new Error(`Quantité non disponible. Stock restant: ${itemDetails.stock}`);
+      const itemStock = shopItem.clothes?.stock || 0;
+      const itemName = shopItem.clothes?.name || "Article";
+
+      if ((existingItem ? existingItem.quantity + quantity : quantity) > itemStock) {
+        throw new Error(`Quantité non disponible. Stock restant: ${itemStock}`);
       }
 
       let result;
@@ -130,7 +160,7 @@ export function useCart(userId: string | null) {
 
       toast({
         title: "Article ajouté au panier",
-        description: itemDetails ? `${itemDetails.name} a été ajouté à votre panier` : "Article ajouté à votre panier",
+        description: `${itemName} a été ajouté à votre panier`,
         icon: { type: "icon", icon: ShoppingCart, className: "h-4 w-4" },
         duration: 3000,
       });
@@ -181,9 +211,15 @@ export function useCart(userId: string | null) {
       }
 
       // Check stock availability
-      const { data: itemDetails, error: itemError } = await supabase
+      const { data: shopItem, error: itemError } = await supabase
         .from("shop_items")
-        .select("stock, name")
+        .select(`
+          id,
+          clothes:clothes_id (
+            name,
+            stock
+          )
+        `)
         .eq("id", cartItem.shop_item_id)
         .single();
 
@@ -192,8 +228,11 @@ export function useCart(userId: string | null) {
         throw new Error("Impossible de récupérer les détails de l'article");
       }
 
-      if (itemDetails && quantity > itemDetails.stock) {
-        throw new Error(`Quantité non disponible. Stock restant: ${itemDetails.stock}`);
+      const itemStock = shopItem.clothes?.stock || 0;
+      const itemName = shopItem.clothes?.name || "Article";
+
+      if (quantity > itemStock) {
+        throw new Error(`Quantité non disponible. Stock restant: ${itemStock}`);
       }
 
       // Update quantity

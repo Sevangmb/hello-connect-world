@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, BellOff, AlertCircle } from "lucide-react";
 
-interface NotificationPreferences {
+export interface NotificationPreferences {
   notifications?: Record<string, boolean>;
   [key: string]: any;
 }
@@ -40,12 +40,12 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to disable this notification type
-      let preferences: NotificationPreferences = userProfile?.preferences || {};
+      const currentPreferences = userProfile?.preferences as NotificationPreferences || {};
       
       // Ensure preferences is an object if it's a string or other type
-      if (typeof preferences !== 'object' || preferences === null) {
-        preferences = {};
-      }
+      const preferences: NotificationPreferences = typeof currentPreferences === 'object' && currentPreferences !== null
+        ? currentPreferences
+        : {};
 
       // Create notifications object if it doesn't exist
       if (!preferences.notifications) {
@@ -116,12 +116,12 @@ export function useNotificationSettings(userId: string | null) {
       }
 
       // Update preferences to enable this notification type
-      let preferences: NotificationPreferences = userProfile?.preferences || {};
+      const currentPreferences = userProfile?.preferences as NotificationPreferences || {};
       
       // Ensure preferences is an object if it's a string or other type
-      if (typeof preferences !== 'object' || preferences === null) {
-        preferences = {};
-      }
+      const preferences: NotificationPreferences = typeof currentPreferences === 'object' && currentPreferences !== null
+        ? currentPreferences
+        : {};
 
       // Create notifications object if it doesn't exist
       if (!preferences.notifications) {

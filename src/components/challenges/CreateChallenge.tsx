@@ -36,12 +36,12 @@ export const CreateChallenge = () => {
   // Convertir les dates en chaînes pour l'interface utilisateur
   const [startDate, setStartDate] = useState<string>(
     startDateFromHook ? 
-    (typeof startDateFromHook === 'string' ? startDateFromHook : startDateFromHook.toISOString().split('T')[0]) : 
+    (typeof startDateFromHook === 'string' ? startDateFromHook : new Date(startDateFromHook).toISOString().split('T')[0]) : 
     ""
   );
   const [endDate, setEndDate] = useState<string>(
     endDateFromHook ? 
-    (typeof endDateFromHook === 'string' ? endDateFromHook : endDateFromHook.toISOString().split('T')[0]) : 
+    (typeof endDateFromHook === 'string' ? endDateFromHook : new Date(endDateFromHook).toISOString().split('T')[0]) : 
     ""
   );
 
@@ -50,7 +50,7 @@ export const CreateChallenge = () => {
     if (startDateFromHook) {
       const formattedDate = typeof startDateFromHook === 'string' 
         ? startDateFromHook 
-        : startDateFromHook.toISOString().split('T')[0];
+        : new Date(startDateFromHook).toISOString().split('T')[0];
       setStartDate(formattedDate);
     }
   }, [startDateFromHook]);
@@ -59,7 +59,7 @@ export const CreateChallenge = () => {
     if (endDateFromHook) {
       const formattedDate = typeof endDateFromHook === 'string' 
         ? endDateFromHook 
-        : endDateFromHook.toISOString().split('T')[0];
+        : new Date(endDateFromHook).toISOString().split('T')[0];
       setEndDate(formattedDate);
     }
   }, [endDateFromHook]);

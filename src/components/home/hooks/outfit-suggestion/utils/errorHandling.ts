@@ -1,5 +1,7 @@
 
 import { OutfitSuggestionError } from "../types/suggestionTypes";
+import { ClothingItem } from "../types/aiTypes";
+import { toast as toastFunction } from "@/hooks/use-toast";
 
 // Définition des codes d'erreur spécifiques
 export const ErrorCodes = {
@@ -51,4 +53,87 @@ export function determineErrorCode(error: Error): string {
   }
   
   return ErrorCodes.UNKNOWN_ERROR;
+}
+
+/**
+ * Délai exponentiel pour les tentatives répétées
+ */
+export async function exponentialDelay(attempt: number): Promise<void> {
+  const delay = Math.min(100 * Math.pow(2, attempt), 10000); // Maximum 10 secondes
+  return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+/**
+ * Génère une suggestion de secours en cas d'échec de l'IA
+ */
+export async function generateFallbackSuggestion(
+  clothes: ClothingItem[],
+  temperature: number,
+  description: string,
+  fallbackCategories: {
+    tops: ClothingItem[];
+    bottoms: ClothingItem[];
+    shoes: ClothingItem[];
+  }
+) {
+  try {
+    // Sélectionner aléatoirement un vêtement dans chaque catégorie
+    const randomTop = fallbackCategories.tops.length > 0 
+      ? fallbackCategories.tops[Math.floor(Math.random() * fallbackCategories.tops.length)]
+      : null;
+      
+    const randomBottom = fallbackCategories.bottoms.length > 0 
+      ? fallbackCategories.bottoms[Math.floor(Math.random() * fallbackCategories.bottoms.length)]
+      : null;
+      
+    const randomShoes = fallbackCategories.shoes.length > 0 
+      ? fallbackCategories.shoes[Math.floor(Math.random() * fallbackCategories.shoes.length)]
+      : null;
+    
+    // Vérifier que tous les éléments nécessaires sont disponibles
+    if (!randomTop || !randomBottom || !randomShoes) {
+      throw new Error("Impossible de créer une tenue complète avec vos vêtements disponibles");
+    }
+    
+    return {
+      suggestion: {
+        top: randomTop,
+        bottom: randomBottom,
+        shoes: randomShoes,
+        explanation: "Voici une sélection aléatoire de vêtements pour aujourd'hui.",
+        temperature,
+        description
+      },
+      error: null
+    };
+  } catch (error) {
+    console.error("Erreur lors de la génération de secours:", error);
+    return {
+      suggestion: null,
+      error: error instanceof Error ? error : new Error("Échec de la génération de secours")
+    };
+  }
+}
+
+/**
+ * Gère et standardise les réponses d'erreur
+ */
+export function manageErrorResponse(toast: typeof toastFunction, error: unknown) {
+  console.error("Error in suggestion process:", error);
+  
+  const errorObject = error instanceof Error ? error : new Error("Erreur inconnue");
+  const errorCode = determineErrorCode(errorObject);
+  
+  // Optionally show an error toast
+  toast({
+    variant: "destructive",
+    title: "Erreur",
+    description: errorObject.message || "Une erreur s'est produite lors de la génération de la suggestion",
+  });
+  
+  return {
+    error: errorObject,
+    errorCode,
+    suggestion: null
+  };
 }
