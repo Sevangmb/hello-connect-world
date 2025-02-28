@@ -1,15 +1,17 @@
 
-import { Notification as UINotification } from "@/components/notifications/types";
+import { LucideIcon } from "lucide-react";
 
 export interface NotificationData {
   id: string;
   user_id: string;
-  type: string;
-  title: string;
-  message: string;
-  data: any;
+  actor_id: string | null;
+  post_id: string | null;
   is_read: boolean;
   created_at: string;
+  type: string;
+  title?: string;
+  message?: string;
+  data?: Record<string, any>;
 }
 
 export interface NotificationSettings {
@@ -17,8 +19,19 @@ export interface NotificationSettings {
   user_id: string;
   notification_type: string;
   enabled: boolean;
+  created_at: string;
 }
 
-export interface NotificationCallbacks {
-  onNewNotification?: (notification: NotificationData) => void;
+export interface IconConfig {
+  type: "icon";
+  icon: LucideIcon;
+  className?: string;
+}
+
+export interface NotificationSubscription {
+  userId: string;
+  connected: boolean;
+  error: Error | null;
+  subscribeToNotifications: () => void;
+  unsubscribeFromNotifications: () => void;
 }

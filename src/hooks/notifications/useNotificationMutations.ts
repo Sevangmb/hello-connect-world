@@ -15,7 +15,7 @@ export function useNotificationMutations(userId: string | null) {
 
       const { data, error } = await supabase
         .from("notifications")
-        .update({ is_read: true })
+        .update({ read: true })
         .eq("id", notificationId)
         .eq("user_id", userId)
         .select();
@@ -55,9 +55,9 @@ export function useNotificationMutations(userId: string | null) {
 
       const { data, error } = await supabase
         .from("notifications")
-        .update({ is_read: true })
+        .update({ read: true })
         .eq("user_id", userId)
-        .eq("is_read", false)
+        .eq("read", false)
         .select();
 
       if (error) {
@@ -106,16 +106,17 @@ export function useNotificationMutations(userId: string | null) {
         throw error;
       }
 
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast({
         title: "Notification supprimée",
         description: "La notification a été supprimée avec succès",
         icon: { type: "icon", icon: Check, className: "h-4 w-4 text-green-500" },
         duration: 3000,
       });
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (error) => {
       console.error("Error in deleteNotification:", error);

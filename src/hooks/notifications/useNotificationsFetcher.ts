@@ -1,67 +1,58 @@
 
-import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationData } from "./types";
 
-export function useNotificationsFetcher() {
-  const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Récupérer l'utilisateur actuellement connecté
-  useEffect(() => {
-    const getUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || null);
-    };
-    getUserId();
-  }, []);
-
-  // Requête pour récupérer les notifications
-  const {
-    data: notifications,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
+export function useNotificationsFetcher(userId: string | null) {
+  const notificationsQuery = useQuery({
     queryKey: ["notifications", userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<NotificationData[]> => {
       if (!userId) return [];
 
       const { data, error } = await supabase
         .from("notifications")
-        .select("*")
+        .select(`
+          id,
+          user_id,
+          actor_id,
+          post_id,
+          read,
+          created_at,
+          type,
+          message,
+          data
+        `)
         .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching notifications:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // Calculer le nombre de notifications non lues
-      const unread = data.filter(notif => !notif.is_read).length;
-      setUnreadCount(unread);
-
-      return data as NotificationData[];
+      // Transform the data to match our NotificationData interface
+      return data.map((notification) => ({
+        id: notification.id,
+        user_id: notification.user_id,
+        actor_id: notification.actor_id,
+        post_id: notification.post_id,
+        is_read: notification.read || false,
+        created_at: notification.created_at,
+        type: notification.type,
+        message: notification.message || '',
+        data: notification.data || {}
+      })) as NotificationData[];
     },
     enabled: !!userId,
-    refetchInterval: 60000, // Rafraîchir toutes les minutes
   });
 
-  // Fonction de rafraîchissement explicite
-  const refreshNotifications = async () => {
-    return await refetch();
-  };
+  // Calculate unread count
+  const unreadCount = notificationsQuery.data
+    ? notificationsQuery.data.filter(notification => !notification.is_read).length
+    : 0;
 
   return {
-    userId,
-    notifications,
+    notifications: notificationsQuery.data || [],
     unreadCount,
-    isLoading,
-    error,
-    refreshNotifications,
+    isLoading: notificationsQuery.isLoading,
+    error: notificationsQuery.error,
+    refetch: notificationsQuery.refetch,
   };
 }

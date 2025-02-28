@@ -1,7 +1,16 @@
 
 import { AlertCircle, Loader2, Shirt } from "lucide-react";
-import { ToastConfig } from "../types/suggestionTypes";
+import { ToastOptions } from "@/hooks/use-toast";
 import { Toast } from "@/hooks/use-toast";
+
+export interface ToastConfig {
+  id?: string;
+  title: string;
+  description: string;
+  icon?: any;
+  duration?: number;
+  variant?: "default" | "destructive";
+}
 
 export function showLoadingToast(
   toast: Toast,

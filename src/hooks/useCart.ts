@@ -4,6 +4,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2, ShoppingCart, AlertCircle } from "lucide-react";
 
+export interface CartItem {
+  id: string;
+  quantity: number;
+  shop_items: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+    image_url: string | null;
+    stock: number;
+    seller_id: string;
+    shop_id: string;
+    shops: {
+      name: string;
+    }
+  };
+}
+
 export function useCart(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,11 +57,7 @@ export function useCart(userId: string | null) {
         throw error;
       }
 
-      return data.map((item) => ({
-        id: item.id,
-        quantity: item.quantity,
-        item: item.shop_items,
-      }));
+      return data as CartItem[];
     },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minute
@@ -67,7 +81,7 @@ export function useCart(userId: string | null) {
         .from("cart_items")
         .select("id, quantity")
         .eq("user_id", userId)
-        .eq("item_id", itemId)
+        .eq("shop_item_id", itemId)
         .maybeSingle();
 
       // Get item details for the toast
@@ -99,7 +113,7 @@ export function useCart(userId: string | null) {
           .from("cart_items")
           .insert({
             user_id: userId,
-            item_id: itemId,
+            shop_item_id: itemId,
             quantity,
           })
           .select();
@@ -152,7 +166,7 @@ export function useCart(userId: string | null) {
       // Get cart item details
       const { data: cartItem } = await supabase
         .from("cart_items")
-        .select("item_id")
+        .select("shop_item_id")
         .eq("id", cartItemId)
         .single();
 
@@ -164,7 +178,7 @@ export function useCart(userId: string | null) {
       const { data: itemDetails } = await supabase
         .from("shop_items")
         .select("stock, name")
-        .eq("id", cartItem.item_id)
+        .eq("id", cartItem.shop_item_id)
         .single();
 
       if (itemDetails && quantity > itemDetails.stock) {
@@ -284,8 +298,19 @@ export function useCart(userId: string | null) {
     },
   });
 
+  // Create a data accessor for the Cart page to access the cartItems safely
+  const isCartLoading = cartItems.isLoading;
+  const cartItemsData = cartItems.data || [];
+  
+  // Add this updateQuantity utility function to maintain compatibility with existing code
+  const updateQuantity = (params: { cartItemId: string; quantity: number }) => {
+    return updateCartItem.mutate(params);
+  };
+
   return {
-    cartItems,
+    cartItems: cartItemsData,
+    isCartLoading,
+    updateQuantity,
     addToCart,
     updateCartItem,
     removeFromCart,

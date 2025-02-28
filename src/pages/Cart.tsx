@@ -6,14 +6,16 @@ import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { CartItemsList } from "@/components/cart/CartItemsList";
 import { CartSummary } from "@/components/cart/CartSummary";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Cart() {
+  const { user } = useAuth();
   const { 
     cartItems, 
     isCartLoading, 
     updateQuantity, 
     removeFromCart 
-  } = useCart();
+  } = useCart(user?.id || null);
 
   if (isCartLoading) {
     return (
@@ -51,7 +53,7 @@ export default function Cart() {
                 <CartItemsList 
                   items={cartItems}
                   onUpdateQuantity={(itemId, quantity) => {
-                    updateQuantity.mutate({ cartItemId: itemId, quantity });
+                    updateQuantity({ cartItemId: itemId, quantity });
                   }}
                   onRemoveItem={(itemId) => removeFromCart.mutate(itemId)}
                 />

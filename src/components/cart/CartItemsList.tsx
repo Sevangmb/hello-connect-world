@@ -21,16 +21,16 @@ export function CartItemsList({
       <div className="space-y-6">
         {items.map((item) => (
           <div key={item.id} className="flex items-start gap-4 p-4 bg-white rounded-lg shadow">
-            {item.shop_items.clothes.image_url && (
+            {item.shop_items.image_url && (
               <img
-                src={item.shop_items.clothes.image_url}
-                alt={item.shop_items.clothes.name}
+                src={item.shop_items.image_url}
+                alt={item.shop_items.name}
                 className="h-24 w-24 rounded-md object-cover"
               />
             )}
             <div className="flex-1 space-y-2">
               <h3 className="font-medium">
-                {item.shop_items.clothes.name}
+                {item.shop_items.name}
               </h3>
               <p className="font-bold">
                 {formatPrice(item.shop_items.price)}

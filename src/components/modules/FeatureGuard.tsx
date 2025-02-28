@@ -1,57 +1,37 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useModules } from "@/hooks/modules";
-import { createFeatureEventsListener } from "@/hooks/modules/events";
+import { useEffect, useState } from "react";
+import { onFeatureStatusChanged } from "@/hooks/modules/events";
 
 interface FeatureGuardProps {
+  children: React.ReactNode;
   moduleCode: string;
   featureCode: string;
   fallback?: React.ReactNode;
-  children: React.ReactNode;
-  debug?: boolean;
 }
 
-export const FeatureGuard: React.FC<FeatureGuardProps> = ({
-  moduleCode,
-  featureCode,
-  fallback = null,
-  children,
-  debug = false
-}) => {
+export function FeatureGuard({ children, moduleCode, featureCode, fallback }: FeatureGuardProps) {
   const { isFeatureEnabled } = useModules();
-  const [featureEnabled, setFeatureEnabled] = useState<boolean | null>(null);
+  const [isEnabled, setIsEnabled] = useState(isFeatureEnabled(moduleCode, featureCode));
 
-  // S'abonner aux événements de changement de statut des fonctionnalités
   useEffect(() => {
-    const checkFeatureStatus = () => {
-      const enabled = isFeatureEnabled(moduleCode, featureCode);
-      setFeatureEnabled(enabled);
-      
-      if (debug) {
-        console.debug(`FeatureGuard [${moduleCode}/${featureCode}]:`, { isEnabled: enabled });
-      }
+    const handleFeatureChange = () => {
+      setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
     };
-
-    // Vérifier immédiatement
-    checkFeatureStatus();
-
-    // Créer un abonnement aux événements de fonctionnalité
-    const featureEvents = createFeatureEventsListener(checkFeatureStatus);
     
-    // S'abonner aux événements
-    featureEvents.subscribe();
+    // Initial check
+    setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
     
-    // Se désabonner à la destruction du composant
-    return () => {
-      featureEvents.unsubscribe();
-    };
-  }, [moduleCode, featureCode, isFeatureEnabled, debug]);
+    // Subscribe to feature changes
+    const cleanup = onFeatureStatusChanged(handleFeatureChange);
+    
+    return cleanup;
+  }, [moduleCode, featureCode, isFeatureEnabled]);
 
-  // En attendant la première vérification
-  if (featureEnabled === null) return null;
+  if (!isEnabled) {
+    return fallback ? <>{fallback}</> : null;
+  }
 
-  // Rendu conditionnel basé sur l'état de la fonctionnalité
-  return featureEnabled ? <>{children}</> : <>{fallback}</>;
-};
-
-export default FeatureGuard;
+  return <>{children}</>;
+}

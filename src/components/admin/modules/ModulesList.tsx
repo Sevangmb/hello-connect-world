@@ -87,17 +87,26 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     try {
       setSaving(true);
       
-      // Utiliser Supabase pour les transactions
-      const { error: transactionError } = await supabase.rpc('update_modules_batch', {
-        module_updates: Object.entries(pendingChanges).map(([moduleId, newStatus]) => ({
-          id: moduleId,
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        }))
-      });
-
-      if (transactionError) {
-        throw transactionError;
+      // Utiliser un appel direct à la base de données
+      const updates = Object.entries(pendingChanges).map(([moduleId, newStatus]) => ({
+        id: moduleId,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      }));
+      
+      // Si nous avons des changements, mettre à jour directement la table
+      if (updates.length > 0) {
+        for (const update of updates) {
+          const { error } = await supabase
+            .from("app_modules")
+            .update({ 
+              status: update.status,
+              updated_at: update.updated_at
+            })
+            .eq("id", update.id);
+            
+          if (error) throw error;
+        }
       }
       
       // Appliquer tous les changements de modules

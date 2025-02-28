@@ -46,3 +46,34 @@ export const onFeatureStatusChanged = (callback: (event: CustomEvent) => void) =
   window.addEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
   return () => window.removeEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
 };
+
+/**
+ * Listen to module changes for alerts
+ */
+export const listenToModuleChanges = (callback: () => void) => {
+  const handleModuleStatusChanged = () => {
+    callback();
+  };
+  
+  window.addEventListener(MODULE_STATUS_CHANGED, handleModuleStatusChanged);
+  
+  return () => {
+    window.removeEventListener(MODULE_STATUS_CHANGED, handleModuleStatusChanged);
+  };
+};
+
+/**
+ * Create event listeners for feature status changes
+ */
+export const createFeatureEventsListener = (callback: (event: CustomEvent) => void) => {
+  window.addEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
+  return () => window.removeEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
+};
+
+/**
+ * Create event listeners for module status changes
+ */
+export const createModuleEventsListener = (callback: (event: CustomEvent) => void) => {
+  window.addEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
+  return () => window.removeEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
+};

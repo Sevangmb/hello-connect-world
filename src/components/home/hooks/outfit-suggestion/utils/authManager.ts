@@ -1,19 +1,33 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Toast } from "@/hooks/use-toast";
 import { showErrorToast } from "./toastManager";
+import { Toast } from "@/hooks/use-toast";
 
-export async function checkAuthentication(toast: Toast): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    showErrorToast(toast, {
-      title: "Non connecté",
-      description: "Vous devez être connecté pour voir les suggestions de tenues."
-    });
+export async function getCurrentUser(toast: Toast) {
+  try {
+    const { data, error } = await supabase.auth.getUser();
     
+    if (error) {
+      console.error("Auth error:", error);
+      showErrorToast(toast, {
+        title: "Erreur d'authentification",
+        description: "Merci de vous reconnecter pour accéder à cette fonctionnalité."
+      });
+      return null;
+    }
+    
+    return data.user;
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+    showErrorToast(toast, {
+      title: "Erreur d'authentification",
+      description: "Une erreur est survenue lors de la récupération de votre profil."
+    });
     return null;
   }
-  
-  return user.id;
+}
+
+export async function checkUserAuthenticated(toast: Toast) {
+  const user = await getCurrentUser(toast);
+  return !!user;
 }

@@ -66,7 +66,7 @@ export function CartSummary({ items, isLoading }: CartSummaryProps) {
       <div className="space-y-2 py-4 border-t">
         {validItems.map((item) => (
           <div key={item.id} className="flex justify-between text-sm">
-            <span>{item.shop_items?.clothes?.name || 'Article inconnu'}</span>
+            <span>{item.shop_items?.name || 'Article inconnu'}</span>
             <span>{formatPrice((item.shop_items?.price || 0) * item.quantity)}</span>
           </div>
         ))}

@@ -6,15 +6,26 @@ import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
+import { LucideIcon } from "lucide-react"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
+
+export type IconType = {
+  type: "icon"
+  icon: LucideIcon
+  className?: string
+}
+
+export type ToastIconProp = IconType | React.ReactNode
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  icon?: ToastIconProp
+  duration?: number
 }
 
 const actionTypes = {
@@ -138,10 +149,16 @@ const reducer = (state: State, action: Action): State => {
   }
 }
 
-type Toast = Omit<ToasterToast, "id">
+export type Toast = Omit<ToasterToast, "id"> & {
+  id?: string
+}
 
-function toast({ ...props }: Toast) {
-  const id = genId()
+export type ToastOptions = Partial<
+  Pick<Toast, "action" | "description" | "duration" | "icon">
+>
+
+function toast(props: Toast) {
+  const id = props.id || genId()
 
   const update = (props: ToasterToast) =>
     dispatch({

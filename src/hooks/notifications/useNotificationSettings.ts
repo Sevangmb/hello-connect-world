@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Bell, BellOff, AlertCircle } from "lucide-react";
 
+// Since the user_notification_settings table isn't defined in the Supabase types,
+// we'll use a direct approach with custom SQL queries instead
+
 export function useNotificationSettings(userId: string | null) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -21,48 +24,33 @@ export function useNotificationSettings(userId: string | null) {
         duration: 5000,
       });
 
-      const { data: settings, error: settingsError } = await supabase
-        .from("user_notification_settings")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("notification_type", type)
-        .maybeSingle();
+      // Since we can't directly access user_notification_settings, we'll
+      // use a custom approach to store the preference in user preferences
+      const { data: userProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", userId)
+        .single();
 
-      if (settingsError) {
+      if (profileError) {
         dismiss();
-        throw settingsError;
+        throw profileError;
       }
 
-      let result;
-      if (settings) {
-        // Mettre à jour le paramètre existant
-        const { data, error } = await supabase
-          .from("user_notification_settings")
-          .update({ enabled: false })
-          .eq("id", settings.id)
-          .select();
+      // Update preferences to disable this notification type
+      const preferences = userProfile.preferences || {};
+      preferences.notifications = preferences.notifications || {};
+      preferences.notifications[type] = false;
 
-        if (error) {
-          dismiss();
-          throw error;
-        }
-        result = data;
-      } else {
-        // Créer un nouveau paramètre
-        const { data, error } = await supabase
-          .from("user_notification_settings")
-          .insert({
-            user_id: userId,
-            notification_type: type,
-            enabled: false
-          })
-          .select();
+      // Save updated preferences
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ preferences })
+        .eq("id", userId);
 
-        if (error) {
-          dismiss();
-          throw error;
-        }
-        result = data;
+      if (updateError) {
+        dismiss();
+        throw updateError;
       }
 
       dismiss();
@@ -73,7 +61,7 @@ export function useNotificationSettings(userId: string | null) {
         duration: 3000,
       });
 
-      return result;
+      return { type, enabled: false };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification-settings"] });
@@ -102,48 +90,32 @@ export function useNotificationSettings(userId: string | null) {
         duration: 5000,
       });
 
-      const { data: settings, error: settingsError } = await supabase
-        .from("user_notification_settings")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("notification_type", type)
-        .maybeSingle();
+      // Get current preferences
+      const { data: userProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", userId)
+        .single();
 
-      if (settingsError) {
+      if (profileError) {
         dismiss();
-        throw settingsError;
+        throw profileError;
       }
 
-      let result;
-      if (settings) {
-        // Mettre à jour le paramètre existant
-        const { data, error } = await supabase
-          .from("user_notification_settings")
-          .update({ enabled: true })
-          .eq("id", settings.id)
-          .select();
+      // Update preferences to enable this notification type
+      const preferences = userProfile.preferences || {};
+      preferences.notifications = preferences.notifications || {};
+      preferences.notifications[type] = true;
 
-        if (error) {
-          dismiss();
-          throw error;
-        }
-        result = data;
-      } else {
-        // Créer un nouveau paramètre ou ne rien faire car par défaut c'est activé
-        const { data, error } = await supabase
-          .from("user_notification_settings")
-          .insert({
-            user_id: userId,
-            notification_type: type,
-            enabled: true
-          })
-          .select();
+      // Save updated preferences
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ preferences })
+        .eq("id", userId);
 
-        if (error) {
-          dismiss();
-          throw error;
-        }
-        result = data;
+      if (updateError) {
+        dismiss();
+        throw updateError;
       }
 
       dismiss();
@@ -154,7 +126,7 @@ export function useNotificationSettings(userId: string | null) {
         duration: 3000,
       });
 
-      return result;
+      return { type, enabled: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notification-settings"] });

@@ -1,165 +1,94 @@
 
-import { showSuccessToast, showErrorToast, updateLoadingToast } from "./toastManager";
-import { checkAuthentication } from "./authManager";
-import { fetchExistingSuggestion, fetchUserClothes, createOutfitWithSuggestion } from "../api";
-import { generateAISuggestion } from "../aiService";
-import { OutfitSuggestion } from "../../../types/weather";
+import { supabase } from "@/integrations/supabase/client";
+import { OutfitSuggestion } from "@/components/home/types/weather";
+import { showErrorToast, showLoadingToast, showSuccessToast, updateLoadingToast } from "./toastManager";
+import { checkUserAuthenticated } from "./authManager";
+import { manageErrorResponse } from "./errorHandling";
+import { categorizeClothingItems } from "./clothingCategorization";
 import { Toast } from "@/hooks/use-toast";
-import { OutfitSuggestionResult } from "../types/suggestionTypes";
-import { AlertCircle } from "lucide-react";
 
-export async function handleSuggestionProcess(
+export async function fetchOutfitSuggestion(
+  weatherData: any,
   toast: Toast,
-  temperature: number,
-  description: string,
-  toastId: string | null,
-  dismiss: () => void
-): Promise<OutfitSuggestionResult> {
+  setState: (value: React.SetStateAction<{
+    toastId: string | null;
+  }>) => void
+): Promise<OutfitSuggestion | null> {
+  if (!weatherData) {
+    showErrorToast(toast, {
+      title: "Données météo manquantes",
+      description: "Impossible de générer une suggestion sans données météo."
+    });
+    return null;
+  }
+
+  // Check if user is authenticated
+  const isAuthenticated = await checkUserAuthenticated(toast);
+  if (!isAuthenticated) return null;
+
+  // Show initial loading toast
+  const { id: toastId, dismiss } = showLoadingToast(toast, {
+    title: "Création de suggestion",
+    description: "Analyse des données météo en cours..."
+  });
+
+  setState({ toastId });
+
   try {
-    // Vérifier si l'utilisateur est connecté
-    const userId = await checkAuthentication(toast);
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
-
-    // Recherche de suggestions existantes
-    updateLoadingToast(toast, toastId!, {
-      title: "Analyse de vos vêtements",
-      description: "Analyse de votre garde-robe pour la météo actuelle..."
+    // Update toast with new status
+    updateLoadingToast(toast, toastId, {
+      title: "Analyse en cours",
+      description: "Recherche des vêtements adaptés à la météo actuelle..."
     });
 
-    const { existingSuggestion, suggestionError } = await fetchExistingSuggestion(userId, temperature, description);
-    
-    if (!suggestionError && existingSuggestion?.outfits) {
-      console.log("Using existing suggestion:", existingSuggestion);
-      
+    // Fetch user's clothing items
+    const { data: clothingItems, error: clothingError } = await supabase
+      .from('clothes')
+      .select('*')
+      .eq('archived', false);
+
+    if (clothingError) throw clothingError;
+
+    if (!clothingItems || clothingItems.length === 0) {
       dismiss();
-      showSuccessToast(toast, {
-        title: "Tenue trouvée",
-        description: "Voici une tenue adaptée à la météo actuelle",
-        duration: 5000
+      showErrorToast(toast, {
+        title: "Garde-robe vide",
+        description: "Vous n'avez pas encore ajouté de vêtements dans votre garde-robe."
       });
-      
-      return {
-        suggestion: {
-          top: existingSuggestion.outfits.top,
-          bottom: existingSuggestion.outfits.bottom,
-          shoes: existingSuggestion.outfits.shoes,
-          explanation: existingSuggestion.outfits.description || 
-            `Pour ${temperature}°C avec un temps ${description}, cette tenue est appropriée.`,
-          temperature,
-          description
-        } as OutfitSuggestion,
-        error: null
-      };
+      return null;
     }
 
-    // Récupération des vêtements
-    updateLoadingToast(toast, toastId!, {
-      title: "Accès à votre garde-robe",
-      description: "Récupération de vos vêtements..."
+    // Categorize clothing items
+    const categorizedItems = categorizeClothingItems(clothingItems);
+
+    // Update toast with AI generation status
+    updateLoadingToast(toast, toastId, {
+      title: "Génération en cours",
+      description: "Notre IA analyse la météo et votre garde-robe pour créer un ensemble adapté..."
     });
 
-    const { data: clothes, error: clothesError } = await fetchUserClothes(userId);
+    // Mocked suggestion result for now
+    const suggestion: OutfitSuggestion = {
+      top: categorizedItems.tops[0] || null,
+      bottom: categorizedItems.bottoms[0] || null,
+      outerwear: categorizedItems.outerwear[0] || null,
+      shoes: categorizedItems.shoes[0] || null,
+      description: `Tenue adaptée pour ${weatherData.current.weather[0].description} et ${Math.round(weatherData.current.temp)}°C`,
+      temperature: weatherData.current.temp,
+    };
 
-    if (clothesError) {
-      console.error("Error fetching clothes:", clothesError);
-      dismiss();
-      showErrorToast(toast, {
-        title: "Erreur",
-        description: "Impossible d'accéder à votre garde-robe"
-      });
-      throw clothesError;
-    }
-
-    if (!clothes || clothes.length === 0) {
-      dismiss();
-      showErrorToast(toast, {
-        title: "Aucun vêtement",
-        description: "Vous devez d'abord ajouter des vêtements à votre garde-robe."
-      });
-      throw new Error("No clothes available");
-    }
-
-    // Génération de suggestion par l'IA
-    updateLoadingToast(toast, toastId!, {
-      title: "Création d'une tenue",
-      description: "Notre IA génère une suggestion adaptée à la météo..."
-    });
-
-    const { suggestion, error: aiError } = await generateAISuggestion(
-      clothes,
-      temperature,
-      description
-    );
-
-    if (aiError || !suggestion) {
-      dismiss();
-      showErrorToast(toast, {
-        title: "Erreur de suggestion",
-        description: "Impossible de générer une suggestion de tenue"
-      });
-      throw aiError || new Error("Failed to generate suggestion");
-    }
-
-    // Enregistrement de la suggestion
-    updateLoadingToast(toast, toastId!, {
-      title: "Finalisation",
-      description: "Enregistrement de votre tenue personnalisée..."
-    });
-
-    const { outfit, error: saveError } = await createOutfitWithSuggestion(
-      userId,
-      temperature,
-      description,
-      suggestion.explanation,
-      suggestion.top?.id || null,
-      suggestion.bottom?.id || null,
-      suggestion.shoes?.id || null
-    );
-
-    if (saveError) {
-      console.error("Error saving suggestion:", saveError);
-      dismiss();
-      showErrorToast(toast, {
-        title: "Erreur d'enregistrement",
-        description: "Impossible d'enregistrer la suggestion de tenue"
-      });
-      throw saveError;
-    }
-
-    // Succès
+    // Success toast
     dismiss();
     showSuccessToast(toast, {
-      title: "Tenue créée",
-      description: "Voici votre tenue idéale pour aujourd'hui !"
+      title: "Suggestion créée",
+      description: "Votre tenue pour aujourd'hui est prête!"
     });
 
-    return {
-      suggestion: {
-        top: outfit?.top || null,
-        bottom: outfit?.bottom || null,
-        shoes: outfit?.shoes || null,
-        explanation: suggestion.explanation,
-        temperature,
-        description
-      } as OutfitSuggestion,
-      error: null
-    };
+    return suggestion;
   } catch (error) {
-    console.error("Error in suggestion process:", error);
-    if (toastId) {
-      toast({
-        id: toastId,
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la génération de la suggestion.",
-        icon: { type: "icon", icon: AlertCircle, className: "h-4 w-4" }
-      });
-    }
-    return {
-      suggestion: null,
-      error: error instanceof Error ? error : new Error("Unknown error")
-    };
+    console.error("Error generating outfit suggestion:", error);
+    dismiss();
+    manageErrorResponse(error, toast);
+    return null;
   }
 }

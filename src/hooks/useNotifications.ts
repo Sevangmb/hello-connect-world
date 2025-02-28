@@ -1,69 +1,102 @@
 
-import { useCallback } from "react";
-import { useNotificationsFetcher } from "./notifications/useNotificationsFetcher";
-import { useNotificationMutations } from "./notifications/useNotificationMutations";
-import { useNotificationSettings } from "./notifications/useNotificationSettings";
-import { useNotificationsRealtime } from "./notifications/useNotificationsRealtime";
-import { useNotificationUtils } from "./notifications/useNotificationUtils";
-import { Notification } from "@/components/notifications/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useNotificationsFetcher } from "@/hooks/notifications/useNotificationsFetcher";
+import { useNotificationMutations } from "@/hooks/notifications/useNotificationMutations";
+import { useNotificationSettings } from "@/hooks/notifications/useNotificationSettings";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-// Hook principal de gestion des notifications
-export function useNotifications() {
+export const useNotifications = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
   const {
-    userId,
-    notifications: rawNotifications,
+    notifications,
     unreadCount,
     isLoading,
-    error,
-    refreshNotifications: refetch
-  } = useNotificationsFetcher();
-
+    error: fetchError,
+    refetch
+  } = useNotificationsFetcher(user?.id || null);
+  
   const {
-    markAsRead: markAsReadMutation,
+    markAsRead,
     markAllAsRead,
     deleteNotification
-  } = useNotificationMutations(userId);
-
+  } = useNotificationMutations(user?.id || null);
+  
   const {
     disableNotificationType,
     enableNotificationType
-  } = useNotificationSettings(userId);
+  } = useNotificationSettings(user?.id || null);
 
-  const {
-    subscribeToNotifications
-  } = useNotificationsRealtime(userId);
+  // Set up realtime subscription for notifications
+  useEffect(() => {
+    if (!user?.id) {
+      setConnected(false);
+      return;
+    }
 
-  const {
-    unreadNotifications,
-    getGroupedNotifications,
-    adaptNotifications
-  } = useNotificationUtils(rawNotifications);
+    // Create channel for notifications
+    const notificationsChannel = supabase
+      .channel('notifications-changes')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, payload => {
+        console.log('New notification received:', payload);
+        // Refresh notifications
+        refetch();
+        // Show toast for new notification
+        if (payload.new) {
+          toast({
+            title: 'Nouvelle notification',
+            description: 'Vous avez reçu une nouvelle notification'
+          });
+        }
+      })
+      .subscribe((status) => {
+        console.log('Notifications subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          setConnected(true);
+        } else {
+          setConnected(false);
+        }
+      });
 
-  // Adapter les données pour l'interface utilisateur
-  const notifications = adaptNotifications;
+    // Clean up subscription
+    return () => {
+      console.log('Cleaning up notifications subscription');
+      supabase.removeChannel(notificationsChannel);
+      setConnected(false);
+    };
+  }, [user?.id, refetch, toast]);
 
-  // Wrappers pour les mutations principales
-  const markAsRead = useCallback(async (notificationId: string) => {
-    return await markAsReadMutation.mutateAsync(notificationId);
-  }, [markAsReadMutation]);
-
-  const refreshNotifications = useCallback(async () => {
-    return await refetch();
-  }, [refetch]);
+  // Function to manually trigger a subscription
+  const subscribeToNotifications = () => {
+    console.log('Manually subscribing to notifications');
+    // This is a stub - the real implementation is in the useEffect above
+  };
 
   return {
     notifications,
     unreadCount,
     isLoading,
-    error,
+    error: error || fetchError,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     disableNotificationType,
     enableNotificationType,
-    unreadNotifications,
-    getGroupedNotifications,
-    subscribeToNotifications,
-    refreshNotifications
+    refetch,
+    realtimeStatus: {
+      connected,
+      error,
+      subscribeToNotifications
+    }
   };
-}
+};
