@@ -14,12 +14,55 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useModules } from "@/hooks/useModules";
+import { useModules } from "@/hooks/modules";
+import { useEffect, useState } from "react";
+import { onModuleStatusChanged } from "@/hooks/modules/events";
 
 export const PersonalSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive } = useModules();
+  const { isModuleActive, refreshModules } = useModules();
+  
+  // États locaux pour surveiller les changements de modules
+  const [moduleStates, setModuleStates] = useState({
+    wardrobe: false,
+    outfits: false,
+    suitcases: false,
+    shopping: false,
+    favorites: false,
+    calendar: false
+  });
+
+  // Mettre à jour les états locaux des modules
+  const updateModuleStates = () => {
+    setModuleStates({
+      wardrobe: isModuleActive('wardrobe'),
+      outfits: isModuleActive('outfits'),
+      suitcases: isModuleActive('suitcases'),
+      shopping: isModuleActive('shopping'),
+      favorites: isModuleActive('favorites'),
+      calendar: isModuleActive('calendar')
+    });
+  };
+
+  // Effet pour s'abonner aux changements de statut des modules
+  useEffect(() => {
+    // Mettre à jour lors du montage
+    updateModuleStates();
+    
+    // Forcer un refresh des modules au montage pour s'assurer d'avoir les données les plus récentes
+    refreshModules().then(() => {
+      updateModuleStates();
+    });
+    
+    // S'abonner aux changements
+    const cleanup = onModuleStatusChanged(() => {
+      console.log("Module status changed, updating sidebar...");
+      updateModuleStates();
+    });
+    
+    return cleanup;
+  }, [isModuleActive, refreshModules]);
 
   return (
     <AccordionItem value="personal" className="border-none">
@@ -31,7 +74,7 @@ export const PersonalSection = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
-          {isModuleActive('wardrobe') && (
+          {moduleStates.wardrobe && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -43,7 +86,7 @@ export const PersonalSection = () => {
               Garde-robe
             </Button>
           )}
-          {isModuleActive('outfits') && (
+          {moduleStates.outfits && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -55,7 +98,7 @@ export const PersonalSection = () => {
               Tenues
             </Button>
           )}
-          {isModuleActive('suitcases') && (
+          {moduleStates.suitcases && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -67,7 +110,7 @@ export const PersonalSection = () => {
               Valises
             </Button>
           )}
-          {isModuleActive('shopping') && (
+          {moduleStates.shopping && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -79,7 +122,7 @@ export const PersonalSection = () => {
               Panier
             </Button>
           )}
-          {isModuleActive('favorites') && (
+          {moduleStates.favorites && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -91,7 +134,7 @@ export const PersonalSection = () => {
               Favoris
             </Button>
           )}
-          {isModuleActive('calendar') && (
+          {moduleStates.calendar && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {

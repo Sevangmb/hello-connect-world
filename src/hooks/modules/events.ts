@@ -1,79 +1,56 @@
 
 /**
- * Custom events for module status changes
+ * Système de gestion des événements pour les modules
+ * Ce fichier centralise les événements liés aux modules
  */
 
-// Define event names
-const MODULE_STATUS_CHANGED = 'module_status_changed';
-const FEATURE_STATUS_CHANGED = 'feature_status_changed';
+type ModuleStatusChangeCallback = () => void;
+
+const MODULE_STATUS_CHANGED_EVENT = 'module_status_changed';
+
+// Liste des abonnés aux événements de changement de statut des modules
+const moduleStatusChangeListeners: ModuleStatusChangeCallback[] = [];
 
 /**
- * Trigger a custom event when a module status changes
+ * Déclenche l'événement de changement de statut de module
  */
-export const triggerModuleStatusChanged = (detail: any = {}) => {
-  const event = new CustomEvent(MODULE_STATUS_CHANGED, { 
-    detail,
-    bubbles: true 
-  });
+export const triggerModuleStatusChanged = () => {
+  // Dispatcher l'événement DOM
+  const event = new CustomEvent(MODULE_STATUS_CHANGED_EVENT);
   window.dispatchEvent(event);
-  console.log('Module status changed event triggered', detail);
-};
-
-/**
- * Trigger a custom event when a feature status changes
- */
-export const triggerFeatureStatusChanged = (detail: any = {}) => {
-  const event = new CustomEvent(FEATURE_STATUS_CHANGED, { 
-    detail,
-    bubbles: true 
+  
+  // Appeler tous les abonnés directs
+  moduleStatusChangeListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (err) {
+      console.error("Erreur lors de l'exécution d'un écouteur de changement de statut:", err);
+    }
   });
-  window.dispatchEvent(event);
-  console.log('Feature status changed event triggered', detail);
 };
 
 /**
- * Add an event listener for module status changes
+ * S'abonne aux changements de statut des modules
+ * @param callback Fonction à appeler lorsque le statut d'un module change
+ * @returns Fonction de nettoyage pour se désabonner
  */
-export const onModuleStatusChanged = (callback: (event: CustomEvent) => void) => {
-  window.addEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
-  return () => window.removeEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
-};
-
-/**
- * Add an event listener for feature status changes
- */
-export const onFeatureStatusChanged = (callback: (event: CustomEvent) => void) => {
-  window.addEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
-  return () => window.removeEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
-};
-
-/**
- * Listen to module changes for alerts
- */
-export const listenToModuleChanges = (callback: () => void) => {
-  const handleModuleStatusChanged = () => {
+export const onModuleStatusChanged = (callback: ModuleStatusChangeCallback): () => void => {
+  // Ajouter l'écouteur à notre liste interne
+  moduleStatusChangeListeners.push(callback);
+  
+  // Ajouter également un écouteur d'événement DOM pour les changements provenant d'autres tabs
+  const handleDOMEvent = () => {
     callback();
   };
   
-  window.addEventListener(MODULE_STATUS_CHANGED, handleModuleStatusChanged);
+  window.addEventListener(MODULE_STATUS_CHANGED_EVENT, handleDOMEvent);
   
+  // Retourner une fonction de nettoyage qui supprime les deux écouteurs
   return () => {
-    window.removeEventListener(MODULE_STATUS_CHANGED, handleModuleStatusChanged);
+    const index = moduleStatusChangeListeners.indexOf(callback);
+    if (index > -1) {
+      moduleStatusChangeListeners.splice(index, 1);
+    }
+    window.removeEventListener(MODULE_STATUS_CHANGED_EVENT, handleDOMEvent);
   };
-};
-
-/**
- * Create event listeners for feature status changes
- */
-export const createFeatureEventsListener = (callback: (event: CustomEvent) => void) => {
-  window.addEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
-  return () => window.removeEventListener(FEATURE_STATUS_CHANGED, callback as EventListener);
-};
-
-/**
- * Create event listeners for module status changes
- */
-export const createModuleEventsListener = (callback: (event: CustomEvent) => void) => {
-  window.addEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
-  return () => window.removeEventListener(MODULE_STATUS_CHANGED, callback as EventListener);
 };
