@@ -1,85 +1,55 @@
 
-import React, { useEffect, useState } from "react";
-import { useModuleApiContext } from "@/hooks/modules/ModuleApiContext";
-import { ModuleUnavailable } from "./ModuleUnavailable";
-import { ModuleDegraded } from "./ModuleDegraded";
-import { onModuleStatusChanged } from "@/hooks/modules/events";
+import React, { ReactNode } from 'react';
+import { ModuleUnavailable } from './ModuleUnavailable';
+import { ModuleDegraded } from './ModuleDegraded';
+import { useModuleApiContext } from '@/hooks/modules/ModuleApiContext';
+import { ADMIN_MODULE_CODE } from '@/hooks/modules/useModules';
 
 interface ModuleGuardProps {
-  children: React.ReactNode;
   moduleCode: string;
-  fallback?: React.ReactNode;
+  children: ReactNode;
+  fallback?: ReactNode;
+  degradedFallback?: ReactNode;
 }
 
-export function ModuleGuard({ children, moduleCode, fallback }: ModuleGuardProps) {
+/**
+ * Composant qui protège un contenu en fonction de l'état d'un module
+ * Affiche le contenu uniquement si le module est actif
+ */
+export const ModuleGuard: React.FC<ModuleGuardProps> = ({
+  moduleCode,
+  children,
+  fallback,
+  degradedFallback
+}) => {
   const { 
     getModuleActiveStatus, 
-    getModuleDegradedStatus, 
-    refreshModules 
+    getModuleDegradedStatus 
   } = useModuleApiContext();
+
+  // Toujours afficher le contenu si c'est un module Admin
+  if (moduleCode === ADMIN_MODULE_CODE) {
+    return <>{children}</>;
+  }
+
+  // Vérifier si le module est actif
+  const isActive = getModuleActiveStatus(moduleCode);
   
-  const [isActive, setIsActive] = useState(() => getModuleActiveStatus(moduleCode));
-  const [isDegraded, setIsDegraded] = useState(() => getModuleDegradedStatus(moduleCode));
-
-  useEffect(() => {
-    const handleModuleChange = () => {
-      console.log(`Module status check for ${moduleCode}`);
-      const moduleActive = getModuleActiveStatus(moduleCode);
-      const moduleDegraded = getModuleDegradedStatus(moduleCode);
-      
-      console.log(`Module ${moduleCode} status: active=${moduleActive}, degraded=${moduleDegraded}`);
-      
-      setIsActive(moduleActive);
-      setIsDegraded(moduleDegraded);
-    };
-    
-    // Vérification initiale
-    handleModuleChange();
-    
-    // Forcer un refresh des modules au montage du composant
-    refreshModules().then(() => {
-      handleModuleChange();
-    });
-    
-    // Souscrire aux changements de status des modules
-    const cleanup = onModuleStatusChanged(handleModuleChange);
-    
-    // Configurer un intervalle de vérification périodique pour s'assurer de l'état à jour
-    const intervalId = setInterval(() => {
-      handleModuleChange();
-    }, 30000); // Toutes les 30 secondes
-    
-    return () => {
-      cleanup();
-      clearInterval(intervalId);
-    };
-  }, [moduleCode, getModuleActiveStatus, getModuleDegradedStatus, refreshModules]);
-
-  // Forcer la réévaluation quand getModuleActiveStatus change
-  useEffect(() => {
-    setIsActive(getModuleActiveStatus(moduleCode));
-  }, [getModuleActiveStatus, moduleCode]);
-
-  // Forcer la réévaluation quand getModuleDegradedStatus change
-  useEffect(() => {
-    setIsDegraded(getModuleDegradedStatus(moduleCode));
-  }, [getModuleDegradedStatus, moduleCode]);
+  // Vérifier si le module est dégradé
+  const isDegraded = getModuleDegradedStatus(moduleCode);
 
   if (!isActive) {
+    // Si le module n'est pas actif, afficher le fallback
     return fallback ? <>{fallback}</> : <ModuleUnavailable moduleCode={moduleCode} />;
   }
 
   if (isDegraded) {
-    return (
-      <>
-        <ModuleDegraded moduleCode={moduleCode} />
-        {children}
-      </>
-    );
+    // Si le module est dégradé, afficher le degradedFallback
+    return degradedFallback ? <>{degradedFallback}</> : <ModuleDegraded moduleCode={moduleCode} />;
   }
 
+  // Si le module est actif et non dégradé, afficher le contenu
   return <>{children}</>;
-}
+};
 
-// Exporter aussi par défaut pour assurer la compatibilité
 export default ModuleGuard;

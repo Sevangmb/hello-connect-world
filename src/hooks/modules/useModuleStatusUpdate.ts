@@ -7,9 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ModuleStatus, AppModule } from "./types";
 import { broadcastModuleStatusChange, broadcastFeatureStatusChange } from "./tabSync";
 import { cacheModuleStatuses } from "./utils";
-
-// Identifier pour le module Admin qui ne doit jamais être désactivé
-const ADMIN_MODULE_CODE = "admin";
+import { ADMIN_MODULE_CODE } from "./useModules";
 
 export const useModuleStatusUpdate = () => {
   /**

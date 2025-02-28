@@ -1,28 +1,42 @@
 
-import React from "react";
-import { useModuleApiContext } from "@/hooks/modules/ModuleApiContext";
+import React, { ReactNode } from 'react';
+import { useModuleApiContext } from '@/hooks/modules/ModuleApiContext';
+import { ADMIN_MODULE_CODE } from '@/hooks/modules/useModules';
 
 interface FeatureGuardProps {
-  children: React.ReactNode;
   moduleCode: string;
   featureCode: string;
-  fallback?: React.ReactNode;
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
 /**
- * Composant qui affiche conditionnellement son contenu en fonction
- * de l'état d'activation d'une fonctionnalité spécifique
+ * Composant qui protège un contenu en fonction de l'état d'une fonctionnalité
+ * Affiche le contenu uniquement si la fonctionnalité est activée
  */
-export function FeatureGuard({ children, moduleCode, featureCode, fallback }: FeatureGuardProps) {
+export const FeatureGuard: React.FC<FeatureGuardProps> = ({
+  moduleCode,
+  featureCode,
+  children,
+  fallback
+}) => {
   const { getFeatureEnabledStatus } = useModuleApiContext();
+
+  // Toujours autoriser les fonctionnalités du module Admin
+  if (moduleCode === ADMIN_MODULE_CODE) {
+    return <>{children}</>;
+  }
+
+  // Vérifier si la fonctionnalité est activée
   const isEnabled = getFeatureEnabledStatus(moduleCode, featureCode);
 
+  // Si la fonctionnalité n'est pas activée, afficher le fallback (ou rien)
   if (!isEnabled) {
     return fallback ? <>{fallback}</> : null;
   }
 
+  // Si la fonctionnalité est activée, afficher le contenu
   return <>{children}</>;
-}
+};
 
-// Exporter aussi par défaut pour assurer la compatibilité
 export default FeatureGuard;

@@ -6,9 +6,7 @@
 import { getModuleStatusesFromCache } from "./utils";
 import { AppModule } from "./types";
 import { checkModuleActive, checkModuleDegraded, checkFeatureEnabled } from "./utils";
-
-// Identifier pour le module Admin qui ne doit jamais être désactivé
-const ADMIN_MODULE_CODE = "admin";
+import { ADMIN_MODULE_CODE } from "./useModules";
 
 export const useModuleActive = (modules: AppModule[], features: Record<string, Record<string, boolean>>) => {
   // Vérifier si un module est actif

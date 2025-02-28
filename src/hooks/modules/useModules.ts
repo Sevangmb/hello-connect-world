@@ -7,6 +7,11 @@
 import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
 import { ModuleStatus } from "./types";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Constante pour identifier le module Admin
+export const ADMIN_MODULE_CODE = "admin";
 
 export const useModules = () => {
   // Récupérer les fonctionnalités de base
@@ -34,18 +39,53 @@ export const useModules = () => {
     updateFeatureStatusSilent: updateFeatureStatusSilentFn
   } = useModuleStatusUpdate();
 
+  // Vérifier et corriger automatiquement le statut du module Admin s'il a été désactivé
+  useEffect(() => {
+    const checkAdminModuleStatus = async () => {
+      if (modules.length > 0) {
+        const adminModule = modules.find(m => m.code === ADMIN_MODULE_CODE);
+        if (adminModule && adminModule.status !== 'active') {
+          console.warn("Module Admin trouvé désactivé - Correction automatique");
+          await updateModuleStatus(adminModule.id, 'active');
+        }
+      }
+    };
+    
+    checkAdminModuleStatus();
+  }, [modules]);
+
   // Wrapper pour mettre à jour le statut d'un module
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
+    const moduleToUpdate = modules.find(m => m.id === moduleId);
+    
+    // Empêcher la désactivation du module Admin
+    if (moduleToUpdate && moduleToUpdate.code === ADMIN_MODULE_CODE && status !== 'active') {
+      console.error("Le module Admin ne peut pas être désactivé");
+      return false;
+    }
+    
     return updateModuleStatusFn(moduleId, status, modules, updateModule, setModules);
   };
 
   // Wrapper pour mettre à jour le statut d'une fonctionnalité
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    // Empêcher la désactivation des fonctionnalités du module Admin
+    if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
+      console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
+      return false;
+    }
+    
     return updateFeatureStatusFn(moduleCode, featureCode, isEnabled, updateFeature, setModules, features);
   };
 
   // Wrapper pour mettre à jour le statut d'une fonctionnalité silencieusement
   const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    // Empêcher la désactivation des fonctionnalités du module Admin
+    if (moduleCode === ADMIN_MODULE_CODE && !isEnabled) {
+      console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
+      return false;
+    }
+    
     return updateFeatureStatusSilentFn(moduleCode, featureCode, isEnabled, updateFeatureSilent);
   };
 
