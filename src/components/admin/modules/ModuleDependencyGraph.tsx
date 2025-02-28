@@ -10,6 +10,7 @@ import {
   MarkerType,
   Node,
   Edge,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './dependency-graph.css';
@@ -22,6 +23,7 @@ interface ModuleNodeData {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
+  [key: string]: unknown; // Index signature pour satisfaire la contrainte Record<string, unknown>
 }
 
 export const ModuleDependencyGraph = () => {
