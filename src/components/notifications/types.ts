@@ -14,3 +14,13 @@ export type Notification = {
     content: string;
   };
 };
+
+export type NotificationType = 
+  | 'like'
+  | 'comment' 
+  | 'follow'
+  | 'mention'
+  | 'order_update'
+  | 'private_message'
+  | 'badge_earned'
+  | 'rating';

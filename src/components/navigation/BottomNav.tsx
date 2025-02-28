@@ -45,7 +45,8 @@ const MENU_ITEMS = [
     icon: Users,
     path: "/friends",
     description: "Amis et groupes",
-    moduleCode: "community"
+    moduleCode: "community",
+    hasNotifications: true
   },
   {
     label: "Profil",
@@ -71,7 +72,7 @@ export const BottomNav = () => {
       : location.pathname.startsWith(item.path);
     
     // Si c'est le bouton Social, on affiche aussi le badge des notifications
-    const isNotifications = item.path === "/friends";
+    const isNotifications = item.hasNotifications;
       
     const button = (
       <TooltipProvider key={item.path}>

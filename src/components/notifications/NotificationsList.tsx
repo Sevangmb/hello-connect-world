@@ -5,23 +5,72 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationItem } from "./NotificationItem";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Notification } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 export const NotificationsList = () => {
-  const { notifications, isLoading, markAsRead, subscribeToNotifications } = useNotifications();
+  const { notifications, isLoading, markAsRead, subscribeToNotifications, refreshNotifications } = useNotifications();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
   
   // Configure realtime subscription
   useEffect(() => {
-    const unsubscribe = subscribeToNotifications();
+    const unsubscribe = subscribeToNotifications((notification: Notification) => {
+      // Afficher une notification toast lorsqu'une nouvelle notification arrive
+      toast({
+        title: "Nouvelle notification",
+        description: "Vous avez reçu une nouvelle notification",
+      });
+    });
+    
     return unsubscribe;
-  }, []);
+  }, [toast]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Attendre un peu pour l'animation
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 1000);
+    try {
+      await refreshNotifications();
+      toast({
+        title: "Notifications actualisées",
+        description: "Vos notifications ont été mises à jour",
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'actualisation des notifications:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'actualiser les notifications",
+      });
+    } finally {
+      // Attendre un peu pour l'animation
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications?.filter(n => !n.read) || [];
+      if (unreadNotifications.length === 0) return;
+      
+      // Marquer toutes les notifications comme lues
+      for (const notification of unreadNotifications) {
+        await markAsRead(notification.id);
+      }
+      
+      toast({
+        title: "Notifications marquées comme lues",
+        description: "Toutes les notifications ont été marquées comme lues",
+      });
+    } catch (error) {
+      console.error("Erreur lors du marquage des notifications:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de marquer les notifications comme lues",
+      });
+    }
   };
 
   if (isLoading) {
@@ -39,18 +88,28 @@ export const NotificationsList = () => {
     <div className="space-y-4">
       <div 
         className={cn(
-          "transition-all duration-300 ease-in-out pb-4 mb-4 border-b", 
+          "transition-all duration-300 ease-in-out pb-4 mb-4 border-b flex justify-between items-center", 
           isRefreshing ? "opacity-50" : "opacity-100"
         )}
       >
         <button 
           onClick={handleRefresh}
-          className="w-full py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors"
+          className="py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors flex-1"
           disabled={isRefreshing}
         >
           <Loader2 className={cn("h-4 w-4", isRefreshing ? "animate-spin" : "")} />
-          <span>{isRefreshing ? "Actualisation..." : "Tirer pour actualiser"}</span>
+          <span>{isRefreshing ? "Actualisation..." : "Actualiser"}</span>
         </button>
+        
+        {(notifications?.some(n => !n.read)) && (
+          <button 
+            onClick={handleMarkAllAsRead}
+            className="py-2 px-4 text-sm text-facebook-primary flex items-center justify-center gap-2 rounded-md hover:bg-gray-50 transition-colors"
+            disabled={isRefreshing}
+          >
+            <span>Tout marquer comme lu</span>
+          </button>
+        )}
       </div>
 
       {!notifications?.length ? (

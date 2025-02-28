@@ -1,5 +1,5 @@
 
-import { Bell, MessageSquare, Heart, UserPlus, Check, AtSign, ShoppingBag } from "lucide-react";
+import { Bell, MessageSquare, Heart, UserPlus, Check, AtSign, ShoppingBag, Award, Star } from "lucide-react";
 import { Notification } from "./types";
 
 export class NotificationIcon {
@@ -35,9 +35,19 @@ export class NotificationIcon {
           icon: <MessageSquare className="h-4 w-4 text-cyan-500" />,
           message: `${notification.actor?.username || "Quelqu'un"} vous a envoyé un message privé`,
         };
+      case "badge_earned":
+        return {
+          icon: <Award className="h-4 w-4 text-amber-500" />,
+          message: `Vous avez obtenu un nouveau badge !`,
+        };
+      case "rating":
+        return {
+          icon: <Star className="h-4 w-4 text-yellow-500" />,
+          message: `${notification.actor?.username || "Quelqu'un"} a noté votre tenue`,
+        };
       default:
         return {
-          icon: <Bell className="h-4 w-4" />,
+          icon: <Bell className="h-4 w-4 text-gray-500" />,
           message: "Nouvelle notification",
         };
     }
