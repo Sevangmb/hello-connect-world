@@ -44,8 +44,10 @@ export function useCart(userId: string | null) {
             price,
             seller_id,
             shop_id,
-            shops:shop_id (name),
-            clothes:clothes_id!shop_items_clothes_id_fkey (
+            shops:shop_id (name)
+          ),
+          shop_items_clothes:shop_item_id (
+            clothes (
               name,
               description,
               image_url,
@@ -65,11 +67,11 @@ export function useCart(userId: string | null) {
         quantity: item.quantity,
         shop_items: {
           id: item.shop_items.id,
-          name: item.shop_items.clothes?.name || "Produit sans nom",
-          description: item.shop_items.clothes?.description || null,
+          name: item.shop_items_clothes?.clothes?.name || "Produit sans nom",
+          description: item.shop_items_clothes?.clothes?.description || null,
           price: item.shop_items.price,
-          image_url: item.shop_items.clothes?.image_url || null,
-          stock: item.shop_items.clothes?.stock || 0,
+          image_url: item.shop_items_clothes?.clothes?.image_url || null,
+          stock: item.shop_items_clothes?.clothes?.stock || 0,
           seller_id: item.shop_items.seller_id,
           shop_id: item.shop_items.shop_id,
           shops: {
@@ -106,27 +108,38 @@ export function useCart(userId: string | null) {
         .maybeSingle();
 
       // Get item details for the toast
-      const { data: shopItem, error: itemError } = await supabase
+      const { data: shopItemData, error: shopItemError } = await supabase
         .from("shop_items")
         .select(`
           id, 
-          price,
-          clothes:clothes_id!shop_items_clothes_id_fkey (
-            name,
-            stock
-          )
+          price
         `)
         .eq("id", itemId)
         .single();
 
-      if (itemError) {
-        console.error("Error fetching item details:", itemError);
+      if (shopItemError) {
+        console.error("Error fetching item details:", shopItemError);
         throw new Error("Impossible de récupérer les détails de l'article");
       }
 
+      // Get clothes details separately
+      const { data: clothesData, error: clothesError } = await supabase
+        .from("clothes")
+        .select(`
+          name,
+          stock
+        `)
+        .eq("id", shopItemData.clothes_id)
+        .single();
+
+      if (clothesError) {
+        console.error("Error fetching clothes details:", clothesError);
+        throw new Error("Impossible de récupérer les détails du vêtement");
+      }
+
       // Check stock availability
-      const itemStock = shopItem.clothes?.stock || 0;
-      const itemName = shopItem.clothes?.name || "Article";
+      const itemStock = clothesData?.stock || 0;
+      const itemName = clothesData?.name || "Article";
 
       if ((existingItem ? existingItem.quantity + quantity : quantity) > itemStock) {
         throw new Error(`Quantité non disponible. Stock restant: ${itemStock}`);
@@ -210,26 +223,37 @@ export function useCart(userId: string | null) {
         throw new Error("Article introuvable dans votre panier");
       }
 
-      // Check stock availability
-      const { data: shopItem, error: itemError } = await supabase
+      // Get shop item details
+      const { data: shopItemData, error: shopItemError } = await supabase
         .from("shop_items")
         .select(`
-          id,
-          clothes:clothes_id!shop_items_clothes_id_fkey (
-            name,
-            stock
-          )
+          id
         `)
         .eq("id", cartItem.shop_item_id)
         .single();
 
-      if (itemError) {
-        console.error("Error fetching item details:", itemError);
+      if (shopItemError) {
+        console.error("Error fetching item details:", shopItemError);
         throw new Error("Impossible de récupérer les détails de l'article");
       }
 
-      const itemStock = shopItem.clothes?.stock || 0;
-      const itemName = shopItem.clothes?.name || "Article";
+      // Get clothes details separately
+      const { data: clothesData, error: clothesError } = await supabase
+        .from("clothes")
+        .select(`
+          name,
+          stock
+        `)
+        .eq("id", shopItemData.clothes_id)
+        .single();
+
+      if (clothesError) {
+        console.error("Error fetching clothes details:", clothesError);
+        throw new Error("Impossible de récupérer les détails du vêtement");
+      }
+
+      const itemStock = clothesData?.stock || 0;
+      const itemName = clothesData?.name || "Article";
 
       if (quantity > itemStock) {
         throw new Error(`Quantité non disponible. Stock restant: ${itemStock}`);
