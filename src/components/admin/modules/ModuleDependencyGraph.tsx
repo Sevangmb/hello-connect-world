@@ -11,22 +11,20 @@ import {
   Edge,
   Position,
   MarkerType,
-  NodeTypes
+  NodeTypes,
+  NodeProps
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useModules } from '@/hooks/useModules';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
-// Type pour les données du nœud
-interface ModuleNodeData {
+// Interface pour les données du nœud conforme à Record<string, unknown>
+interface ModuleNodeData extends Record<string, unknown> {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
 }
-
-// Type personnalisé pour les nœuds du graphe
-type ModuleNode = Node<ModuleNodeData>;
 
 export const ModuleDependencyGraph = () => {
   const { dependencies, modules, loading, error } = useModules();
@@ -38,7 +36,7 @@ export const ModuleDependencyGraph = () => {
     if (loading || modules.length === 0) return;
 
     // Créer les nœuds du graphe
-    const graphNodes: ModuleNode[] = modules.map((module, index) => ({
+    const graphNodes: Node<ModuleNodeData>[] = modules.map((module, index) => ({
       id: module.id,
       type: 'default',
       position: calculateNodePosition(index, modules.length),
@@ -46,7 +44,7 @@ export const ModuleDependencyGraph = () => {
         label: module.name,
         status: module.status,
         isCore: module.is_core
-      },
+      } as ModuleNodeData,
       className: `module-node status-${module.status} ${module.is_core ? 'core-module' : ''}`,
     }));
 
