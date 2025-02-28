@@ -6,6 +6,7 @@ import { generateAISuggestion } from "../aiService";
 import { OutfitSuggestion } from "../../../types/weather";
 import { Toast } from "@/hooks/use-toast";
 import { OutfitSuggestionResult } from "../types/suggestionTypes";
+import { AlertCircle } from "lucide-react";
 
 export async function handleSuggestionProcess(
   toast: Toast,
