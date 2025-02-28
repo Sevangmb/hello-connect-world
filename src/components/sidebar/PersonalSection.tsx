@@ -4,7 +4,7 @@ import {
   ShoppingCart,
   Heart,
   Calendar,
-  Suitcase,
+  Briefcase,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -106,7 +106,7 @@ export const PersonalSection = () => {
               })}
               onClick={() => navigate("/suitcases")}
             >
-              <Suitcase className="h-4 w-4" />
+              <Briefcase className="h-4 w-4" />
               Valises
             </Button>
           )}
