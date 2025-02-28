@@ -7,18 +7,20 @@ interface ModuleGuardProps {
   fallback?: React.ReactNode;
   degradedView?: React.ReactNode;
   children: React.ReactNode;
+  loadingView?: React.ReactNode;
 }
 
 export const ModuleGuard: React.FC<ModuleGuardProps> = ({ 
   moduleCode, 
   fallback = null, 
-  degradedView = null, 
+  degradedView = null,
+  loadingView = null,
   children 
 }) => {
   const { isModuleActive, isModuleDegraded, loading } = useModules();
 
-  // Pendant le chargement, ne rien afficher
-  if (loading) return null;
+  // Pendant le chargement, afficher la vue de chargement ou rien
+  if (loading) return <>{loadingView}</>;
 
   // Si le module est actif
   if (isModuleActive(moduleCode)) {

@@ -19,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertCircle } from 'lucide-react';
 
 // Définition du type pour les données du nœud
-interface ModuleNodeData extends Record<string, unknown> {
+interface ModuleNodeData {
   label: string;
   status: 'active' | 'inactive' | 'degraded';
   isCore: boolean;
