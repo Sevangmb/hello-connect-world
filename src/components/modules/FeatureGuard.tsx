@@ -1,66 +1,57 @@
 
 import React, { useEffect, useState } from "react";
 import { useModules } from "@/hooks/modules";
+import { createFeatureEventsListener } from "@/hooks/modules/events";
 
 interface FeatureGuardProps {
   moduleCode: string;
   featureCode: string;
   fallback?: React.ReactNode;
   children: React.ReactNode;
-  loadingView?: React.ReactNode;
   debug?: boolean;
 }
 
-export const FeatureGuard: React.FC<FeatureGuardProps> = ({ 
-  moduleCode, 
-  featureCode, 
-  fallback = null, 
-  loadingView = null,
+export const FeatureGuard: React.FC<FeatureGuardProps> = ({
+  moduleCode,
+  featureCode,
+  fallback = null,
   children,
   debug = false
 }) => {
-  const { isFeatureEnabled, loading } = useModules();
-  const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
+  const { isFeatureEnabled } = useModules();
+  const [featureEnabled, setFeatureEnabled] = useState<boolean | null>(null);
 
-  // Mettre à jour l'état local quand isFeatureEnabled change
+  // S'abonner aux événements de changement de statut des fonctionnalités
   useEffect(() => {
-    if (!loading) {
-      setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
-    }
-  }, [loading, isFeatureEnabled, moduleCode, featureCode]);
-
-  // Écouter les événements de mise à jour des fonctionnalités
-  useEffect(() => {
-    const handleFeatureChange = () => {
-      setIsEnabled(isFeatureEnabled(moduleCode, featureCode));
+    const checkFeatureStatus = () => {
+      const enabled = isFeatureEnabled(moduleCode, featureCode);
+      setFeatureEnabled(enabled);
+      
+      if (debug) {
+        console.debug(`FeatureGuard [${moduleCode}/${featureCode}]:`, { isEnabled: enabled });
+      }
     };
+
+    // Vérifier immédiatement
+    checkFeatureStatus();
+
+    // Créer un abonnement aux événements de fonctionnalité
+    const featureEvents = createFeatureEventsListener(checkFeatureStatus);
     
-    window.addEventListener('feature_status_changed', handleFeatureChange);
-    window.addEventListener('app_modules_updated', handleFeatureChange);
+    // S'abonner aux événements
+    featureEvents.subscribe();
     
+    // Se désabonner à la destruction du composant
     return () => {
-      window.removeEventListener('feature_status_changed', handleFeatureChange);
-      window.removeEventListener('app_modules_updated', handleFeatureChange);
+      featureEvents.unsubscribe();
     };
-  }, [moduleCode, featureCode, isFeatureEnabled]);
+  }, [moduleCode, featureCode, isFeatureEnabled, debug]);
 
-  // Afficher des informations de débogage si demandé
-  if (debug && isEnabled !== null) {
-    console.debug(`FeatureGuard [${moduleCode}:${featureCode}]:`, {
-      isEnabled
-    });
-  }
+  // En attendant la première vérification
+  if (featureEnabled === null) return null;
 
-  // Pendant le chargement, afficher la vue de chargement ou rien
-  if (loading && isEnabled === null) return <>{loadingView}</>;
-
-  // Si la fonctionnalité est activée
-  if (isEnabled) {
-    return <>{children}</>;
-  }
-
-  // Si la fonctionnalité est désactivée
-  return <>{fallback}</>;
+  // Rendu conditionnel basé sur l'état de la fonctionnalité
+  return featureEnabled ? <>{children}</> : <>{fallback}</>;
 };
 
 export default FeatureGuard;

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useModules } from "@/hooks/modules";
 import { getModuleStatusesFromCache } from "@/hooks/modules/utils";
 import { ModuleStatus } from "@/hooks/modules/types";
+import { createModuleEventsListener } from "@/hooks/modules/events";
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -25,7 +26,7 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   const [moduleActive, setModuleActive] = useState<boolean | null>(null);
   const [moduleDegraded, setModuleDegraded] = useState<boolean | null>(null);
 
-  // Vérifier le cache local au montage
+  // Vérifier le cache local au montage et s'abonner aux événements de module
   useEffect(() => {
     const checkCache = () => {
       const cache = getModuleStatusesFromCache();
@@ -39,19 +40,18 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
       }
     };
 
+    // Exécuter la vérification immédiatement
     checkCache();
     
-    // Écouter les événements de mise à jour des modules
-    const handleModuleChange = () => {
-      checkCache();
-    };
+    // Créer un abonnement aux événements de module
+    const moduleEvents = createModuleEventsListener(checkCache);
     
-    window.addEventListener('module_status_changed', handleModuleChange);
-    window.addEventListener('app_modules_updated', handleModuleChange);
+    // S'abonner aux événements
+    moduleEvents.subscribe();
     
+    // Se désabonner à la destruction du composant
     return () => {
-      window.removeEventListener('module_status_changed', handleModuleChange);
-      window.removeEventListener('app_modules_updated', handleModuleChange);
+      moduleEvents.unsubscribe();
     };
   }, [moduleCode, isModuleActive, isModuleDegraded]);
 
