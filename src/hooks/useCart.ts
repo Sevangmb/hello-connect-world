@@ -1,303 +1,252 @@
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShoppingCart, Check, AlertCircle, Trash2 } from "lucide-react";
+import { useToast } from "./use-toast";
+import { Loader2, Check, AlertCircle } from "lucide-react";
 
 export interface CartItem {
   id: string;
+  product_id: string;
   user_id: string;
-  shop_item_id: string;
   quantity: number;
-  created_at: string;
-  shop_items: {
+  added_at: string;
+  product: {
     id: string;
+    name: string;
     price: number;
-    clothes: {
-      name: string;
-      image_url: string | null;
-    };
+    image_url: string;
+    seller_id: string;
+    description?: string;
+    stock?: number;
   };
 }
 
 export function useCart() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
-  const [processingItems, setProcessingItems] = useState<Record<string, boolean>>({});
-  const [cartCount, setCartCount] = useState(0);
 
-  const { data: cartItems, isLoading: isCartLoading } = useQuery({
-    queryKey: ['cart'],
+  // Récupérer les articles du panier
+  const { data: cartItems, isLoading, error } = useQuery({
+    queryKey: ["cart-items"],
     queryFn: async () => {
-      console.log("Fetching cart items...");
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
 
-      console.log("User ID:", user.id);
       const { data, error } = await supabase
-        .from('cart_items')
+        .from("cart_items")
         .select(`
           *,
-          shop_items!shop_item_id (
-            id,
-            price,
-            clothes!shop_items_clothes_id_fkey (
-              name,
-              image_url
-            )
+          product:products(
+            id, 
+            name, 
+            price, 
+            description, 
+            image_url, 
+            seller_id,
+            stock
           )
         `)
-        .eq('user_id', user.id);
+        .eq("user_id", user.id);
 
       if (error) {
         console.error("Error fetching cart items:", error);
         throw error;
       }
 
-      console.log("Cart items fetched:", data);
       return data as CartItem[];
     },
-    onSuccess: (data) => {
-      // Mettre à jour le compteur d'éléments
-      setCartCount(data?.length || 0);
-    }
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Ajouter un article au panier
   const addToCart = useMutation({
-    mutationFn: async ({ shopItemId, quantity }: { shopItemId: string, quantity: number }) => {
-      setLoading(true);
-      
-      // Toast de chargement
-      const { dismiss } = toast({
-        title: "Ajout en cours",
-        description: "Ajout de l'article à votre panier...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        duration: 10000,
-      });
-      
+    mutationFn: async ({ productId, quantity }: { productId: string; quantity: number }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
 
-      // Récupérer les infos sur l'article
-      const { data: itemInfo } = await supabase
-        .from('shop_items')
-        .select(`
-          id,
-          clothes!shop_items_clothes_id_fkey (
-            name
-          )
-        `)
-        .eq('id', shopItemId)
-        .single();
-      
-      const itemName = itemInfo?.clothes?.name || "Article";
-
-      // First check if the item already exists in the cart
+      // Vérifier si le produit existe déjà dans le panier
       const { data: existingItem } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('shop_item_id', shopItemId)
-        .single();
+        .from("cart_items")
+        .select()
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .maybeSingle();
 
       let result;
       if (existingItem) {
-        // Update existing item quantity
+        // Mettre à jour la quantité
         const { data, error } = await supabase
-          .from('cart_items')
+          .from("cart_items")
           .update({ quantity: existingItem.quantity + quantity })
-          .eq('id', existingItem.id)
+          .eq("id", existingItem.id)
           .select();
 
         if (error) throw error;
         result = data;
-        
-        dismiss();
-        toast({
-          title: "Quantité mise à jour",
-          description: `${itemName} (${quantity}) a été ajouté à votre panier`,
-          icon: <Check className="h-4 w-4 text-green-500" />,
-          duration: 3000,
-        });
       } else {
-        // Insert new item
+        // Ajouter un nouvel article
         const { data, error } = await supabase
-          .from('cart_items')
+          .from("cart_items")
           .insert({
             user_id: user.id,
-            shop_item_id: shopItemId,
+            product_id: productId,
             quantity
           })
           .select();
 
         if (error) throw error;
         result = data;
-        
-        dismiss();
-        toast({
-          title: "Ajouté au panier",
-          description: `${itemName} (${quantity}) a été ajouté à votre panier`,
-          icon: <ShoppingCart className="h-4 w-4" />,
-          duration: 3000,
-        });
       }
-      
+
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
-    onError: (error: any) => {
-      console.error('Error adding to cart:', error);
+      queryClient.invalidateQueries({ queryKey: ["cart-items"] });
       toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter l'article au panier",
-        variant: "destructive",
-        icon: <AlertCircle className="h-4 w-4" />,
-      });
-    },
-    onSettled: () => {
-      setLoading(false);
-    }
-  });
-
-  const updateQuantity = useMutation({
-    mutationFn: async ({ cartItemId, quantity }: { cartItemId: string, quantity: number }) => {
-      setProcessingItems(prev => ({ ...prev, [cartItemId]: true }));
-      
-      // Toast de chargement
-      const { dismiss } = toast({
-        title: "Mise à jour",
-        description: "Mise à jour de la quantité...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        duration: 5000,
-      });
-      
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity })
-        .eq('id', cartItemId);
-
-      if (error) throw error;
-      
-      dismiss();
-      toast({
-        title: "Quantité mise à jour",
-        description: "La quantité a été mise à jour avec succès",
+        title: "Ajouté au panier",
+        description: "L'article a été ajouté à votre panier",
         icon: <Check className="h-4 w-4 text-green-500" />,
         duration: 3000,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
     onError: (error) => {
-      console.error('Error updating quantity:', error);
+      console.error("Error adding to cart:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour la quantité",
         variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'ajouter cet article au panier",
         icon: <AlertCircle className="h-4 w-4" />,
+        duration: 3000,
       });
-    },
-    onSettled: (_, __, variables) => {
-      setProcessingItems(prev => ({ ...prev, [variables.cartItemId]: false }));
     }
   });
 
-  const removeFromCart = useMutation({
-    mutationFn: async (cartItemId: string) => {
-      setProcessingItems(prev => ({ ...prev, [cartItemId]: true }));
-      
-      // Toast de chargement
-      const { dismiss } = toast({
-        title: "Suppression",
-        description: "Suppression de l'article...",
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        duration: 5000,
-      });
-      
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', cartItemId);
+  // Mettre à jour la quantité d'un article
+  const updateQuantity = useMutation({
+    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      if (quantity <= 0) {
+        throw new Error("La quantité doit être supérieure à 0");
+      }
+
+      const { data, error } = await supabase
+        .from("cart_items")
+        .update({ quantity })
+        .eq("id", itemId)
+        .eq("user_id", user.id)
+        .select();
 
       if (error) throw error;
-      
-      dismiss();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart-items"] });
+    },
+    onError: (error) => {
+      console.error("Error updating quantity:", error);
       toast({
-        title: "Article retiré",
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour la quantité",
+        icon: <AlertCircle className="h-4 w-4" />,
+        duration: 3000,
+      });
+    }
+  });
+
+  // Supprimer un article du panier
+  const removeFromCart = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
+      }
+
+      const { data, error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("id", itemId)
+        .eq("user_id", user.id)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart-items"] });
+      toast({
+        title: "Article supprimé",
         description: "L'article a été retiré de votre panier",
-        icon: <Trash2 className="h-4 w-4" />,
         duration: 3000,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] });
-    },
     onError: (error) => {
-      console.error('Error removing from cart:', error);
+      console.error("Error removing from cart:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible de retirer l'article du panier",
         variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de supprimer cet article",
         icon: <AlertCircle className="h-4 w-4" />,
+        duration: 3000,
       });
-    },
-    onSettled: (_, __, cartItemId) => {
-      setProcessingItems(prev => ({ ...prev, [cartItemId]: false }));
     }
   });
 
-  // Abonnement aux changements de panier en temps réel
-  useEffect(() => {
-    const subscribeToCartChanges = async () => {
-      const { data } = await supabase.auth.getUser();
-      const userId = data.user?.id;
-      if (!userId) return () => {};
-      
-      const channel = supabase
-        .channel('cart-channel')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'cart_items',
-            filter: `user_id=eq.${userId}`
-          },
-          (payload) => {
-            console.log('Realtime cart update:', payload);
-            queryClient.invalidateQueries({ queryKey: ['cart'] });
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-    
-    const unsubscribe = subscribeToCartChanges();
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
+  // Vider le panier
+  const clearCart = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Utilisateur non connecté");
       }
-    };
-  }, [queryClient]);
 
-  const isItemProcessing = (itemId: string) => processingItems[itemId] || false;
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart-items"] });
+    },
+    onError: (error) => {
+      console.error("Error clearing cart:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de vider votre panier",
+        icon: <AlertCircle className="h-4 w-4" />,
+        duration: 3000,
+      });
+    }
+  });
+
+  // Calculer le total du panier
+  const calculateTotal = () => {
+    if (!cartItems) return 0;
+    return cartItems.reduce((total, item) => {
+      return total + (item.product.price * item.quantity);
+    }, 0);
+  };
 
   return {
     cartItems,
-    isCartLoading,
-    loading,
+    isLoading,
+    error,
     addToCart,
     updateQuantity,
     removeFromCart,
-    isItemProcessing,
-    cartCount
+    clearCart,
+    calculateTotal,
   };
 }

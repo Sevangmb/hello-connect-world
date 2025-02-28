@@ -1,3 +1,4 @@
+
 import { Trophy, Vote } from "lucide-react";
 import { JoinChallengeDialog } from "./JoinChallengeDialog";
 import { VotingDialog } from "./VotingDialog";
