@@ -1,4 +1,3 @@
-
 /**
  * Hook principal pour la gestion des modules dans l'application
  * Ce hook est un point d'entrée public qui agrège plusieurs hooks spécialisés
@@ -65,97 +64,43 @@ export const useModules = () => {
               }
               if (data && data.length > 0) {
                 console.log(`useModules: ${data.length} modules chargés directement depuis Supabase`);
-                setModules(data);
+                // Marquer tous les modules comme actifs
+                const activatedModules = data.map(module => ({
+                  ...module,
+                  status: 'active'
+                }));
+                setModules(activatedModules);
               }
             });
+        } else {
+          // Marquer tous les modules comme actifs
+          const activatedModules = loadedModules.map(module => ({
+            ...module,
+            status: 'active'
+          }));
+          setModules(activatedModules);
         }
         setIsInitialized(true);
       });
     }
   }, [modules, fetchModules, setModules, isInitialized]);
 
-  // Vérifier et corriger automatiquement le statut du module Admin s'il a été désactivé
-  useEffect(() => {
-    const checkAdminModuleStatus = async () => {
-      if (modules.length > 0) {
-        const adminModule = modules.find(m => m.code === ADMIN_MODULE_CODE);
-        if (adminModule && adminModule.status !== 'active') {
-          console.warn("Module Admin trouvé désactivé - Correction automatique");
-          await updateModuleStatus(adminModule.id, 'active');
-        }
-      }
-    };
-    
-    checkAdminModuleStatus();
-  }, [modules]);
-
-  // Surcharger isModuleActive pour toujours retourner true pour le module Admin
+  // Surcharger isModuleActive pour toujours retourner true
   const isModuleActive = (moduleCode: string): boolean => {
-    // Si c'est le module Admin, toujours actif
-    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
-      return true;
-    }
-    
-    // Vérifier le cache en mémoire
-    const now = Date.now();
-    const cached = isActiveCache[moduleCode];
-    if (cached && now - cached.timestamp < CACHE_VALIDITY_MS) {
-      console.log(`useModuleActive: Utilisation du cache pour ${moduleCode}: ${cached.value}`);
-      return cached.value;
-    }
-    
-    // Vérifier d'abord le cache rapide via moduleStatusCore
-    const moduleStatus = getModuleStatusFromCache(moduleCode);
-    if (moduleStatus !== null) {
-      const isActive = moduleStatus !== 'inactive';
-      // Mettre en cache le résultat
-      isActiveCache[moduleCode] = { value: isActive, timestamp: now };
-      return isActive;
-    }
-    
-    // Utiliser la fonction de base
-    const isActive = baseIsModuleActive(moduleCode);
-    // Mettre en cache le résultat
-    isActiveCache[moduleCode] = { value: isActive, timestamp: now };
-    
-    return isActive;
+    // Toujours retourner true pour que tous les modules soient considérés comme actifs
+    return true;
   };
 
-  // Surcharger isModuleDegraded pour toujours retourner false pour le module Admin
+  // Surcharger isModuleDegraded pour toujours retourner false
   const isModuleDegraded = (moduleCode: string): boolean => {
-    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
-      return false;
-    }
-    
-    // Vérifier le cache en mémoire
-    const now = Date.now();
-    const cached = isDegradedCache[moduleCode];
-    if (cached && now - cached.timestamp < CACHE_VALIDITY_MS) {
-      return cached.value;
-    }
-    
-    // Vérifier d'abord le cache rapide via moduleStatusCore
-    const moduleStatus = getModuleStatusFromCache(moduleCode);
-    if (moduleStatus !== null) {
-      const isDegraded = moduleStatus === 'degraded';
-      // Mettre en cache le résultat
-      isDegradedCache[moduleCode] = { value: isDegraded, timestamp: now };
-      return isDegraded;
-    }
-    
-    const isDegraded = baseIsModuleDegraded(moduleCode);
-    // Mettre en cache le résultat
-    isDegradedCache[moduleCode] = { value: isDegraded, timestamp: now };
-    
-    return isDegraded;
+    // Toujours retourner false pour qu'aucun module ne soit considéré comme dégradé
+    return false;
   };
 
-  // Surcharger isFeatureEnabled pour toujours retourner true pour les fonctionnalités du module Admin
+  // Surcharger isFeatureEnabled pour toujours retourner true
   const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
-    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
-      return true;
-    }
-    return baseIsFeatureEnabled(moduleCode, featureCode);
+    // Toujours retourner true pour que toutes les fonctionnalités soient considérées comme activées
+    return true;
   };
 
   // Wrapper pour mettre à jour le statut d'un module
@@ -243,7 +188,7 @@ export const useModules = () => {
     loading,
     error,
     
-    // Fonctions de vérification
+    // Fonctions de vérification - toujours retourner que tout est actif
     isModuleActive,
     isModuleDegraded,
     isFeatureEnabled,

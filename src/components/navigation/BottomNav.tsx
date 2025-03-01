@@ -14,10 +14,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { memo, useMemo, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 
 // Menu items configuration
 const MENU_ITEMS = [
@@ -59,7 +57,7 @@ const MENU_ITEMS = [
   }
 ];
 
-// Composant pour afficher le bouton sans module - mémorisé pour éviter les rendus inutiles
+// Composant pour afficher le bouton - mémorisé pour éviter les rendus inutiles
 const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   <TooltipProvider key={item.path}>
     <Tooltip>
@@ -103,39 +101,6 @@ const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   </TooltipProvider>
 ));
 
-// Fallback pour les modules désactivés - mémorisé pour éviter les rendus inutiles
-const DisabledNavButton = memo(({ item }: any) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          className={cn(
-            "flex flex-col items-center justify-center p-2 transition-colors relative opacity-40",
-            item.isMain ? "w-16 -mt-4" : "w-full",
-            "text-gray-400"
-          )}
-        >
-          {item.isMain ? (
-            <div className="bg-gray-400 text-white p-3 rounded-full shadow-lg -mt-2">
-              <item.icon className="h-6 w-6" />
-            </div>
-          ) : (
-            <div className="relative">
-              <item.icon className="h-5 w-5" />
-            </div>
-          )}
-          <span className={cn("text-xs mt-1")}>
-            {item.label}
-          </span>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="bg-white text-gray-800 border shadow-md z-50">
-        <p>Module désactivé</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-));
-
 // Composant principal mémorisé pour éviter les rendus inutiles
 export const BottomNav = memo(() => {
   const navigate = useNavigate();
@@ -166,7 +131,8 @@ export const BottomNav = memo(() => {
         navigate(item.path);
       };
 
-      const button = (
+      // Afficher directement tous les boutons, sans ModuleGuard
+      return (
         <NavButton 
           key={`btn-${item.path}`}
           item={item} 
@@ -175,26 +141,6 @@ export const BottomNav = memo(() => {
           onClick={handleClick}
         />
       );
-
-      const fallback = (
-        <DisabledNavButton key={`disabled-${item.path}`} item={item} />
-      );
-
-      // Si l'élément a un code de module, l'envelopper dans un ModuleGuard
-      if (item.moduleCode) {
-        return (
-          <ModuleGuard 
-            key={`guard-${item.path}`} 
-            moduleCode={item.moduleCode}
-            fallback={fallback}
-          >
-            {button}
-          </ModuleGuard>
-        );
-      }
-
-      // Sinon, retourner le bouton directement
-      return button;
     });
   }, [navigate, isItemActive, unreadCount]);
 
