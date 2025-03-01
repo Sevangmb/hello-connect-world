@@ -1,8 +1,8 @@
 
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
-import { WeatherSection } from "@/components/home/WeatherSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
 import { Suspense, lazy } from "react";
@@ -14,10 +14,10 @@ const LazyWeatherSection = lazy(() => import("@/components/home/WeatherSection")
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Header />
       <MainSidebar />
-      <main className="pt-24 pb-8 px-4 md:pl-72">
+      <main className="pt-24 pb-8 px-4 md:pl-72 flex-grow">
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardHeader>
@@ -71,6 +71,7 @@ const Index = () => {
           </Card>
         </div>
       </main>
+      <Footer />
       <BottomNav />
     </div>
   );
