@@ -7,8 +7,9 @@
 import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
 import { ModuleStatus } from "./types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getModuleStatusFromCache } from "./api/moduleStatusCore";
+import { supabase } from "@/integrations/supabase/client";
 
 // Constante pour identifier le module Admin
 export const ADMIN_MODULE_CODE = "admin";
@@ -19,6 +20,9 @@ const isDegradedCache: Record<string, { value: boolean, timestamp: number }> = {
 const CACHE_VALIDITY_MS = 30000; // 30 secondes
 
 export const useModules = () => {
+  // État pour suivre les initialisations
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   // Récupérer les fonctionnalités de base
   const {
     modules,
@@ -44,6 +48,31 @@ export const useModules = () => {
     updateFeatureStatus: updateFeatureStatusFn,
     updateFeatureStatusSilent: updateFeatureStatusSilentFn
   } = useModuleStatusUpdate();
+
+  // Forcer le chargement initial des modules
+  useEffect(() => {
+    if (!isInitialized && modules.length === 0) {
+      console.log("useModules: Initialisation forcée des modules");
+      fetchModules().then(loadedModules => {
+        if (loadedModules.length === 0) {
+          // Si toujours aucun module, essayer une requête Supabase directe
+          console.log("useModules: Tentative de chargement direct depuis Supabase");
+          supabase.from('app_modules')
+            .select('*')
+            .then(({ data, error }) => {
+              if (error) {
+                console.error("Erreur lors du chargement direct des modules:", error);
+              }
+              if (data && data.length > 0) {
+                console.log(`useModules: ${data.length} modules chargés directement depuis Supabase`);
+                setModules(data);
+              }
+            });
+        }
+        setIsInitialized(true);
+      });
+    }
+  }, [modules, fetchModules, setModules, isInitialized]);
 
   // Vérifier et corriger automatiquement le statut du module Admin s'il a été désactivé
   useEffect(() => {
@@ -187,6 +216,23 @@ export const useModules = () => {
     
     const updatedModules = await fetchModules();
     console.log(`useModules: ${updatedModules.length} modules récupérés`);
+    
+    if (updatedModules.length === 0) {
+      // Si aucun module n'est retourné, essayer directement avec Supabase
+      try {
+        const { data, error } = await supabase.from('app_modules').select('*');
+        if (error) {
+          console.error("Erreur lors de la récupération directe des modules:", error);
+        } else if (data && data.length > 0) {
+          console.log(`useModules: ${data.length} modules récupérés directement`);
+          setModules(data);
+          return data;
+        }
+      } catch (e) {
+        console.error("Erreur Supabase:", e);
+      }
+    }
+    
     return updatedModules;
   };
 
@@ -212,6 +258,9 @@ export const useModules = () => {
     refreshDependencies: fetchDependencies,
     
     // Statut de connexion
-    connectionStatus
+    connectionStatus,
+    
+    // État d'initialisation
+    isInitialized
   };
 };

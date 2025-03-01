@@ -1,3 +1,4 @@
+
 import { 
   Home,
   Search,
@@ -16,6 +17,7 @@ import {
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { memo, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 
 // Menu items configuration
 const MENU_ITEMS = [
@@ -157,7 +159,12 @@ export const BottomNav = memo(() => {
   const navElements = useMemo(() => {
     return MENU_ITEMS.map(item => {
       const isActive = isItemActive(item.path);
-      const handleClick = () => navigate(item.path);
+      
+      // Créer une fonction de clic avec capture de l'élément spécifique
+      const handleClick = () => {
+        console.log(`Navigation vers: ${item.path}`);
+        navigate(item.path);
+      };
 
       const button = (
         <NavButton 

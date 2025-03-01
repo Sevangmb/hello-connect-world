@@ -6,8 +6,10 @@
 import { getModuleStatusesFromCache } from "./utils";
 import { AppModule } from "./types";
 import { checkModuleActive, checkModuleDegraded, checkFeatureEnabled } from "./utils";
-import { ADMIN_MODULE_CODE } from "./useModules";
 import { getModuleStatusFromCache } from "./api/moduleStatusCore";
+
+// Importer ADMIN_MODULE_CODE directement
+const ADMIN_MODULE_CODE = "admin";
 
 // Cache de vérification en mémoire pour éviter des calculs répétés
 const verificationCache = {

@@ -35,6 +35,7 @@ export const useNotifications = () => {
 
   // Fonction pour rafraîchir manuellement les notifications
   const refreshNotifications = useCallback(() => {
+    console.log("Rafraîchissement des notifications...");
     return refetch();
   }, [refetch]);
 
@@ -47,54 +48,61 @@ export const useNotifications = () => {
 
     console.log('Subscribing to notifications for user:', user.id);
     
-    // Create channel for notifications
-    const notificationsChannel = supabase
-      .channel('notifications-changes')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      }, payload => {
-        console.log('New notification received:', payload);
-        // Refresh notifications
-        refetch();
-        
-        // Show toast for new notification
-        if (payload.new) {
-          toast({
-            title: 'Nouvelle notification',
-            description: 'Vous avez reçu une nouvelle notification'
-          });
+    try {
+      // Create channel for notifications
+      const notificationsChannel = supabase
+        .channel('notifications-changes')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        }, payload => {
+          console.log('New notification received:', payload);
+          // Refresh notifications
+          refetch();
           
-          // Call the callback function if provided
-          if (callback && typeof callback === 'function') {
-            // Convert payload to NotificationData
-            const newNotification = {
-              ...payload.new,
-              is_read: payload.new.read || false,
-              read: payload.new.read || false
-            } as NotificationData;
+          // Show toast for new notification
+          if (payload.new) {
+            toast({
+              title: 'Nouvelle notification',
+              description: 'Vous avez reçu une nouvelle notification'
+            });
             
-            callback(newNotification);
+            // Call the callback function if provided
+            if (callback && typeof callback === 'function') {
+              // Convert payload to NotificationData
+              const newNotification = {
+                ...payload.new,
+                is_read: payload.new.read || false,
+                read: payload.new.read || false
+              } as NotificationData;
+              
+              callback(newNotification);
+            }
           }
-        }
-      })
-      .subscribe((status) => {
-        console.log('Notifications subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          setConnected(true);
-        } else {
-          setConnected(false);
-        }
-      });
-
-    // Return cleanup function
-    return () => {
-      console.log('Cleaning up notifications subscription');
-      supabase.removeChannel(notificationsChannel);
+        })
+        .subscribe((status) => {
+          console.log('Notifications subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            setConnected(true);
+          } else {
+            setConnected(false);
+          }
+        });
+  
+      // Return cleanup function
+      return () => {
+        console.log('Cleaning up notifications subscription');
+        supabase.removeChannel(notificationsChannel);
+        setConnected(false);
+      };
+    } catch (e) {
+      console.error("Erreur lors de l'abonnement aux notifications:", e);
+      setError(e as Error);
       setConnected(false);
-    };
+      return () => {};
+    }
   }, [user?.id, refetch, toast]);
 
   // Set up realtime subscription for notifications automatically
@@ -102,6 +110,13 @@ export const useNotifications = () => {
     const unsubscribe = subscribeToNotifications();
     return unsubscribe;
   }, [subscribeToNotifications]);
+
+  // Ajout d'un effet pour rafraîchir les notifications au démarrage
+  useEffect(() => {
+    if (user?.id) {
+      refreshNotifications();
+    }
+  }, [user?.id, refreshNotifications]);
 
   return {
     notifications,
