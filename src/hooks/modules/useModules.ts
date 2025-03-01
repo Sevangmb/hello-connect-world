@@ -6,17 +6,21 @@
 
 import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
-import { ModuleStatus } from "./types";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-// Constante pour identifier le module Admin
-export const ADMIN_MODULE_CODE = "admin";
-
-// Cache en mémoire pour éviter des recalculs fréquents
-const isActiveCache: Record<string, { value: boolean, timestamp: number }> = {};
-const isDegradedCache: Record<string, { value: boolean, timestamp: number }> = {};
-const CACHE_VALIDITY_MS = 30000; // 30 secondes
+import { AppModule, ModuleStatus } from "./types";
+import { 
+  checkModuleActive, 
+  checkModuleDegraded, 
+  checkFeatureEnabled 
+} from "./status/moduleStatusCheckers";
+import {
+  updateModuleStatus as updateModuleStatusFn,
+  updateFeatureStatus as updateFeatureStatusFn,
+  updateFeatureStatusSilent as updateFeatureStatusSilentFn
+} from "./status/moduleStatusUpdater";
+import { refreshModulesWithCache } from "./utils/moduleRefresh";
+import { validateModuleStatus } from "./utils/statusValidation";
+import { ADMIN_MODULE_CODE } from "./constants";
 
 export const useModules = () => {
   // État pour suivre les initialisations
@@ -43,9 +47,9 @@ export const useModules = () => {
 
   // Récupérer les fonctions de mise à jour de statut
   const {
-    updateModuleStatus: updateModuleStatusFn,
-    updateFeatureStatus: updateFeatureStatusFn,
-    updateFeatureStatusSilent: updateFeatureStatusSilentFn
+    updateModuleStatus: updateModuleStatusCore,
+    updateFeatureStatus: updateFeatureStatusCore,
+    updateFeatureStatusSilent: updateFeatureStatusSilentCore
   } = useModuleStatusUpdate();
 
   // Forcer le chargement initial des modules
@@ -55,27 +59,9 @@ export const useModules = () => {
       fetchModules().then(loadedModules => {
         if (loadedModules.length === 0) {
           // Si toujours aucun module, essayer une requête Supabase directe
-          console.log("useModules: Tentative de chargement direct depuis Supabase");
-          supabase.from('app_modules')
-            .select('*')
-            .then(({ data, error }) => {
-              if (error) {
-                console.error("Erreur lors du chargement direct des modules:", error);
-              }
-              if (data && data.length > 0) {
-                console.log(`useModules: ${data.length} modules chargés directement depuis Supabase`);
-                // Convertir explicitement les statuts en ModuleStatus
-                const validatedModules = data.map(module => ({
-                  ...module,
-                  status: validateModuleStatus(module.status)
-                }));
-                // Marquer tous les modules comme actifs
-                const activatedModules = validatedModules.map(module => ({
-                  ...module,
-                  status: 'active' as ModuleStatus
-                }));
-                setModules(activatedModules);
-              }
+          refreshModulesWithCache(setModules)
+            .then(() => {
+              setIsInitialized(true);
             });
         } else {
           // Marquer tous les modules comme actifs
@@ -84,55 +70,33 @@ export const useModules = () => {
             status: 'active' as ModuleStatus
           }));
           setModules(activatedModules);
+          setIsInitialized(true);
         }
-        setIsInitialized(true);
       });
     }
   }, [modules, fetchModules, setModules, isInitialized]);
 
-  // Fonction utilitaire pour valider le statut du module
-  const validateModuleStatus = (status: string): ModuleStatus => {
-    if (status === 'active' || status === 'inactive' || status === 'degraded') {
-      return status as ModuleStatus;
-    }
-    return 'inactive' as ModuleStatus;
-  };
-
   // Surcharger isModuleActive pour toujours retourner true
   const isModuleActive = (moduleCode: string): boolean => {
     // Toujours retourner true pour que tous les modules soient considérés comme actifs
-    return true;
+    return checkModuleActive(moduleCode);
   };
 
   // Surcharger isModuleDegraded pour toujours retourner false
   const isModuleDegraded = (moduleCode: string): boolean => {
     // Toujours retourner false pour qu'aucun module ne soit considéré comme dégradé
-    return false;
+    return checkModuleDegraded(moduleCode);
   };
 
   // Surcharger isFeatureEnabled pour toujours retourner true
   const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
     // Toujours retourner true pour que toutes les fonctionnalités soient considérées comme activées
-    return true;
+    return checkFeatureEnabled(moduleCode, featureCode);
   };
 
   // Wrapper pour mettre à jour le statut d'un module
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
-    const moduleToUpdate = modules.find(m => m.id === moduleId);
-    
-    // Empêcher la désactivation du module Admin
-    if (moduleToUpdate && (moduleToUpdate.code === ADMIN_MODULE_CODE || moduleToUpdate.code.startsWith('admin')) && status !== 'active') {
-      console.error("Le module Admin ne peut pas être désactivé");
-      return false;
-    }
-    
-    const success = await updateModuleStatusFn(moduleId, status, modules, updateModule, setModules);
-    
-    // Invalider les caches
-    if (moduleToUpdate) {
-      delete isActiveCache[moduleToUpdate.code];
-      delete isDegradedCache[moduleToUpdate.code];
-    }
+    const success = await updateModuleStatusFn(moduleId, status, modules);
     
     // Forcer un rafraîchissement des modules après la mise à jour
     if (success) {
@@ -144,59 +108,17 @@ export const useModules = () => {
 
   // Wrapper pour mettre à jour le statut d'une fonctionnalité
   const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-    // Empêcher la désactivation des fonctionnalités du module Admin
-    if ((moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) && !isEnabled) {
-      console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
-      return false;
-    }
-    
-    return updateFeatureStatusFn(moduleCode, featureCode, isEnabled, updateFeature, setModules, features);
+    return updateFeatureStatusFn(moduleCode, featureCode, isEnabled);
   };
 
   // Wrapper pour mettre à jour le statut d'une fonctionnalité silencieusement
   const updateFeatureStatusSilent = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-    // Empêcher la désactivation des fonctionnalités du module Admin
-    if ((moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) && !isEnabled) {
-      console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
-      return false;
-    }
-    
-    return updateFeatureStatusSilentFn(moduleCode, featureCode, isEnabled, updateFeatureSilent);
+    return updateFeatureStatusSilentFn(moduleCode, featureCode, isEnabled);
   };
 
   // Fonction de rafraîchissement explicite qui force la mise à jour depuis Supabase
   const refreshModules = async () => {
-    console.log("useModules: Forçage du rafraîchissement des modules");
-    
-    // Invalider tous les caches
-    Object.keys(isActiveCache).forEach(key => delete isActiveCache[key]);
-    Object.keys(isDegradedCache).forEach(key => delete isDegradedCache[key]);
-    
-    const updatedModules = await fetchModules();
-    console.log(`useModules: ${updatedModules.length} modules récupérés`);
-    
-    if (updatedModules.length === 0) {
-      // Si aucun module n'est retourné, essayer directement avec Supabase
-      try {
-        const { data, error } = await supabase.from('app_modules').select('*');
-        if (error) {
-          console.error("Erreur lors de la récupération directe des modules:", error);
-        } else if (data && data.length > 0) {
-          console.log(`useModules: ${data.length} modules récupérés directement`);
-          // Convertir explicitement les statuts en ModuleStatus
-          const validatedModules = data.map(module => ({
-            ...module,
-            status: validateModuleStatus(module.status)
-          }));
-          setModules(validatedModules);
-          return validatedModules;
-        }
-      } catch (e) {
-        console.error("Erreur Supabase:", e);
-      }
-    }
-    
-    return updatedModules;
+    return refreshModulesWithCache(setModules);
   };
 
   return {

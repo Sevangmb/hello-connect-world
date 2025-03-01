@@ -1,10 +1,13 @@
 
+/**
+ * Point d'entrée pour le système de modules
+ * Exporte toutes les fonctionnalités publiques
+ */
+
 export * from './useModules';
 export * from './types';
-export * from './events';
-export * from './useModuleApi';
+export * from './constants';
 export * from './ModuleApiContext';
-export * from './api/moduleStatus';
-export * from './api/moduleSync';
-export * from './api/moduleCache';
-export * from './hooks/useModuleApiCore';
+
+// Re-exporter uniquement ce qui est nécessaire pour les interfaces publiques
+// Les autres fichiers sont considérés comme internes à l'implémentation
