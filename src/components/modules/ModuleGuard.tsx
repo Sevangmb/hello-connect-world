@@ -1,58 +1,56 @@
 
-import React, { ReactNode } from 'react';
-import { ModuleUnavailable } from './ModuleUnavailable';
-import { ModuleDegraded } from './ModuleDegraded';
-import { useModuleApiContext } from '@/hooks/modules/ModuleApiContext';
-import { ADMIN_MODULE_CODE } from '@/hooks/modules/useModules';
+import React, { useState, useEffect } from "react";
+import { useModules } from "@/hooks/modules";
+import { ModuleUnavailable } from "./ModuleUnavailable";
+import { ModuleDegraded } from "./ModuleDegraded";
 
 interface ModuleGuardProps {
   moduleCode: string;
-  children: ReactNode;
-  fallback?: ReactNode;
-  degradedFallback?: ReactNode;
+  children: React.ReactNode;
 }
 
-/**
- * Composant qui protège un contenu en fonction de l'état d'un module
- * Affiche le contenu uniquement si le module est actif
- */
-export const ModuleGuard: React.FC<ModuleGuardProps> = ({
-  moduleCode,
-  children,
-  fallback,
-  degradedFallback
-}) => {
-  const { 
-    getModuleActiveStatus, 
-    getModuleDegradedStatus 
-  } = useModuleApiContext();
+export function ModuleGuard({ moduleCode, children }: ModuleGuardProps) {
+  const { isModuleActive, isModuleDegraded, refreshModules } = useModules();
+  const [isActive, setIsActive] = useState(true);
+  const [isDegraded, setIsDegraded] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
-  // Vérifier si c'est un module Admin - toujours retourner le contenu
-  const isAdminModule = moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin');
-  
-  // Si c'est un module Admin, toujours afficher le contenu
-  if (isAdminModule) {
-    return <>{children}</>;
+  useEffect(() => {
+    const checkModuleStatus = async () => {
+      setIsChecking(true);
+      // Force refresh modules data first
+      await refreshModules();
+      
+      // Then check the status
+      const active = isModuleActive(moduleCode);
+      const degraded = isModuleDegraded(moduleCode);
+      
+      console.log(`ModuleGuard: Module ${moduleCode} - active: ${active}, degraded: ${degraded}`);
+      
+      setIsActive(active);
+      setIsDegraded(degraded);
+      setIsChecking(false);
+    };
+
+    checkModuleStatus();
+  }, [moduleCode, isModuleActive, isModuleDegraded, refreshModules]);
+
+  if (isChecking) {
+    return <div className="p-2">Vérification du module {moduleCode}...</div>;
   }
 
-  // Vérifier si le module est actif
-  const isActive = getModuleActiveStatus(moduleCode);
-  
-  // Vérifier si le module est dégradé
-  const isDegraded = getModuleDegradedStatus(moduleCode);
-
   if (!isActive) {
-    // Si le module n'est pas actif, afficher le fallback
-    return fallback ? <>{fallback}</> : <ModuleUnavailable moduleCode={moduleCode} />;
+    return <ModuleUnavailable moduleCode={moduleCode} />;
   }
 
   if (isDegraded) {
-    // Si le module est dégradé, afficher le degradedFallback
-    return degradedFallback ? <>{degradedFallback}</> : <ModuleDegraded moduleCode={moduleCode} />;
+    return (
+      <>
+        <ModuleDegraded moduleCode={moduleCode} />
+        {children}
+      </>
+    );
   }
 
-  // Si le module est actif et non dégradé, afficher le contenu
   return <>{children}</>;
-};
-
-export default ModuleGuard;
+}

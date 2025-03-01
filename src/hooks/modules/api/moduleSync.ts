@@ -110,6 +110,14 @@ export const fetchAllFeatures = async (): Promise<Record<string, Record<string, 
  * Configure un canal Supabase Realtime pour surveiller les changements de modules
  */
 export const setupModuleRealtimeChannel = (onModuleChange: () => void, onFeatureChange: () => void) => {
+  // Supprimer les canaux existants pour éviter les duplications
+  const existingChannels = supabase.getChannels();
+  existingChannels.forEach(ch => {
+    if (ch.topic.includes('module-api-changes')) {
+      supabase.removeChannel(ch);
+    }
+  });
+
   const channel = supabase.channel('module-api-changes')
     .on('postgres_changes', {
       event: '*',
@@ -127,7 +135,12 @@ export const setupModuleRealtimeChannel = (onModuleChange: () => void, onFeature
       console.log('Changement détecté dans les fonctionnalités, rafraîchissement...');
       onFeatureChange();
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      console.log('Statut d\'abonnement Realtime:', status);
+      if (err) {
+        console.error('Erreur d\'abonnement Realtime:', err);
+      }
+    });
 
   return channel;
 };
