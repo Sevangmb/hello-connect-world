@@ -7,9 +7,10 @@ import { ModuleDegraded } from "./ModuleDegraded";
 interface ModuleGuardProps {
   moduleCode: string;
   children: React.ReactNode;
+  fallback?: React.ReactNode; // Added fallback prop as optional
 }
 
-export function ModuleGuard({ moduleCode, children }: ModuleGuardProps) {
+export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps) {
   const { isModuleActive, isModuleDegraded, refreshModules } = useModules();
   const [isActive, setIsActive] = useState(true);
   const [isDegraded, setIsDegraded] = useState(false);
@@ -40,7 +41,8 @@ export function ModuleGuard({ moduleCode, children }: ModuleGuardProps) {
   }
 
   if (!isActive) {
-    return <ModuleUnavailable moduleCode={moduleCode} />;
+    // Use custom fallback if provided, otherwise use default ModuleUnavailable
+    return fallback || <ModuleUnavailable moduleCode={moduleCode} />;
   }
 
   if (isDegraded) {
