@@ -27,7 +27,7 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
   useEffect(() => {
     const init = async () => {
       console.log("Forçage du rechargement des modules dans le sidebar principal");
-      await refreshModules(true);
+      await refreshModules();
     };
     init();
   }, [refreshModules]);
