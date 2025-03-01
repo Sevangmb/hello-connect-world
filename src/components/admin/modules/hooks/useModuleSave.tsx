@@ -41,29 +41,33 @@ export const useModuleSave = ({
     try {
       setSaving(true);
       
-      // Préparer les mises à jour pour l'opération par lot
-      const updates = Object.entries(pendingChanges).map(([moduleId, newStatus]) => ({
-        id: moduleId,
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      }));
+      // Tableau pour stocker les résultats des mises à jour
+      const updateResults = [];
       
-      // Mise à jour par lots pour de meilleures performances
-      if (updates.length > 0) {
-        // Utiliser l'API UPSERT de Supabase pour mettre à jour plusieurs lignes en une seule opération
-        const { error } = await supabase
-          .from("app_modules")
-          .upsert(updates, { 
-            onConflict: 'id',
-            ignoreDuplicates: false
-          });
-          
-        if (error) throw error;
+      // Effectuer chaque mise à jour individuellement
+      for (const [moduleId, newStatus] of Object.entries(pendingChanges)) {
+        // Rechercher le module complet dans la liste des modules
+        const moduleToUpdate = modules.find(m => m.id === moduleId);
         
-        // Notification unique pour toutes les mises à jour
+        if (moduleToUpdate) {
+          // Utiliser updateModuleStatus pour chaque module
+          const success = await updateModuleStatus(moduleId, newStatus);
+          
+          if (success) {
+            updateResults.push({
+              id: moduleId,
+              code: moduleToUpdate.code,
+              status: newStatus
+            });
+          }
+        }
+      }
+      
+      // Notification unique pour toutes les mises à jour
+      if (updateResults.length > 0) {
         toast({
           title: "Modules mis à jour",
-          description: `${updates.length} modules ont été mis à jour avec succès`,
+          description: `${updateResults.length} modules ont été mis à jour avec succès`,
         });
       }
       
@@ -101,7 +105,7 @@ export const useModuleSave = ({
     } finally {
       setSaving(false);
     }
-  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules]);
+  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules, updateModuleStatus]);
 
   return {
     saving,
