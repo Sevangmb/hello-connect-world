@@ -4,6 +4,7 @@ import { ModuleUnavailable } from "./ModuleUnavailable";
 import { ModuleDegraded } from "./ModuleDegraded";
 import { getModuleStatusFromCache } from "@/hooks/modules/api/moduleStatusCore";
 import { isAdminModule } from "@/hooks/modules/api/moduleStatusCore";
+import { useToast } from "@/hooks/use-toast";
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -13,13 +14,13 @@ interface ModuleGuardProps {
 
 // Cache global en mémoire des statuts pour tous les composants ModuleGuard
 const moduleStatusGlobalCache: Record<string, {active: boolean, degraded: boolean, timestamp: number}> = {};
-// Durée de validité du cache global: 30 secondes (augmenté pour plus de performance)
-const GLOBAL_CACHE_VALIDITY_MS = 30000;
+// Durée de validité du cache global: 60 secondes pour plus de performance
+const GLOBAL_CACHE_VALIDITY_MS = 60000;
 
 export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps) {
   const [isActive, setIsActive] = useState<boolean>(true); // Par défaut actif pour éviter les flashs
   const [isDegraded, setIsDegraded] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  const { toast } = useToast();
 
   // Vérification immédiate pour les modules admin
   const isAdmin = useMemo(() => isAdminModule(moduleCode), [moduleCode]);
@@ -44,33 +45,44 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       return;
     }
     
-    // Vérifier le cache rapide
-    const moduleStatus = getModuleStatusFromCache(moduleCode);
-    if (moduleStatus !== null) {
-      const active = moduleStatus !== 'inactive'; // Actif sauf si explicitement inactif
-      const degraded = moduleStatus === 'degraded';
-      
-      // Mettre à jour le cache global
-      moduleStatusGlobalCache[moduleCode] = {
-        active,
-        degraded,
-        timestamp: now
-      };
-      
-      setIsActive(active);
-      setIsDegraded(degraded);
-    } else {
-      // Par défaut actif
-      moduleStatusGlobalCache[moduleCode] = {
-        active: true,
-        degraded: false,
-        timestamp: now
-      };
-      
+    try {
+      // Vérifier le cache rapide
+      const moduleStatus = getModuleStatusFromCache(moduleCode);
+      if (moduleStatus !== null) {
+        const active = moduleStatus !== 'inactive'; // Actif sauf si explicitement inactif
+        const degraded = moduleStatus === 'degraded';
+        
+        // Mettre à jour le cache global
+        moduleStatusGlobalCache[moduleCode] = {
+          active,
+          degraded,
+          timestamp: now
+        };
+        
+        setIsActive(active);
+        setIsDegraded(degraded);
+      } else {
+        // Par défaut actif
+        moduleStatusGlobalCache[moduleCode] = {
+          active: true,
+          degraded: false,
+          timestamp: now
+        };
+        
+        setIsActive(true);
+        setIsDegraded(false);
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la vérification du statut du module ${moduleCode}:`, error);
+      // En cas d'erreur, afficher temporairement le module
       setIsActive(true);
-      setIsDegraded(false);
+      toast({
+        variant: "destructive",
+        title: "Erreur système",
+        description: "Impossible de vérifier l'état du module. Réessayez plus tard.",
+      });
     }
-  }, [moduleCode, isAdmin]);
+  }, [moduleCode, isAdmin, toast]);
 
   // Effet qui s'exécute au premier rendu
   useEffect(() => {

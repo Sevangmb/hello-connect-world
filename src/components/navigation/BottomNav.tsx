@@ -135,37 +135,6 @@ const DisabledNavButton = memo(({ item }: any) => (
   </TooltipProvider>
 ));
 
-// Mémoiser les boutons à l'avance pour chaque élément du menu
-const renderNavButtons = (
-  navigate: ReturnType<typeof useNavigate>,
-  location: ReturnType<typeof useLocation>,
-  unreadCount: number
-) => {
-  return MENU_ITEMS.map(item => {
-    const isActive = item.path === "/" 
-      ? location.pathname === "/" 
-      : location.pathname.startsWith(item.path);
-    
-    const handleClick = () => navigate(item.path);
-    
-    return {
-      item,
-      button: (
-        <NavButton 
-          key={`btn-${item.path}`}
-          item={item} 
-          isActive={isActive} 
-          unreadCount={unreadCount} 
-          onClick={handleClick}
-        />
-      ),
-      fallback: (
-        <DisabledNavButton key={`disabled-${item.path}`} item={item} />
-      )
-    };
-  });
-};
-
 // Composant principal mémorisé pour éviter les rendus inutiles
 export const BottomNav = memo(() => {
   const navigate = useNavigate();
@@ -173,38 +142,66 @@ export const BottomNav = memo(() => {
   const { notifications } = useNotifications();
   
   // Compteur de notifications non lues
-  const unreadCount = notifications?.filter(n => !n.read).length || 0;
-
-  // Pré-calculer tous les boutons et fallbacks
-  const navButtons = useMemo(() => 
-    renderNavButtons(navigate, location, unreadCount),
-    [navigate, location, unreadCount]
+  const unreadCount = useMemo(() => 
+    notifications?.filter(n => !n.read).length || 0,
+    [notifications]
   );
+
+  // Déterminer si un élément est actif
+  const isItemActive = useCallback((itemPath: string) => {
+    return itemPath === "/" 
+      ? location.pathname === "/" 
+      : location.pathname.startsWith(itemPath);
+  }, [location.pathname]);
+
+  // Générer les boutons de navigation de manière optimisée
+  const navElements = useMemo(() => {
+    return MENU_ITEMS.map(item => {
+      const isActive = isItemActive(item.path);
+      const handleClick = () => navigate(item.path);
+
+      const button = (
+        <NavButton 
+          key={`btn-${item.path}`}
+          item={item} 
+          isActive={isActive} 
+          unreadCount={unreadCount} 
+          onClick={handleClick}
+        />
+      );
+
+      const fallback = (
+        <DisabledNavButton key={`disabled-${item.path}`} item={item} />
+      );
+
+      // Si l'élément a un code de module, l'envelopper dans un ModuleGuard
+      if (item.moduleCode) {
+        return (
+          <ModuleGuard 
+            key={`guard-${item.path}`} 
+            moduleCode={item.moduleCode}
+            fallback={fallback}
+          >
+            {button}
+          </ModuleGuard>
+        );
+      }
+
+      // Sinon, retourner le bouton directement
+      return button;
+    });
+  }, [navigate, isItemActive, unreadCount]);
 
   // Créer un tableau d'indicateurs actifs pour l'affichage des traits en haut
   const activeIndicators = useMemo(() => 
-    MENU_ITEMS.map(item => 
-      item.path === "/" 
-        ? location.pathname === "/" 
-        : location.pathname.startsWith(item.path)
-    ),
-    [location.pathname]
+    MENU_ITEMS.map(item => isItemActive(item.path)),
+    [isItemActive]
   );
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50 shadow-lg">
       <div className="flex justify-around items-center relative px-1 pt-1 pb-2">
-        {navButtons.map(({ item, button, fallback }, index) => 
-          item.moduleCode ? (
-            <ModuleGuard 
-              key={`guard-${item.path}`} 
-              moduleCode={item.moduleCode}
-              fallback={fallback}
-            >
-              {button}
-            </ModuleGuard>
-          ) : button
-        )}
+        {navElements}
       </div>
 
       {/* Indicateur de position (petit trait) */}

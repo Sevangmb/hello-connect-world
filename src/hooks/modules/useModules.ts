@@ -8,9 +8,15 @@ import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
 import { ModuleStatus } from "./types";
 import { useEffect } from "react";
+import { getModuleStatusFromCache } from "./api/moduleStatusCore";
 
 // Constante pour identifier le module Admin
 export const ADMIN_MODULE_CODE = "admin";
+
+// Cache en mémoire pour éviter des recalculs fréquents
+const isActiveCache: Record<string, { value: boolean, timestamp: number }> = {};
+const isDegradedCache: Record<string, { value: boolean, timestamp: number }> = {};
+const CACHE_VALIDITY_MS = 30000; // 30 secondes
 
 export const useModules = () => {
   // Récupérer les fonctionnalités de base
@@ -56,16 +62,32 @@ export const useModules = () => {
 
   // Surcharger isModuleActive pour toujours retourner true pour le module Admin
   const isModuleActive = (moduleCode: string): boolean => {
+    // Si c'est le module Admin, toujours actif
     if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
       return true;
     }
     
-    // Log pour débuggage
-    console.log(`useModules.isModuleActive: Vérification du module ${moduleCode}`);
+    // Vérifier le cache en mémoire
+    const now = Date.now();
+    const cached = isActiveCache[moduleCode];
+    if (cached && now - cached.timestamp < CACHE_VALIDITY_MS) {
+      console.log(`useModuleActive: Utilisation du cache pour ${moduleCode}: ${cached.value}`);
+      return cached.value;
+    }
+    
+    // Vérifier d'abord le cache rapide via moduleStatusCore
+    const moduleStatus = getModuleStatusFromCache(moduleCode);
+    if (moduleStatus !== null) {
+      const isActive = moduleStatus !== 'inactive';
+      // Mettre en cache le résultat
+      isActiveCache[moduleCode] = { value: isActive, timestamp: now };
+      return isActive;
+    }
     
     // Utiliser la fonction de base
     const isActive = baseIsModuleActive(moduleCode);
-    console.log(`useModules.isModuleActive: Résultat pour ${moduleCode}: ${isActive}`);
+    // Mettre en cache le résultat
+    isActiveCache[moduleCode] = { value: isActive, timestamp: now };
     
     return isActive;
   };
@@ -75,7 +97,28 @@ export const useModules = () => {
     if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
       return false;
     }
-    return baseIsModuleDegraded(moduleCode);
+    
+    // Vérifier le cache en mémoire
+    const now = Date.now();
+    const cached = isDegradedCache[moduleCode];
+    if (cached && now - cached.timestamp < CACHE_VALIDITY_MS) {
+      return cached.value;
+    }
+    
+    // Vérifier d'abord le cache rapide via moduleStatusCore
+    const moduleStatus = getModuleStatusFromCache(moduleCode);
+    if (moduleStatus !== null) {
+      const isDegraded = moduleStatus === 'degraded';
+      // Mettre en cache le résultat
+      isDegradedCache[moduleCode] = { value: isDegraded, timestamp: now };
+      return isDegraded;
+    }
+    
+    const isDegraded = baseIsModuleDegraded(moduleCode);
+    // Mettre en cache le résultat
+    isDegradedCache[moduleCode] = { value: isDegraded, timestamp: now };
+    
+    return isDegraded;
   };
 
   // Surcharger isFeatureEnabled pour toujours retourner true pour les fonctionnalités du module Admin
@@ -97,6 +140,12 @@ export const useModules = () => {
     }
     
     const success = await updateModuleStatusFn(moduleId, status, modules, updateModule, setModules);
+    
+    // Invalider les caches
+    if (moduleToUpdate) {
+      delete isActiveCache[moduleToUpdate.code];
+      delete isDegradedCache[moduleToUpdate.code];
+    }
     
     // Forcer un rafraîchissement des modules après la mise à jour
     if (success) {
@@ -131,6 +180,11 @@ export const useModules = () => {
   // Fonction de rafraîchissement explicite qui force la mise à jour depuis Supabase
   const refreshModules = async () => {
     console.log("useModules: Forçage du rafraîchissement des modules");
+    
+    // Invalider tous les caches
+    Object.keys(isActiveCache).forEach(key => delete isActiveCache[key]);
+    Object.keys(isDegradedCache).forEach(key => delete isDegradedCache[key]);
+    
     const updatedModules = await fetchModules();
     console.log(`useModules: ${updatedModules.length} modules récupérés`);
     return updatedModules;
