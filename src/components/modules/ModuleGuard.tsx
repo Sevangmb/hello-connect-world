@@ -37,12 +37,15 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       return;
     }
     
+    console.log(`ModuleGuard: Vérification initiale pour ${moduleCode}`);
+    
     // Vérifier d'abord le cache global
     const now = Date.now();
     const cachedStatus = moduleStatusGlobalCache[moduleCode];
     
     if (cachedStatus && (now - cachedStatus.timestamp < GLOBAL_CACHE_VALIDITY_MS)) {
       // Utiliser le cache global
+      console.log(`ModuleGuard: Utilisation du cache global pour ${moduleCode}: actif=${cachedStatus.active}`);
       setIsActive(cachedStatus.active);
       setIsDegraded(cachedStatus.degraded);
       setIsChecking(false);
@@ -54,6 +57,8 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     if (moduleStatus !== null) {
       const active = moduleStatus === 'active';
       const degraded = moduleStatus === 'degraded';
+      
+      console.log(`ModuleGuard: Status de ${moduleCode} depuis le cache rapide: ${moduleStatus}`);
       
       // Mettre à jour le cache global
       moduleStatusGlobalCache[moduleCode] = {
@@ -77,9 +82,13 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       setIsChecking(true);
       
       try {
+        console.log(`ModuleGuard: Vérification complète pour ${moduleCode}`);
+        
         // Vérifier le statut du module
         const active = isModuleActive(moduleCode);
         const degraded = isModuleDegraded(moduleCode);
+        
+        console.log(`ModuleGuard: Résultat pour ${moduleCode}: actif=${active}, dégradé=${degraded}`);
         
         // Mettre à jour le cache global
         moduleStatusGlobalCache[moduleCode] = {
@@ -92,8 +101,8 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
         setIsDegraded(degraded);
       } catch (error) {
         console.error(`Erreur lors de la vérification du module ${moduleCode}:`, error);
-        // En cas d'erreur, on considère le module comme actif pour éviter les blocages
-        setIsActive(true);
+        // En cas d'erreur, considérer le module comme inactif pour être prudent
+        setIsActive(false);
         setIsDegraded(false);
       } finally {
         setIsChecking(false);

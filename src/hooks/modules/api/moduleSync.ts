@@ -44,6 +44,8 @@ export const fetchAllModules = async (force = false): Promise<AppModule[]> => {
       throw error;
     }
 
+    console.log(`Data de Supabase pour modules:`, data);
+
     // S'assurer que le module Admin est toujours actif
     const modulesData = data.map(module => {
       // Vérifier que le status est bien une valeur valide de ModuleStatus
@@ -112,6 +114,8 @@ export const fetchAllFeatures = async (): Promise<Record<string, Record<string, 
       throw error;
     }
 
+    console.log(`Data des fonctionnalités de Supabase:`, data);
+
     // Organiser les fonctionnalités par module
     const featuresData: Record<string, Record<string, boolean>> = {};
     
@@ -167,16 +171,16 @@ export const setupModuleRealtimeChannel = (onModuleChange: () => void, onFeature
       event: '*',
       schema: 'public',
       table: 'app_modules'
-    }, () => {
-      console.log('Changement détecté dans les modules, rafraîchissement...');
+    }, (payload) => {
+      console.log('Changement détecté dans les modules, payload:', payload);
       onModuleChange();
     })
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'module_features'
-    }, () => {
-      console.log('Changement détecté dans les fonctionnalités, rafraîchissement...');
+    }, (payload) => {
+      console.log('Changement détecté dans les fonctionnalités, payload:', payload);
       onFeatureChange();
     })
     .subscribe((status, err) => {

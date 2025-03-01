@@ -47,10 +47,10 @@ export const getModuleActiveStatus = (
   }
 
   // Log if module not found
-  console.log(`Module ${moduleCode} not found in any cache, defaulting to true`);
+  console.log(`Module ${moduleCode} not found in any cache, defaulting to false`);
   
-  // Par défaut, actif pour éviter des problèmes d'affichage
-  return true;
+  // Par défaut, inactif pour éviter des problèmes d'accès non autorisé
+  return false;
 };
 
 /**
@@ -114,6 +114,6 @@ export const getFeatureEnabledStatus = (
     }
   }
 
-  // Par défaut activé
-  return true;
+  // Par défaut désactivé
+  return false;
 };

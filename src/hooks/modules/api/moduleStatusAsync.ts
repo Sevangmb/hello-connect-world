@@ -45,6 +45,7 @@ export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolea
       return false;
     }
 
+    console.log(`Réponse Supabase pour ${moduleCode}:`, data);
     return data?.status === 'active';
   } catch (e) {
     console.error('Exception lors de la vérification du statut du module:', e);

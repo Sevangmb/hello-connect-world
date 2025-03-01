@@ -22,12 +22,16 @@ export const useModuleActive = (modules: AppModule[], features: Record<string, R
   // Vérifier si un module est actif
   const isModuleActive = (moduleCode: string): boolean => {
     // Si le module est Admin, toujours retourner true
-    if (moduleCode === ADMIN_MODULE_CODE) return true;
+    if (moduleCode === ADMIN_MODULE_CODE) {
+      console.log(`useModuleActive: ${moduleCode} est le module admin, retour true`);
+      return true;
+    }
     
     // Vérifier le cache de vérification
     const cacheKey = `active:${moduleCode}`;
     const cached = verificationCache.modules.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp < CACHE_VALIDITY_MS)) {
+      console.log(`useModuleActive: Utilisation du cache pour ${moduleCode}: ${cached.result}`);
       return cached.result;
     }
     
@@ -37,6 +41,7 @@ export const useModuleActive = (modules: AppModule[], features: Record<string, R
       const result = cachedStatus === 'active';
       // Mettre à jour le cache
       verificationCache.modules.set(cacheKey, {result, timestamp: Date.now()});
+      console.log(`useModuleActive: Status de ${moduleCode} depuis le cache rapide: ${cachedStatus} => ${result}`);
       return result;
     }
     
@@ -47,14 +52,17 @@ export const useModuleActive = (modules: AppModule[], features: Record<string, R
         const result = cachedStatuses[moduleCode] === 'active';
         // Mettre à jour le cache
         verificationCache.modules.set(cacheKey, {result, timestamp: Date.now()});
+        console.log(`useModuleActive: Status de ${moduleCode} depuis le localStorage: ${cachedStatuses[moduleCode]} => ${result}`);
         return result;
       }
+      console.log(`useModuleActive: ${moduleCode} non trouvé dans les caches, modules non chargés, retour false`);
       return false; // Par défaut, considérer inactif si pas de cache
     }
     
     const result = checkModuleActive(modules, moduleCode);
     // Mettre à jour le cache
     verificationCache.modules.set(cacheKey, {result, timestamp: Date.now()});
+    console.log(`useModuleActive: Vérification complète pour ${moduleCode}: ${result}`);
     return result;
   };
 

@@ -81,6 +81,7 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
   // Vérifier dans le cache de statut
   const cachedStatus = moduleStatusCache[moduleCode];
   if (cachedStatus && (Date.now() - cachedStatus.timestamp < STATUS_CACHE_VALIDITY_MS)) {
+    console.log(`Module ${moduleCode} trouvé dans le cache rapide avec statut: ${cachedStatus.status}`);
     return cachedStatus.status;
   }
   
@@ -94,6 +95,7 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
         status: module.status,
         timestamp: Date.now()
       };
+      console.log(`Module ${moduleCode} trouvé dans le cache mémoire avec statut: ${module.status}`);
       return module.status;
     }
   }
@@ -110,6 +112,7 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
           status: module.status,
           timestamp: Date.now()
         };
+        console.log(`Module ${moduleCode} trouvé dans le localStorage avec statut: ${module.status}`);
         return module.status;
       }
     }
@@ -117,6 +120,7 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
     console.error('Erreur lors de la récupération directe du cache des modules:', e);
   }
   
+  console.log(`Module ${moduleCode} non trouvé dans les caches, retour null`);
   return null;
 };
 
