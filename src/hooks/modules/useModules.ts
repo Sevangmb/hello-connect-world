@@ -68,9 +68,7 @@ export const useModules = () => {
                 // Convertir explicitement les statuts en ModuleStatus
                 const validatedModules = data.map(module => ({
                   ...module,
-                  status: (module.status === 'active' || module.status === 'inactive' || module.status === 'degraded') 
-                    ? module.status as ModuleStatus 
-                    : 'inactive' as ModuleStatus
+                  status: validateModuleStatus(module.status)
                 }));
                 // Marquer tous les modules comme actifs
                 const activatedModules = validatedModules.map(module => ({
@@ -92,6 +90,14 @@ export const useModules = () => {
       });
     }
   }, [modules, fetchModules, setModules, isInitialized]);
+
+  // Fonction utilitaire pour valider le statut du module
+  const validateModuleStatus = (status: string): ModuleStatus => {
+    if (status === 'active' || status === 'inactive' || status === 'degraded') {
+      return status as ModuleStatus;
+    }
+    return 'inactive' as ModuleStatus;
+  };
 
   // Surcharger isModuleActive pour toujours retourner true
   const isModuleActive = (moduleCode: string): boolean => {
@@ -181,9 +187,7 @@ export const useModules = () => {
           // Convertir explicitement les statuts en ModuleStatus
           const validatedModules = data.map(module => ({
             ...module,
-            status: (module.status === 'active' || module.status === 'inactive' || module.status === 'degraded') 
-              ? module.status as ModuleStatus 
-              : 'inactive' as ModuleStatus
+            status: validateModuleStatus(module.status)
           }));
           setModules(validatedModules);
           return validatedModules;

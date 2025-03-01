@@ -20,22 +20,22 @@ export function Footer() {
             <h3 className="font-semibold text-lg mb-4">Liens rapides</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/" className="text-sm text-gray-600 hover:text-primary">
                   Accueil
                 </Link>
               </li>
               <li>
-                <Link to="/explore" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/explore" className="text-sm text-gray-600 hover:text-primary">
                   Explorer
                 </Link>
               </li>
               <li>
-                <Link to="/personal" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/personal" className="text-sm text-gray-600 hover:text-primary">
                   Mon Univers
                 </Link>
               </li>
               <li>
-                <Link to="/friends" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/friends" className="text-sm text-gray-600 hover:text-primary">
                   Social
                 </Link>
               </li>
@@ -46,22 +46,22 @@ export function Footer() {
             <h3 className="font-semibold text-lg mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/contact" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/contact" className="text-sm text-gray-600 hover:text-primary">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link to="/help" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/help" className="text-sm text-gray-600 hover:text-primary">
                   Aide & Support
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/privacy" className="text-sm text-gray-600 hover:text-primary">
                   Politique de confidentialité
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="text-sm text-gray-600 hover:text-facebook-primary">
+                <Link to="/terms" className="text-sm text-gray-600 hover:text-primary">
                   Conditions d'utilisation
                 </Link>
               </li>

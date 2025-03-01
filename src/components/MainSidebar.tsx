@@ -159,31 +159,19 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
           <Accordion type="single" collapsible defaultValue="personal">
             <MemoizedHomeSection />
             
-            <ModuleGuard 
-              moduleCode="explore" 
-              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Explorer (désactivé)</div>}
-            >
+            <ModuleGuard moduleCode="explore">
               <MemoizedExploreSection />
             </ModuleGuard>
             
-            <ModuleGuard 
-              moduleCode="wardrobe"
-              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Mon Univers (désactivé)</div>}
-            >
+            <ModuleGuard moduleCode="wardrobe">
               <MemoizedPersonalSection />
             </ModuleGuard>
             
-            <ModuleGuard 
-              moduleCode="community"
-              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Social (désactivé)</div>}
-            >
+            <ModuleGuard moduleCode="community">
               <MemoizedCommunitySection />
             </ModuleGuard>
             
-            <ModuleGuard 
-              moduleCode="profile"
-              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Profil (désactivé)</div>}
-            >
+            <ModuleGuard moduleCode="profile">
               <MemoizedProfileSection />
             </ModuleGuard>
             
