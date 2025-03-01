@@ -1,4 +1,3 @@
-
 import { 
   Home,
   Search,
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { useNotifications } from "@/hooks/useNotifications";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useCallback } from "react";
 
 // Menu items configuration
 const MENU_ITEMS = [
