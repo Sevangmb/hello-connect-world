@@ -17,11 +17,33 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useModules } from "@/hooks/useModules";
+import { useEffect, useState } from "react";
 
 export const ExploreSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive } = useModules();
+  const { isModuleActive, refreshModules } = useModules();
+  const [moduleStates, setModuleStates] = useState({
+    search: false,
+    trending: false,
+    hashtags: false,
+    marketplace: false
+  });
+
+  // Forcer un rechargement des données des modules au montage
+  useEffect(() => {
+    const loadModules = async () => {
+      await refreshModules();
+      setModuleStates({
+        search: isModuleActive('search'),
+        trending: isModuleActive('trending'),
+        hashtags: isModuleActive('hashtags'),
+        marketplace: isModuleActive('marketplace')
+      });
+    };
+    
+    loadModules();
+  }, [refreshModules, isModuleActive]);
 
   return (
     <AccordionItem value="explore" className="border-none">
@@ -33,7 +55,7 @@ export const ExploreSection = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
-          {isModuleActive('search') && (
+          {moduleStates.search && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -45,7 +67,7 @@ export const ExploreSection = () => {
               Recherche
             </Button>
           )}
-          {isModuleActive('trending') && (
+          {moduleStates.trending && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -57,7 +79,7 @@ export const ExploreSection = () => {
               Tendances
             </Button>
           )}
-          {isModuleActive('hashtags') && (
+          {moduleStates.hashtags && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -69,7 +91,7 @@ export const ExploreSection = () => {
               Hashtags
             </Button>
           )}
-          {isModuleActive('marketplace') && (
+          {moduleStates.marketplace && (
             <>
               <Button
                 variant="ghost"

@@ -21,6 +21,16 @@ interface MainSidebarProps {
 
 export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
+  const { refreshModules } = useModules();
+
+  // Forcer un rechargement des modules au montage pour s'assurer que tout est à jour
+  useEffect(() => {
+    const init = async () => {
+      console.log("Forçage du rechargement des modules dans le sidebar principal");
+      await refreshModules(true);
+    };
+    init();
+  }, [refreshModules]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {

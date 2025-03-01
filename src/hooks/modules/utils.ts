@@ -1,33 +1,109 @@
 
+import { AppModule, ModuleStatus } from './types';
+
 /**
- * Utilitaires pour les modules
- * Ce fichier centralise les fonctions utilitaires pour la gestion des modules
+ * Met en cache les statuts des modules pour un accès rapide
  */
+export const cacheModuleStatuses = (modules: AppModule[]) => {
+  try {
+    const statuses: Record<string, ModuleStatus> = {};
+    
+    for (const module of modules) {
+      statuses[module.code] = module.status;
+    }
+    
+    localStorage.setItem('app_modules_status_cache', JSON.stringify(statuses));
+    localStorage.setItem('app_modules_status_timestamp', Date.now().toString());
+    
+    console.log(`Cached ${Object.keys(statuses).length} module statuses to localStorage`);
+  } catch (e) {
+    console.error('Erreur lors de la mise en cache des statuts de modules:', e);
+  }
+};
 
-import { AppModule, ModuleStatus } from "./types";
+/**
+ * Récupère les statuts des modules depuis le cache
+ */
+export const getModuleStatusesFromCache = (): Record<string, ModuleStatus> | null => {
+  try {
+    const cachedData = localStorage.getItem('app_modules_status_cache');
+    if (cachedData) {
+      const parsed = JSON.parse(cachedData);
+      return parsed;
+    }
+  } catch (e) {
+    console.error('Erreur lors de la lecture du cache des statuts de modules:', e);
+  }
+  return null;
+};
 
-// Clé pour le stockage des modules dans le cache
-const MODULE_CACHE_KEY = 'app_modules_cache';
-const MODULE_CACHE_TIMESTAMP_KEY = 'app_modules_cache_timestamp';
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5 minutes
+/**
+ * Met en cache les modules complets
+ */
+export const cacheFullModules = (modules: AppModule[]) => {
+  try {
+    localStorage.setItem('app_modules_cache', JSON.stringify(modules));
+    localStorage.setItem('app_modules_cache_timestamp', Date.now().toString());
+    
+    // Mettre également à jour le cache des statuts
+    cacheModuleStatuses(modules);
+    
+    console.log(`Cached ${modules.length} full modules to localStorage`);
+  } catch (e) {
+    console.error('Erreur lors de la mise en cache des modules:', e);
+  }
+};
 
-// Vérifier si un module est actif
+/**
+ * Récupère les modules complets depuis le cache
+ */
+export const getFullModulesFromCache = (): AppModule[] | null => {
+  try {
+    const cachedData = localStorage.getItem('app_modules_cache');
+    const cachedTimestamp = localStorage.getItem('app_modules_cache_timestamp');
+    
+    if (cachedData && cachedTimestamp) {
+      // Validité du cache: 5 minutes
+      const now = Date.now();
+      const cacheTime = parseInt(cachedTimestamp, 10);
+      
+      if (now - cacheTime <= 5 * 60 * 1000) {
+        const parsed = JSON.parse(cachedData);
+        console.log(`Retrieved ${parsed.length} modules from localStorage cache`);
+        return parsed;
+      } else {
+        console.log("Cache expired, will fetch fresh data");
+      }
+    }
+  } catch (e) {
+    console.error('Erreur lors de la lecture du cache des modules:', e);
+  }
+  return null;
+};
+
+/**
+ * Vérifie si un module est actif
+ */
 export const checkModuleActive = (modules: AppModule[], moduleCode: string): boolean => {
   const module = modules.find(m => m.code === moduleCode);
-  return module?.status === 'active';
+  return module ? module.status === 'active' : false;
 };
 
-// Vérifier si un module est en mode dégradé
+/**
+ * Vérifie si un module est en mode dégradé
+ */
 export const checkModuleDegraded = (modules: AppModule[], moduleCode: string): boolean => {
   const module = modules.find(m => m.code === moduleCode);
-  return module?.status === 'degraded';
+  return module ? module.status === 'degraded' : false;
 };
 
-// Vérifier si une fonctionnalité spécifique d'un module est activée
+/**
+ * Vérifie si une fonctionnalité est activée
+ */
 export const checkFeatureEnabled = (
-  modules: AppModule[], 
-  features: Record<string, Record<string, boolean>>, 
-  moduleCode: string, 
+  modules: AppModule[],
+  features: Record<string, Record<string, boolean>>,
+  moduleCode: string,
   featureCode: string
 ): boolean => {
   // Vérifier d'abord si le module est actif
@@ -35,120 +111,26 @@ export const checkFeatureEnabled = (
     return false;
   }
   
-  // Vérifier ensuite si la fonctionnalité est activée
-  return !!features[moduleCode]?.[featureCode];
+  // Vérifier si la fonctionnalité est activée
+  if (features[moduleCode] && features[moduleCode][featureCode] !== undefined) {
+    return features[moduleCode][featureCode];
+  }
+  
+  return false; // Par défaut, considérer désactivé
 };
 
-// Mettre à jour les modules avec leurs feature flags
+/**
+ * Combine les modules avec les fonctionnalités
+ */
 export const combineModulesWithFeatures = (
-  modules: AppModule[], 
+  modules: AppModule[],
   features: Record<string, Record<string, boolean>>
 ): AppModule[] => {
-  return modules.map(module => ({
-    ...module,
-    features: features[module.code] || {}
-  }));
-};
-
-// Préparer les modules pour le stockage en cache local
-export const prepareModulesForCache = (modules: AppModule[]): Record<string, ModuleStatus> => {
-  const moduleCache: Record<string, ModuleStatus> = {};
-  
-  modules.forEach(module => {
-    moduleCache[module.code] = module.status;
+  return modules.map(module => {
+    const moduleFeatures = features[module.code] || {};
+    return {
+      ...module,
+      features: moduleFeatures
+    };
   });
-  
-  return moduleCache;
-};
-
-// Stocker dans le localStorage pour optimiser les performances
-export const cacheModuleStatuses = (modules: AppModule[]): void => {
-  const moduleCache = prepareModulesForCache(modules);
-  localStorage.setItem(MODULE_CACHE_KEY, JSON.stringify(moduleCache));
-  localStorage.setItem(MODULE_CACHE_TIMESTAMP_KEY, Date.now().toString());
-  
-  // Déclencher un événement personnalisé pour informer que le cache des modules a été mis à jour
-  window.dispatchEvent(new CustomEvent('app_modules_updated'));
-};
-
-// Récupérer les statuts des modules du cache
-export const getModuleStatusesFromCache = (): Record<string, ModuleStatus> | null => {
-  const cached = localStorage.getItem(MODULE_CACHE_KEY);
-  const timestamp = localStorage.getItem(MODULE_CACHE_TIMESTAMP_KEY);
-  
-  if (!cached || !timestamp) return null;
-  
-  // Vérifier si le cache est expiré
-  const now = Date.now();
-  const cacheTime = parseInt(timestamp, 10);
-  
-  if (now - cacheTime > CACHE_EXPIRY_TIME) {
-    // Le cache est expiré, on le supprime
-    localStorage.removeItem(MODULE_CACHE_KEY);
-    localStorage.removeItem(MODULE_CACHE_TIMESTAMP_KEY);
-    return null;
-  }
-  
-  try {
-    return JSON.parse(cached) as Record<string, ModuleStatus>;
-  } catch (e) {
-    console.error("Erreur lors de la lecture du cache des modules:", e);
-    return null;
-  }
-};
-
-// Vérifier l'état d'un canal Supabase
-export const checkChannelStatus = (channel: any): string => {
-  if (!channel) return 'non initialisé';
-  
-  return channel.state || 'inconnu';
-};
-
-// Fonction pour gérer les erreurs Supabase de manière cohérente
-export const handleSupabaseError = (error: any): string => {
-  if (!error) return 'Erreur inconnue';
-  
-  if (typeof error === 'string') return error;
-  
-  if (error.message) return error.message;
-  
-  if (error.error_description) return error.error_description;
-  
-  return 'Une erreur est survenue avec Supabase';
-};
-
-// Stocker les modules complets dans le cache pour accès rapide
-export const cacheFullModules = (modules: AppModule[]) => {
-  try {
-    localStorage.setItem('app_modules_full_cache', JSON.stringify(modules));
-    localStorage.setItem('app_modules_full_cache_timestamp', Date.now().toString());
-  } catch (e) {
-    console.error("Erreur lors de la mise en cache des modules complets:", e);
-  }
-};
-
-// Récupérer les modules complets du cache
-export const getFullModulesFromCache = (): AppModule[] | null => {
-  try {
-    const cached = localStorage.getItem('app_modules_full_cache');
-    const timestamp = localStorage.getItem('app_modules_full_cache_timestamp');
-    
-    if (!cached || !timestamp) return null;
-    
-    // Vérifier si le cache est expiré
-    const now = Date.now();
-    const cacheTime = parseInt(timestamp, 10);
-    
-    if (now - cacheTime > CACHE_EXPIRY_TIME) {
-      // Le cache est expiré, on le supprime
-      localStorage.removeItem('app_modules_full_cache');
-      localStorage.removeItem('app_modules_full_cache_timestamp');
-      return null;
-    }
-    
-    return JSON.parse(cached) as AppModule[];
-  } catch (e) {
-    console.error("Erreur lors de la lecture du cache des modules complets:", e);
-    return null;
-  }
 };

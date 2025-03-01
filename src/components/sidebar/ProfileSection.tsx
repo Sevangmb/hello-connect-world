@@ -13,11 +13,29 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useModules } from "@/hooks/useModules";
+import { useEffect, useState } from "react";
 
 export const ProfileSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive } = useModules();
+  const { isModuleActive, refreshModules } = useModules();
+  const [moduleStates, setModuleStates] = useState({
+    profile: false,
+    notifications: false
+  });
+
+  // Forcer un rechargement des données des modules au montage
+  useEffect(() => {
+    const loadModules = async () => {
+      await refreshModules();
+      setModuleStates({
+        profile: isModuleActive('profile'),
+        notifications: isModuleActive('notifications')
+      });
+    };
+    
+    loadModules();
+  }, [refreshModules, isModuleActive]);
 
   return (
     <AccordionItem value="profile" className="border-none">
@@ -29,7 +47,7 @@ export const ProfileSection = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
-          {isModuleActive('profile') && (
+          {moduleStates.profile && (
             <>
               <Button
                 variant="ghost"
@@ -53,7 +71,7 @@ export const ProfileSection = () => {
               </Button>
             </>
           )}
-          {isModuleActive('notifications') && (
+          {moduleStates.notifications && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {

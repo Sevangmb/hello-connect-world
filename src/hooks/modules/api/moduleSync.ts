@@ -9,6 +9,7 @@ import { ADMIN_MODULE_CODE } from '../useModules';
  */
 export const fetchAllModules = async (force = false): Promise<AppModule[]> => {
   try {
+    console.log("Fetching modules from Supabase...");
     const { data, error } = await supabase
       .from('app_modules')
       .select('*')
@@ -41,6 +42,8 @@ export const fetchAllModules = async (force = false): Promise<AppModule[]> => {
       return { ...module, status: validStatus };
     }) as AppModule[];
 
+    console.log(`Loaded ${modulesData.length} modules from Supabase`);
+    
     // Mettre à jour le cache
     cacheFullModules(modulesData);
 

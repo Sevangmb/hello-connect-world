@@ -60,11 +60,15 @@ export const useModuleApiCore = () => {
     // Si c'est le module Admin, toujours actif
     if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) return true;
 
+    // DEBUG: Log module check
+    console.log(`Checking active status for module: ${moduleCode}`);
+
     // Vérifier le cache en mémoire
     const { inMemoryModulesCache } = getModuleCache();
-    if (inMemoryModulesCache) {
+    if (inMemoryModulesCache && inMemoryModulesCache.length > 0) {
       const module = inMemoryModulesCache.find(m => m.code === moduleCode);
       if (module) {
+        console.log(`Found module ${moduleCode} in memory cache with status: ${module.status}`);
         return module.status === 'active';
       }
     }
@@ -73,6 +77,7 @@ export const useModuleApiCore = () => {
     if (internalModules.length > 0) {
       const module = internalModules.find(m => m.code === moduleCode);
       if (module) {
+        console.log(`Found module ${moduleCode} in internal modules with status: ${module.status}`);
         return module.status === 'active';
       }
     }
@@ -80,9 +85,13 @@ export const useModuleApiCore = () => {
     // Vérifier le cache localStorage
     const cachedStatuses = getModuleStatusesFromCache();
     if (cachedStatuses && cachedStatuses[moduleCode] !== undefined) {
+      console.log(`Found module ${moduleCode} in localStorage cache with status: ${cachedStatuses[moduleCode]}`);
       return cachedStatuses[moduleCode] === 'active';
     }
 
+    // Log if module not found
+    console.log(`Module ${moduleCode} not found in any cache, defaulting to false`);
+    
     // Par défaut inactif
     return false;
   }, [internalModules]);
@@ -152,22 +161,35 @@ export const useModuleApiCore = () => {
     const now = Date.now();
 
     // Utiliser le cache si récent et pas de forçage
-    if (inMemoryModulesCache && !force && (now - lastFetchTimestamp < 30000)) {
+    if (inMemoryModulesCache && inMemoryModulesCache.length > 0 && !force && (now - lastFetchTimestamp < 30000)) {
+      console.log(`Using in-memory cache with ${inMemoryModulesCache.length} modules (cache age: ${now - lastFetchTimestamp}ms)`);
       setInternalModules(inMemoryModulesCache);
       return inMemoryModulesCache;
     }
 
     setLoading(true);
     try {
+      console.log("Fetching modules from Supabase...");
       const modulesData = await fetchAllModules(force);
+      console.log(`Fetched ${modulesData.length} modules from Supabase`);
+      
+      // Vérifier que les modules contiennent bien des valeurs ModuleStatus valides
+      const validatedModules = modulesData.map(module => {
+        if (module.status !== 'active' && module.status !== 'inactive' && module.status !== 'degraded') {
+          console.warn(`Invalid module status "${module.status}" for module ${module.code}, defaulting to "inactive"`);
+          return { ...module, status: 'inactive' as ModuleStatus };
+        }
+        return module;
+      });
       
       // Mettre à jour les états
-      setInternalModules(modulesData);
-      updateModuleCache(modulesData);
+      setInternalModules(validatedModules);
+      updateModuleCache(validatedModules);
       setLoading(false);
       
-      return modulesData;
+      return validatedModules;
     } catch (e: any) {
+      console.error('Erreur lors du chargement des modules:', e);
       setError(e.message || 'Erreur lors du chargement des modules');
       setLoading(false);
       
@@ -278,9 +300,12 @@ export const useModuleApiCore = () => {
       
       // Essayer d'abord de charger depuis le cache
       const cachedModules = loadModulesFromCache();
-      if (cachedModules) {
+      if (cachedModules && cachedModules.length > 0) {
+        console.log(`Loaded ${cachedModules.length} modules from cache`);
         setInternalModules(cachedModules);
         updateModuleCache(cachedModules);
+      } else {
+        console.log("No modules found in cache");
       }
 
       const cachedFeatures = loadFeaturesFromCache();
@@ -295,6 +320,7 @@ export const useModuleApiCore = () => {
           refreshFeatures(true)
         ]);
         
+        console.log(`Initialized with ${modules.length} modules from Supabase`);
         setInternalModules(modules);
         setFeatures(featuresData);
       } catch (err) {

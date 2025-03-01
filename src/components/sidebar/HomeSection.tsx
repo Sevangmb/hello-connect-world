@@ -13,11 +13,29 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useModules } from "@/hooks/useModules";
+import { useEffect, useState } from "react";
 
 export const HomeSection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive } = useModules();
+  const { isModuleActive, refreshModules } = useModules();
+  const [moduleStates, setModuleStates] = useState({
+    suggestions: false,
+    ai: false
+  });
+
+  // Forcer un rechargement des données des modules au montage
+  useEffect(() => {
+    const loadModules = async () => {
+      await refreshModules();
+      setModuleStates({
+        suggestions: isModuleActive('suggestions'),
+        ai: isModuleActive('ai')
+      });
+    };
+    
+    loadModules();
+  }, [refreshModules, isModuleActive]);
 
   return (
     <AccordionItem value="home" className="border-none">
@@ -39,7 +57,7 @@ export const HomeSection = () => {
             <Home className="h-4 w-4" />
             Tableau de bord
           </Button>
-          {isModuleActive('suggestions') && (
+          {moduleStates.suggestions && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -51,7 +69,7 @@ export const HomeSection = () => {
               Suggestions
             </Button>
           )}
-          {isModuleActive('ai') && (
+          {moduleStates.ai && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
