@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AppModule, ModuleStatus } from '../types';
 import { cacheFullModules } from '../utils';
-import { ADMIN_MODULE_CODE } from '../useModules';
+import { ADMIN_MODULE_CODE } from '../constants';
 
 /**
  * Récupère tous les modules depuis Supabase

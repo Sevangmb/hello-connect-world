@@ -1,5 +1,5 @@
 
-import { ADMIN_MODULE_CODE } from '../useModules';
+import { ADMIN_MODULE_CODE } from '../constants';
 import { getModuleStatusesFromCache } from '../utils';
 import { getModuleCache } from '../api/moduleStatusCore';
 import { supabase } from '@/integrations/supabase/client';

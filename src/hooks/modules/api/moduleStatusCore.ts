@@ -1,6 +1,6 @@
 
 import { ModuleStatus, AppModule } from '../types';
-import { ADMIN_MODULE_CODE } from '../useModules';
+import { ADMIN_MODULE_CODE } from '../constants';
 
 // Cache pour les modules et features avec durée de validité
 let inMemoryModulesCache: AppModule[] | null = null;

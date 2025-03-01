@@ -1,7 +1,7 @@
 
 import React, { ReactNode } from 'react';
 import { useModuleApiContext } from '@/hooks/modules/ModuleApiContext';
-import { ADMIN_MODULE_CODE } from '@/hooks/modules/useModules';
+import { ADMIN_MODULE_CODE } from '@/hooks/modules/constants';
 
 interface FeatureGuardProps {
   moduleCode: string;

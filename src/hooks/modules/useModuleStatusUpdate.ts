@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ModuleStatus, AppModule } from "./types";
 import { broadcastModuleStatusChange, broadcastFeatureStatusChange } from "./tabSync";
 import { cacheModuleStatuses } from "./utils";
-import { ADMIN_MODULE_CODE } from "./useModules";
+import { ADMIN_MODULE_CODE } from "./constants";
 
 export const useModuleStatusUpdate = () => {
   /**

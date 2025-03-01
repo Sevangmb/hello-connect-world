@@ -17,7 +17,7 @@ import {
 } from '../api/moduleStatus';
 import { broadcastModuleStatusChange } from '../tabSync';
 import { triggerModuleStatusChanged } from '../events';
-import { ADMIN_MODULE_CODE } from '../useModules';
+import { ADMIN_MODULE_CODE } from '../constants';
 import { cacheFeaturesData } from '../api/moduleCache';
 
 /**
