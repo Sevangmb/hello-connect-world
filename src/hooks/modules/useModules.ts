@@ -1,3 +1,4 @@
+
 /**
  * Hook principal pour la gestion des modules dans l'application
  * Ce hook est un point d'entrée public qui agrège plusieurs hooks spécialisés
@@ -64,10 +65,17 @@ export const useModules = () => {
               }
               if (data && data.length > 0) {
                 console.log(`useModules: ${data.length} modules chargés directement depuis Supabase`);
-                // Marquer tous les modules comme actifs
-                const activatedModules = data.map(module => ({
+                // Convertir explicitement les statuts en ModuleStatus
+                const validatedModules = data.map(module => ({
                   ...module,
-                  status: 'active'
+                  status: (module.status === 'active' || module.status === 'inactive' || module.status === 'degraded') 
+                    ? module.status as ModuleStatus 
+                    : 'inactive' as ModuleStatus
+                }));
+                // Marquer tous les modules comme actifs
+                const activatedModules = validatedModules.map(module => ({
+                  ...module,
+                  status: 'active' as ModuleStatus
                 }));
                 setModules(activatedModules);
               }
@@ -76,7 +84,7 @@ export const useModules = () => {
           // Marquer tous les modules comme actifs
           const activatedModules = loadedModules.map(module => ({
             ...module,
-            status: 'active'
+            status: 'active' as ModuleStatus
           }));
           setModules(activatedModules);
         }
@@ -170,8 +178,15 @@ export const useModules = () => {
           console.error("Erreur lors de la récupération directe des modules:", error);
         } else if (data && data.length > 0) {
           console.log(`useModules: ${data.length} modules récupérés directement`);
-          setModules(data);
-          return data;
+          // Convertir explicitement les statuts en ModuleStatus
+          const validatedModules = data.map(module => ({
+            ...module,
+            status: (module.status === 'active' || module.status === 'inactive' || module.status === 'degraded') 
+              ? module.status as ModuleStatus 
+              : 'inactive' as ModuleStatus
+          }));
+          setModules(validatedModules);
+          return validatedModules;
         }
       } catch (e) {
         console.error("Erreur Supabase:", e);
