@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useModuleApi } from './useModuleApi';
+import { useModuleApiCore } from './hooks/useModuleApiCore';
 import { ModuleStatus, AppModule } from './types';
 
 // Interface pour le contexte
@@ -27,6 +27,7 @@ interface ModuleApiContextType {
   loading: boolean;
   error: string | null;
   isInitialized: boolean;
+  modules: AppModule[];
 }
 
 // Créer le contexte avec des valeurs par défaut
@@ -43,7 +44,8 @@ const ModuleApiContext = createContext<ModuleApiContextType>({
   updateFeatureStatus: async () => false,
   loading: true,
   error: null,
-  isInitialized: false
+  isInitialized: false,
+  modules: []
 });
 
 // Props pour le provider
@@ -53,7 +55,7 @@ interface ModuleApiProviderProps {
 
 // Provider pour le contexte
 export const ModuleApiProvider = ({ children }: ModuleApiProviderProps) => {
-  const moduleApi = useModuleApi();
+  const moduleApi = useModuleApiCore();
   
   return (
     <ModuleApiContext.Provider value={moduleApi}>
