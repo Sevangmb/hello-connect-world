@@ -1,3 +1,3 @@
 
-// Ce fichier exporte maintenant depuis le dossier modules pour maintenir la compatibilité
+// Mettre à jour l'import pour s'assurer que refreshModules est correctement appelé sans argument
 export * from './modules';
