@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { useNotifications } from "@/hooks/useNotifications";
+import { memo } from "react";
 
 const MENU_ITEMS = [
   {
@@ -57,6 +58,83 @@ const MENU_ITEMS = [
   }
 ];
 
+// Composant pour afficher le bouton sans module
+const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
+  <TooltipProvider key={item.path}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={cn(
+            "flex flex-col items-center justify-center p-2 transition-colors relative",
+            item.isMain ? "w-16 -mt-4" : "w-full",
+            isActive
+              ? "text-facebook-primary" 
+              : "text-gray-500 hover:text-facebook-primary hover:bg-gray-50"
+          )}
+        >
+          {item.isMain ? (
+            <div className="bg-facebook-primary text-white p-3 rounded-full shadow-lg -mt-2">
+              <item.icon className="h-6 w-6" />
+            </div>
+          ) : (
+            <div className="relative">
+              <item.icon className="h-5 w-5" />
+              {item.hasNotifications && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+          )}
+          <span className={cn(
+            "text-xs mt-1",
+            item.isMain && "font-medium"
+          )}>
+            {item.label}
+          </span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>{item.description}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+));
+
+// Fallback pour les modules désactivés
+const DisabledNavButton = memo(({ item }: any) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className={cn(
+            "flex flex-col items-center justify-center p-2 transition-colors relative opacity-40",
+            item.isMain ? "w-16 -mt-4" : "w-full",
+            "text-gray-400"
+          )}
+        >
+          {item.isMain ? (
+            <div className="bg-gray-400 text-white p-3 rounded-full shadow-lg -mt-2">
+              <item.icon className="h-6 w-6" />
+            </div>
+          ) : (
+            <div className="relative">
+              <item.icon className="h-5 w-5" />
+            </div>
+          )}
+          <span className={cn("text-xs mt-1")}>
+            {item.label}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Module désactivé</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+));
+
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,56 +149,25 @@ export const BottomNav = () => {
       ? location.pathname === "/" 
       : location.pathname.startsWith(item.path);
     
-    // Si c'est le bouton Social, on affiche aussi le badge des notifications
-    const isNotifications = item.hasNotifications;
-      
+    const handleClick = () => navigate(item.path);
+    
     const button = (
-      <TooltipProvider key={item.path}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => navigate(item.path)}
-              className={cn(
-                "flex flex-col items-center justify-center p-2 transition-colors relative",
-                item.isMain ? "w-16 -mt-4" : "w-full",
-                isActive
-                  ? "text-facebook-primary" 
-                  : "text-gray-500 hover:text-facebook-primary hover:bg-gray-50"
-              )}
-            >
-              {item.isMain ? (
-                <div className="bg-facebook-primary text-white p-3 rounded-full shadow-lg -mt-2">
-                  <item.icon className="h-6 w-6" />
-                </div>
-              ) : (
-                <div className="relative">
-                  <item.icon className="h-5 w-5" />
-                  {isNotifications && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </div>
-              )}
-              <span className={cn(
-                "text-xs mt-1",
-                item.isMain && "font-medium"
-              )}>
-                {item.label}
-              </span>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{item.description}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <NavButton 
+        item={item} 
+        isActive={isActive} 
+        unreadCount={unreadCount} 
+        onClick={handleClick}
+      />
     );
     
     // Si l'élément a un moduleCode, on l'enveloppe dans un ModuleGuard
     if (item.moduleCode) {
       return (
-        <ModuleGuard key={item.path} moduleCode={item.moduleCode}>
+        <ModuleGuard 
+          key={item.path} 
+          moduleCode={item.moduleCode}
+          fallback={<DisabledNavButton item={item} />}
+        >
           {button}
         </ModuleGuard>
       );

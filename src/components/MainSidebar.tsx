@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,21 +19,51 @@ interface MainSidebarProps {
   onClose?: () => void;
 }
 
+// Cache des statuts administratifs pour éviter des appels répétés
+const adminStatusCache = {
+  isAdmin: false,
+  timestamp: 0
+};
+
 export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { refreshModules } = useModules();
 
   // Forcer un rechargement des modules au montage pour s'assurer que tout est à jour
-  useEffect(() => {
-    const init = async () => {
-      console.log("Forçage du rechargement des modules dans le sidebar principal");
-      await refreshModules();
-    };
-    init();
+  // Utiliser useCallback pour éviter des rendus inutiles
+  const initModules = useCallback(async () => {
+    // Vérifier si nous avons déjà rechargé récemment
+    const now = Date.now();
+    const lastRefresh = parseInt(localStorage.getItem('last_modules_refresh') || '0', 10);
+    
+    // Ne recharger que si le dernier rechargement date de plus de 30 secondes
+    if (now - lastRefresh > 30000) {
+      console.log("Rechargement des modules dans le sidebar principal");
+      try {
+        await refreshModules();
+        localStorage.setItem('last_modules_refresh', now.toString());
+      } catch (error) {
+        console.error("Erreur lors du rechargement des modules:", error);
+      }
+    } else {
+      console.log("Utilisation du cache des modules récent");
+    }
   }, [refreshModules]);
 
   useEffect(() => {
+    initModules();
+  }, [initModules]);
+
+  // Vérifier si l'utilisateur est administrateur, avec mise en cache
+  useEffect(() => {
     const checkAdminStatus = async () => {
+      // Vérifier si nous avons un cache récent (moins de 5 minutes)
+      const now = Date.now();
+      if (now - adminStatusCache.timestamp < 5 * 60 * 1000) {
+        setIsAdmin(adminStatusCache.isAdmin);
+        return;
+      }
+      
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -46,6 +76,8 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
           
           if (isUserAdmin !== undefined) {
             setIsAdmin(!!isUserAdmin);
+            adminStatusCache.isAdmin = !!isUserAdmin;
+            adminStatusCache.timestamp = now;
             return;
           }
         } catch (error) {
@@ -59,7 +91,10 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
           .eq('id', user.id)
           .single();
 
-        setIsAdmin(profile?.is_admin || false);
+        const isAdminValue = profile?.is_admin || false;
+        setIsAdmin(isAdminValue);
+        adminStatusCache.isAdmin = isAdminValue;
+        adminStatusCache.timestamp = now;
       } catch (error) {
         console.error("Error checking admin status:", error);
       }

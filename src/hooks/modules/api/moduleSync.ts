@@ -10,6 +10,30 @@ import { ADMIN_MODULE_CODE } from '../useModules';
 export const fetchAllModules = async (force = false): Promise<AppModule[]> => {
   try {
     console.log("Fetching modules from Supabase...");
+    
+    // Vérifier d'abord le cache local si on ne force pas le rafraîchissement
+    if (!force) {
+      try {
+        const cachedModules = localStorage.getItem('app_modules_cache');
+        const cachedTimestamp = localStorage.getItem('app_modules_cache_timestamp');
+        
+        if (cachedModules && cachedTimestamp) {
+          const now = Date.now();
+          const cacheTime = parseInt(cachedTimestamp, 10);
+          
+          // Cache valide pour 2 minutes (réduit de 5 minutes)
+          if (now - cacheTime <= 2 * 60 * 1000) {
+            const parsedModules = JSON.parse(cachedModules);
+            console.log(`Utilisation de ${parsedModules.length} modules du cache local`);
+            return parsedModules;
+          }
+        }
+      } catch (cacheError) {
+        console.error('Erreur lors de la lecture du cache:', cacheError);
+      }
+    }
+    
+    // Si pas de cache ou force=true, charger depuis Supabase
     const { data, error } = await supabase
       .from('app_modules')
       .select('*')
@@ -59,6 +83,26 @@ export const fetchAllModules = async (force = false): Promise<AppModule[]> => {
  */
 export const fetchAllFeatures = async (): Promise<Record<string, Record<string, boolean>>> => {
   try {
+    // Vérifier d'abord le cache local
+    try {
+      const cachedFeatures = localStorage.getItem('app_features_cache');
+      const cachedTimestamp = localStorage.getItem('app_features_cache_timestamp');
+      
+      if (cachedFeatures && cachedTimestamp) {
+        const now = Date.now();
+        const cacheTime = parseInt(cachedTimestamp, 10);
+        
+        // Cache valide pour 2 minutes
+        if (now - cacheTime <= 2 * 60 * 1000) {
+          const parsedFeatures = JSON.parse(cachedFeatures);
+          console.log('Utilisation des fonctionnalités du cache local');
+          return parsedFeatures;
+        }
+      }
+    } catch (cacheError) {
+      console.error('Erreur lors de la lecture du cache des fonctionnalités:', cacheError);
+    }
+    
     const { data, error } = await supabase
       .from('module_features')
       .select('*');

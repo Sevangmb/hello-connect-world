@@ -6,6 +6,9 @@ import { setupModuleRealtimeChannel } from '../api/moduleSync';
 import { supabase } from '@/integrations/supabase/client';
 import { AppModule } from '../types';
 
+// Cache global des initialisations pour éviter des rechargements multiples
+const initializedModules: Record<string, boolean> = {};
+
 /**
  * Initialise le module API et configure les abonnements
  */
@@ -26,6 +29,12 @@ export const initializeModuleApi = (
     console.log(`Loaded ${cachedModules.length} modules from cache`);
     setInternalModules(cachedModules);
     updateModuleCache(cachedModules);
+    
+    // Si nous avons déjà des modules en cache, marquer comme initialisé plus rapidement
+    if (!isInitialized) {
+      setIsInitialized(true);
+      setLoading(false);
+    }
   } else {
     console.log("No modules found in cache");
   }
@@ -41,21 +50,33 @@ export const initializeModuleApi = (
     () => refreshFeatures(true)
   );
 
-  // Charger les données fraîches
-  Promise.all([
-    refreshModules(),
-    refreshFeatures(true)
-  ]).then(([modules, featuresData]) => {
-    console.log(`Initialized with ${modules.length} modules from Supabase`);
-    setInternalModules(modules);
-    setFeatures(featuresData);
-    setIsInitialized(true);
-    setLoading(false);
-  }).catch(err => {
-    console.error("Erreur lors du chargement initial des données:", err);
-    setIsInitialized(true);
-    setLoading(false);
-  });
+  // Vérifier si nous avons déjà initialisé cette session
+  const sessionKey = 'module_api_initialized';
+  const alreadyInitialized = initializedModules[sessionKey];
+  
+  // Chargement différé des données fraîches pour améliorer les performances
+  if (!alreadyInitialized) {
+    // Marquer comme initialisé
+    initializedModules[sessionKey] = true;
+    
+    // Utiliser setTimeout pour charger les données fraîches après le rendu initial
+    setTimeout(() => {
+      Promise.all([
+        refreshModules(),
+        refreshFeatures(false) // Utiliser le cache si disponible
+      ]).then(([modules, featuresData]) => {
+        console.log(`Initialized with ${modules.length} modules from Supabase`);
+        setInternalModules(modules);
+        setFeatures(featuresData);
+        setIsInitialized(true);
+        setLoading(false);
+      }).catch(err => {
+        console.error("Erreur lors du chargement initial des données:", err);
+        setIsInitialized(true);
+        setLoading(false);
+      });
+    }, 100); // Petit délai pour laisser l'interface se charger d'abord
+  }
 
   // Retourner la fonction de nettoyage
   return {
