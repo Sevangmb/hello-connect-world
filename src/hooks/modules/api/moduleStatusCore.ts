@@ -5,12 +5,15 @@ import { ADMIN_MODULE_CODE } from '../useModules';
 // Cache pour les modules et features avec durée de validité
 let inMemoryModulesCache: AppModule[] | null = null;
 let lastFetchTimestamp = 0;
+
 // Cache de statut des modules pour les vérifications fréquentes
 const moduleStatusCache: Record<string, {status: ModuleStatus, timestamp: number}> = {};
-// Durée de validité du cache: 30 secondes
-const CACHE_VALIDITY_MS = 30000;
-// Durée de validité du cache de statut: 10 secondes
-const STATUS_CACHE_VALIDITY_MS = 10000;
+
+// Durée de validité du cache: 60 secondes (augmenté pour plus de performance)
+const CACHE_VALIDITY_MS = 60000;
+
+// Durée de validité du cache de statut: 30 secondes (augmenté pour plus de performance)
+const STATUS_CACHE_VALIDITY_MS = 30000;
 
 /**
  * Mettre à jour le cache en mémoire
@@ -29,10 +32,31 @@ export const updateModuleCache = (modules: AppModule[]) => {
   
   // Enregistrer également dans le localStorage pour persistance
   try {
-    localStorage.setItem('modules_cache', JSON.stringify(modules));
+    const modulesToCache = modules.map(m => ({
+      id: m.id,
+      code: m.code,
+      status: m.status,
+      name: m.name,
+      is_core: m.is_core
+    }));
+    
+    localStorage.setItem('modules_cache', JSON.stringify(modulesToCache));
     localStorage.setItem('modules_cache_timestamp', lastFetchTimestamp.toString());
+    
+    // Mettre à jour également le cache séparé des statuts
+    const statuses: Record<string, ModuleStatus> = {};
+    modules.forEach(m => {
+      statuses[m.code] = m.status;
+    });
+    localStorage.setItem('app_modules_status_cache', JSON.stringify(statuses));
+    localStorage.setItem('app_modules_status_timestamp', Date.now().toString());
   } catch (e) {
     console.error('Erreur lors de la mise en cache des modules:', e);
+  }
+  
+  // Déclencher un événement pour informer les composants
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('module_cache_updated'));
   }
 };
 
@@ -48,8 +72,8 @@ export const getModuleCache = () => {
       
       if (cachedModules && cachedTimestamp) {
         const timestamp = parseInt(cachedTimestamp, 10);
-        // Vérifier si le cache n'est pas trop ancien (5 minutes max)
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
+        // Augmenté à 30 minutes pour réduire les rechargements
+        if (Date.now() - timestamp < 30 * 60 * 1000) {
           inMemoryModulesCache = JSON.parse(cachedModules);
           lastFetchTimestamp = timestamp;
           
@@ -81,7 +105,6 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
   // Vérifier dans le cache de statut
   const cachedStatus = moduleStatusCache[moduleCode];
   if (cachedStatus && (Date.now() - cachedStatus.timestamp < STATUS_CACHE_VALIDITY_MS)) {
-    console.log(`Module ${moduleCode} trouvé dans le cache rapide avec statut: ${cachedStatus.status}`);
     return cachedStatus.status;
   }
   
@@ -95,33 +118,30 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
         status: module.status,
         timestamp: Date.now()
       };
-      console.log(`Module ${moduleCode} trouvé dans le cache mémoire avec statut: ${module.status}`);
       return module.status;
     }
   }
   
-  // Vérifier dans le localStorage en direct
+  // Vérifier dans le localStorage en direct (optimisé)
   try {
-    const cachedModules = localStorage.getItem('modules_cache');
-    if (cachedModules) {
-      const modules = JSON.parse(cachedModules) as AppModule[];
-      const module = modules.find(m => m.code === moduleCode);
-      if (module) {
+    const cachedStatusesJson = localStorage.getItem('app_modules_status_cache');
+    if (cachedStatusesJson) {
+      const cachedStatuses = JSON.parse(cachedStatusesJson);
+      if (cachedStatuses[moduleCode] !== undefined) {
         // Mettre à jour le cache de statut
         moduleStatusCache[moduleCode] = {
-          status: module.status,
+          status: cachedStatuses[moduleCode] as ModuleStatus,
           timestamp: Date.now()
         };
-        console.log(`Module ${moduleCode} trouvé dans le localStorage avec statut: ${module.status}`);
-        return module.status;
+        return cachedStatuses[moduleCode] as ModuleStatus;
       }
     }
   } catch (e) {
-    console.error('Erreur lors de la récupération directe du cache des modules:', e);
+    console.error('Erreur lors de la récupération directe du cache des statuts:', e);
   }
   
-  console.log(`Module ${moduleCode} non trouvé dans les caches, retour 'active' par défaut`);
-  return 'active'; // Par défaut tout est actif
+  // Par défaut actif
+  return 'active';
 };
 
 /**
@@ -129,4 +149,27 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
  */
 export const isAdminModule = (moduleCode: string): boolean => {
   return moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin');
+};
+
+/**
+ * Purger tous les caches pour forcer un rechargement
+ */
+export const purgeModuleCaches = () => {
+  // Vider le cache en mémoire
+  inMemoryModulesCache = null;
+  
+  // Réinitialiser le cache de statut
+  Object.keys(moduleStatusCache).forEach(key => {
+    delete moduleStatusCache[key];
+  });
+  
+  // Supprimer du localStorage
+  try {
+    localStorage.removeItem('modules_cache');
+    localStorage.removeItem('modules_cache_timestamp');
+    localStorage.removeItem('app_modules_status_cache');
+    localStorage.removeItem('app_modules_status_timestamp');
+  } catch (e) {
+    console.error('Erreur lors de la purge des caches:', e);
+  }
 };

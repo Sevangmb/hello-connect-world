@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { AppModule, ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -7,7 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   getModuleActiveStatus,
   getModuleDegradedStatus,
-  getFeatureEnabledStatus
+  getFeatureEnabledStatus,
+  preloadModuleStatuses
 } from './moduleStatus';
 
 import {
@@ -21,6 +22,11 @@ import {
 } from './moduleQueries';
 
 import { initializeModuleApi } from './moduleInitialization';
+
+// Cache pour éviter des chargements répétés
+const CACHE_EXPIRY = 60000; // 60 secondes 
+let lastModulesUpdate = 0;
+let cachedModules: AppModule[] = [];
 
 /**
  * Core hook pour la gestion des états et opérations des modules
@@ -75,10 +81,27 @@ export const useModuleApiCore = () => {
   }, [getModuleActiveStatusCallback, features]);
 
   /**
-   * Rafraîchit tous les modules depuis Supabase
+   * Rafraîchit tous les modules depuis Supabase avec cache intelligent
    */
-  const refreshModules = useCallback(async (): Promise<AppModule[]> => {
-    return refreshModulesData(setInternalModules, setLoading, setError, internalModules);
+  const refreshModules = useCallback(async (force = false): Promise<AppModule[]> => {
+    // Vérifier si nous avons des modules en cache récents
+    const now = Date.now();
+    if (!force && cachedModules.length > 0 && (now - lastModulesUpdate < CACHE_EXPIRY)) {
+      // Utiliser la version en cache
+      setInternalModules(cachedModules);
+      setLoading(false);
+      return cachedModules;
+    }
+    
+    const result = await refreshModulesData(setInternalModules, setLoading, setError, internalModules);
+    
+    // Mettre à jour le cache 
+    if (result.length > 0) {
+      cachedModules = result;
+      lastModulesUpdate = now;
+    }
+    
+    return result;
   }, [internalModules]);
 
   /**
@@ -92,7 +115,18 @@ export const useModuleApiCore = () => {
    * Met à jour le statut d'un module
    */
   const updateModuleStatus = useCallback(async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
-    return updateModuleStatusData(moduleId, status, internalModules, setInternalModules, refreshModules);
+    const result = await updateModuleStatusData(moduleId, status, internalModules, setInternalModules, refreshModules);
+    
+    // Si la mise à jour a réussi, invalider le cache
+    if (result) {
+      lastModulesUpdate = 0;
+      // Précharger les statuts après la mise à jour
+      setTimeout(() => {
+        preloadModuleStatuses();
+      }, 500);
+    }
+    
+    return result;
   }, [internalModules, refreshModules]);
 
   /**
@@ -120,9 +154,15 @@ export const useModuleApiCore = () => {
       refreshFeatures
     );
 
+    // Précharger les statuts
+    preloadModuleStatuses();
+
     // Nettoyage
     return cleanupFunction;
   }, [isInitialized, refreshModules, refreshFeatures]);
+
+  // Memoize les modules pour de meilleures performances
+  const memoizedModules = useMemo(() => internalModules, [internalModules]);
 
   return {
     // Fonctions asynchrones
@@ -147,6 +187,6 @@ export const useModuleApiCore = () => {
     loading,
     error,
     isInitialized,
-    modules: internalModules
+    modules: memoizedModules
   };
 };

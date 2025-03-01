@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleStatus, AppModule } from "@/hooks/modules/types";
 import { supabase } from "@/integrations/supabase/client";
 import { triggerModuleStatusChanged } from "@/hooks/modules/events";
+import { purgeModuleCaches } from "@/hooks/modules/api/moduleStatusCore";
 
 interface UseModuleSaveProps {
   modules: AppModule[];
@@ -27,68 +28,68 @@ export const useModuleSave = ({
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Enregistrer tous les changements
-  const saveChanges = async () => {
+  // Enregistrer tous les changements en lot pour de meilleures performances
+  const saveChanges = useCallback(async () => {
+    if (Object.keys(pendingChanges).length === 0) {
+      toast({
+        title: "Aucun changement",
+        description: "Il n'y a aucun changement à enregistrer",
+      });
+      return;
+    }
+    
     try {
       setSaving(true);
       
-      // Utiliser un appel direct à la base de données
+      // Préparer les mises à jour pour l'opération par lot
       const updates = Object.entries(pendingChanges).map(([moduleId, newStatus]) => ({
         id: moduleId,
         status: newStatus,
         updated_at: new Date().toISOString()
       }));
       
-      // Si nous avons des changements, mettre à jour directement la table
+      // Mise à jour par lots pour de meilleures performances
       if (updates.length > 0) {
-        for (const update of updates) {
-          const { error } = await supabase
-            .from("app_modules")
-            .update({ 
-              status: update.status,
-              updated_at: update.updated_at
-            })
-            .eq("id", update.id);
-            
-          if (error) throw error;
-          
-          toast({
-            title: "Statut enregistré",
-            description: `Module ${modules.find(m => m.id === update.id)?.name}: ${update.status}`,
+        // Utiliser l'API UPSERT de Supabase pour mettre à jour plusieurs lignes en une seule opération
+        const { error } = await supabase
+          .from("app_modules")
+          .upsert(updates, { 
+            onConflict: 'id',
+            ignoreDuplicates: false
           });
-        }
+          
+        if (error) throw error;
+        
+        // Notification unique pour toutes les mises à jour
+        toast({
+          title: "Modules mis à jour",
+          description: `${updates.length} modules ont été mis à jour avec succès`,
+        });
       }
       
-      // Appliquer tous les changements de modules - important même si tout est actif par défaut dans l'UI
-      const updatePromises = Object.entries(pendingChanges).map(async ([moduleId, newStatus]) => {
-        // Trouver le module
-        const module = modules.find(m => m.id === moduleId);
-        if (!module) return;
-        
-        // Mettre à jour le statut du module
-        await updateModuleStatus(moduleId, newStatus);
-      });
+      // Purger les caches pour forcer un rechargement
+      purgeModuleCaches();
       
-      await Promise.all(updatePromises);
+      // Déclencher l'événement personnalisé pour les mises à jour des modules
+      triggerModuleStatusChanged();
       
       // Réinitialiser les changements en attente
       resetPendingChanges();
       
       toast({
         title: "Modifications enregistrées",
-        description: "Les modules et leurs fonctionnalités ont été mis à jour",
+        description: "Les modules ont été mis à jour avec succès",
       });
       
-      // Déclencher l'événement personnalisé pour les mises à jour des modules
-      triggerModuleStatusChanged();
-      
-      // Rafraîchir les données
-      await refreshModules();
-      
-      // Notifier le parent que les statuts ont changé
-      if (onStatusChange) {
-        onStatusChange();
-      }
+      // Rafraîchir les données après un court délai
+      setTimeout(async () => {
+        await refreshModules();
+        
+        // Notifier le parent que les statuts ont changé
+        if (onStatusChange) {
+          onStatusChange();
+        }
+      }, 500);
       
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde des modifications:", error);
@@ -100,7 +101,7 @@ export const useModuleSave = ({
     } finally {
       setSaving(false);
     }
-  };
+  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules]);
 
   return {
     saving,
