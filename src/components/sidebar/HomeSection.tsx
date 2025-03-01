@@ -27,10 +27,18 @@ export const HomeSection = () => {
   // Forcer un rechargement des données des modules au montage
   useEffect(() => {
     const loadModules = async () => {
+      console.log("HomeSection: Chargement des modules");
       await refreshModules();
+      
+      // Vérifier explicitement chaque module et mettre à jour l'état local
+      const suggestionsActive = isModuleActive('suggestions');
+      const aiActive = isModuleActive('ai');
+      
+      console.log(`HomeSection: État des modules - suggestions: ${suggestionsActive}, ai: ${aiActive}`);
+      
       setModuleStates({
-        suggestions: isModuleActive('suggestions'),
-        ai: isModuleActive('ai')
+        suggestions: suggestionsActive,
+        ai: aiActive
       });
     };
     

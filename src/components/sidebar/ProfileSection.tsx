@@ -27,10 +27,18 @@ export const ProfileSection = () => {
   // Forcer un rechargement des données des modules au montage
   useEffect(() => {
     const loadModules = async () => {
+      console.log("ProfileSection: Chargement des modules");
       await refreshModules();
+      
+      // Vérifier explicitement chaque module
+      const profileActive = isModuleActive('profile');
+      const notificationsActive = isModuleActive('notifications');
+      
+      console.log(`ProfileSection: États des modules - profile: ${profileActive}, notifications: ${notificationsActive}`);
+      
       setModuleStates({
-        profile: isModuleActive('profile'),
-        notifications: isModuleActive('notifications')
+        profile: profileActive,
+        notifications: notificationsActive
       });
     };
     

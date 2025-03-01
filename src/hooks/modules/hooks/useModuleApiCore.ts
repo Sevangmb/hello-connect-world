@@ -92,8 +92,8 @@ export const useModuleApiCore = () => {
     // Log if module not found
     console.log(`Module ${moduleCode} not found in any cache, defaulting to false`);
     
-    // Par défaut inactif
-    return false;
+    // Par défaut, actif pour éviter des problèmes d'affichage
+    return true;
   }, [internalModules]);
 
   /**
@@ -149,16 +149,17 @@ export const useModuleApiCore = () => {
       }
     }
 
-    // Par défaut désactivé
-    return false;
+    // Par défaut activé
+    return true;
   }, [getModuleActiveStatus, features]);
 
   /**
    * Rafraîchit tous les modules depuis Supabase
    */
-  const refreshModules = useCallback(async (force = false): Promise<AppModule[]> => {
+  const refreshModules = useCallback(async (): Promise<AppModule[]> => {
     const { inMemoryModulesCache, lastFetchTimestamp } = getModuleCache();
     const now = Date.now();
+    const force = true; // Forcer la mise à jour pour s'assurer d'avoir les dernières données
 
     // Utiliser le cache si récent et pas de forçage
     if (inMemoryModulesCache && inMemoryModulesCache.length > 0 && !force && (now - lastFetchTimestamp < 30000)) {
@@ -246,7 +247,7 @@ export const useModuleApiCore = () => {
       triggerModuleStatusChanged();
       
       // Rafraîchir les données
-      await refreshModules(true);
+      await refreshModules();
     }
     
     return success;
@@ -316,7 +317,7 @@ export const useModuleApiCore = () => {
       // Charger les données fraîches
       try {
         const [modules, featuresData] = await Promise.all([
-          refreshModules(true),
+          refreshModules(),
           refreshFeatures(true)
         ]);
         
@@ -333,7 +334,7 @@ export const useModuleApiCore = () => {
 
     // Configurer Supabase Realtime
     const channel = setupModuleRealtimeChannel(
-      () => refreshModules(true),
+      () => refreshModules(),
       () => refreshFeatures(true)
     );
 

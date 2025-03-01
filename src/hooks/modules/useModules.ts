@@ -59,7 +59,15 @@ export const useModules = () => {
     if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
       return true;
     }
-    return baseIsModuleActive(moduleCode);
+    
+    // Log pour débuggage
+    console.log(`useModules.isModuleActive: Vérification du module ${moduleCode}`);
+    
+    // Utiliser la fonction de base
+    const isActive = baseIsModuleActive(moduleCode);
+    console.log(`useModules.isModuleActive: Résultat pour ${moduleCode}: ${isActive}`);
+    
+    return isActive;
   };
 
   // Surcharger isModuleDegraded pour toujours retourner false pour le module Admin
@@ -88,7 +96,14 @@ export const useModules = () => {
       return false;
     }
     
-    return updateModuleStatusFn(moduleId, status, modules, updateModule, setModules);
+    const success = await updateModuleStatusFn(moduleId, status, modules, updateModule, setModules);
+    
+    // Forcer un rafraîchissement des modules après la mise à jour
+    if (success) {
+      await fetchModules();
+    }
+    
+    return success;
   };
 
   // Wrapper pour mettre à jour le statut d'une fonctionnalité
@@ -113,6 +128,14 @@ export const useModules = () => {
     return updateFeatureStatusSilentFn(moduleCode, featureCode, isEnabled, updateFeatureSilent);
   };
 
+  // Fonction de rafraîchissement explicite qui force la mise à jour depuis Supabase
+  const refreshModules = async () => {
+    console.log("useModules: Forçage du rafraîchissement des modules");
+    const updatedModules = await fetchModules();
+    console.log(`useModules: ${updatedModules.length} modules récupérés`);
+    return updatedModules;
+  };
+
   return {
     // États et données
     modules,
@@ -131,7 +154,7 @@ export const useModules = () => {
     updateFeatureStatusSilent,
     
     // Fonctions de rafraîchissement
-    refreshModules: fetchModules,
+    refreshModules,
     refreshDependencies: fetchDependencies,
     
     // Statut de connexion

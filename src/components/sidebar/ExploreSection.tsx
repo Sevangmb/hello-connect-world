@@ -33,12 +33,22 @@ export const ExploreSection = () => {
   // Forcer un rechargement des données des modules au montage
   useEffect(() => {
     const loadModules = async () => {
+      console.log("ExploreSection: Chargement des modules");
       await refreshModules();
+      
+      // Vérifier explicitement chaque module
+      const searchActive = isModuleActive('search');
+      const trendingActive = isModuleActive('trending');
+      const hashtagsActive = isModuleActive('hashtags');
+      const marketplaceActive = isModuleActive('marketplace');
+      
+      console.log(`ExploreSection: États des modules - search: ${searchActive}, trending: ${trendingActive}, hashtags: ${hashtagsActive}, marketplace: ${marketplaceActive}`);
+      
       setModuleStates({
-        search: isModuleActive('search'),
-        trending: isModuleActive('trending'),
-        hashtags: isModuleActive('hashtags'),
-        marketplace: isModuleActive('marketplace')
+        search: searchActive,
+        trending: trendingActive,
+        hashtags: hashtagsActive,
+        marketplace: marketplaceActive
       });
     };
     
