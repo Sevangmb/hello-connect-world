@@ -98,6 +98,25 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
     }
   }
   
+  // Vérifier dans le localStorage en direct
+  try {
+    const cachedModules = localStorage.getItem('modules_cache');
+    if (cachedModules) {
+      const modules = JSON.parse(cachedModules) as AppModule[];
+      const module = modules.find(m => m.code === moduleCode);
+      if (module) {
+        // Mettre à jour le cache de statut
+        moduleStatusCache[moduleCode] = {
+          status: module.status,
+          timestamp: Date.now()
+        };
+        return module.status;
+      }
+    }
+  } catch (e) {
+    console.error('Erreur lors de la récupération directe du cache des modules:', e);
+  }
+  
   return null;
 };
 

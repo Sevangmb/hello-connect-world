@@ -5,6 +5,7 @@ import { ModuleUnavailable } from "./ModuleUnavailable";
 import { ModuleDegraded } from "./ModuleDegraded";
 import { getModuleStatusFromCache } from "@/hooks/modules/api/moduleStatusCore";
 import { ModuleStatus } from "@/hooks/modules/types";
+import { isAdminModule } from "@/hooks/modules/api/moduleStatusCore";
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -23,11 +24,19 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   const [isDegraded, setIsDegraded] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // Utiliser une clé de mémorisation pour éviter des rendus inutiles
-  const memoKey = useMemo(() => `${moduleCode}-${Date.now()}`, [moduleCode]);
-
+  // Vérification immédiate pour les modules admin
+  const isAdmin = useMemo(() => isAdminModule(moduleCode), [moduleCode]);
+  
   // Effet qui s'exécute immédiatement pour vérifier le cache rapide
   useEffect(() => {
+    // Si c'est un module admin, on court-circuite tout le processus
+    if (isAdmin) {
+      setIsActive(true);
+      setIsDegraded(false);
+      setIsChecking(false);
+      return;
+    }
+    
     // Vérifier d'abord le cache global
     const now = Date.now();
     const cachedStatus = moduleStatusGlobalCache[moduleCode];
@@ -57,12 +66,12 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       setIsDegraded(degraded);
       setIsChecking(false);
     }
-  }, [moduleCode]);
+  }, [moduleCode, isAdmin]);
 
   // Effet principal qui s'exécute après le premier rendu si le cache rapide n'a pas fourni de résultat
   useEffect(() => {
-    // Si déjà défini par le cache rapide, ne pas continuer
-    if (isActive !== null) return;
+    // Si déjà défini par le cache rapide ou si c'est un module admin, ne pas continuer
+    if (isActive !== null || isAdmin) return;
     
     const checkModuleStatus = async () => {
       setIsChecking(true);
@@ -99,7 +108,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     }, 60000); // Vérifier toutes les minutes
     
     return () => clearInterval(intervalId);
-  }, [moduleCode, isModuleActive, isModuleDegraded, memoKey, isActive]);
+  }, [moduleCode, isModuleActive, isModuleDegraded, isAdmin, isActive]);
 
   // Pendant la vérification initiale, montrer une version simplifiée
   if (isChecking && isActive === null) {

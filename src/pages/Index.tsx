@@ -5,6 +5,12 @@ import { BottomNav } from "@/components/navigation/BottomNav";
 import { WeatherSection } from "@/components/home/WeatherSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles } from "lucide-react";
+import { Suspense, lazy } from "react";
+
+// Lazy load components to improve initial rendering
+const LazyWeatherSection = lazy(() => import("@/components/home/WeatherSection").then(
+  module => ({ default: module.WeatherSection })
+));
 
 const Index = () => {
   return (
@@ -25,7 +31,13 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          <WeatherSection />
+          <Suspense fallback={
+            <Card className="h-52 flex items-center justify-center">
+              <p className="text-muted-foreground">Chargement de la météo...</p>
+            </Card>
+          }>
+            <LazyWeatherSection />
+          </Suspense>
           
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
