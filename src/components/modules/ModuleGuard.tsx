@@ -46,7 +46,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     if (cachedStatus && (now - cachedStatus.timestamp < GLOBAL_CACHE_VALIDITY_MS)) {
       // Utiliser le cache global
       console.log(`ModuleGuard: Utilisation du cache global pour ${moduleCode}: actif=${cachedStatus.active}`);
-      setIsActive(cachedStatus.active);
+      setIsActive(true); // Toujours actif
       setIsDegraded(cachedStatus.degraded);
       setIsChecking(false);
       return;
@@ -55,19 +55,19 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     // Vérifier ensuite le cache de statut
     const moduleStatus = getModuleStatusFromCache(moduleCode);
     if (moduleStatus !== null) {
-      const active = moduleStatus === 'active';
+      const active = moduleStatus !== 'inactive'; // Actif sauf si explicitement inactif
       const degraded = moduleStatus === 'degraded';
       
       console.log(`ModuleGuard: Status de ${moduleCode} depuis le cache rapide: ${moduleStatus}`);
       
       // Mettre à jour le cache global
       moduleStatusGlobalCache[moduleCode] = {
-        active,
+        active: true, // Toujours actif
         degraded,
         timestamp: now
       };
       
-      setIsActive(active);
+      setIsActive(true); // Toujours actif
       setIsDegraded(degraded);
       setIsChecking(false);
     }
@@ -84,25 +84,26 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       try {
         console.log(`ModuleGuard: Vérification complète pour ${moduleCode}`);
         
-        // Vérifier le statut du module
-        const active = isModuleActive(moduleCode);
+        // Vérifier le statut du module mais on prétend toujours qu'il est actif
+        const active = true; // Toujours actif
+        // On garde quand même la vérification pour le statut dégradé
         const degraded = isModuleDegraded(moduleCode);
         
-        console.log(`ModuleGuard: Résultat pour ${moduleCode}: actif=${active}, dégradé=${degraded}`);
+        console.log(`ModuleGuard: Résultat pour ${moduleCode}: actif=true, dégradé=${degraded}`);
         
         // Mettre à jour le cache global
         moduleStatusGlobalCache[moduleCode] = {
-          active,
+          active: true,
           degraded,
           timestamp: Date.now()
         };
         
-        setIsActive(active);
+        setIsActive(true);
         setIsDegraded(degraded);
       } catch (error) {
         console.error(`Erreur lors de la vérification du module ${moduleCode}:`, error);
-        // En cas d'erreur, considérer le module comme inactif pour être prudent
-        setIsActive(false);
+        // En cas d'erreur, considérer quand même le module comme actif
+        setIsActive(true);
         setIsDegraded(false);
       } finally {
         setIsChecking(false);
@@ -124,13 +125,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     return <div className="inline-block py-1 px-2 text-xs text-gray-400">Chargement...</div>;
   }
 
-  // Si le module est inactif
-  if (isActive === false) {
-    // Utiliser le fallback personnalisé si fourni, sinon utiliser le composant par défaut
-    return fallback || <ModuleUnavailable moduleCode={moduleCode} />;
-  }
-
-  // Si le module est dégradé
+  // Si le module est en mode dégradé, montrer l'avertissement mais quand même rendre le contenu
   if (isDegraded) {
     return (
       <>
@@ -140,6 +135,6 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     );
   }
 
-  // Si tout est bon, rendre les enfants normalement
+  // Dans tous les cas, on rend les enfants
   return <>{children}</>;
 }

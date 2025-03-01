@@ -120,8 +120,8 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
     console.error('Erreur lors de la récupération directe du cache des modules:', e);
   }
   
-  console.log(`Module ${moduleCode} non trouvé dans les caches, retour null`);
-  return null;
+  console.log(`Module ${moduleCode} non trouvé dans les caches, retour 'active' par défaut`);
+  return 'active'; // Par défaut tout est actif
 };
 
 /**

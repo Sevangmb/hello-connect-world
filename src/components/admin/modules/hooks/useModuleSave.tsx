@@ -51,22 +51,19 @@ export const useModuleSave = ({
             .eq("id", update.id);
             
           if (error) throw error;
+          
+          toast({
+            title: "Statut enregistré",
+            description: `Module ${modules.find(m => m.id === update.id)?.name}: ${update.status}`,
+          });
         }
       }
       
-      // Appliquer tous les changements de modules
+      // Appliquer tous les changements de modules - important même si tout est actif par défaut dans l'UI
       const updatePromises = Object.entries(pendingChanges).map(async ([moduleId, newStatus]) => {
         // Trouver le module
         const module = modules.find(m => m.id === moduleId);
         if (!module) return;
-        
-        // Si le module est désactivé, désactiver également toutes ses fonctionnalités
-        if (newStatus === 'inactive' && module.features) {
-          const featurePromises = Object.keys(module.features).map(featureCode => 
-            updateFeatureStatus(module.code, featureCode, false)
-          );
-          await Promise.all(featurePromises);
-        }
         
         // Mettre à jour le statut du module
         await updateModuleStatus(moduleId, newStatus);

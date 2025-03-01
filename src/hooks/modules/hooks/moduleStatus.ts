@@ -26,7 +26,8 @@ export const getModuleActiveStatus = (
     const module = inMemoryModulesCache.find(m => m.code === moduleCode);
     if (module) {
       console.log(`Found module ${moduleCode} in memory cache with status: ${module.status}`);
-      return module.status === 'active';
+      // Par défaut, considérer actif sauf si explicitement désactivé
+      return module.status !== 'inactive';
     }
   }
   
@@ -35,7 +36,8 @@ export const getModuleActiveStatus = (
     const module = internalModules.find(m => m.code === moduleCode);
     if (module) {
       console.log(`Found module ${moduleCode} in internal modules with status: ${module.status}`);
-      return module.status === 'active';
+      // Par défaut, considérer actif sauf si explicitement désactivé
+      return module.status !== 'inactive';
     }
   }
 
@@ -43,14 +45,15 @@ export const getModuleActiveStatus = (
   const cachedStatuses = getModuleStatusesFromCache();
   if (cachedStatuses && cachedStatuses[moduleCode] !== undefined) {
     console.log(`Found module ${moduleCode} in localStorage cache with status: ${cachedStatuses[moduleCode]}`);
-    return cachedStatuses[moduleCode] === 'active';
+    // Par défaut, considérer actif sauf si explicitement désactivé
+    return cachedStatuses[moduleCode] !== 'inactive';
   }
 
   // Log if module not found
-  console.log(`Module ${moduleCode} not found in any cache, defaulting to false`);
+  console.log(`Module ${moduleCode} not found in any cache, defaulting to true`);
   
-  // Par défaut, inactif pour éviter des problèmes d'accès non autorisé
-  return false;
+  // Par défaut, actif pour rendre tous les modules accessibles
+  return true;
 };
 
 /**
@@ -114,6 +117,6 @@ export const getFeatureEnabledStatus = (
     }
   }
 
-  // Par défaut désactivé
-  return false;
+  // Par défaut activé
+  return true;
 };
