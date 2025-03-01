@@ -12,7 +12,8 @@ import {
   updateModuleStatusInDb, 
   updateFeatureStatusInDb,
   updateModuleCache,
-  getModuleCache
+  getModuleCache,
+  isAdminModule
 } from '../api/moduleStatus';
 import { broadcastModuleStatusChange } from '../tabSync';
 import { triggerModuleStatusChanged } from '../events';
