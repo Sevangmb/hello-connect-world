@@ -19,13 +19,6 @@ interface MainSidebarProps {
   onClose?: () => void;
 }
 
-// Cache des statuts administratifs pour éviter des appels répétés
-const adminStatusCache = {
-  isAdmin: false,
-  timestamp: 0,
-  checked: false
-};
-
 // Mémorisation des composants de sections pour éviter des rendus inutiles
 const MemoizedHomeSection = memo(HomeSection);
 const MemoizedExploreSection = memo(ExploreSection);
@@ -39,47 +32,14 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
   const [isAdmin, setIsAdmin] = useState(false);
   const { refreshModules } = useModules();
 
-  // Optimisation : vérifier si on doit recharger les modules
-  const initModules = useCallback(async () => {
-    // Vérifier si nous avons déjà rechargé récemment
-    const now = Date.now();
-    const lastRefresh = parseInt(localStorage.getItem('last_modules_refresh') || '0', 10);
-    
-    // Ne recharger que si le dernier rechargement date de plus de 2 minutes
-    if (now - lastRefresh > 120000) {
-      console.log("Rechargement des modules dans le sidebar principal");
-      try {
-        await refreshModules();
-        localStorage.setItem('last_modules_refresh', now.toString());
-      } catch (error) {
-        console.error("Erreur lors du rechargement des modules:", error);
-      }
-    } else {
-      console.log("Utilisation du cache des modules récent");
-    }
-  }, [refreshModules]);
-
   // N'initialiser qu'au montage
   useEffect(() => {
-    initModules();
+    refreshModules();
   }, []);
 
-  // Vérifier si l'utilisateur est administrateur, avec mise en cache
+  // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
-      // Si déjà vérifié, ne pas revérifier
-      if (adminStatusCache.checked) {
-        setIsAdmin(adminStatusCache.isAdmin);
-        return;
-      }
-      
-      // Vérifier si nous avons un cache récent (moins de 30 minutes)
-      const now = Date.now();
-      if (now - adminStatusCache.timestamp < 30 * 60 * 1000) {
-        setIsAdmin(adminStatusCache.isAdmin);
-        return;
-      }
-      
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -92,9 +52,6 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
           
           if (isUserAdmin !== undefined) {
             setIsAdmin(!!isUserAdmin);
-            adminStatusCache.isAdmin = !!isUserAdmin;
-            adminStatusCache.timestamp = now;
-            adminStatusCache.checked = true;
             return;
           }
         } catch (error) {
@@ -108,11 +65,7 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
           .eq('id', user.id)
           .single();
 
-        const isAdminValue = profile?.is_admin || false;
-        setIsAdmin(isAdminValue);
-        adminStatusCache.isAdmin = isAdminValue;
-        adminStatusCache.timestamp = now;
-        adminStatusCache.checked = true;
+        setIsAdmin(profile?.is_admin || false);
       } catch (error) {
         console.error("Error checking admin status:", error);
       }
@@ -124,7 +77,6 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
       if (devBypass === 'true') {
         console.warn("DEV MODE: Admin bypass enabled in sidebar");
         setIsAdmin(true);
-        adminStatusCache.checked = true;
         return;
       }
     }

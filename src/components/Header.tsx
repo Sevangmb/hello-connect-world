@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { Menu, Settings, LogOut, User, Store, Package } from "lucide-react";
+import { Menu, Settings, LogOut, User, Store, Package, Shield } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -171,7 +171,7 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/admin/dashboard" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
+                      <Shield className="mr-2 h-4 w-4" />
                       <span>Administration</span>
                     </Link>
                   </DropdownMenuItem>
@@ -207,8 +207,11 @@ export function Header() {
             </Button>
             
             {isAdmin && (
-              <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>Admin</Link>
+              <Button variant="ghost" className="w-full justify-start text-primary" asChild>
+                <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Administration
+                </Link>
               </Button>
             )}
           </div>

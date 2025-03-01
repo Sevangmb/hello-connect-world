@@ -8,7 +8,6 @@ import { useModuleCore } from "./useModuleCore";
 import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
 import { ModuleStatus } from "./types";
 import { useEffect, useState } from "react";
-import { getModuleStatusFromCache } from "./api/moduleStatusCore";
 import { supabase } from "@/integrations/supabase/client";
 
 // Constante pour identifier le module Admin
