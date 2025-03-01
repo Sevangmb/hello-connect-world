@@ -1,17 +1,28 @@
 
 import { ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
-import { isAdminModule } from './moduleStatusCore';
-import { getModuleCache } from './moduleStatusCore';
+import { isAdminModule, getModuleCache, getModuleStatusFromCache } from './moduleStatusCore';
+
+// Cache des résultats des vérifications pour éviter des appels répétés
+const featuresEnabledCache: Record<string, {enabled: boolean, timestamp: number}> = {};
+// Durée de validité du cache de features: 30 secondes
+const FEATURES_CACHE_VALIDITY_MS = 30000;
 
 /**
  * Vérifie si un module est actif (version asynchrone)
+ * Utilise d'abord le cache, puis interroge Supabase si nécessaire
  */
 export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolean> => {
   // Si c'est le module Admin ou commence par 'admin', toujours retourner true
   if (isAdminModule(moduleCode)) return true;
 
-  // Essayer d'abord le cache en mémoire
+  // Essayer d'abord le cache rapide
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'active';
+  }
+
+  // Essayer ensuite le cache en mémoire
   const { inMemoryModulesCache } = getModuleCache();
   if (inMemoryModulesCache) {
     const module = inMemoryModulesCache.find(m => m.code === moduleCode);
@@ -22,6 +33,7 @@ export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolea
 
   // Si pas de cache ou module non trouvé, charger depuis Supabase
   try {
+    console.log(`Module ${moduleCode} non trouvé en cache, chargement depuis Supabase...`);
     const { data, error } = await supabase
       .from('app_modules')
       .select('status')
@@ -42,12 +54,19 @@ export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolea
 
 /**
  * Vérifie si un module est en mode dégradé (version asynchrone)
+ * Utilise d'abord le cache, puis interroge Supabase si nécessaire
  */
 export const checkModuleDegradedAsync = async (moduleCode: string): Promise<boolean> => {
   // Si c'est le module Admin ou commence par 'admin', jamais en mode dégradé
   if (isAdminModule(moduleCode)) return false;
 
-  // Essayer d'abord le cache en mémoire
+  // Essayer d'abord le cache rapide
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'degraded';
+  }
+
+  // Essayer ensuite le cache en mémoire
   const { inMemoryModulesCache } = getModuleCache();
   if (inMemoryModulesCache) {
     const module = inMemoryModulesCache.find(m => m.code === moduleCode);
@@ -58,6 +77,7 @@ export const checkModuleDegradedAsync = async (moduleCode: string): Promise<bool
 
   // Si pas de cache ou module non trouvé, charger depuis Supabase
   try {
+    console.log(`Module ${moduleCode} non trouvé en cache, chargement depuis Supabase...`);
     const { data, error } = await supabase
       .from('app_modules')
       .select('status')
@@ -78,6 +98,7 @@ export const checkModuleDegradedAsync = async (moduleCode: string): Promise<bool
 
 /**
  * Vérifie si une fonctionnalité spécifique est activée (version asynchrone)
+ * Utilise d'abord le cache, puis interroge Supabase si nécessaire
  */
 export const checkFeatureEnabledAsync = async (
   moduleCode: string, 
@@ -87,9 +108,22 @@ export const checkFeatureEnabledAsync = async (
   // Si c'est le module Admin ou commence par 'admin', toujours activer ses fonctionnalités
   if (isAdminModule(moduleCode)) return true;
 
+  // Créer une clé unique pour le cache
+  const cacheKey = `${moduleCode}:${featureCode}`;
+  
+  // Vérifier dans le cache des fonctionnalités
+  const cachedFeature = featuresEnabledCache[cacheKey];
+  if (cachedFeature && (Date.now() - cachedFeature.timestamp < FEATURES_CACHE_VALIDITY_MS)) {
+    return cachedFeature.enabled;
+  }
+
   // Vérifier d'abord si le module est actif
   const moduleActive = await isModuleActive(moduleCode);
-  if (!moduleActive) return false;
+  if (!moduleActive) {
+    // Mettre à jour le cache avec "false"
+    featuresEnabledCache[cacheKey] = { enabled: false, timestamp: Date.now() };
+    return false;
+  }
 
   // Si pas en mémoire, charger depuis Supabase
   try {
@@ -105,7 +139,12 @@ export const checkFeatureEnabledAsync = async (
       return false;
     }
 
-    return data?.is_enabled || false;
+    const isEnabled = data?.is_enabled || false;
+    
+    // Mettre à jour le cache
+    featuresEnabledCache[cacheKey] = { enabled: isEnabled, timestamp: Date.now() };
+    
+    return isEnabled;
   } catch (e) {
     console.error('Exception lors de la vérification du statut de la fonctionnalité:', e);
     return false;

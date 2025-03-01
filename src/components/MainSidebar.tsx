@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,22 +22,31 @@ interface MainSidebarProps {
 // Cache des statuts administratifs pour éviter des appels répétés
 const adminStatusCache = {
   isAdmin: false,
-  timestamp: 0
+  timestamp: 0,
+  checked: false
 };
 
-export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
+// Mémorisation des composants de sections pour éviter des rendus inutiles
+const MemoizedHomeSection = memo(HomeSection);
+const MemoizedExploreSection = memo(ExploreSection);
+const MemoizedPersonalSection = memo(PersonalSection); 
+const MemoizedCommunitySection = memo(CommunitySection);
+const MemoizedProfileSection = memo(ProfileSection);
+const MemoizedAdminSection = memo(AdminSection);
+
+// Composant principal du sidebar mémorisé
+export default memo(function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { refreshModules } = useModules();
 
-  // Forcer un rechargement des modules au montage pour s'assurer que tout est à jour
-  // Utiliser useCallback pour éviter des rendus inutiles
+  // Optimisation : vérifier si on doit recharger les modules
   const initModules = useCallback(async () => {
     // Vérifier si nous avons déjà rechargé récemment
     const now = Date.now();
     const lastRefresh = parseInt(localStorage.getItem('last_modules_refresh') || '0', 10);
     
-    // Ne recharger que si le dernier rechargement date de plus de 30 secondes
-    if (now - lastRefresh > 30000) {
+    // Ne recharger que si le dernier rechargement date de plus de 2 minutes
+    if (now - lastRefresh > 120000) {
       console.log("Rechargement des modules dans le sidebar principal");
       try {
         await refreshModules();
@@ -50,16 +59,23 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
     }
   }, [refreshModules]);
 
+  // N'initialiser qu'au montage
   useEffect(() => {
     initModules();
-  }, [initModules]);
+  }, []);
 
   // Vérifier si l'utilisateur est administrateur, avec mise en cache
   useEffect(() => {
     const checkAdminStatus = async () => {
-      // Vérifier si nous avons un cache récent (moins de 5 minutes)
+      // Si déjà vérifié, ne pas revérifier
+      if (adminStatusCache.checked) {
+        setIsAdmin(adminStatusCache.isAdmin);
+        return;
+      }
+      
+      // Vérifier si nous avons un cache récent (moins de 30 minutes)
       const now = Date.now();
-      if (now - adminStatusCache.timestamp < 5 * 60 * 1000) {
+      if (now - adminStatusCache.timestamp < 30 * 60 * 1000) {
         setIsAdmin(adminStatusCache.isAdmin);
         return;
       }
@@ -78,6 +94,7 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
             setIsAdmin(!!isUserAdmin);
             adminStatusCache.isAdmin = !!isUserAdmin;
             adminStatusCache.timestamp = now;
+            adminStatusCache.checked = true;
             return;
           }
         } catch (error) {
@@ -95,6 +112,7 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         setIsAdmin(isAdminValue);
         adminStatusCache.isAdmin = isAdminValue;
         adminStatusCache.timestamp = now;
+        adminStatusCache.checked = true;
       } catch (error) {
         console.error("Error checking admin status:", error);
       }
@@ -106,6 +124,7 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
       if (devBypass === 'true') {
         console.warn("DEV MODE: Admin bypass enabled in sidebar");
         setIsAdmin(true);
+        adminStatusCache.checked = true;
         return;
       }
     }
@@ -138,28 +157,40 @@ export default function MainSidebar({ isOpen = false, onClose }: MainSidebarProp
         )}
         <ScrollArea className="h-full px-4 py-6">
           <Accordion type="single" collapsible defaultValue="personal">
-            <HomeSection />
+            <MemoizedHomeSection />
             
-            <ModuleGuard moduleCode="explore">
-              <ExploreSection />
+            <ModuleGuard 
+              moduleCode="explore" 
+              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Explorer (désactivé)</div>}
+            >
+              <MemoizedExploreSection />
             </ModuleGuard>
             
-            <ModuleGuard moduleCode="wardrobe">
-              <PersonalSection />
+            <ModuleGuard 
+              moduleCode="wardrobe"
+              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Mon Univers (désactivé)</div>}
+            >
+              <MemoizedPersonalSection />
             </ModuleGuard>
             
-            <ModuleGuard moduleCode="community">
-              <CommunitySection />
+            <ModuleGuard 
+              moduleCode="community"
+              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Social (désactivé)</div>}
+            >
+              <MemoizedCommunitySection />
             </ModuleGuard>
             
-            <ModuleGuard moduleCode="profile">
-              <ProfileSection />
+            <ModuleGuard 
+              moduleCode="profile"
+              fallback={<div className="opacity-40 text-sm text-gray-400 p-2">Profil (désactivé)</div>}
+            >
+              <MemoizedProfileSection />
             </ModuleGuard>
             
-            {isAdmin && <AdminSection />}
+            {isAdmin && <MemoizedAdminSection />}
           </Accordion>
         </ScrollArea>
       </nav>
     </>
   );
-}
+});

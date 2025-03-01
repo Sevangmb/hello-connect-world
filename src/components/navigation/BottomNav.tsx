@@ -4,8 +4,7 @@ import {
   Search,
   ShoppingBag,
   Users,
-  User,
-  Bell
+  User
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -19,6 +18,7 @@ import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { useNotifications } from "@/hooks/useNotifications";
 import { memo } from "react";
 
+// Menu items configuration
 const MENU_ITEMS = [
   {
     label: "Accueil",
@@ -58,7 +58,7 @@ const MENU_ITEMS = [
   }
 ];
 
-// Composant pour afficher le bouton sans module
+// Composant pour afficher le bouton sans module - mémorisé pour éviter les rendus inutiles
 const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   <TooltipProvider key={item.path}>
     <Tooltip>
@@ -102,7 +102,7 @@ const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   </TooltipProvider>
 ));
 
-// Fallback pour les modules désactivés
+// Fallback pour les modules désactivés - mémorisé pour éviter les rendus inutiles
 const DisabledNavButton = memo(({ item }: any) => (
   <TooltipProvider>
     <Tooltip>
@@ -135,7 +135,8 @@ const DisabledNavButton = memo(({ item }: any) => (
   </TooltipProvider>
 ));
 
-export const BottomNav = () => {
+// Composant principal mémorisé pour éviter les rendus inutiles
+export const BottomNav = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const { notifications } = useNotifications();
@@ -153,6 +154,7 @@ export const BottomNav = () => {
     
     const button = (
       <NavButton 
+        key={`btn-${item.path}`}
         item={item} 
         isActive={isActive} 
         unreadCount={unreadCount} 
@@ -164,9 +166,9 @@ export const BottomNav = () => {
     if (item.moduleCode) {
       return (
         <ModuleGuard 
-          key={item.path} 
+          key={`guard-${item.path}`} 
           moduleCode={item.moduleCode}
-          fallback={<DisabledNavButton item={item} />}
+          fallback={<DisabledNavButton key={`disabled-${item.path}`} item={item} />}
         >
           {button}
         </ModuleGuard>
@@ -203,4 +205,4 @@ export const BottomNav = () => {
       </div>
     </nav>
   );
-};
+});
