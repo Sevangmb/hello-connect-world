@@ -3,13 +3,13 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { AppModule, ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
-// Importer les fonctions des nouveaux fichiers
+// Importer les fonctions des nouveaux fichiers refactorisés
 import { 
   getModuleActiveStatus,
   getModuleDegradedStatus,
   getFeatureEnabledStatus,
   preloadModuleStatuses
-} from './moduleStatus';
+} from './status';
 
 import {
   isModuleActiveAsync,
@@ -19,7 +19,7 @@ import {
   refreshFeaturesData,
   updateModuleStatusData,
   updateFeatureStatusData
-} from './moduleQueries';
+} from './queries';
 
 import { initializeModuleApi } from './moduleInitialization';
 
