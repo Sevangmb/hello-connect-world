@@ -8,6 +8,7 @@ import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
 import { supabase } from '@/integrations/supabase/client';
+import { ADMIN_MODULE_CODE } from '@/hooks/modules/constants';
 
 export const useMenu = (options?: {
   category?: MenuItemCategory;
@@ -28,7 +29,23 @@ export const useMenu = (options?: {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
-        // Vérifier si l'utilisateur est admin
+        // Essayer d'abord avec RPC si disponible
+        try {
+          const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
+            user_id: user.id
+          });
+          
+          if (rpcError) {
+            console.error("RPC error:", rpcError);
+          } else if (isAdmin !== undefined) {
+            setIsUserAdmin(!!isAdmin);
+            return;
+          }
+        } catch (error) {
+          console.log("RPC not available, using direct query");
+        }
+        
+        // Fallback à la requête directe
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_admin')
@@ -51,7 +68,11 @@ export const useMenu = (options?: {
       try {
         let items: MenuItem[] = [];
         
-        if (options?.category) {
+        if (options?.category === 'admin') {
+          // Pour la catégorie admin, toujours récupérer les items de menu admin
+          // sans vérifier si le module admin est actif
+          items = await MenuService.getMenuItemsByCategory('admin', isUserAdmin);
+        } else if (options?.category) {
           // Récupérer les éléments de menu par catégorie
           items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
         } else if (options?.moduleCode) {
@@ -60,6 +81,18 @@ export const useMenu = (options?: {
         } else {
           // Récupérer tous les éléments de menu visibles
           items = await MenuService.getVisibleMenuItems(isUserAdmin);
+          
+          // Si l'utilisateur est admin, s'assurer que les menus admin sont inclus
+          if (isUserAdmin && !options?.category) {
+            const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
+            // Ajouter uniquement les éléments admin qui ne sont pas déjà présents
+            const existingIds = new Set(items.map(item => item.id));
+            for (const adminItem of adminItems) {
+              if (!existingIds.has(adminItem.id)) {
+                items.push(adminItem);
+              }
+            }
+          }
         }
         
         setMenuItems(items);

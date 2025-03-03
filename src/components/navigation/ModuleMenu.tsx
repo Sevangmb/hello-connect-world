@@ -17,7 +17,12 @@ interface CategoryGroupProps {
 
 // Composant pour grouper les éléments de menu par catégorie
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
-  const { menuItems, loading } = useMenu({ category });
+  const { menuItems, loading, isUserAdmin } = useMenu({ category });
+  
+  // Ne pas afficher la catégorie admin si l'utilisateur n'est pas admin
+  if (category === 'admin' && !isUserAdmin) {
+    return null;
+  }
   
   // Ne pas afficher si aucun élément dans cette catégorie
   if (!loading && menuItems.length === 0) {
@@ -34,20 +39,10 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
   );
 };
 
-// Composant de menu d'administration conditionnel
-const AdminMenuGroup: React.FC = () => {
-  const { isUserAdmin } = useMenu();
-  
-  if (!isUserAdmin) {
-    return null;
-  }
-  
-  return <CategoryGroup title="Administration" category="admin" />;
-};
-
 // Composant de menu principal
 export const ModuleMenu: React.FC = () => {
   const { isModuleDegraded } = useModuleRegistry();
+  const { isUserAdmin } = useMenu();
   
   return (
     <TooltipProvider>
@@ -58,8 +53,10 @@ export const ModuleMenu: React.FC = () => {
         <CategoryGroup title="Marketplace" category="marketplace" />
         <CategoryGroup title="Utilitaires" category="utility" />
         
-        {/* Menu d'administration toujours affiché pour les admin */}
-        <AdminMenuGroup />
+        {/* Menu d'administration - toujours affiché pour les admin */}
+        {isUserAdmin && (
+          <CategoryGroup title="Administration" category="admin" />
+        )}
         
         <CategoryGroup title="Système" category="system" />
       </div>
