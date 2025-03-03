@@ -7,6 +7,9 @@ import { ChallengeMetadata } from "./ChallengeMetadata";
 import { ParticipantsList } from "./ParticipantsList";
 import { useChallengeActions } from "./ChallengeActions";
 import { Challenge } from "./types";
+import { useModules } from "@/hooks/modules";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ChallengesListProps {
   filter: "ongoing" | "upcoming" | "completed";
@@ -14,11 +17,37 @@ interface ChallengesListProps {
 
 export const ChallengesList = ({ filter }: ChallengesListProps) => {
   const { handleJoinChallenge, handleVote } = useChallengeActions();
+  const { isModuleActive } = useModules();
+  const { toast } = useToast();
+  const [isModuleEnabled, setIsModuleEnabled] = useState(true);
   const now = new Date().toISOString();
+
+  // Vérifier si le module est actif
+  useEffect(() => {
+    const checkModuleStatus = async () => {
+      const isEnabled = isModuleActive('challenges');
+      setIsModuleEnabled(isEnabled);
+      
+      if (!isEnabled) {
+        toast({
+          variant: "destructive",
+          title: "Module désactivé",
+          description: "Le module des défis est actuellement désactivé."
+        });
+      }
+    };
+    
+    checkModuleStatus();
+  }, [isModuleActive, toast]);
 
   const { data: challenges, isLoading } = useQuery({
     queryKey: ["challenges", filter],
     queryFn: async () => {
+      // Vérifier si le module est actif avant de charger les données
+      if (!isModuleEnabled) {
+        return [];
+      }
+      
       console.log("Fetching challenges...");
       
       // D'abord, mettre à jour le statut des défis terminés
@@ -89,7 +118,17 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
       console.log("Fetched challenges:", data);
       return data as Challenge[];
     },
+    enabled: isModuleEnabled // Activer/désactiver la requête en fonction du statut du module
   });
+
+  // Si le module est désactivé, afficher un message
+  if (!isModuleEnabled) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Le module des défis est actuellement désactivé.
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

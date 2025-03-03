@@ -15,47 +15,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/useNotifications";
-import { memo, useMemo, useCallback } from "react";
-
-// Menu items configuration
-const MENU_ITEMS = [
-  {
-    label: "Accueil",
-    icon: Home,
-    path: "/",
-    description: "Météo et suggestions"
-  },
-  {
-    label: "Explorer",
-    icon: Search,
-    path: "/explore",
-    description: "Recherche et tendances",
-    moduleCode: "explore"
-  },
-  {
-    label: "Mon Univers",
-    icon: ShoppingBag,
-    path: "/personal",
-    description: "Garde-robe et tenues",
-    isMain: true,
-    moduleCode: "wardrobe"
-  },
-  {
-    label: "Social",
-    icon: Users,
-    path: "/friends",
-    description: "Amis et groupes",
-    moduleCode: "community",
-    hasNotifications: true
-  },
-  {
-    label: "Profil",
-    icon: User,
-    path: "/profile",
-    description: "Mon profil et paramètres",
-    moduleCode: "profile"
-  }
-];
+import { memo, useMemo, useCallback, useEffect, useState } from "react";
+import { useModules } from "@/hooks/modules";
 
 // Composant pour afficher le bouton - mémorisé pour éviter les rendus inutiles
 const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
@@ -106,11 +67,86 @@ export const BottomNav = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const { notifications } = useNotifications();
+  const { isModuleActive, refreshModules } = useModules();
+  
+  // État pour suivre les modules actifs
+  const [activeModules, setActiveModules] = useState({
+    explore: false,
+    wardrobe: false,
+    community: false,
+    profile: false
+  });
+  
+  // Charger l'état des modules au montage
+  useEffect(() => {
+    const loadModuleStatus = async () => {
+      await refreshModules();
+      setActiveModules({
+        explore: isModuleActive('explore'),
+        wardrobe: isModuleActive('wardrobe'),
+        community: isModuleActive('community'),
+        profile: isModuleActive('profile')
+      });
+    };
+    
+    loadModuleStatus();
+  }, [refreshModules, isModuleActive]);
   
   // Compteur de notifications non lues
   const unreadCount = useMemo(() => 
     notifications?.filter(n => !n.read).length || 0,
     [notifications]
+  );
+
+  // Configuration des éléments du menu
+  const MENU_ITEMS = useMemo(() => [
+    {
+      label: "Accueil",
+      icon: Home,
+      path: "/",
+      description: "Météo et suggestions",
+      isAlwaysVisible: true // Toujours visible
+    },
+    {
+      label: "Explorer",
+      icon: Search,
+      path: "/explore",
+      description: "Recherche et tendances",
+      moduleCode: "explore",
+      isVisible: activeModules.explore
+    },
+    {
+      label: "Mon Univers",
+      icon: ShoppingBag,
+      path: "/personal",
+      description: "Garde-robe et tenues",
+      isMain: true,
+      moduleCode: "wardrobe",
+      isVisible: activeModules.wardrobe
+    },
+    {
+      label: "Social",
+      icon: Users,
+      path: "/friends",
+      description: "Amis et groupes",
+      moduleCode: "community",
+      hasNotifications: true,
+      isVisible: activeModules.community
+    },
+    {
+      label: "Profil",
+      icon: User,
+      path: "/profile",
+      description: "Mon profil et paramètres",
+      moduleCode: "profile",
+      isVisible: activeModules.profile
+    }
+  ], [activeModules]);
+
+  // Filtrer pour n'afficher que les modules actifs ou toujours visibles
+  const visibleMenuItems = useMemo(() => 
+    MENU_ITEMS.filter(item => item.isAlwaysVisible || item.isVisible),
+    [MENU_ITEMS]
   );
 
   // Déterminer si un élément est actif
@@ -122,16 +158,14 @@ export const BottomNav = memo(() => {
 
   // Générer les boutons de navigation de manière optimisée
   const navElements = useMemo(() => {
-    return MENU_ITEMS.map(item => {
+    return visibleMenuItems.map(item => {
       const isActive = isItemActive(item.path);
       
       // Créer une fonction de clic avec capture de l'élément spécifique
       const handleClick = () => {
-        console.log(`Navigation vers: ${item.path}`);
         navigate(item.path);
       };
 
-      // Afficher directement tous les boutons, sans ModuleGuard
       return (
         <NavButton 
           key={`btn-${item.path}`}
@@ -142,12 +176,12 @@ export const BottomNav = memo(() => {
         />
       );
     });
-  }, [navigate, isItemActive, unreadCount]);
+  }, [visibleMenuItems, isItemActive, unreadCount, navigate]);
 
   // Créer un tableau d'indicateurs actifs pour l'affichage des traits en haut
   const activeIndicators = useMemo(() => 
-    MENU_ITEMS.map(item => isItemActive(item.path)),
-    [isItemActive]
+    visibleMenuItems.map(item => isItemActive(item.path)),
+    [visibleMenuItems, isItemActive]
   );
 
   return (

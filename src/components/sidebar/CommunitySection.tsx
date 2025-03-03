@@ -115,17 +115,19 @@ export const CommunitySection = () => {
               Groupes
             </Button>
           )}
-          {/* Afficher le bouton des défis */}
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start gap-2", {
-              "bg-custom-blue text-white": location.pathname === "/challenges",
-            })}
-            onClick={() => navigate("/challenges")}
-          >
-            <Award className="h-4 w-4" />
-            Défis
-          </Button>
+          {/* Afficher le bouton des défis uniquement si le module est actif */}
+          {moduleStates.challenges && (
+            <Button
+              variant="ghost"
+              className={cn("w-full justify-start gap-2", {
+                "bg-custom-blue text-white": location.pathname === "/challenges",
+              })}
+              onClick={() => navigate("/challenges")}
+            >
+              <Award className="h-4 w-4" />
+              Défis
+            </Button>
+          )}
         </div>
       </AccordionContent>
     </AccordionItem>
