@@ -8,7 +8,7 @@ import { AppModule } from "../types";
  */
 export const refreshModulesWithCache = async (
   setModules: (modules: AppModule[]) => void
-): Promise<void> => {
+): Promise<AppModule[]> => {
   console.log("Refreshing modules with cache fallback");
   
   try {
@@ -47,7 +47,7 @@ export const refreshModulesWithCache = async (
         console.warn("Could not save modules to localStorage:", storageErr);
       }
       
-      return;
+      return formattedModules;
     }
   } catch (error) {
     console.error("Error refreshing modules:", error);
@@ -61,7 +61,7 @@ export const refreshModulesWithCache = async (
       const modules = JSON.parse(cachedModules) as AppModule[];
       console.log("Using cached modules from localStorage:", modules.length);
       setModules(modules);
-      return;
+      return modules;
     }
   } catch (cacheError) {
     console.error("Error loading cached modules:", cacheError);
@@ -69,7 +69,7 @@ export const refreshModulesWithCache = async (
   
   // Final fallback: If all else fails, use hardcoded minimal core modules
   console.log("Using fallback core modules");
-  setModules([
+  const fallbackModules = [
     {
       id: "core-1",
       name: "Core",
@@ -78,7 +78,61 @@ export const refreshModulesWithCache = async (
       is_core: true,
       description: "Core functionality"
     } as AppModule
-  ]);
+  ];
+  setModules(fallbackModules);
+  return fallbackModules;
+};
+
+/**
+ * Refreshes modules with retry mechanism
+ * @param setModules Function to set modules in state
+ * @param maxRetries Maximum number of retries
+ */
+export const refreshModulesWithRetry = async (
+  setModules: (modules: AppModule[]) => void,
+  maxRetries: number = 3
+): Promise<AppModule[]> => {
+  console.log("Refreshing modules with retry mechanism");
+  
+  let retries = 0;
+  let lastError: Error | null = null;
+  
+  while (retries < maxRetries) {
+    try {
+      return await refreshModulesWithCache(setModules);
+    } catch (error) {
+      retries++;
+      lastError = error as Error;
+      console.error(`Retry ${retries}/${maxRetries} failed:`, error);
+      
+      if (retries < maxRetries) {
+        // Exponential backoff
+        const delay = 1000 * Math.pow(2, retries);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  // If all retries fail, use fallback
+  console.error(`All ${maxRetries} retries failed, using fallback modules`);
+  
+  if (lastError) {
+    console.error("Last error:", lastError);
+  }
+  
+  const fallbackModules = [
+    {
+      id: "core-1",
+      name: "Core",
+      code: "core",
+      status: "active",
+      is_core: true,
+      description: "Core functionality"
+    } as AppModule
+  ];
+  
+  setModules(fallbackModules);
+  return fallbackModules;
 };
 
 /**

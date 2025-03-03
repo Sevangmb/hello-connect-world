@@ -236,8 +236,8 @@ export default function AdminNotifications() {
                     <Badge
                       variant={
                         notification.type === "info" ? "default" :
-                        notification.type === "warning" ? "warning" :
-                        notification.type === "success" ? "success" :
+                        notification.type === "warning" ? "secondary" :
+                        notification.type === "success" ? "outline" :
                         "destructive"
                       }
                     >

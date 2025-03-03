@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModulesHeader } from "./components/ModulesHeader";
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModuleFeatures } from "./ModuleFeatures";
 import { Info, CircleCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AppModule } from "@/hooks/modules/types";
 
 interface ModulesListProps {
   onStatusChange?: () => void;
@@ -42,7 +44,10 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     modules,
     updateModuleStatus,
     updateFeatureStatus,
-    refreshModules,
+    refreshModules: async (): Promise<AppModule[]> => {
+      await refreshModules();
+      return modules;
+    },
     pendingChanges,
     resetPendingChanges,
     onStatusChange

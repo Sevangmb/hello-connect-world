@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Grid, List, MapPin, Plus, Search, ShoppingBag, SlidersHorizontal, Store } from "lucide-react";
+import { Calendar, Grid, List, MapPin, Plus, Search, ShoppingBag, SlidersHorizontal, Store, X as XIcon } from "lucide-react";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
@@ -274,7 +274,7 @@ export default function Boutiques() {
               {filters.category !== "all" && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Catégorie: {filters.category}
-                  <X 
+                  <XIcon 
                     className="h-3 w-3 ml-1 cursor-pointer" 
                     onClick={() => setFilters({...filters, category: "all"})}
                   />
@@ -283,7 +283,7 @@ export default function Boutiques() {
               {filters.priceRange !== "all" && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Prix: {filters.priceRange}
-                  <X 
+                  <XIcon 
                     className="h-3 w-3 ml-1 cursor-pointer" 
                     onClick={() => setFilters({...filters, priceRange: "all"})}
                   />
@@ -292,7 +292,7 @@ export default function Boutiques() {
               {filters.style !== "all" && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   Style: {filters.style}
-                  <X 
+                  <XIcon 
                     className="h-3 w-3 ml-1 cursor-pointer" 
                     onClick={() => setFilters({...filters, style: "all"})}
                   />
