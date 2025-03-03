@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 
 export function Header() {
   const navigate = useNavigate();
@@ -35,12 +37,20 @@ export function Header() {
           if (devBypass === 'true') {
             console.warn("DEV MODE: Admin bypass enabled in header");
             setIsAdmin(true);
+            moduleMenuCoordinator.enableAdminAccess();
             return;
           }
         }
 
         const isUserAdmin = await userService.isUserAdmin(user.id);
         setIsAdmin(isUserAdmin);
+        
+        // Synchroniser avec le coordinateur
+        if (isUserAdmin) {
+          moduleMenuCoordinator.enableAdminAccess();
+        } else {
+          moduleMenuCoordinator.disableAdminAccess();
+        }
       } catch (error) {
         console.error("Error checking admin status:", error);
       }

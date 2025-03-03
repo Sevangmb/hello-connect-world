@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
+import { useModules } from "@/hooks/modules/useModules";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -21,13 +23,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   className,
   hierarchical = false,
 }) => {
-  const { menuItems, loading, error } = useMenu({
+  const { menuItems, loading, error, isUserAdmin, refreshMenu } = useMenu({
     category,
     moduleCode,
     hierarchical,
   });
   const navigate = useNavigate();
   const location = useLocation();
+  const { modules } = useModules();
 
   // Vérifier si un chemin est actif
   const isActive = (path: string) => {
@@ -45,6 +48,22 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     const IconComponent = LucideIcons[iconName];
     return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
+  
+  // Vérifier si un menu est visible
+  const isMenuItemVisible = (moduleCode: string | null) => {
+    if (!moduleCode) return true;
+    
+    // Si c'est un module admin et que l'utilisateur est admin, toujours visible
+    if ((moduleCode === 'admin' || moduleCode.startsWith('admin_')) && isUserAdmin) {
+      return true;
+    }
+    
+    // Sinon vérifier avec le coordinateur
+    return moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules);
+  };
+
+  // Filtrer les éléments de menu selon leur visibilité
+  const visibleMenuItems = menuItems.filter(item => !item.moduleCode || isMenuItemVisible(item.moduleCode));
 
   if (loading) {
     return (
@@ -63,13 +82,19 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     return <div className="text-red-500 text-sm py-2">{error}</div>;
   }
 
-  if (menuItems.length === 0) {
-    return <div className="text-gray-500 text-sm py-2">Aucun élément de menu disponible</div>;
+  if (visibleMenuItems.length === 0) {
+    return (
+      <div className="text-gray-500 text-sm py-2">
+        {isUserAdmin && category === 'admin' 
+          ? "Chargement du menu administrateur..." 
+          : "Aucun élément de menu disponible"}
+      </div>
+    );
   }
 
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
-      {menuItems.map((item) => (
+      {visibleMenuItems.map((item) => (
         <Button
           key={item.id}
           variant={isActive(item.path) ? "secondary" : "ghost"}

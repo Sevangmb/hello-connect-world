@@ -1,7 +1,7 @@
 
 /**
  * Hook pour la gestion des menus dynamiques
- * Intégration avec le microservice utilisateur pour la vérification d'admin
+ * Version refactorisée pour utiliser le coordinateur modules-menu
  */
 import { useState, useEffect, useMemo } from 'react';
 import { MenuService } from '@/services/menu/MenuService';
@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
 import { getUserService } from '@/core/users/infrastructure/userDependencyProvider';
 import { getAuthService } from '@/core/auth/infrastructure/authDependencyProvider';
-import { ADMIN_MODULE_CODE } from '@/hooks/modules/constants';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { MODULE_MENU_EVENTS, moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 
 export const useMenu = (options?: {
   category?: MenuItemCategory;
@@ -22,7 +23,7 @@ export const useMenu = (options?: {
   const [error, setError] = useState<string | null>(null);
   const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
   const { toast } = useToast();
-  const { isModuleActive } = useModules();
+  const { isModuleActive, modules } = useModules();
   const userService = getUserService();
   const authService = getAuthService();
   
@@ -35,6 +36,13 @@ export const useMenu = (options?: {
         
         const isAdmin = await userService.isUserAdmin(user.id);
         setIsUserAdmin(isAdmin);
+        
+        // Synchroniser avec le coordinateur
+        if (isAdmin) {
+          moduleMenuCoordinator.enableAdminAccess();
+        } else {
+          moduleMenuCoordinator.disableAdminAccess();
+        }
       } catch (err) {
         console.error("Erreur lors de la vérification du statut admin:", err);
         setIsUserAdmin(false);
@@ -44,56 +52,106 @@ export const useMenu = (options?: {
     checkAdminStatus();
   }, []);
   
+  // Écouter les événements de mise à jour du menu
   useEffect(() => {
-    const fetchMenuItems = async () => {
-      setLoading(true);
-      try {
-        let items: MenuItem[] = [];
+    const handleMenuUpdate = () => {
+      fetchMenuItems();
+    };
+    
+    const unsubscribeMenuUpdated = eventBus.subscribe(
+      MODULE_MENU_EVENTS.MENU_UPDATED, 
+      handleMenuUpdate
+    );
+    
+    const unsubscribeModuleStatus = eventBus.subscribe(
+      MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, 
+      handleMenuUpdate
+    );
+    
+    const unsubscribeAdminAccess = eventBus.subscribe(
+      MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, 
+      handleMenuUpdate
+    );
+    
+    return () => {
+      unsubscribeMenuUpdated();
+      unsubscribeModuleStatus();
+      unsubscribeAdminAccess();
+    };
+  }, [options?.category, options?.moduleCode]);
+  
+  const fetchMenuItems = async () => {
+    setLoading(true);
+    try {
+      let items: MenuItem[] = [];
+      
+      // Forcer l'accès admin pour la catégorie admin
+      const adminEnabled = moduleMenuCoordinator.isAdminAccessEnabled();
+      
+      if (options?.category === 'admin') {
+        // Pour la catégorie admin, vérifier si l'accès admin est activé
+        if (adminEnabled) {
+          items = await MenuService.getMenuItemsByCategory('admin', true);
+        }
+      } else if (options?.category) {
+        // Récupérer les éléments de menu par catégorie
+        items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
         
-        if (options?.category === 'admin') {
-          // Pour la catégorie admin, toujours récupérer les items de menu admin
-          // sans vérifier si le module admin est actif
-          items = await MenuService.getMenuItemsByCategory('admin', isUserAdmin);
-        } else if (options?.category) {
-          // Récupérer les éléments de menu par catégorie
-          items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
-        } else if (options?.moduleCode) {
-          // Récupérer les éléments de menu par module
-          items = await MenuService.getMenuItemsByModule(options.moduleCode, isUserAdmin);
-        } else {
-          // Récupérer tous les éléments de menu visibles
-          items = await MenuService.getVisibleMenuItems(isUserAdmin);
-          
-          // Si l'utilisateur est admin, s'assurer que les menus admin sont inclus
-          if (isUserAdmin && !options?.category) {
-            const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
-            // Ajouter uniquement les éléments admin qui ne sont pas déjà présents
-            const existingIds = new Set(items.map(item => item.id));
-            for (const adminItem of adminItems) {
-              if (!existingIds.has(adminItem.id)) {
-                items.push(adminItem);
-              }
+        // Filtrer les éléments en fonction du statut de leur module
+        items = items.filter(item => 
+          !item.moduleCode || moduleMenuCoordinator.isModuleVisibleInMenu(item.moduleCode, modules)
+        );
+      } else if (options?.moduleCode) {
+        // Si le module n'est pas actif et n'est pas admin, retourner une liste vide
+        if (!moduleMenuCoordinator.isModuleVisibleInMenu(options.moduleCode, modules)) {
+          setMenuItems([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Récupérer les éléments de menu par module
+        items = await MenuService.getMenuItemsByModule(options.moduleCode, isUserAdmin);
+      } else {
+        // Récupérer tous les éléments de menu visibles
+        items = await MenuService.getVisibleMenuItems(isUserAdmin);
+        
+        // Filtrer les éléments en fonction du statut de leur module
+        items = items.filter(item => 
+          !item.moduleCode || moduleMenuCoordinator.isModuleVisibleInMenu(item.moduleCode, modules)
+        );
+        
+        // Si l'utilisateur est admin, inclure les menus d'administration
+        if (adminEnabled && !options?.category) {
+          const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
+          // Ajouter uniquement les éléments admin qui ne sont pas déjà présents
+          const existingIds = new Set(items.map(item => item.id));
+          for (const adminItem of adminItems) {
+            if (!existingIds.has(adminItem.id)) {
+              items.push(adminItem);
             }
           }
         }
-        
-        setMenuItems(items);
-        setError(null);
-      } catch (err) {
-        console.error("Erreur lors de la récupération des éléments de menu:", err);
-        setError("Impossible de charger le menu");
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger le menu",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
       }
-    };
-    
+      
+      setMenuItems(items);
+      setError(null);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des éléments de menu:", err);
+      setError("Impossible de charger le menu");
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger le menu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Charger les éléments de menu au montage
+  useEffect(() => {
     fetchMenuItems();
-  }, [options?.category, options?.moduleCode, isUserAdmin, toast]);
+  }, [options?.category, options?.moduleCode, isUserAdmin]);
   
   // Construit une structure de menu hiérarchique si demandé
   const menuTree = useMemo(() => {
@@ -114,6 +172,7 @@ export const useMenu = (options?: {
     error,
     isUserAdmin,
     getMenusByCategory,
+    refreshMenu: fetchMenuItems,
     mainMenu: useMemo(() => getMenusByCategory('main'), [menuItems]),
     adminMenu: useMemo(() => getMenusByCategory('admin'), [menuItems]),
     socialMenu: useMemo(() => getMenusByCategory('social'), [menuItems]),

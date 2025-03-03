@@ -7,6 +7,7 @@ import { eventBus } from "@/core/event-bus/EventBus";
 import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
 import { useMetrics } from "@/hooks/useMetrics";
 import { Loader2 } from 'lucide-react';
+import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -26,7 +27,7 @@ const DefaultLoadingComponent = () => (
 
 /**
  * Composant qui vérifie si un module est actif avant d'afficher son contenu
- * Version améliorée pour l'architecture microservices avec Event Bus
+ * Version améliorée avec coordination des menus
  */
 export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   moduleCode,
@@ -63,8 +64,8 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
           const isAdminModule = moduleCode === 'admin' || 
                                moduleCode.startsWith('admin_');
 
-          // Les modules admin sont toujours actifs
-          if (isAdminModule) {
+          // Les modules admin sont toujours actifs si l'utilisateur est admin
+          if (isAdminModule && moduleMenuCoordinator.isAdminAccessEnabled()) {
             setIsActive(true);
             setIsDegraded(false);
             incrementCounter('module_guard.admin_access', 1, { moduleCode });
@@ -127,16 +128,30 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
       
       checkModule();
       
-      // S'abonner aux événements de changement de statut des modules
-      const unsubscribe = eventBus.subscribe(MODULE_EVENTS.MODULE_STATUS_CHANGED, (event) => {
+      // S'abonner aux événements de changement de statut des modules et d'accès admin
+      const unsubscribeModuleStatus = eventBus.subscribe(MODULE_EVENTS.MODULE_STATUS_CHANGED, (event) => {
         if (event.moduleCode === moduleCode) {
           incrementCounter('module_guard.status_change_event', 1, { moduleCode });
           checkModule();
         }
       });
       
+      const unsubscribeAdminAccess = eventBus.subscribe('module_menu:admin_access_granted', () => {
+        if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
+          checkModule();
+        }
+      });
+      
+      const unsubscribeAdminRevoked = eventBus.subscribe('module_menu:admin_access_revoked', () => {
+        if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
+          checkModule();
+        }
+      });
+      
       return () => {
-        unsubscribe();
+        unsubscribeModuleStatus();
+        unsubscribeAdminAccess();
+        unsubscribeAdminRevoked();
       };
     }
   }, [moduleCode, isModuleActive, isModuleDegraded, strictMode, initialized, incrementCounter, measureOperation, startTime]);

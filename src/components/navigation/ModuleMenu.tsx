@@ -1,14 +1,14 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { useMenu } from "@/hooks/useMenu";
 import { MenuItemCategory } from "@/services/menu/types";
+import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
+import { eventBus } from "@/core/event-bus/EventBus";
+import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinator";
 
 interface CategoryGroupProps {
   title: string;
@@ -24,8 +24,8 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
     return null;
   }
   
-  // Ne pas afficher si aucun élément dans cette catégorie
-  if (!loading && menuItems.length === 0) {
+  // Ne pas afficher si aucun élément dans cette catégorie et ce n'est pas admin en cours de chargement
+  if (!loading && menuItems.length === 0 && !(category === 'admin' && isUserAdmin)) {
     return null;
   }
   
@@ -42,7 +42,48 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
 // Composant de menu principal
 export const ModuleMenu: React.FC = () => {
   const { isModuleDegraded } = useModuleRegistry();
-  const { isUserAdmin } = useMenu();
+  const { isUserAdmin, refreshMenu } = useMenu();
+  
+  // Écouter les événements de mise à jour de menu et de modules
+  useEffect(() => {
+    const handleMenuUpdate = () => {
+      refreshMenu();
+    };
+    
+    const unsubscribeMenuUpdated = eventBus.subscribe(
+      MODULE_MENU_EVENTS.MENU_UPDATED, 
+      handleMenuUpdate
+    );
+    
+    const unsubscribeModuleStatus = eventBus.subscribe(
+      MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, 
+      handleMenuUpdate
+    );
+    
+    const unsubscribeAdminAccess = eventBus.subscribe(
+      MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, 
+      handleMenuUpdate
+    );
+    
+    const unsubscribeAdminRevoked = eventBus.subscribe(
+      MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, 
+      handleMenuUpdate
+    );
+    
+    return () => {
+      unsubscribeMenuUpdated();
+      unsubscribeModuleStatus();
+      unsubscribeAdminAccess();
+      unsubscribeAdminRevoked();
+    };
+  }, [refreshMenu]);
+  
+  // Initialiser le statut admin dans le coordinateur
+  useEffect(() => {
+    if (isUserAdmin) {
+      moduleMenuCoordinator.enableAdminAccess();
+    }
+  }, [isUserAdmin]);
   
   return (
     <TooltipProvider>
