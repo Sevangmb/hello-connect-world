@@ -43,6 +43,7 @@ const useAdminCheck = () => {
           });
           
           if (rpcError) {
+            console.error("Error checking admin status with RPC:", rpcError);
             // Si la fonction RPC échoue, revenons à la méthode directe
             const { data: profile, error } = await supabase
               .from('profiles')
@@ -58,17 +59,16 @@ const useAdminCheck = () => {
                 description: "Impossible de vérifier les permissions d'administrateur",
               });
               setIsAdmin(false);
-              setLoading(false);
-              return;
+            } else {
+              setIsAdmin(profile?.is_admin || false);
             }
-
-            setIsAdmin(profile?.is_admin || false);
           } else {
             // Utiliser le résultat de la fonction RPC
+            console.log("Admin status from RPC:", isUserAdmin);
             setIsAdmin(!!isUserAdmin);
           }
         } catch (error) {
-          console.error("Error checking admin status with RPC:", error);
+          console.error("Error in admin check:", error);
           // Fallback à la méthode directe
           const { data: profile, error: queryError } = await supabase
             .from('profiles')
@@ -131,8 +131,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAdmin) {
+    console.log("Access denied: User is not admin, redirecting to home");
     return <Navigate to="/" replace />;
   }
 
+  console.log("Admin access granted");
   return <>{children}</>;
 }

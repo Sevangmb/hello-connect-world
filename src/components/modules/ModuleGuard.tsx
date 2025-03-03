@@ -19,7 +19,6 @@ const moduleStatusGlobalCache: Record<string, {active: boolean, degraded: boolea
 const GLOBAL_CACHE_VALIDITY_MS = 60000;
 
 export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps) {
-  // Forcer tous les modules à être actifs
   const [isActive, setIsActive] = useState<boolean>(true);
   const [isDegraded, setIsDegraded] = useState(false);
   const { toast } = useToast();
@@ -30,19 +29,49 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   // Vérification immédiate pour les modules admin
   const isAdmin = useMemo(() => isAdminModule(moduleCode), [moduleCode]);
   
-  // Callback memoizé pour vérifier le statut - mais toujours retourner actif
-  const checkStatus = useCallback(() => {
-    // Toujours considérer le module comme actif
-    setIsActive(true);
-    setIsDegraded(false);
+  // Callback memoizé pour vérifier le statut
+  const checkStatus = useCallback(async () => {
+    // Vérifier d'abord si c'est un module admin
+    if (isAdmin) {
+      console.log(`ModuleGuard: Module admin ${moduleCode} détecté, traitement spécial`);
+      setIsActive(true);
+      setIsDegraded(false);
+      return;
+    }
     
-    // Mettre à jour le cache global pour refléter l'état forcé
-    moduleStatusGlobalCache[moduleCode] = {
-      active: true,
-      degraded: false,
-      timestamp: Date.now()
-    };
-  }, [moduleCode]);
+    // Vérifier le cache global d'abord pour éviter des appels inutiles
+    const cachedStatus = moduleStatusGlobalCache[moduleCode];
+    const now = Date.now();
+    
+    if (cachedStatus && (now - cachedStatus.timestamp < GLOBAL_CACHE_VALIDITY_MS)) {
+      setIsActive(cachedStatus.active);
+      setIsDegraded(cachedStatus.degraded);
+      return;
+    }
+    
+    // Effectuer les vérifications via le hook
+    try {
+      const active = isModuleActive(moduleCode);
+      const degraded = isModuleDegraded(moduleCode);
+      
+      setIsActive(active);
+      setIsDegraded(degraded);
+      
+      // Mettre à jour le cache global
+      moduleStatusGlobalCache[moduleCode] = {
+        active,
+        degraded,
+        timestamp: now
+      };
+    } catch (error) {
+      console.error(`Erreur lors de la vérification du statut du module ${moduleCode}:`, error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: `Impossible de vérifier le statut du module ${moduleCode}`,
+      });
+    }
+  }, [moduleCode, isAdmin, isModuleActive, isModuleDegraded, toast]);
 
   // Effet qui s'exécute au premier rendu
   useEffect(() => {
@@ -60,6 +89,24 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
     };
   }, [checkStatus]);
 
-  // Toujours rendre le contenu principal, ignorer tous les états inactifs ou dégradés
+  // Si c'est un module admin, on affiche toujours le contenu (traitement spécial)
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
+  // Pour les autres modules, on respecte leur statut
+  if (!isActive) {
+    return fallback ? <>{fallback}</> : <ModuleUnavailable moduleCode={moduleCode} />;
+  }
+
+  if (isDegraded) {
+    return (
+      <>
+        <ModuleDegraded moduleCode={moduleCode} />
+        {children}
+      </>
+    );
+  }
+
   return <>{children}</>;
 }

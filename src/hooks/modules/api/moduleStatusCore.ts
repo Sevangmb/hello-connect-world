@@ -1,4 +1,3 @@
-
 import { ModuleStatus, AppModule } from '../types';
 import { ADMIN_MODULE_CODE } from '../constants';
 
@@ -145,10 +144,15 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
 };
 
 /**
- * Vérifier si un module est le module admin ou commence par admin
+ * Vérifie si un module est un module d'administration
  */
 export const isAdminModule = (moduleCode: string): boolean => {
-  return moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin');
+  // Liste des modules d'administration
+  const adminModules = ['admin', 'admin_dashboard', 'admin_users', 'admin_modules', 'admin_settings'];
+  
+  console.log(`Vérification si ${moduleCode} est un module admin. Résultat: ${adminModules.includes(moduleCode)}`);
+  
+  return adminModules.includes(moduleCode) || moduleCode.startsWith('admin_');
 };
 
 /**
