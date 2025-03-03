@@ -54,6 +54,11 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       const active = isModuleActive(moduleCode);
       const degraded = isModuleDegraded(moduleCode);
       
+      // Déboguer le module des défis
+      if (moduleCode === 'challenges') {
+        console.log(`ModuleGuard: Vérification du module des défis - Actif: ${active}, Dégradé: ${degraded}`);
+      }
+      
       setIsActive(active);
       setIsDegraded(degraded);
       
@@ -91,6 +96,12 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
 
   // Si c'est un module admin, on affiche toujours le contenu (traitement spécial)
   if (isAdmin) {
+    return <>{children}</>;
+  }
+
+  // Pour les modules challenges, temporairement activer toujours
+  if (moduleCode === 'challenges') {
+    console.log("Module challenges - Force actif pour débogage");
     return <>{children}</>;
   }
 

@@ -94,12 +94,30 @@ export const getModuleCache = () => {
 };
 
 /**
+ * Vérifie si un module est un module d'administration
+ */
+export const isAdminModule = (moduleCode: string): boolean => {
+  // Liste des modules d'administration
+  const adminModules = ['admin', 'admin_dashboard', 'admin_users', 'admin_modules', 'admin_settings'];
+  
+  console.log(`Vérification si ${moduleCode} est un module admin. Résultat: ${adminModules.includes(moduleCode) || moduleCode.startsWith('admin_')}`);
+  
+  return adminModules.includes(moduleCode) || moduleCode.startsWith('admin_');
+};
+
+/**
  * Obtenir rapidement le statut d'un module depuis le cache
  * @returns Le statut du module ou null si non trouvé dans le cache
  */
 export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | null => {
   // Si c'est le module Admin, toujours retourner 'active'
   if (isAdminModule(moduleCode)) return 'active';
+  
+  // Pour le déboggage, temporairement considérer 'challenges' comme actif
+  if (moduleCode === 'challenges') {
+    console.log("getModuleStatusFromCache: Force module challenges à actif");
+    return 'active';
+  }
   
   // Vérifier dans le cache de statut
   const cachedStatus = moduleStatusCache[moduleCode];
@@ -141,18 +159,6 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
   
   // Par défaut actif
   return 'active';
-};
-
-/**
- * Vérifie si un module est un module d'administration
- */
-export const isAdminModule = (moduleCode: string): boolean => {
-  // Liste des modules d'administration
-  const adminModules = ['admin', 'admin_dashboard', 'admin_users', 'admin_modules', 'admin_settings'];
-  
-  console.log(`Vérification si ${moduleCode} est un module admin. Résultat: ${adminModules.includes(moduleCode)}`);
-  
-  return adminModules.includes(moduleCode) || moduleCode.startsWith('admin_');
 };
 
 /**

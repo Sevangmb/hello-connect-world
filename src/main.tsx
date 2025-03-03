@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -66,7 +65,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Configuration des modules pour chaque route
 const moduleRoutes = {
   '/suggestions': { component: Suggestions, moduleCode: 'suggestions' },
   '/feed': { component: Feed, moduleCode: 'social_feed' },
@@ -100,7 +98,6 @@ const moduleRoutes = {
   '/calendar': { component: Calendar, moduleCode: 'calendar' },
 };
 
-// Routes qui sont toujours disponibles (core)
 const alwaysAvailableRoutes = [
   { path: "/landing", element: <Landing /> },
   { path: "/auth", element: <Auth /> },
@@ -111,7 +108,6 @@ const alwaysAvailableRoutes = [
 const App = () => {
   return (
     <Routes>
-      {/* Routes toujours disponibles */}
       {alwaysAvailableRoutes.map(route => (
         <Route key={route.path} path={route.path} element={route.element} />
       ))}
@@ -125,7 +121,6 @@ const App = () => {
         }
       />
 
-      {/* Routes d'administration (protégées par AdminRoute) */}
       <Route
         path="/admin"
         element={
@@ -148,7 +143,6 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {/* Routes modulaires */}
       {Object.entries(moduleRoutes).map(([path, { component: Component, moduleCode }]) => (
         <Route
           key={path}
@@ -166,7 +160,6 @@ const App = () => {
         />
       ))}
 
-      {/* Catch-all route pour les URLs non reconnues */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

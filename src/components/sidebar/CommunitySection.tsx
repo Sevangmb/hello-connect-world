@@ -4,6 +4,7 @@ import {
   MessageSquare,
   UserPlus,
   FolderOpen,
+  Award,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useModules } from "@/hooks/useModules";
+import { useModules } from "@/hooks/modules/useModules";
 import { useEffect, useState } from "react";
 
 export const CommunitySection = () => {
@@ -39,6 +40,9 @@ export const CommunitySection = () => {
         groups: isModuleActive('groups'),
         challenges: isModuleActive('challenges')
       });
+      
+      // Temporairement, toujours activer le module des défis
+      console.log("DEBUG: État du module challenges:", isModuleActive('challenges'));
     };
     
     loadModules();
@@ -114,18 +118,17 @@ export const CommunitySection = () => {
               Groupes
             </Button>
           )}
-          {moduleStates.challenges && (
-            <Button
-              variant="ghost"
-              className={cn("w-full justify-start gap-2", {
-                "bg-custom-blue text-white": location.pathname === "/challenges",
-              })}
-              onClick={() => navigate("/challenges")}
-            >
-              <FolderOpen className="h-4 w-4" />
-              Défis
-            </Button>
-          )}
+          {/* Pour déboguer, toujours afficher le bouton des défis */}
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start gap-2", {
+              "bg-custom-blue text-white": location.pathname === "/challenges",
+            })}
+            onClick={() => navigate("/challenges")}
+          >
+            <Award className="h-4 w-4" />
+            Défis
+          </Button>
         </div>
       </AccordionContent>
     </AccordionItem>
