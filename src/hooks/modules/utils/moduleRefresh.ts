@@ -1,3 +1,4 @@
+
 /**
  * Utilitaires pour rafraîchir les modules depuis Supabase avec gestion avancée du cache
  */
@@ -242,7 +243,7 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Fixed: utiliser 2 arguments au lieu de 3
+    // Corrected: removed extra parameter
     await handleModuleRefresh(refreshFunction);
   } catch (error) {
     console.error('Safe refresh failed:', error);

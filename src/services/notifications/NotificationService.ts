@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationType } from "@/components/notifications/types";
 
@@ -112,19 +111,14 @@ export class NotificationService {
         preferences = {};
       }
       
-      // Initialize notifications object if needed
-      if (!preferences.hasOwnProperty('notifications')) {
-        preferences = {
-          ...preferences,
-          notifications: {}
-        };
-      }
+      // Initialize the notifications object if needed
+      const notificationsObj = (preferences as Record<string, any>).notifications || {};
       
-      // Update the specific notification type preference
+      // Create the updated preferences object with proper typing
       const updatedPreferences = {
-        ...preferences,
+        ...preferences as Record<string, any>,
         notifications: {
-          ...(preferences.notifications as Record<string, boolean>),
+          ...notificationsObj,
           [notificationType]: enabled
         }
       };

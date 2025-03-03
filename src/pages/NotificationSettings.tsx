@@ -129,8 +129,8 @@ export default function NotificationSettings() {
                         <div>
                           <Label htmlFor="start-time">Heure de début</Label>
                           <TimePicker 
-                            date={startTime} 
-                            setDate={setStartTime}
+                            value={startTime}
+                            onChange={setStartTime}
                             className="mt-1"
                           />
                         </div>
@@ -138,8 +138,8 @@ export default function NotificationSettings() {
                         <div>
                           <Label htmlFor="end-time">Heure de fin</Label>
                           <TimePicker 
-                            date={endTime} 
-                            setDate={setEndTime}
+                            value={endTime}
+                            onChange={setEndTime}
                             className="mt-1"
                           />
                         </div>
