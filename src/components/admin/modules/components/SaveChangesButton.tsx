@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 
 interface SaveChangesButtonProps {
   hasPendingChanges: boolean;
@@ -19,9 +19,19 @@ export const SaveChangesButton: React.FC<SaveChangesButtonProps> = ({
       onClick={onSave} 
       disabled={!hasPendingChanges || saving}
       className="flex items-center gap-2"
+      variant={saving ? "outline" : "default"}
     >
-      <Save className="h-4 w-4" />
-      {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+      {saving ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Enregistrement...
+        </>
+      ) : (
+        <>
+          <Save className="h-4 w-4" />
+          Enregistrer les modifications
+        </>
+      )}
     </Button>
   );
 };

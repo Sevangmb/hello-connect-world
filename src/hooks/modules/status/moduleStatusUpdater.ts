@@ -26,6 +26,8 @@ export const updateModuleStatus = async (
   }
   
   try {
+    console.log(`Mise à jour du module ${moduleId} vers le statut ${status}`);
+    
     const { error } = await supabase
       .from('app_modules')
       .update({ 
@@ -42,10 +44,39 @@ export const updateModuleStatus = async (
     // Invalider les caches
     invalidateAllCache();
     
+    console.log(`Module ${moduleId} mis à jour avec succès`);
     return true;
   } catch (e) {
     console.error("Exception lors de la mise à jour du statut du module:", e);
-    return false;
+    
+    // Tenter une seconde fois avec un délai
+    try {
+      console.log("Nouvelle tentative de mise à jour après une erreur...");
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { error } = await supabase
+        .from('app_modules')
+        .update({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', moduleId);
+      
+      if (error) {
+        console.error("Erreur lors de la seconde tentative de mise à jour:", error);
+        return false;
+      }
+      
+      // Invalider les caches
+      invalidateAllCache();
+      
+      console.log(`Module ${moduleId} mis à jour avec succès après seconde tentative`);
+      return true;
+    } catch (retryError) {
+      console.error("Exception lors de la seconde tentative de mise à jour:", retryError);
+      return false;
+    }
   }
 };
 
@@ -64,6 +95,8 @@ export const updateFeatureStatus = async (
   }
   
   try {
+    console.log(`Mise à jour de la fonctionnalité ${featureCode} du module ${moduleCode} vers ${isEnabled ? 'activé' : 'désactivé'}`);
+    
     const { error } = await supabase
       .from('module_features')
       .update({ 
@@ -78,10 +111,37 @@ export const updateFeatureStatus = async (
       return false;
     }
     
+    console.log(`Fonctionnalité ${featureCode} du module ${moduleCode} mise à jour avec succès`);
     return true;
   } catch (e) {
     console.error("Exception lors de la mise à jour du statut de la fonctionnalité:", e);
-    return false;
+    
+    // Tenter une seconde fois avec un délai
+    try {
+      console.log("Nouvelle tentative de mise à jour après une erreur...");
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const { error } = await supabase
+        .from('module_features')
+        .update({ 
+          is_enabled: isEnabled, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
+      
+      if (error) {
+        console.error("Erreur lors de la seconde tentative de mise à jour de la fonctionnalité:", error);
+        return false;
+      }
+      
+      console.log(`Fonctionnalité ${featureCode} du module ${moduleCode} mise à jour avec succès après seconde tentative`);
+      return true;
+    } catch (retryError) {
+      console.error("Exception lors de la seconde tentative de mise à jour de la fonctionnalité:", retryError);
+      return false;
+    }
   }
 };
 

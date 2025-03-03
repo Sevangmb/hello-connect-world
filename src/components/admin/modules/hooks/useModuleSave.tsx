@@ -50,15 +50,29 @@ export const useModuleSave = ({
         const moduleToUpdate = modules.find(m => m.id === moduleId);
         
         if (moduleToUpdate) {
-          // Utiliser updateModuleStatus pour chaque module
-          const success = await updateModuleStatus(moduleId, newStatus);
-          
-          if (success) {
+          try {
+            // Mettre à jour directement dans Supabase pour éviter les erreurs de connexion
+            const { error } = await supabase
+              .from('app_modules')
+              .update({ 
+                status: newStatus, 
+                updated_at: new Date().toISOString() 
+              })
+              .eq('id', moduleId);
+              
+            if (error) {
+              console.error(`Erreur lors de la mise à jour du module ${moduleId}:`, error);
+              continue;
+            }
+            
+            // Ajouter le module mis à jour aux résultats
             updateResults.push({
               id: moduleId,
               code: moduleToUpdate.code,
               status: newStatus
             });
+          } catch (error) {
+            console.error(`Exception lors de la mise à jour du module ${moduleId}:`, error);
           }
         }
       }
@@ -69,32 +83,36 @@ export const useModuleSave = ({
           title: "Modules mis à jour",
           description: `${updateResults.length} modules ont été mis à jour avec succès`,
         });
-      }
-      
-      // Purger les caches pour forcer un rechargement
-      purgeModuleCaches();
-      
-      // Déclencher l'événement personnalisé pour les mises à jour des modules
-      triggerModuleStatusChanged();
-      
-      // Réinitialiser les changements en attente
-      resetPendingChanges();
-      
-      toast({
-        title: "Modifications enregistrées",
-        description: "Les modules ont été mis à jour avec succès",
-      });
-      
-      // Rafraîchir les données après un court délai
-      setTimeout(async () => {
-        await refreshModules();
         
-        // Notifier le parent que les statuts ont changé
-        if (onStatusChange) {
-          onStatusChange();
-        }
-      }, 500);
-      
+        // Purger les caches pour forcer un rechargement
+        purgeModuleCaches();
+        
+        // Déclencher l'événement personnalisé pour les mises à jour des modules
+        triggerModuleStatusChanged();
+        
+        // Réinitialiser les changements en attente
+        resetPendingChanges();
+        
+        // Rafraîchir les données après un court délai
+        setTimeout(async () => {
+          try {
+            await refreshModules();
+            
+            // Notifier le parent que les statuts ont changé
+            if (onStatusChange) {
+              onStatusChange();
+            }
+          } catch (error) {
+            console.error("Erreur lors du rafraîchissement des modules après sauvegarde:", error);
+          }
+        }, 500);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Échec de la mise à jour",
+          description: "Aucun module n'a pu être mis à jour. Vérifiez votre connexion internet.",
+        });
+      }
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde des modifications:", error);
       toast({
@@ -105,7 +123,7 @@ export const useModuleSave = ({
     } finally {
       setSaving(false);
     }
-  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules, updateModuleStatus]);
+  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules]);
 
   return {
     saving,
