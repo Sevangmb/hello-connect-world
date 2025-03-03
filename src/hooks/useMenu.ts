@@ -1,4 +1,3 @@
-
 /**
  * Hook pour la gestion des menus dynamiques
  * Version refactorisée pour utiliser le coordinateur modules-menu
@@ -27,7 +26,6 @@ export const useMenu = (options?: {
   const userService = getUserService();
   const authService = getAuthService();
   
-  // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
@@ -37,7 +35,6 @@ export const useMenu = (options?: {
         const isAdmin = await userService.isUserAdmin(user.id);
         setIsUserAdmin(isAdmin);
         
-        // Synchroniser avec le coordinateur
         if (isAdmin) {
           moduleMenuCoordinator.enableAdminAccess();
         } else {
@@ -52,7 +49,6 @@ export const useMenu = (options?: {
     checkAdminStatus();
   }, []);
   
-  // Écouter les événements de mise à jour du menu
   useEffect(() => {
     const handleMenuUpdate = () => {
       fetchMenuItems();
@@ -85,45 +81,35 @@ export const useMenu = (options?: {
     try {
       let items: MenuItem[] = [];
       
-      // Forcer l'accès admin pour la catégorie admin
       const adminEnabled = moduleMenuCoordinator.isAdminAccessEnabled();
       
       if (options?.category === 'admin') {
-        // Pour la catégorie admin, vérifier si l'accès admin est activé
         if (adminEnabled) {
           items = await MenuService.getMenuItemsByCategory('admin', true);
         }
       } else if (options?.category) {
-        // Récupérer les éléments de menu par catégorie
         items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
         
-        // Filtrer les éléments en fonction du statut de leur module
         items = items.filter(item => 
-          !item.moduleCode || moduleMenuCoordinator.isModuleVisibleInMenu(item.moduleCode, modules)
+          !item.module_code || moduleMenuCoordinator.isModuleVisibleInMenu(item.module_code, modules)
         );
       } else if (options?.moduleCode) {
-        // Si le module n'est pas actif et n'est pas admin, retourner une liste vide
         if (!moduleMenuCoordinator.isModuleVisibleInMenu(options.moduleCode, modules)) {
           setMenuItems([]);
           setLoading(false);
           return;
         }
         
-        // Récupérer les éléments de menu par module
         items = await MenuService.getMenuItemsByModule(options.moduleCode, isUserAdmin);
       } else {
-        // Récupérer tous les éléments de menu visibles
         items = await MenuService.getVisibleMenuItems(isUserAdmin);
         
-        // Filtrer les éléments en fonction du statut de leur module
         items = items.filter(item => 
-          !item.moduleCode || moduleMenuCoordinator.isModuleVisibleInMenu(item.moduleCode, modules)
+          !item.module_code || moduleMenuCoordinator.isModuleVisibleInMenu(item.module_code, modules)
         );
         
-        // Si l'utilisateur est admin, inclure les menus d'administration
         if (adminEnabled && !options?.category) {
           const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
-          // Ajouter uniquement les éléments admin qui ne sont pas déjà présents
           const existingIds = new Set(items.map(item => item.id));
           for (const adminItem of adminItems) {
             if (!existingIds.has(adminItem.id)) {
@@ -148,12 +134,10 @@ export const useMenu = (options?: {
     }
   };
   
-  // Charger les éléments de menu au montage
   useEffect(() => {
     fetchMenuItems();
   }, [options?.category, options?.moduleCode, isUserAdmin]);
   
-  // Construit une structure de menu hiérarchique si demandé
   const menuTree = useMemo(() => {
     if (options?.hierarchical) {
       return MenuService.buildMenuTree(menuItems);
@@ -161,7 +145,6 @@ export const useMenu = (options?: {
     return menuItems;
   }, [menuItems, options?.hierarchical]);
   
-  // Filtrer les menus par catégorie
   const getMenusByCategory = (category: MenuItemCategory): MenuItem[] => {
     return menuItems.filter(item => item.category === category);
   };
@@ -181,22 +164,18 @@ export const useMenu = (options?: {
   };
 };
 
-// Hook spécifique pour le menu principal
 export const useMainMenu = () => {
   return useMenu({ category: 'main' });
 };
 
-// Hook spécifique pour le menu d'administration
 export const useAdminMenu = () => {
   return useMenu({ category: 'admin' });
 };
 
-// Hook spécifique pour les menus sociaux
 export const useSocialMenu = () => {
   return useMenu({ category: 'social' });
 };
 
-// Hook spécifique pour les menus de la marketplace
 export const useMarketplaceMenu = () => {
   return useMenu({ category: 'marketplace' });
 };

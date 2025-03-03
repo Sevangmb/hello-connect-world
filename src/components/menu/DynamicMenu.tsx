@@ -63,7 +63,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   };
 
   // Filtrer les éléments de menu selon leur visibilité
-  const visibleMenuItems = menuItems.filter(item => !item.moduleCode || isMenuItemVisible(item.moduleCode));
+  const visibleMenuItems = menuItems.filter(item => !item.module_code || isMenuItemVisible(item.module_code));
 
   if (loading) {
     return (
