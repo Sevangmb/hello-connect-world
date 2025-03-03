@@ -1,27 +1,30 @@
+
 /**
  * Service central pour la gestion des modules
  * Implémente l'API de communication avec les modules
  */
 import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_EVENTS } from './ModuleEvents';
-import { 
-  AppModule, 
-  ModuleStatus 
-} from '@/hooks/modules/types';
-import { 
-  refreshModulesWithCache, 
-  refreshModulesWithRetry 
-} from '@/hooks/modules/utils/moduleRefresh';
-import { moduleValidator } from '@/hooks/modules/services/ModuleValidator';
-import { moduleCacheService } from '@/hooks/modules/services/ModuleCacheService';
-import { supabase } from '@/integrations/supabase/client';
+import { AppModule, ModuleStatus } from '@/hooks/modules/types';
+
+// Importation des repositories
+import { moduleRepository } from './repositories/ModuleRepository';
+import { dependencyRepository } from './repositories/DependencyRepository';
+import { featureRepository } from './repositories/FeatureRepository';
+
+// Importation des cas d'utilisation
+import { moduleStatusUseCase } from './usecases/ModuleStatusUseCase';
+import { featureStatusUseCase } from './usecases/FeatureStatusUseCase';
+
+// Importation des services utilitaires
+import { moduleCacheService } from './cache/ModuleCacheService';
+import { circuitBreakerService } from './utils/CircuitBreakerService';
 
 class ModuleService {
   private modules: AppModule[] = [];
   private dependencies: any[] = [];
   private features: Record<string, Record<string, boolean>> = {};
   private initialized: boolean = false;
-  private moduleStatusCache: Record<string, { status: ModuleStatus, timestamp: number }> = {};
 
   /**
    * Initialise le service de modules
@@ -90,19 +93,27 @@ class ModuleService {
     }
     
     try {
-      // Utiliser refreshModulesWithRetry qui possède une logique de backoff exponentiel
-      const setModulesFn = (modules: AppModule[]) => {
+      // Utiliser le circuit breaker pour éviter les appels répétés en cas d'erreur
+      const updatedModules = await circuitBreakerService.execute('modules_refresh', async () => {
+        const modules = await moduleRepository.fetchAllModules();
+        
+        // Mettre à jour l'état interne
         this.modules = modules;
-      };
-      
-      const updatedModules = await refreshModulesWithRetry(setModulesFn);
-      
-      // Mettre à jour le cache pour chaque module
-      updatedModules.forEach(module => {
-        this.moduleStatusCache[module.code] = {
-          status: module.status,
-          timestamp: Date.now()
-        };
+        
+        // Mettre à jour le cache
+        moduleCacheService.cacheModules(modules);
+        
+        // Mettre à jour le cache de statuts
+        moduleStatusUseCase.updateStatusCache(modules);
+        
+        // Publier un événement de rafraîchissement
+        eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
+          count: modules.length,
+          timestamp: Date.now(),
+          source: 'api'
+        });
+        
+        return modules;
       });
       
       return updatedModules;
@@ -118,25 +129,7 @@ class ModuleService {
    */
   async refreshDependencies(): Promise<any[]> {
     try {
-      const { data, error } = await supabase
-        .from('module_dependencies')
-        .select(`
-          module_id,
-          module_code,
-          module_name,
-          module_status,
-          dependency_id,
-          dependency_code,
-          dependency_name,
-          dependency_status,
-          is_required
-        `);
-      
-      if (error) {
-        throw error;
-      }
-      
-      this.dependencies = data || [];
+      this.dependencies = await dependencyRepository.fetchAllDependencies();
       return this.dependencies;
     } catch (error) {
       console.error("Erreur lors du rafraîchissement des dépendances:", error);
@@ -158,25 +151,12 @@ class ModuleService {
    */
   async refreshFeatures(): Promise<Record<string, Record<string, boolean>>> {
     try {
-      const { data, error } = await supabase
-        .from('module_features')
-        .select('*');
+      this.features = await featureRepository.fetchAllFeatures();
       
-      if (error) {
-        throw error;
-      }
+      // Mettre à jour le cache de fonctionnalités
+      featureStatusUseCase.updateFeatureCache(this.features);
       
-      // Organiser les fonctionnalités par module
-      const featuresData: Record<string, Record<string, boolean>> = {};
-      data.forEach(feature => {
-        if (!featuresData[feature.module_code]) {
-          featuresData[feature.module_code] = {};
-        }
-        featuresData[feature.module_code][feature.feature_code] = feature.is_enabled;
-      });
-      
-      this.features = featuresData;
-      return featuresData;
+      return this.features;
     } catch (error) {
       console.error("Erreur lors du rafraîchissement des fonctionnalités:", error);
       
@@ -195,74 +175,28 @@ class ModuleService {
    * Met à jour le statut d'un module
    * @param moduleId Identifiant du module
    * @param status Nouveau statut
-   * @returns True si la mise à jour a réussi
+   * @returns Promise<boolean> True si la mise à jour a réussi
    */
   async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
     try {
-      // Trouver le module actuel pour pouvoir émettre un événement avec l'ancien statut
+      // Trouver le module actuel
       const currentModule = this.modules.find(m => m.id === moduleId);
       if (!currentModule) {
         throw new Error(`Module avec l'ID ${moduleId} non trouvé`);
       }
       
-      const oldStatus = currentModule.status;
+      // Utiliser le cas d'utilisation pour gérer la mise à jour
+      const success = await moduleStatusUseCase.updateModuleStatus(moduleId, status, currentModule);
       
-      // Faire la mise à jour dans la base de données
-      const { error } = await supabase
-        .from('app_modules')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', moduleId);
-      
-      if (error) {
-        throw error;
+      // Si succès, mettre à jour localement
+      if (success) {
+        const moduleIndex = this.modules.findIndex(m => m.id === moduleId);
+        if (moduleIndex !== -1) {
+          this.modules[moduleIndex].status = status;
+        }
       }
       
-      // Mettre à jour localement
-      const moduleIndex = this.modules.findIndex(m => m.id === moduleId);
-      if (moduleIndex !== -1) {
-        this.modules[moduleIndex].status = status;
-        
-        // Mettre à jour le cache
-        this.moduleStatusCache[currentModule.code] = {
-          status,
-          timestamp: Date.now()
-        };
-      }
-      
-      // Publier un événement de changement de statut
-      eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
-        moduleId,
-        moduleCode: currentModule.code,
-        oldStatus,
-        newStatus: status,
-        timestamp: Date.now()
-      });
-      
-      // Publier un événement spécifique selon le nouveau statut
-      if (status === 'active') {
-        eventBus.publish(MODULE_EVENTS.MODULE_ACTIVATED, {
-          moduleId,
-          moduleCode: currentModule.code,
-          timestamp: Date.now()
-        });
-      } else if (status === 'inactive') {
-        eventBus.publish(MODULE_EVENTS.MODULE_DEACTIVATED, {
-          moduleId,
-          moduleCode: currentModule.code,
-          timestamp: Date.now()
-        });
-      } else if (status === 'degraded') {
-        eventBus.publish(MODULE_EVENTS.MODULE_DEGRADED, {
-          moduleId,
-          moduleCode: currentModule.code,
-          timestamp: Date.now()
-        });
-      }
-      
-      return true;
+      return success;
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut du module:", error);
       
@@ -281,54 +215,23 @@ class ModuleService {
    * Met à jour le statut d'une fonctionnalité
    * @param moduleCode Code du module
    * @param featureCode Code de la fonctionnalité
-   * @param isEnabled Statut d'activation
-   * @returns True si la mise à jour a réussi
+   * @param isEnabled Nouveau statut
+   * @returns Promise<boolean> True si la mise à jour a réussi
    */
   async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('module_features')
-        .update({ 
-          is_enabled: isEnabled,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('module_code', moduleCode)
-        .eq('feature_code', featureCode);
+      // Utiliser le cas d'utilisation pour gérer la mise à jour
+      const success = await featureStatusUseCase.updateFeatureStatus(moduleCode, featureCode, isEnabled);
       
-      if (error) {
-        throw error;
+      // Si succès, mettre à jour localement
+      if (success) {
+        if (!this.features[moduleCode]) {
+          this.features[moduleCode] = {};
+        }
+        this.features[moduleCode][featureCode] = isEnabled;
       }
       
-      // Mettre à jour localement
-      if (!this.features[moduleCode]) {
-        this.features[moduleCode] = {};
-      }
-      this.features[moduleCode][featureCode] = isEnabled;
-      
-      // Publier un événement de changement de statut de fonctionnalité
-      eventBus.publish(MODULE_EVENTS.FEATURE_STATUS_CHANGED, {
-        moduleCode,
-        featureCode,
-        isEnabled,
-        timestamp: Date.now()
-      });
-      
-      // Publier un événement spécifique selon le nouveau statut
-      if (isEnabled) {
-        eventBus.publish(MODULE_EVENTS.FEATURE_ACTIVATED, {
-          moduleCode,
-          featureCode,
-          timestamp: Date.now()
-        });
-      } else {
-        eventBus.publish(MODULE_EVENTS.FEATURE_DEACTIVATED, {
-          moduleCode,
-          featureCode,
-          timestamp: Date.now()
-        });
-      }
-      
-      return true;
+      return success;
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut de la fonctionnalité:", error);
       
@@ -349,29 +252,7 @@ class ModuleService {
    * @returns True si le module est actif
    */
   isModuleActive(moduleCode: string): boolean {
-    // Administrateur toujours actif
-    if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
-      return true;
-    }
-    
-    // Vérifier le cache (validité: 30 secondes)
-    const cached = this.moduleStatusCache[moduleCode];
-    if (cached && (Date.now() - cached.timestamp < 30000)) {
-      return cached.status === 'active';
-    }
-    
-    // Sinon, vérifier dans la liste des modules
-    const module = this.modules.find(m => m.code === moduleCode);
-    if (module) {
-      // Mettre à jour le cache
-      this.moduleStatusCache[moduleCode] = {
-        status: module.status,
-        timestamp: Date.now()
-      };
-      return module.status === 'active';
-    }
-    
-    return false;
+    return moduleStatusUseCase.isModuleActive(moduleCode, this.modules);
   }
 
   /**
@@ -380,24 +261,7 @@ class ModuleService {
    * @returns True si le module est en mode dégradé
    */
   isModuleDegraded(moduleCode: string): boolean {
-    // Vérifier le cache (validité: 30 secondes)
-    const cached = this.moduleStatusCache[moduleCode];
-    if (cached && (Date.now() - cached.timestamp < 30000)) {
-      return cached.status === 'degraded';
-    }
-    
-    // Sinon, vérifier dans la liste des modules
-    const module = this.modules.find(m => m.code === moduleCode);
-    if (module) {
-      // Mettre à jour le cache
-      this.moduleStatusCache[moduleCode] = {
-        status: module.status,
-        timestamp: Date.now()
-      };
-      return module.status === 'degraded';
-    }
-    
-    return false;
+    return moduleStatusUseCase.isModuleDegraded(moduleCode, this.modules);
   }
 
   /**
@@ -407,7 +271,7 @@ class ModuleService {
    * @returns True si la fonctionnalité est activée
    */
   isFeatureEnabled(moduleCode: string, featureCode: string): boolean {
-    return this.features[moduleCode]?.[featureCode] === true;
+    return featureStatusUseCase.isFeatureEnabled(moduleCode, featureCode, this.features);
   }
 
   /**
