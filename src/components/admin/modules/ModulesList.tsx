@@ -10,7 +10,7 @@ import { useModuleToggle } from "./hooks/useModuleToggle";
 import { useModuleSave } from "./hooks/useModuleSave";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModuleFeatures } from "./ModuleFeatures";
-import { InfoCircle, MoreInfo } from "lucide-react";
+import { Info, CircleInfo } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ModulesListProps {
@@ -70,7 +70,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
             onClick={() => setShowInfo(!showInfo)}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
           >
-            <InfoCircle className="h-4 w-4 mr-1" />
+            <Info className="h-4 w-4 mr-1" />
             <span>{showInfo ? "Masquer" : "Afficher"} les informations</span>
           </button>
         </div>
@@ -80,7 +80,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       {showInfo && (
         <div className="px-6 py-2">
           <Alert variant="default" className="bg-muted/50">
-            <MoreInfo className="h-4 w-4" />
+            <CircleInfo className="h-4 w-4" />
             <AlertTitle>Informations sur les modules</AlertTitle>
             <AlertDescription className="text-sm">
               <ul className="list-disc pl-5 mt-2 space-y-1">

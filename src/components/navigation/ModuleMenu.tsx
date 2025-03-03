@@ -24,6 +24,7 @@ export interface ModuleMenuItem {
   isAdmin?: boolean;
   category: 'main' | 'admin' | 'system';
   description?: string;
+  isDegraded?: boolean; // Ajout de la propriété isDegraded
 }
 
 export const ModuleMenu: React.FC = () => {
@@ -148,7 +149,7 @@ export const ModuleMenu: React.FC = () => {
                     <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
                     <span className="truncate">{item.label}</span>
                     {item.isDegraded && (
-                      <Badge variant="warning" className="ml-auto text-xs px-1">
+                      <Badge variant="outline" className="ml-auto text-xs px-1 bg-amber-100 text-amber-800 border-amber-300">
                         <AlertCircle className="h-3 w-3 mr-1" />
                         Dégradé
                       </Badge>
