@@ -1,64 +1,143 @@
 
 /**
- * Événements émis par le service de modules
- * Ces constantes servent de contrat entre les services
+ * Constantes pour les événements liés aux modules
+ * Centralise tous les types d'événements pour éviter les erreurs de frappe
  */
 
 export const MODULE_EVENTS = {
-  // Événements de changements d'état des modules
-  MODULE_STATUS_CHANGED: 'module:status_changed',
-  MODULE_ACTIVATED: 'module:activated',
-  MODULE_DEACTIVATED: 'module:deactivated',
-  MODULE_DEGRADED: 'module:degraded',
+  // Événements de chargement
+  MODULES_INITIALIZED: 'modules:initialized',
+  MODULES_REFRESHED: 'modules:refreshed',
   
-  // Événements liés aux fonctionnalités
-  FEATURE_STATUS_CHANGED: 'module:feature_status_changed',
-  FEATURE_ACTIVATED: 'module:feature_activated',
-  FEATURE_DEACTIVATED: 'module:feature_deactivated',
+  // Événements de changement de statut
+  MODULE_STATUS_CHANGED: 'modules:status_changed',
+  MODULE_ACTIVATED: 'modules:activated',
+  MODULE_DEACTIVATED: 'modules:deactivated',
+  MODULE_DEGRADED: 'modules:degraded',
   
-  // Événements liés au cycle de vie
-  MODULES_INITIALIZED: 'module:initialized',
-  MODULES_REFRESHED: 'module:refreshed',
+  // Événements de fonctionnalités
+  FEATURE_STATUS_CHANGED: 'modules:feature_status_changed',
+  FEATURE_ENABLED: 'modules:feature_enabled',
+  FEATURE_DISABLED: 'modules:feature_disabled',
   
-  // Événements de synchronisation
-  MODULES_SYNC_REQUESTED: 'module:sync_requested',
+  // Événements de dépendances
+  DEPENDENCIES_REFRESHED: 'modules:dependencies_refreshed',
+  DEPENDENCY_VIOLATED: 'modules:dependency_violated',
   
   // Événements d'erreur
-  MODULE_ERROR: 'module:error',
-  MODULE_CONNECTION_ERROR: 'module:connection_error',
-  MODULE_CONNECTION_RESTORED: 'module:connection_restored'
+  MODULE_ERROR: 'modules:error',
+  MODULE_WARNING: 'modules:warning',
+  
+  // Événements de cache
+  CACHE_UPDATED: 'modules:cache_updated',
+  CACHE_INVALIDATED: 'modules:cache_invalidated',
+  
+  // Événements de performance
+  MODULE_PERFORMANCE: 'modules:performance'
 };
 
-// Types pour les données d'événements
-export interface ModuleStatusChangedEvent {
-  moduleId: string;
-  moduleCode: string;
-  oldStatus: string;
-  newStatus: string;
-  timestamp: number;
-}
-
-export interface FeatureStatusChangedEvent {
-  moduleCode: string;
-  featureCode: string;
-  isEnabled: boolean;
-  timestamp: number;
-}
-
-export interface ModuleErrorEvent {
-  error: string;
-  context: string;
-  timestamp: number;
-}
-
-export interface ModuleConnectionEvent {
-  isConnected: boolean;
-  lastAttempt: number;
-  retryCount: number;
-}
-
-export interface ModulesRefreshedEvent {
-  count: number;
-  timestamp: number;
-  source: 'api' | 'cache' | 'init';
+// Types d'événements pour le typage TypeScript
+export interface ModuleEventPayloads {
+  // Événements de chargement
+  [MODULE_EVENTS.MODULES_INITIALIZED]: {
+    count: number;
+    timestamp: number;
+    source: 'api' | 'cache';
+  };
+  [MODULE_EVENTS.MODULES_REFRESHED]: {
+    count: number;
+    timestamp: number;
+    source: 'api' | 'cache' | 'realtime';
+  };
+  
+  // Événements de changement de statut
+  [MODULE_EVENTS.MODULE_STATUS_CHANGED]: {
+    moduleCode: string;
+    moduleId: string;
+    oldStatus: string;
+    newStatus: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.MODULE_ACTIVATED]: {
+    moduleCode: string;
+    moduleId: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.MODULE_DEACTIVATED]: {
+    moduleCode: string;
+    moduleId: string;
+    reason?: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.MODULE_DEGRADED]: {
+    moduleCode: string;
+    moduleId: string;
+    reason?: string;
+    timestamp: number;
+  };
+  
+  // Événements de fonctionnalités
+  [MODULE_EVENTS.FEATURE_STATUS_CHANGED]: {
+    moduleCode: string;
+    featureCode: string;
+    oldStatus: boolean;
+    newStatus: boolean;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.FEATURE_ENABLED]: {
+    moduleCode: string;
+    featureCode: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.FEATURE_DISABLED]: {
+    moduleCode: string;
+    featureCode: string;
+    timestamp: number;
+  };
+  
+  // Événements de dépendances
+  [MODULE_EVENTS.DEPENDENCIES_REFRESHED]: {
+    count: number;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.DEPENDENCY_VIOLATED]: {
+    moduleCode: string;
+    dependencyCode: string;
+    isRequired: boolean;
+    timestamp: number;
+  };
+  
+  // Événements d'erreur
+  [MODULE_EVENTS.MODULE_ERROR]: {
+    error: string;
+    context: string;
+    moduleCode?: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.MODULE_WARNING]: {
+    warning: string;
+    context: string;
+    moduleCode?: string;
+    timestamp: number;
+  };
+  
+  // Événements de cache
+  [MODULE_EVENTS.CACHE_UPDATED]: {
+    type: 'modules' | 'features' | 'dependencies';
+    count: number;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.CACHE_INVALIDATED]: {
+    type: 'modules' | 'features' | 'dependencies';
+    reason: string;
+    timestamp: number;
+  };
+  
+  // Événements de performance
+  [MODULE_EVENTS.MODULE_PERFORMANCE]: {
+    operation: string;
+    duration: number;
+    moduleCode?: string;
+    timestamp: number;
+  };
 }
