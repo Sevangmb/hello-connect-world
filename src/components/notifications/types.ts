@@ -1,7 +1,7 @@
 
 export type Notification = {
   id: string;
-  type: string;
+  type: NotificationType;
   actor_id: string | null;
   post_id: string | null;
   read: boolean;
@@ -9,7 +9,7 @@ export type Notification = {
   actor: {
     username: string | null;
     avatar_url: string | null;
-  } | null; // Changed from required to nullable
+  } | null;
   post?: {
     content: string;
   };
@@ -45,4 +45,22 @@ export interface ToastNotification {
   icon?: React.ReactNode;
   duration?: number;
   action?: React.ReactNode;
+}
+
+// Préférences de notification pour un utilisateur
+export interface NotificationPreference {
+  type: NotificationType;
+  enabled: boolean;
+  pushEnabled?: boolean;
+  emailEnabled?: boolean;
+}
+
+// Canal de notification
+export type NotificationChannel = 'push' | 'in-app' | 'email';
+
+// Configuration de notification pour un type spécifique
+export interface NotificationConfig {
+  type: NotificationType;
+  channels: NotificationChannel[];
+  frequency?: 'immediate' | 'daily' | 'weekly';
 }

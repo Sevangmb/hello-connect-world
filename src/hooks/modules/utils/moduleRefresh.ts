@@ -1,4 +1,3 @@
-
 /**
  * Utilitaires pour rafraîchir les modules depuis Supabase avec gestion avancée du cache
  */
@@ -210,4 +209,44 @@ export const refreshModulesWithRetry = async (
   }
   
   throw lastError || new Error("Échec du rafraîchissement des modules après plusieurs tentatives");
+};
+
+/**
+ * Exécute une fonction de rafraîchissement des modules et gère les erreurs
+ */
+export const handleModuleRefresh = async (
+  refreshModules: () => Promise<void>,
+  onRefreshComplete?: () => void
+): Promise<void> => {
+  try {
+    console.log('Starting module refresh process...');
+    
+    // Exécuter la fonction de rafraîchissement des modules
+    await refreshModules();
+    console.log('Module refresh completed successfully');
+    
+    // Appeler le callback de complétion si fourni
+    if (onRefreshComplete && typeof onRefreshComplete === 'function') {
+      onRefreshComplete();
+    }
+  } catch (error) {
+    console.error('Error during module refresh:', error);
+    // Ici, l'erreur est gérée dans le try/catch plutôt qu'avec .catch()
+    // puisque PromiseLike<void> n'a pas de méthode .catch()
+  }
+};
+
+/**
+ * Exécute une fonction de rafraîchissement des modules en mode sûr
+ */
+export const safeRefreshModules = async (
+  refreshFunction: () => Promise<void>
+): Promise<void> => {
+  try {
+    // Fixer l'appel pour n'utiliser que 2 arguments comme attendu
+    await handleModuleRefresh(refreshFunction);
+    // Le rappel de complétion est omis volontairement ici
+  } catch (error) {
+    console.error('Safe refresh failed:', error);
+  }
 };

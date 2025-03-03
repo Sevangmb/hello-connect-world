@@ -1,55 +1,41 @@
 
-import React, { useState, useEffect } from "react";
-import { useNotifications } from "@/hooks/useNotifications";
-import { Notification } from "./types";
+import React, { useState } from "react";
+import { useNotificationCenter } from "@/hooks/notifications/useNotificationCenter";
 import { NotificationItem } from "./NotificationItem";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Loader2, RefreshCw } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useAuth } from "@/hooks/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { NotificationData } from "@/hooks/notifications/types";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
-export function NotificationsList() {
+interface NotificationsListProps {
+  compact?: boolean;
+  className?: string;
+}
+
+export function NotificationsList({ compact = false, className }: NotificationsListProps) {
   const { user } = useAuth();
   const {
     notifications,
     unreadCount,
     isLoading,
     error,
+    realtimeConnected,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     refreshNotifications,
-    realtimeStatus,
-  } = useNotifications();
+  } = useNotificationCenter();
 
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Convertir NotificationData en Notification pour compatibilité
-  const convertToNotification = (data: NotificationData): Notification => {
-    return {
-      id: data.id,
-      type: data.type,
-      actor_id: data.actor_id,
-      post_id: data.post_id,
-      read: data.read || data.is_read,
-      created_at: data.created_at,
-      actor: data.actor || { username: null, avatar_url: null },
-      message: data.message,
-      data: data.data,
-    };
-  };
-
-  // Convertir les notifications
-  const convertedNotifications = notifications?.map(convertToNotification) || [];
-
   // Filtrer les notifications selon l'onglet actif
   const filteredNotifications = activeTab === "unread"
-    ? convertedNotifications.filter(notification => !notification.read)
-    : convertedNotifications;
+    ? notifications.filter(notification => !notification.read)
+    : notifications;
 
   // Fonction pour rafraîchir manuellement les notifications
   const handleRefresh = async () => {
@@ -62,33 +48,6 @@ export function NotificationsList() {
       setIsRefreshing(false);
     }
   };
-
-  // Marquer une notification comme lue
-  const handleMarkAsRead = async (notification: Notification) => {
-    return Promise.resolve(markAsRead(notification.id));
-  };
-
-  // Marquer toutes les notifications comme lues
-  const handleMarkAllAsRead = () => {
-    markAllAsRead();
-  };
-
-  // Supprimer une notification
-  const handleDeleteNotification = (id: string) => {
-    deleteNotification(id);
-  };
-
-  // Effet pour marquer automatiquement les notifications comme lues lorsqu'elles sont affichées
-  useEffect(() => {
-    if (activeTab === "unread" && filteredNotifications?.length > 0) {
-      // Optionnel: marquer automatiquement comme lues après un délai
-      const timer = setTimeout(() => {
-        handleMarkAllAsRead();
-      }, 5000); // 5 secondes après l'affichage
-
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, filteredNotifications]);
 
   if (!user) {
     return (
@@ -119,11 +78,13 @@ export function NotificationsList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className, compact ? "p-3" : "")}>
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          <h2 className="text-lg font-medium">Vos notifications</h2>
+          <h2 className={cn("font-medium", compact ? "text-base" : "text-lg")}>
+            Vos notifications
+          </h2>
           {unreadCount > 0 && (
             <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
               {unreadCount}
@@ -131,22 +92,24 @@ export function NotificationsList() {
           )}
         </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleRefresh}
           disabled={isRefreshing}
+          className="h-8 w-8 p-0"
         >
           {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Actualiser"
+            <RefreshCw className="h-4 w-4" />
           )}
+          <span className="sr-only">Actualiser les notifications</span>
         </Button>
       </div>
 
-      {!realtimeStatus.connected && (
+      {!realtimeConnected && (
         <Alert variant="default" className="bg-yellow-50 border-yellow-200">
-          <AlertDescription className="text-yellow-800">
+          <AlertDescription className="text-yellow-800 text-xs">
             Les notifications en temps réel ne sont pas disponibles actuellement.
           </AlertDescription>
         </Alert>
@@ -154,17 +117,21 @@ export function NotificationsList() {
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={(v) => setActiveTab(v as "all" | "unread")}>
         <div className="flex justify-between items-center">
-          <TabsList>
-            <TabsTrigger value="all">Toutes</TabsTrigger>
-            <TabsTrigger value="unread">Non lues {unreadCount > 0 && `(${unreadCount})`}</TabsTrigger>
+          <TabsList className={cn(compact ? "h-8" : "")}>
+            <TabsTrigger value="all" className={cn(compact ? "text-xs px-3 h-7" : "")}>
+              Toutes
+            </TabsTrigger>
+            <TabsTrigger value="unread" className={cn(compact ? "text-xs px-3 h-7" : "")}>
+              Non lues {unreadCount > 0 && `(${unreadCount})`}
+            </TabsTrigger>
           </TabsList>
           
-          {filteredNotifications?.length > 0 && (
+          {filteredNotifications.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleMarkAllAsRead}
-              className="text-xs"
+              onClick={markAllAsRead}
+              className={cn("text-xs", compact ? "h-7 px-2" : "")}
             >
               <BellOff className="h-3 w-3 mr-1" />
               Tout marquer comme lu
@@ -172,48 +139,65 @@ export function NotificationsList() {
           )}
         </div>
 
-        <TabsContent value="all" className="mt-4">
-          {filteredNotifications?.length === 0 ? (
+        <TabsContent value="all" className="mt-3">
+          {filteredNotifications.length === 0 ? (
             <EmptyState
               icon={Bell}
               title="Pas de notifications"
               description="Vous n'avez pas encore de notifications."
+              className={cn(compact ? "py-6" : "py-12")}
             />
           ) : (
-            <div className="space-y-2">
-              {filteredNotifications?.map((notification) => (
+            <div className={cn("space-y-2", compact ? "max-h-[300px]" : "max-h-[500px]", "overflow-y-auto pr-1")}>
+              {filteredNotifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkAsRead={() => handleMarkAsRead(notification)}
-                  onDelete={() => handleDeleteNotification(notification.id)}
+                  onMarkAsRead={() => markAsRead(notification.id)}
+                  onDelete={() => deleteNotification(notification.id)}
+                  compact={compact}
                 />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="unread" className="mt-4">
-          {filteredNotifications?.length === 0 ? (
+        <TabsContent value="unread" className="mt-3">
+          {filteredNotifications.length === 0 ? (
             <EmptyState
               icon={BellOff}
               title="Pas de notifications non lues"
               description="Vous avez lu toutes vos notifications."
+              className={cn(compact ? "py-6" : "py-12")}
             />
           ) : (
-            <div className="space-y-2">
-              {filteredNotifications?.map((notification) => (
+            <div className={cn("space-y-2", compact ? "max-h-[300px]" : "max-h-[500px]", "overflow-y-auto pr-1")}>
+              {filteredNotifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkAsRead={() => handleMarkAsRead(notification)}
-                  onDelete={() => handleDeleteNotification(notification.id)}
+                  onMarkAsRead={() => markAsRead(notification.id)}
+                  onDelete={() => deleteNotification(notification.id)}
+                  compact={compact}
                 />
               ))}
             </div>
           )}
         </TabsContent>
       </Tabs>
+
+      {compact && (
+        <div className="pt-2 border-t flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.href = "/notifications"}
+            className="w-full text-xs"
+          >
+            Voir toutes les notifications
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
