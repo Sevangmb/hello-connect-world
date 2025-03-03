@@ -1,7 +1,7 @@
 
-import { AppModules } from "./definitions/AppModules";
+import { APP_MODULES } from "./definitions/AppModules";
 import { moduleRegistry } from "./services/ModuleRegistry";
-import { ModuleDbService } from "./services/ModuleDbService";
+import { moduleDbService } from "./services/ModuleDbService";
 
 /**
  * Initialise le système de modules au démarrage de l'application
@@ -11,21 +11,24 @@ export async function initializeModuleSystem(): Promise<void> {
   
   try {
     // S'assurer que tous les modules sont enregistrés
-    // (Cela devrait déjà être fait par l'import des définitions, mais on le fait quand même pour être sûr)
-    AppModules.forEach(module => {
-      if (!moduleRegistry.getModule(module.code)) {
-        moduleRegistry.register(module);
-      }
-    });
+    // Cette partie doit être adaptée car moduleRegistry n'a pas de méthodes register ni getModule
+    // Nous allons plutôt utiliser les méthodes disponibles dans l'API actuelle
+    
+    // Vérifier si les modules sont déjà initialisés
+    if (!moduleRegistry.getInitialized()) {
+      // Initialiser le registre
+      await moduleRegistry.initialize();
+      
+      console.log("Registre de modules initialisé");
+    }
     
     // Charger l'état initial depuis la base de données
-    const [modules, features] = await Promise.all([
-      ModuleDbService.loadAllModules(),
-      ModuleDbService.loadAllFeatures()
-    ]);
+    const modules = await moduleDbService.fetchAllModules();
+    const features = await moduleDbService.fetchAllFeatures();
     
-    // Charger les données dans le registre
-    moduleRegistry.loadFromApiData(modules, features);
+    // Déclencher un rafraîchissement des modules
+    // Nous n'utilisons pas loadFromApiData qui n'existe pas dans l'API actuelle
+    await moduleRegistry.refreshModules(true);
     
     console.log(`Système de modules initialisé avec ${modules.length} modules`);
     
@@ -41,9 +44,9 @@ export async function initializeModuleSystem(): Promise<void> {
         const cachedModules = JSON.parse(cachedModulesData);
         console.warn(`Utilisation du cache pour ${cachedModules.length} modules suite à une erreur d'initialisation`);
         
-        // Créer un objet features vide pour éviter les erreurs
-        const emptyFeatures: Record<string, Record<string, boolean>> = {};
-        moduleRegistry.loadFromApiData(cachedModules, emptyFeatures);
+        // Au lieu d'utiliser loadFromApiData, utilisons l'API actuelle
+        // Nous pouvons déclencher un événement de modules mis à jour
+        window.dispatchEvent(new CustomEvent('modules_updated'));
         
         // Émettre un événement d'initialisation partielle
         window.dispatchEvent(new CustomEvent('module_system_partial_init'));
