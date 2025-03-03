@@ -6,7 +6,7 @@ import { ModuleDegraded } from "./ModuleDegraded";
 import { eventBus } from "@/core/event-bus/EventBus";
 import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
 import { useMetrics } from "@/hooks/useMetrics";
-import { CircleNotch } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -19,7 +19,7 @@ interface ModuleGuardProps {
 
 const DefaultLoadingComponent = () => (
   <div className="flex items-center justify-center p-4 h-full min-h-[100px] w-full text-gray-400">
-    <CircleNotch className="mr-2 h-4 w-4 animate-spin" />
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
     <span>Chargement du module...</span>
   </div>
 );
@@ -37,19 +37,20 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   errorComponent,
 }) => {
   const { isModuleActive, isModuleDegraded, initialized, loading: registryLoading, error: registryError } = useModuleRegistry();
-  const { incrementCounter, measureOperation, startTimer, stopTimer } = useMetrics();
+  const { incrementCounter, measureOperation } = useMetrics();
   const [isActive, setIsActive] = useState(false);
   const [isDegraded, setIsDegraded] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState<number>(0);
 
   useEffect(() => {
     // Enregistrer l'utilisation du ModuleGuard
     incrementCounter('module_guard.usage', 1, { moduleCode });
     
-    const timerName = `module_guard.load.${moduleCode}`;
-    startTimer(timerName, { moduleCode });
+    const currentStartTime = performance.now();
+    setStartTime(currentStartTime);
     
     // Ne vérifier que si le module registry est initialisé
     if (initialized) {
@@ -69,15 +70,15 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
             incrementCounter('module_guard.admin_access', 1, { moduleCode });
           } else {
             // Pour les autres modules, vérifier si le module est actif
-            const checkActivePromise = () => isModuleActive(moduleCode);
+            const checkActivePromise = async () => await isModuleActive(moduleCode);
             const active = await measureOperation('module_check.active', checkActivePromise, { moduleCode });
-            setIsActive(active);
+            setIsActive(!!active);
             
             // Vérifier si le module est en mode dégradé
             if (active) {
-              const checkDegradedPromise = () => isModuleDegraded(moduleCode);
+              const checkDegradedPromise = async () => await isModuleDegraded(moduleCode);
               const degraded = await measureOperation('module_check.degraded', checkDegradedPromise, { moduleCode });
-              setIsDegraded(degraded);
+              setIsDegraded(!!degraded);
               
               // Suivre le statut du module
               incrementCounter('module_guard.status', 1, { 
@@ -116,10 +117,11 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
         } finally {
           setIsChecked(true);
           setIsLoading(false);
-          stopTimer(timerName, { moduleCode });
+          const endTime = performance.now();
+          const duration = endTime - startTime;
           
           // Enregistrer le temps de chargement comme histogramme pour les analyses
-          incrementCounter('module_guard.load_time', performance.now() - (startTimer as any), { moduleCode });
+          incrementCounter('module_guard.load_time', duration, { moduleCode });
         }
       };
       
@@ -137,7 +139,7 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
         unsubscribe();
       };
     }
-  }, [moduleCode, isModuleActive, isModuleDegraded, strictMode, initialized, incrementCounter, measureOperation, startTimer, stopTimer]);
+  }, [moduleCode, isModuleActive, isModuleDegraded, strictMode, initialized, incrementCounter, measureOperation, startTime]);
 
   // Forcer la fin du chargement après 3 secondes pour éviter un blocage indéfini
   useEffect(() => {

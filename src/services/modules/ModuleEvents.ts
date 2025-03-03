@@ -20,6 +20,8 @@ export const MODULE_EVENTS = {
   FEATURE_STATUS_CHANGED: 'modules:feature_status_changed',
   FEATURE_ENABLED: 'modules:feature_enabled',
   FEATURE_DISABLED: 'modules:feature_disabled',
+  FEATURE_ACTIVATED: 'modules:feature_activated',
+  FEATURE_DEACTIVATED: 'modules:feature_deactivated',
   
   // Événements de dépendances
   DEPENDENCIES_REFRESHED: 'modules:dependencies_refreshed',
@@ -36,10 +38,14 @@ export const MODULE_EVENTS = {
   // Événements de performance
   MODULE_PERFORMANCE: 'modules:performance',
   
-  // Nouveaux événements de circuit breaker
+  // Événements de circuit breaker
   CIRCUIT_OPENED: 'modules:circuit_opened',
   CIRCUIT_CLOSED: 'modules:circuit_closed',
-  CIRCUIT_HALF_OPEN: 'modules:circuit_half_open'
+  CIRCUIT_HALF_OPEN: 'modules:circuit_half_open',
+  
+  // Événements de connexion
+  MODULE_CONNECTION_RESTORED: 'modules:connection_restored',
+  MODULE_CONNECTION_ERROR: 'modules:connection_error'
 } as const;
 
 // Type utilitaire pour garantir l'exhaustivité
@@ -99,6 +105,16 @@ export interface ModuleEventPayloads {
     timestamp: number;
   };
   [MODULE_EVENTS.FEATURE_DISABLED]: {
+    moduleCode: string;
+    featureCode: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.FEATURE_ACTIVATED]: {
+    moduleCode: string;
+    featureCode: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.FEATURE_DEACTIVATED]: {
     moduleCode: string;
     featureCode: string;
     timestamp: number;
@@ -167,6 +183,17 @@ export interface ModuleEventPayloads {
     service: string;
     timestamp: number;
     attempts: number;
+  };
+  
+  // Événements de connexion
+  [MODULE_EVENTS.MODULE_CONNECTION_RESTORED]: {
+    service: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.MODULE_CONNECTION_ERROR]: {
+    service: string;
+    timestamp: number;
+    reason: string;
   };
 }
 
