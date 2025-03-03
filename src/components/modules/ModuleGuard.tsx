@@ -26,21 +26,22 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   const { isModuleActive, isModuleDegraded, refreshModules } = useModules();
 
   // Vérification immédiate pour les modules admin
-  const isAdmin = useMemo(() => isAdminModule(moduleCode), [moduleCode]);
+  const isAdmin = useMemo(() => {
+    const adminCheck = isAdminModule(moduleCode) || 
+                      moduleCode === 'admin' || 
+                      moduleCode.startsWith('admin_') || 
+                      moduleCode.startsWith('admin');
+    if (adminCheck) {
+      console.log(`ModuleGuard: Module admin ${moduleCode} détecté, toujours actif`);
+    }
+    return adminCheck;
+  }, [moduleCode]);
   
   // Callback memoizé pour vérifier le statut
   const checkStatus = useCallback(async () => {
-    // Vérifier d'abord si c'est un module admin
-    if (isAdmin) {
-      console.log(`ModuleGuard: Module admin ${moduleCode} détecté, traitement spécial`);
-      setIsActive(true);
-      setIsDegraded(false);
-      return;
-    }
-    
-    // Pour les modules admin ou challenges, toujours actifs
-    if (moduleCode === 'challenges' || moduleCode.startsWith('admin')) {
-      console.log(`ModuleGuard: Module ${moduleCode} toujours actif`);
+    // Vérifier d'abord si c'est un module admin ou challenge
+    if (isAdmin || moduleCode === 'challenges' || moduleCode === 'admin_modules') {
+      console.log(`ModuleGuard: Module ${moduleCode} toujours actif (admin ou challenge)`);
       setIsActive(true);
       setIsDegraded(false);
       return;

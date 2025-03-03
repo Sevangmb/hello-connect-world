@@ -35,22 +35,33 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
   // N'initialiser qu'au montage
   useEffect(() => {
     refreshModules();
-  }, []);
+  }, [refreshModules]);
 
   // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
+        // Mode développement: permettre l'accès admin plus facilement
+        if (process.env.NODE_ENV === 'development') {
+          const devBypass = localStorage.getItem('dev_admin_bypass');
+          if (devBypass === 'true') {
+            console.log("DEV MODE: Admin bypass enabled in sidebar");
+            setIsAdmin(true);
+            return;
+          }
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
         try {
           // Essayer d'abord avec RPC
-          const { data: isUserAdmin } = await supabase.rpc('is_admin', {
+          const { data: isUserAdmin, error: rpcError } = await supabase.rpc('is_admin', {
             user_id: user.id
           });
           
-          if (isUserAdmin !== undefined) {
+          if (!rpcError && isUserAdmin !== undefined) {
+            console.log("Admin status from RPC:", isUserAdmin);
             setIsAdmin(!!isUserAdmin);
             return;
           }
@@ -59,27 +70,20 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
         }
 
         // Fallback à la requête directe
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('is_admin')
           .eq('id', user.id)
           .single();
 
-        setIsAdmin(profile?.is_admin || false);
+        if (!error && profile) {
+          console.log("Admin status from direct query:", profile.is_admin);
+          setIsAdmin(!!profile.is_admin);
+        }
       } catch (error) {
         console.error("Error checking admin status:", error);
       }
     };
-
-    // Mode développement: permettre l'accès admin plus facilement
-    if (process.env.NODE_ENV === 'development') {
-      const devBypass = localStorage.getItem('dev_admin_bypass');
-      if (devBypass === 'true') {
-        console.warn("DEV MODE: Admin bypass enabled in sidebar");
-        setIsAdmin(true);
-        return;
-      }
-    }
 
     checkAdminStatus();
   }, []);
@@ -127,6 +131,7 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
               <MemoizedProfileSection />
             </ModuleGuard>
             
+            {/* Toujours afficher la section admin si l'utilisateur est admin */}
             {isAdmin && <MemoizedAdminSection />}
           </Accordion>
         </ScrollArea>
