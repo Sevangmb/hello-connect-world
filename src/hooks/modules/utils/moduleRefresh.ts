@@ -243,7 +243,7 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Corrected: removed extra parameter
+    // Fixed: removed third parameter
     await handleModuleRefresh(refreshFunction);
   } catch (error) {
     console.error('Safe refresh failed:', error);
