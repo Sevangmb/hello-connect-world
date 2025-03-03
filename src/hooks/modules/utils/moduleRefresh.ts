@@ -9,8 +9,8 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
   try {
     console.log("Chargement des modules directement depuis Supabase");
     
-    // Optimisation: Utilisation d'un timeout pour éviter des requêtes infinies
-    const fetchPromise = new Promise<{data: any[], error: any}>((resolve, reject) => {
+    // Création d'une nouvelle Promise pour gérer correctement les types et le timeout
+    const fetchPromise = new Promise<AppModule[]>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error("Timeout lors du chargement des modules"));
       }, 5000); // 5 secondes timeout
@@ -19,9 +19,45 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
         .from('app_modules')
         .select('*')
         .order('name')
-        .then((result) => {
+        .then(({ data, error }) => {
           clearTimeout(timeoutId);
-          resolve(result);
+          
+          if (error) {
+            console.error("Erreur lors du chargement des modules:", error);
+            reject(error);
+            return;
+          }
+          
+          if (data && data.length > 0) {
+            // Assurer que les statuts sont des ModuleStatus valides
+            const typedModules = data.map(module => {
+              let status = module.status;
+              // S'assurer que le statut est un ModuleStatus valide
+              if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
+                status = 'inactive';
+              }
+              return { ...module, status } as AppModule;
+            });
+            
+            // Mettre à jour l'état
+            setModules(typedModules);
+            
+            // Mettre à jour le cache localStorage
+            try {
+              localStorage.setItem('modules_cache', JSON.stringify(typedModules));
+              localStorage.setItem('modules_cache_timestamp', Date.now().toString());
+              console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
+              
+              // Émettre un événement pour informer les autres composants
+              window.dispatchEvent(new CustomEvent('modules_updated'));
+            } catch (e) {
+              console.error("Erreur lors de la mise en cache des modules:", e);
+            }
+            
+            resolve(typedModules);
+          } else {
+            resolve([]);
+          }
         })
         .catch((error) => {
           clearTimeout(timeoutId);
@@ -29,47 +65,7 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
         });
     });
     
-    try {
-      const { data, error } = await fetchPromise;
-        
-      if (error) {
-        console.error("Erreur lors du chargement des modules:", error);
-        throw error;
-      }
-      
-      if (data && data.length > 0) {
-        // Assurer que les statuts sont des ModuleStatus valides
-        const typedModules = data.map(module => {
-          let status = module.status;
-          // S'assurer que le statut est un ModuleStatus valide
-          if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
-            status = 'inactive';
-          }
-          return { ...module, status } as AppModule;
-        });
-        
-        // Mettre à jour l'état
-        setModules(typedModules);
-        
-        // Mettre à jour le cache localStorage
-        try {
-          localStorage.setItem('modules_cache', JSON.stringify(typedModules));
-          localStorage.setItem('modules_cache_timestamp', Date.now().toString());
-          console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
-          
-          // Émettre un événement pour informer les autres composants
-          window.dispatchEvent(new CustomEvent('modules_updated'));
-        } catch (e) {
-          console.error("Erreur lors de la mise en cache des modules:", e);
-        }
-        
-        return typedModules;
-      }
-      return [];
-    } catch (fetchError) {
-      console.error("Erreur lors de la requête Supabase:", fetchError);
-      throw fetchError;
-    }
+    return await fetchPromise;
   } catch (error) {
     console.error("Exception lors du rafraîchissement des modules:", error);
     // En cas d'erreur, essayer de lire depuis le cache local
