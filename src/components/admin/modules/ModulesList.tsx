@@ -36,7 +36,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     resetPendingChanges
   } = useModuleToggle();
   
-  const { saving, saveChanges } = useModuleSave({
+  const { saving, saveChanges, error } = useModuleSave({
     modules,
     updateModuleStatus,
     updateFeatureStatus,
@@ -72,6 +72,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
           hasPendingChanges={hasPendingChanges}
           saving={saving}
           onSave={saveChanges}
+          error={error}
         />
       </CardFooter>
     </Card>
