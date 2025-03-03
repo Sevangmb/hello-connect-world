@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 export function Header() {
   const navigate = useNavigate();
@@ -23,14 +24,12 @@ export function Header() {
   const authService = getAuthService();
   const userService = getUserService();
 
-  // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         const user = await authService.getCurrentUser();
         if (!user) return;
 
-        // Mode développement: permettre l'accès admin plus facilement
         if (process.env.NODE_ENV === 'development') {
           const devBypass = localStorage.getItem('dev_admin_bypass');
           if (devBypass === 'true') {
@@ -61,7 +60,6 @@ export function Header() {
     }
   });
 
-  // Convert array to object for easier access
   const settings = settingsArray?.reduce((acc: {
     [key: string]: any;
   }, setting) => {
@@ -121,7 +119,6 @@ export function Header() {
             <Link to="/boutiques">Boutiques</Link>
           </Button>
           
-          {/* Toujours afficher le bouton admin pour les administrateurs */}
           {isAdmin && (
             <Button variant="outline" size="sm" className="ml-2 border-primary text-primary" asChild>
               <Link to="/admin/dashboard">
@@ -171,7 +168,6 @@ export function Header() {
                 </Link>
               </DropdownMenuItem>
               
-              {/* Toujours afficher l'option admin pour les administrateurs */}
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
@@ -200,7 +196,6 @@ export function Header() {
         </div>
       </div>
       
-      {/* Menu mobile */}
       {menuOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container py-4 space-y-3">
@@ -225,7 +220,6 @@ export function Header() {
               </Link>
             </Button>
             
-            {/* Toujours afficher l'option admin pour les administrateurs dans le menu mobile */}
             {isAdmin && (
               <Button variant="outline" className="w-full justify-start border-primary text-primary" asChild>
                 <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
