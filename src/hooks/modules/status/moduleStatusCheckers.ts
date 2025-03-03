@@ -15,6 +15,7 @@ export const checkModuleActive = (moduleCode: string): boolean => {
   if (moduleCode === ADMIN_MODULE_CODE || 
       moduleCode === 'admin' || 
       moduleCode.startsWith('admin_') || 
+      moduleCode === 'admin_modules' || 
       moduleCode.startsWith('admin')) {
     console.log(`Module ${moduleCode} est un module admin, toujours actif`);
     return true;
@@ -38,6 +39,7 @@ export const checkModuleDegraded = (moduleCode: string): boolean => {
   // Si c'est un module admin, jamais dégradé
   if (moduleCode === ADMIN_MODULE_CODE || 
       moduleCode === 'admin' || 
+      moduleCode === 'admin_modules' || 
       moduleCode.startsWith('admin_') || 
       moduleCode.startsWith('admin')) {
     return false;
@@ -60,6 +62,7 @@ export const checkFeatureEnabled = (moduleCode: string, featureCode: string): bo
   // Si c'est une fonctionnalité du module admin, toujours activée
   if (moduleCode === ADMIN_MODULE_CODE || 
       moduleCode === 'admin' || 
+      moduleCode === 'admin_modules' || 
       moduleCode.startsWith('admin_') || 
       moduleCode.startsWith('admin')) {
     return true;

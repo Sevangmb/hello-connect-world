@@ -34,7 +34,7 @@ export const useModuleSave = ({
     try {
       console.log(`Tentative #${retryCount + 1} de mise à jour du module ${moduleId} au statut ${newStatus}`);
       
-      // Amélioration: utiliser upsert au lieu de update pour être plus robuste
+      // Utiliser une mise à jour directe via Supabase
       const { error } = await supabase
         .from('app_modules')
         .update({ 
@@ -54,7 +54,7 @@ export const useModuleSave = ({
       console.error(`Exception lors de la mise à jour du module ${moduleId} (tentative #${retryCount + 1}):`, error);
       
       // Retenter l'opération si nous n'avons pas atteint le nombre max de tentatives
-      if (retryCount < 3) {
+      if (retryCount < 2) { // Réduire à 2 tentatives maximum
         // Attendre un délai croissant avant de réessayer (backoff exponentiel)
         const delay = Math.pow(2, retryCount) * 500; 
         console.log(`Nouvelle tentative dans ${delay}ms...`);
@@ -147,11 +147,6 @@ export const useModuleSave = ({
             }
           } catch (error) {
             console.error("Erreur lors du rafraîchissement des modules après sauvegarde:", error);
-            toast({
-              variant: "destructive",
-              title: "Erreur de rafraîchissement",
-              description: "Les données ont été enregistrées mais leur affichage n'a pas pu être mis à jour.",
-            });
           }
         }, 500);
       } else {
@@ -180,6 +175,7 @@ export const useModuleSave = ({
         description: "Impossible d'enregistrer les modifications: " + errorMessage,
       });
     } finally {
+      // Toujours réinitialiser l'état saving, même en cas d'erreur
       setSaving(false);
     }
   }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules]);

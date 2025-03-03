@@ -29,6 +29,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   const isAdmin = useMemo(() => {
     const adminCheck = isAdminModule(moduleCode) || 
                       moduleCode === 'admin' || 
+                      moduleCode === 'admin_modules' || 
                       moduleCode.startsWith('admin_') || 
                       moduleCode.startsWith('admin');
     if (adminCheck) {
@@ -100,7 +101,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   }, [checkStatus]);
 
   // Si c'est un module admin, on affiche toujours le contenu (traitement spécial)
-  if (isAdmin || moduleCode.startsWith('admin') || moduleCode === 'admin_modules') {
+  if (isAdmin || moduleCode === 'admin_modules' || moduleCode.startsWith('admin')) {
     return <>{children}</>;
   }
 

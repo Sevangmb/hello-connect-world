@@ -37,17 +37,29 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
       try {
         localStorage.setItem('modules_cache', JSON.stringify(typedModules));
         localStorage.setItem('modules_cache_timestamp', Date.now().toString());
+        console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
       } catch (e) {
         console.error("Erreur lors de la mise en cache des modules:", e);
       }
       
-      console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
       return typedModules;
     }
     
     return [];
   } catch (error) {
     console.error("Exception lors du rafraîchissement des modules:", error);
+    // En cas d'erreur, essayer de lire depuis le cache local
+    try {
+      const cachedData = localStorage.getItem('modules_cache');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData) as AppModule[];
+        console.log(`Utilisation des ${parsedData.length} modules en cache après erreur`);
+        setModules(parsedData);
+        return parsedData;
+      }
+    } catch (e) {
+      console.error("Erreur lors de la lecture du cache des modules:", e);
+    }
     return [];
   }
 };

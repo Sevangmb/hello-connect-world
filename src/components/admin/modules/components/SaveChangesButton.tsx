@@ -2,7 +2,12 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Save, Loader2, AlertCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SaveChangesButtonProps {
   hasPendingChanges: boolean;
