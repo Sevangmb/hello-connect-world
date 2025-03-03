@@ -19,9 +19,16 @@ export function useModuleDataFetcher(): ModuleDataFetcherReturn {
   const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('checking');
 
   // Check connection to Supabase
-  const { connectionStatus, error: connectionError } = useConnectionChecker();
+  const { connectionStatus: checkerConnectionStatus, error: connectionError } = useConnectionChecker();
+  
+  // Update our local connection status based on the checker
+  if (checkerConnectionStatus !== connectionStatus) {
+    setConnectionStatus(checkerConnectionStatus);
+  }
+  
   if (connectionError && !error) {
     setError(connectionError);
   }
@@ -36,7 +43,7 @@ export function useModuleDataFetcher(): ModuleDataFetcherReturn {
   const { fetchModules: fetchModulesCore } = useModuleFetcher(
     modules, 
     features, 
-    (status) => setConnectionStatus(status as ConnectionStatus)
+    setConnectionStatus  // Pass the setter function to useModuleFetcher
   );
 
   /**
