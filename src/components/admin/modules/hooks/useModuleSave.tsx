@@ -1,14 +1,12 @@
 
 import { useState, useCallback } from "react";
+import { AppModule, ModuleStatus } from "@/hooks/modules/types";
 import { useToast } from "@/hooks/use-toast";
-import { ModuleStatus, AppModule } from "@/hooks/modules/types";
-import { supabase } from "@/integrations/supabase/client";
-import { triggerModuleStatusChanged } from "@/hooks/modules/events";
-import { purgeModuleCaches } from "@/hooks/modules/api/moduleStatusCore";
+import { refreshModulesWithRetry } from "@/hooks/modules/utils/moduleRefresh";
 
 interface UseModuleSaveProps {
   modules: AppModule[];
-  updateModuleStatus: (moduleId: string, newStatus: ModuleStatus) => Promise<boolean>;
+  updateModuleStatus: (moduleId: string, status: ModuleStatus) => Promise<boolean>;
   updateFeatureStatus: (moduleCode: string, featureCode: string, isEnabled: boolean) => Promise<boolean>;
   refreshModules: () => Promise<AppModule[]>;
   pendingChanges: Record<string, ModuleStatus>;
@@ -29,160 +27,110 @@ export const useModuleSave = ({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fonction pour gérer une tentative unique de mise à jour avec plusieurs essais
-  const attemptUpdateModule = async (moduleId: string, newStatus: ModuleStatus, retryCount = 0): Promise<boolean> => {
-    try {
-      console.log(`Tentative #${retryCount + 1} de mise à jour du module ${moduleId} au statut ${newStatus}`);
-      
-      // Utiliser une mise à jour directe via Supabase
-      const { error } = await supabase
-        .from('app_modules')
-        .update({ 
-          status: newStatus, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', moduleId);
-        
-      if (error) {
-        console.error(`Erreur lors de la mise à jour du module ${moduleId}:`, error);
-        throw error;
-      }
-      
-      console.log(`Module ${moduleId} mis à jour avec succès`);
-      return true;
-    } catch (error) {
-      console.error(`Exception lors de la mise à jour du module ${moduleId} (tentative #${retryCount + 1}):`, error);
-      
-      // Retenter l'opération si nous n'avons pas atteint le nombre max de tentatives
-      if (retryCount < 2) { // Réduire à 2 tentatives maximum
-        // Attendre un délai croissant avant de réessayer (backoff exponentiel)
-        const delay = Math.pow(2, retryCount) * 500; 
-        console.log(`Nouvelle tentative dans ${delay}ms...`);
-        
-        return new Promise((resolve) => {
-          setTimeout(async () => {
-            const result = await attemptUpdateModule(moduleId, newStatus, retryCount + 1);
-            resolve(result);
-          }, delay);
-        });
-      }
-      
-      return false;
-    }
-  };
-
-  // Enregistrer tous les changements en lot pour de meilleures performances
+  // Fonction pour sauvegarder les changements avec retries
   const saveChanges = useCallback(async () => {
-    if (Object.keys(pendingChanges).length === 0) {
-      toast({
-        title: "Aucun changement",
-        description: "Il n'y a aucun changement à enregistrer",
-      });
-      return;
-    }
+    if (Object.keys(pendingChanges).length === 0) return;
+    
+    setSaving(true);
+    setError(null);
+    
+    const pendingModuleIds = Object.keys(pendingChanges);
+    const maxRetries = 3;
+    let successCount = 0;
+    let failedModules: string[] = [];
     
     try {
-      setSaving(true);
-      setError(null);
-      
-      // Tableau pour stocker les résultats des mises à jour
-      const updateResults: { id: string; code: string; status: ModuleStatus; success: boolean }[] = [];
-      const failedModules: string[] = [];
-      
-      // Effectuer chaque mise à jour individuellement avec retry
-      for (const [moduleId, newStatus] of Object.entries(pendingChanges)) {
-        // Rechercher le module complet dans la liste des modules
-        const moduleToUpdate = modules.find(m => m.id === moduleId);
+      // Traiter chaque module avec des changements en attente
+      for (const moduleId of pendingModuleIds) {
+        const newStatus = pendingChanges[moduleId];
+        let success = false;
+        let retryCount = 0;
         
-        if (moduleToUpdate) {
+        // Appliquer une stratégie de backoff exponentiel pour les retries
+        while (!success && retryCount < maxRetries) {
           try {
-            // Utiliser la fonction avec retry
-            const success = await attemptUpdateModule(moduleId, newStatus);
-            
-            // Ajouter le module mis à jour aux résultats
-            updateResults.push({
-              id: moduleId,
-              code: moduleToUpdate.code,
-              status: newStatus,
-              success
-            });
-            
-            if (!success) {
-              failedModules.push(moduleToUpdate.name || moduleToUpdate.code);
+            console.log(`Tentative ${retryCount + 1} de mise à jour du statut pour le module ${moduleId}`);
+            success = await updateModuleStatus(moduleId, newStatus);
+            if (success) {
+              successCount++;
+              break;
             }
-          } catch (error) {
-            console.error(`Exception non gérée lors de la mise à jour du module ${moduleId}:`, error);
-            failedModules.push(moduleToUpdate.name || moduleToUpdate.code);
+          } catch (err) {
+            console.error(`Erreur lors de la mise à jour du module ${moduleId}:`, err);
           }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            // Attendre avec un délai exponentiel entre les tentatives
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          }
+        }
+        
+        if (!success) {
+          console.error(`Échec de la mise à jour du module ${moduleId} après ${maxRetries} tentatives`);
+          failedModules.push(moduleId);
         }
       }
       
-      // Compter les réussites
-      const successCount = updateResults.filter(r => r.success).length;
-      
-      // Notification unique pour toutes les mises à jour
       if (successCount > 0) {
-        toast({
-          title: "Modules mis à jour",
-          description: `${successCount} module${successCount > 1 ? 's' : ''} mis à jour avec succès.`,
-        });
-        
-        // Purger les caches pour forcer un rechargement
-        purgeModuleCaches();
-        
-        // Déclencher l'événement personnalisé pour les mises à jour des modules
-        triggerModuleStatusChanged();
+        // Rafraîchir la liste des modules après les mises à jour
+        await refreshModulesWithRetry(modules => modules, 3);
         
         // Réinitialiser les changements en attente
         resetPendingChanges();
         
-        // Rafraîchir les données après un court délai
-        setTimeout(async () => {
-          try {
-            await refreshModules();
-            
-            // Notifier le parent que les statuts ont changé
-            if (onStatusChange) {
-              onStatusChange();
-            }
-          } catch (error) {
-            console.error("Erreur lors du rafraîchissement des modules après sauvegarde:", error);
-          }
-        }, 500);
-      } else {
-        // Si aucune mise à jour n'a réussi
-        const errorMessage = failedModules.length > 0 
-          ? `Échec de la mise à jour pour les modules : ${failedModules.join(', ')}.` 
-          : "Aucun module n'a pu être mis à jour.";
+        // Appeler le callback si fourni
+        if (onStatusChange) {
+          onStatusChange();
+        }
         
+        // Afficher une notification de succès
+        toast({
+          title: "Modifications enregistrées",
+          description: `${successCount} module(s) mis à jour avec succès.`,
+        });
+      }
+      
+      // Gérer les échecs partiels
+      if (failedModules.length > 0) {
+        const errorMessage = `Impossible de mettre à jour ${failedModules.length} module(s). Veuillez réessayer.`;
         setError(errorMessage);
         
         toast({
           variant: "destructive",
-          title: "Échec de la mise à jour",
-          description: errorMessage + " Vérifiez votre connexion internet et réessayez.",
+          title: "Erreur partielle",
+          description: errorMessage,
         });
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || "Une erreur inconnue s'est produite";
-      console.error("Erreur lors de la sauvegarde des modifications:", error);
+    } catch (err: any) {
+      const errorMessage = err.message || "Une erreur s'est produite lors de l'enregistrement des modifications.";
+      console.error("Erreur lors de la sauvegarde des modules:", err);
       
       setError(errorMessage);
       
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'enregistrer les modifications: " + errorMessage,
+        description: errorMessage,
       });
     } finally {
-      // Toujours réinitialiser l'état saving, même en cas d'erreur
+      // Forcer un nouveau rafraîchissement après les opérations
+      try {
+        await refreshModules();
+      } catch (refreshErr) {
+        console.error("Erreur lors du rafraîchissement final des modules:", refreshErr);
+      }
+      
       setSaving(false);
     }
-  }, [pendingChanges, resetPendingChanges, refreshModules, onStatusChange, toast, modules]);
+  }, [
+    pendingChanges, 
+    updateModuleStatus, 
+    refreshModules, 
+    resetPendingChanges, 
+    onStatusChange, 
+    toast
+  ]);
 
-  return {
-    saving,
-    saveChanges,
-    error
-  };
+  return { saving, saveChanges, error };
 };

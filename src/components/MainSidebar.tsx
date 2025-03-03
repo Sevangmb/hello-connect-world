@@ -13,6 +13,7 @@ import { useModules } from "@/hooks/modules";
 import { X } from "lucide-react";
 import { Button } from "./ui/button";
 import { ModuleGuard } from "./modules/ModuleGuard";
+import { useToast } from "@/hooks/use-toast";
 
 interface MainSidebarProps {
   isOpen?: boolean;
@@ -31,11 +32,19 @@ const MemoizedAdminSection = memo(AdminSection);
 export default memo(function MainSidebar({ isOpen = false, onClose }: MainSidebarProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { refreshModules } = useModules();
+  const { toast } = useToast();
 
   // N'initialiser qu'au montage
   useEffect(() => {
-    refreshModules();
-  }, [refreshModules]);
+    refreshModules().catch(err => {
+      console.error("Erreur lors du rafraîchissement des modules:", err);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de charger les modules. Veuillez rafraîchir la page."
+      });
+    });
+  }, [refreshModules, toast]);
 
   // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
@@ -69,16 +78,45 @@ export default memo(function MainSidebar({ isOpen = false, onClose }: MainSideba
           console.log("RPC not available, using direct query:", error);
         }
 
-        // Fallback à la requête directe
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
+        // Fallback à la requête directe avec retry
+        let retryCount = 0;
+        const maxRetries = 3;
+        let success = false;
 
-        if (!error && profile) {
-          console.log("Admin status from direct query:", profile.is_admin);
-          setIsAdmin(!!profile.is_admin);
+        while (!success && retryCount < maxRetries) {
+          try {
+            const { data: profile, error } = await supabase
+              .from('profiles')
+              .select('is_admin')
+              .eq('id', user.id)
+              .single();
+
+            if (!error && profile) {
+              console.log("Admin status from direct query:", profile.is_admin);
+              setIsAdmin(!!profile.is_admin);
+              success = true;
+              break;
+            }
+          } catch (queryError) {
+            console.error(`Tentative ${retryCount + 1} échouée:`, queryError);
+          }
+
+          retryCount++;
+          // Backoff exponentiel entre les tentatives
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          }
+        }
+
+        if (!success) {
+          console.error("Impossible de déterminer le statut admin après plusieurs tentatives");
+          
+          // En dernier recours, vérifier le rôle dans localStorage
+          const userRole = localStorage.getItem('user_role');
+          if (userRole === 'admin') {
+            console.log("Admin status from localStorage fallback");
+            setIsAdmin(true);
+          }
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
