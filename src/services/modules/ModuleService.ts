@@ -1,4 +1,3 @@
-
 /**
  * Service central pour la gestion des modules
  * Implémente l'API de communication avec les modules
@@ -92,14 +91,11 @@ class ModuleService {
     
     try {
       // Utiliser refreshModulesWithRetry qui possède une logique de backoff exponentiel
-      const updatedModules = await refreshModulesWithRetry(
-        (modules) => {
-          this.modules = modules;
-        }
-      );
+      const setModulesFn = (modules: AppModule[]) => {
+        this.modules = modules;
+      };
       
-      // Mettre à jour l'état interne
-      this.modules = updatedModules;
+      const updatedModules = await refreshModulesWithRetry(setModulesFn);
       
       // Mettre à jour le cache pour chaque module
       updatedModules.forEach(module => {

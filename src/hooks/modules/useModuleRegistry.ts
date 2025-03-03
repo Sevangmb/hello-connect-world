@@ -1,33 +1,46 @@
 
 /**
  * Hook pour accéder au registre des modules dans les composants React
- * Version mise à jour pour utiliser le nouveau service de modules
+ * Version mise à jour pour utiliser l'API Gateway
  */
 import { useEffect, useState, useCallback } from 'react';
 import { AppModule, ModuleStatus } from './types';
-import { moduleService } from '@/services/modules/ModuleService';
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
+import { useEventSubscription } from '@/hooks/useEventBus';
 
 export const useModuleRegistry = () => {
-  const [modules, setModules] = useState<AppModule[]>(moduleService.getModules());
-  const [dependencies, setDependencies] = useState<any[]>(moduleService.getDependencies());
-  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>(moduleService.getFeatures());
+  const [modules, setModules] = useState<AppModule[]>(moduleApiGateway.getModules());
+  const [dependencies, setDependencies] = useState<any[]>([]);
+  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState<boolean>(false);
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
 
-  // Initialiser le service au montage si pas déjà fait
+  // S'abonner aux événements du service de modules
+  useEventSubscription(MODULE_EVENTS.MODULES_REFRESHED, (data) => {
+    setModules(moduleApiGateway.getModules());
+    setLastRefreshTime(Date.now());
+  });
+  
+  useEventSubscription(MODULE_EVENTS.FEATURE_STATUS_CHANGED, () => {
+    setFeatures((prevFeatures) => ({ ...prevFeatures }));
+  });
+  
+  useEventSubscription(MODULE_EVENTS.MODULE_ERROR, (event) => {
+    setError(event.error);
+  });
+  
+  // Initialiser le service au montage
   useEffect(() => {
     if (!initialized) {
       setLoading(true);
-      moduleService.initialize().then(success => {
+      moduleApiGateway.initialize().then(success => {
         setInitialized(success);
         setLoading(false);
-        setModules(moduleService.getModules());
-        setDependencies(moduleService.getDependencies());
-        setFeatures(moduleService.getFeatures());
+        setModules(moduleApiGateway.getModules());
         setLastRefreshTime(Date.now());
       }).catch(err => {
         console.error("Erreur lors de l'initialisation du service de modules:", err);
@@ -37,44 +50,11 @@ export const useModuleRegistry = () => {
     }
   }, [initialized]);
 
-  // S'abonner aux événements du service de modules
-  useEffect(() => {
-    // Mettre à jour l'état local quand les modules sont mis à jour
-    const unsubscribeModules = eventBus.subscribe(MODULE_EVENTS.MODULES_REFRESHED, () => {
-      setModules(moduleService.getModules());
-      setLastRefreshTime(Date.now());
-    });
-    
-    // Mettre à jour l'état local quand les fonctionnalités sont mises à jour
-    const unsubscribeFeatures = eventBus.subscribe(MODULE_EVENTS.FEATURE_STATUS_CHANGED, () => {
-      setFeatures(moduleService.getFeatures());
-    });
-    
-    // Mettre à jour l'état local quand une erreur survient
-    const unsubscribeError = eventBus.subscribe(MODULE_EVENTS.MODULE_ERROR, (event) => {
-      setError(event.error);
-    });
-    
-    // S'assurer que toutes les données sont à jour
-    if (initialized) {
-      setModules(moduleService.getModules());
-      setDependencies(moduleService.getDependencies());
-      setFeatures(moduleService.getFeatures());
-    }
-    
-    // Nettoyer les abonnements au démontage
-    return () => {
-      unsubscribeModules();
-      unsubscribeFeatures();
-      unsubscribeError();
-    };
-  }, [initialized]);
-
   // Callback pour rafraîchir les modules
   const refreshModules = useCallback(async (force: boolean = false) => {
     setLoading(true);
     try {
-      const updatedModules = await moduleService.refreshModules(force);
+      const updatedModules = await moduleApiGateway.refreshModules(force);
       setModules(updatedModules);
       setLastRefreshTime(Date.now());
       setLoading(false);
@@ -87,30 +67,14 @@ export const useModuleRegistry = () => {
     }
   }, []);
 
-  // Callback pour rafraîchir les fonctionnalités
-  const refreshFeatures = useCallback(async () => {
-    setLoading(true);
-    try {
-      const updatedFeatures = await moduleService.refreshFeatures();
-      setFeatures(updatedFeatures);
-      setLoading(false);
-      return updatedFeatures;
-    } catch (err) {
-      console.error("Erreur lors du rafraîchissement des fonctionnalités:", err);
-      setError("Erreur lors du rafraîchissement des fonctionnalités");
-      setLoading(false);
-      throw err;
-    }
-  }, []);
-
   // Callback pour mettre à jour le statut d'un module
   const updateModuleStatus = useCallback(async (moduleId: string, status: ModuleStatus) => {
     setLoading(true);
     try {
-      const success = await moduleService.updateModuleStatus(moduleId, status);
+      const success = await moduleApiGateway.updateModuleStatus(moduleId, status);
       setLoading(false);
       if (success) {
-        setModules(moduleService.getModules());
+        setModules(moduleApiGateway.getModules());
         setLastRefreshTime(Date.now());
       }
       return success;
@@ -126,10 +90,18 @@ export const useModuleRegistry = () => {
   const updateFeatureStatus = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
     setLoading(true);
     try {
-      const success = await moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+      const success = await moduleApiGateway.updateFeatureStatus(moduleCode, featureCode, isEnabled);
       setLoading(false);
       if (success) {
-        setFeatures(moduleService.getFeatures());
+        // Mettre à jour l'état local des fonctionnalités
+        setFeatures(prevFeatures => {
+          const newFeatures = { ...prevFeatures };
+          if (!newFeatures[moduleCode]) {
+            newFeatures[moduleCode] = {};
+          }
+          newFeatures[moduleCode][featureCode] = isEnabled;
+          return newFeatures;
+        });
       }
       return success;
     } catch (err) {
@@ -142,17 +114,17 @@ export const useModuleRegistry = () => {
 
   // Fonction d'accès synchrone pour vérifier si un module est actif
   const isModuleActive = useCallback((moduleCode: string) => {
-    return moduleService.isModuleActive(moduleCode);
+    return moduleApiGateway.isModuleActive(moduleCode);
   }, []);
 
   // Fonction d'accès synchrone pour vérifier si un module est en mode dégradé
   const isModuleDegraded = useCallback((moduleCode: string) => {
-    return moduleService.isModuleDegraded(moduleCode);
+    return moduleApiGateway.isModuleDegraded(moduleCode);
   }, []);
 
   // Fonction d'accès synchrone pour vérifier si une fonctionnalité est activée
   const isFeatureEnabled = useCallback((moduleCode: string, featureCode: string) => {
-    return moduleService.isFeatureEnabled(moduleCode, featureCode);
+    return moduleApiGateway.isFeatureEnabled(moduleCode, featureCode);
   }, []);
 
   return {
@@ -164,7 +136,6 @@ export const useModuleRegistry = () => {
     initialized,
     lastRefreshTime,
     refreshModules,
-    refreshFeatures,
     updateModuleStatus,
     updateFeatureStatus,
     isModuleActive,
