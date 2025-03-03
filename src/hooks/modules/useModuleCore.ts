@@ -1,11 +1,10 @@
-
 /**
  * Core functionality for modules system
  * This file contains the main hook for modules management
  */
 
 import { useEffect, useState } from "react";
-import { useModuleDataFetcher, ConnectionStatus } from "./dataFetcher";
+import { useModuleDataFetcher, ConnectionStatus } from "./fetcher";
 import { useStatusManager } from "./statusManager";
 import { useModuleActive } from "./useModuleActive";
 import { useModuleEffects } from "./useModuleEffects";
@@ -14,8 +13,8 @@ import { AppModule } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Hook principal pour la gestion des modules
- * Fournit toutes les fonctions nécessaires pour interagir avec les modules
+ * Main hook for module management
+ * Provides all functions needed to interact with modules
  */
 export const useModuleCore = () => {
   // Récupérer l'API des modules depuis le contexte
