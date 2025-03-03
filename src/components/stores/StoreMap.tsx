@@ -1,179 +1,151 @@
 
 import { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { useStores } from "@/hooks/useStores";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { Icon } from "leaflet";
+import { Store } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import type { Store as ShopType } from "@/hooks/useStores";
 import "leaflet/dist/leaflet.css";
-import { useToast } from "@/hooks/use-toast";
 
-const DEFAULT_ZOOM = 13;
-const FRANCE_CENTER: [number, number] = [46.603354, 1.888334];
+interface StoreMapProps {
+  stores?: ShopType[];
+  isLoading?: boolean;
+}
 
-const StoreMap = () => {
-  const { stores, loading } = useStores();
-  const { toast } = useToast();
+export default function StoreMap({ stores = [], isLoading = false }: StoreMapProps) {
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-
+  
   useEffect(() => {
-    // Obtenir la position de l'utilisateur
+    // Try to get user's location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setUserLocation([position.coords.latitude, position.coords.longitude]);
         },
         (error) => {
-          console.error("Erreur de géolocalisation:", error);
-          toast({
-            title: "Erreur de localisation",
-            description: "Impossible d'obtenir votre position. Affichage de la carte par défaut.",
-            variant: "destructive",
-          });
+          console.error("Error getting location:", error);
         }
       );
     }
-  }, [toast]);
+  }, []);
+  
+  // Filter out stores without coordinates
+  const storesWithCoordinates = stores.filter(
+    store => store.latitude && store.longitude
+  );
+  
+  // Default center to Paris if no user location and no stores with coordinates
+  const mapCenter = userLocation || 
+    (storesWithCoordinates.length > 0 
+      ? [storesWithCoordinates[0].latitude, storesWithCoordinates[0].longitude] 
+      : [48.8566, 2.3522]);
+  
+  // Create custom icon for stores
+  const storeIcon = new Icon({
+    iconUrl: "https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
 
-  useEffect(() => {
-    let mapRoot: any = null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <div className="text-center p-6">
+          <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement de la carte...</p>
+        </div>
+      </div>
+    );
+  }
 
-    const initializeMap = async () => {
-      try {
-        console.log("Starting map initialization...");
-        
-        const L = (await import("leaflet")).default;
-        const { MapContainer, TileLayer, Marker, Popup } = await import("react-leaflet");
-
-        console.log("Libraries loaded successfully");
-
-        // Configuration de l'icône par défaut
-        const defaultIcon = L.icon({
-          iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-          iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-          shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41]
-        });
-
-        L.Marker.prototype.options.icon = defaultIcon;
-
-        // Filtrer les magasins avec des coordonnées valides
-        const validStores = stores.filter(store => 
-          store.latitude && 
-          store.longitude && 
-          !isNaN(store.latitude) && 
-          !isNaN(store.longitude)
-        );
-        
-        console.log("Valid stores with coordinates:", validStores.length);
-
-        const MapComponent = () => (
-          <MapContainer
-            center={userLocation || FRANCE_CENTER}
-            zoom={userLocation ? DEFAULT_ZOOM : 6}
-            style={{ height: "100%", width: "100%" }}
-            scrollWheelZoom={true}
-            className="z-10"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              className="map-tiles"
-            />
-
-            {/* Marqueur pour la position de l'utilisateur */}
-            {userLocation && (
-              <Marker position={userLocation}>
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold">Votre position</h3>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
-            {validStores.map((store) => (
-              <Marker
-                key={store.id}
-                position={[store.latitude!, store.longitude!] as [number, number]}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <h3 className="font-semibold">{store.name}</h3>
-                    {store.description && (
-                      <p className="text-sm text-gray-600">{store.description}</p>
-                    )}
-                    {store.address && (
-                      <p className="text-sm mt-1">{store.address}</p>
-                    )}
-                    {store.phone && (
-                      <p className="text-sm mt-1">
-                        <a href={`tel:${store.phone}`} className="text-blue-500 hover:underline">
-                          {store.phone}
-                        </a>
-                      </p>
-                    )}
-                    {store.website && (
-                      <p className="text-sm mt-1">
-                        <a
-                          href={store.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
-                        >
-                          Visiter le site web
-                        </a>
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        );
-
-        const mapDiv = document.getElementById('map-container');
-        if (!mapDiv) {
-          console.error("Map container element not found");
-          return;
-        }
-
-        // Nettoyer le conteneur existant
-        while (mapDiv.firstChild) {
-          mapDiv.removeChild(mapDiv.firstChild);
-        }
-
-        mapRoot = createRoot(mapDiv);
-        mapRoot.render(<MapComponent />);
-        console.log("Map mounted successfully");
-
-      } catch (error) {
-        console.error("Error initializing map:", error);
-        toast({
-          title: "Erreur",
-          description: "Une erreur est survenue lors de l'initialisation de la carte",
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (!loading) {
-      console.log("Attempting to initialize map, loading state:", loading);
-      initializeMap();
-    }
-
-    return () => {
-      if (mapRoot) {
-        mapRoot.unmount();
-      }
-    };
-  }, [stores, loading, toast, userLocation]);
+  if (!isLoading && storesWithCoordinates.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <div className="text-center p-6">
+          <Store className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium mb-2">Aucune boutique à afficher</h3>
+          <p className="text-muted-foreground mb-4">
+            Aucune boutique avec des coordonnées n'a été trouvée. Essayez de modifier vos filtres.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-[600px] rounded-lg overflow-hidden relative">
-      <div id="map-container" className="w-full h-full absolute inset-0" />
-    </div>
+    <MapContainer
+      center={mapCenter as [number, number]}
+      zoom={13}
+      scrollWheelZoom={true}
+      style={{ height: "100%", width: "100%" }}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      
+      {/* User location marker */}
+      {userLocation && (
+        <Marker 
+          position={userLocation}
+          icon={new Icon({
+            iconUrl: "https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/images/marker-icon.png",
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            className: "text-blue-500"
+          })}
+        >
+          <Popup>
+            <div className="text-center p-2">
+              <p className="font-medium">Votre position</p>
+            </div>
+          </Popup>
+        </Marker>
+      )}
+      
+      {/* Store markers */}
+      {storesWithCoordinates.map((store) => (
+        <Marker
+          key={store.id}
+          position={[store.latitude, store.longitude] as [number, number]}
+          icon={storeIcon}
+        >
+          <Popup>
+            <div className="p-1">
+              <h3 className="font-medium text-lg">{store.name}</h3>
+              {store.description && (
+                <p className="text-sm text-muted-foreground my-1">
+                  {store.description.substring(0, 100)}
+                  {store.description.length > 100 ? "..." : ""}
+                </p>
+              )}
+              
+              {store.categories && store.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1 my-2">
+                  {store.categories.slice(0, 3).map((category, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">
+                      {category}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              <Button 
+                className="w-full mt-2" 
+                size="sm"
+                onClick={() => navigate(`/shops/${store.id}`)}
+              >
+                Voir la boutique
+              </Button>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
   );
-};
-
-export default StoreMap;
+}
