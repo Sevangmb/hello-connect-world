@@ -7,6 +7,7 @@ import { ModuleDependencies } from "@/components/admin/modules/ModuleDependencie
 import { ModuleDependencyGraph } from "@/components/admin/modules/ModuleDependencyGraph";
 import { ModuleFeatures } from "@/components/admin/modules/ModuleFeatures";
 import { ModuleStatusAlert } from "@/components/admin/modules/components/ModuleStatusAlert";
+import { ModuleStatusSummary } from "@/components/admin/modules/components/ModuleStatusSummary";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useModules } from "@/hooks/modules";
@@ -17,7 +18,7 @@ export default function AdminModules() {
   const [connectionChecked, setConnectionChecked] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
-  const { connectionStatus } = useModules();
+  const { modules, connectionStatus } = useModules();
 
   // Vérifier la connexion à Supabase au chargement
   useEffect(() => {
@@ -83,55 +84,77 @@ export default function AdminModules() {
 
   return (
     <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestion des Modules</CardTitle>
-          <CardDescription>
-            Activez ou désactivez les modules et fonctionnalités de l'application
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Dashboard des modules - colonne gauche */}
+        <div className="lg:col-span-1 space-y-6">
+          <ModuleStatusSummary modules={modules} />
+
+          {/* Alerte d'erreur de connexion */}
           {!databaseConnected && connectionChecked && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              <p className="font-bold">Erreur de connexion à la base de données</p>
-              <p>Impossible de se connecter à Supabase. Veuillez vérifier votre connexion internet et les clés d'API.</p>
-              <button 
-                onClick={handleRetryConnection}
-                className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-              >
-                Réessayer la connexion
-              </button>
-            </div>
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-red-700 text-lg">Erreur de connexion</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-red-700 mb-3 text-sm">
+                  Impossible de se connecter à Supabase. Veuillez vérifier votre connexion internet et les clés d'API.
+                </p>
+                <button 
+                  onClick={handleRetryConnection}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors w-full"
+                >
+                  Réessayer la connexion
+                </button>
+              </CardContent>
+            </Card>
           )}
-          
-          {showAlert && <ModuleStatusAlert onDismiss={() => setShowAlert(false)} />}
-          
-          <Tabs defaultValue="modules" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="modules">Modules</TabsTrigger>
-              <TabsTrigger value="features">Fonctionnalités</TabsTrigger>
-              <TabsTrigger value="dependencies">Dépendances</TabsTrigger>
-              <TabsTrigger value="graph">Graphe</TabsTrigger>
-            </TabsList>
+        </div>
 
-            <TabsContent value="modules">
-              <ModulesList onStatusChange={() => setShowAlert(true)} />
-            </TabsContent>
+        {/* Contenu principal - colonne droite */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Gestion des Modules</CardTitle>
+                  <CardDescription>
+                    Activez ou désactivez les modules et fonctionnalités de l'application
+                  </CardDescription>
+                </div>
+                <ModuleStatusSummary modules={modules} compact className="mt-2 sm:mt-0" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAlert && <ModuleStatusAlert onDismiss={() => setShowAlert(false)} />}
+              
+              <Tabs defaultValue="modules" className="w-full">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="modules">Modules</TabsTrigger>
+                  <TabsTrigger value="features">Fonctionnalités</TabsTrigger>
+                  <TabsTrigger value="dependencies">Dépendances</TabsTrigger>
+                  <TabsTrigger value="graph">Graphe</TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="features">
-              <ModuleFeatures />
-            </TabsContent>
+                <TabsContent value="modules">
+                  <ModulesList onStatusChange={() => setShowAlert(true)} />
+                </TabsContent>
 
-            <TabsContent value="dependencies">
-              <ModuleDependencies />
-            </TabsContent>
-            
-            <TabsContent value="graph">
-              <ModuleDependencyGraph />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                <TabsContent value="features">
+                  <ModuleFeatures />
+                </TabsContent>
+
+                <TabsContent value="dependencies">
+                  <ModuleDependencies />
+                </TabsContent>
+                
+                <TabsContent value="graph">
+                  <ModuleDependencyGraph />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

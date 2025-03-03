@@ -1,13 +1,17 @@
 
-import React from "react";
-import { Card, CardFooter } from "@/components/ui/card";
+import React, { useState } from "react";
+import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModulesHeader } from "./components/ModulesHeader";
 import { ModulesFooter } from "./components/ModulesFooter";
 import { ModulesLoadingSkeleton } from "./components/ModulesLoadingSkeleton";
-import { ModulesContent } from "./components/ModulesContent";
+import { ModulesTable } from "./components/ModulesTable";
 import { useModulesList } from "./hooks/useModulesList";
 import { useModuleToggle } from "./hooks/useModuleToggle";
 import { useModuleSave } from "./hooks/useModuleSave";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ModuleFeatures } from "./ModuleFeatures";
+import { InfoCircle, MoreInfo } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ModulesListProps {
   onStatusChange?: () => void;
@@ -46,26 +50,83 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     onStatusChange
   });
 
+  const [showInfo, setShowInfo] = useState(false);
+
   if (isLoading) {
     return <ModulesLoadingSkeleton />;
   }
 
   return (
-    <Card>
+    <Card className="border shadow-sm">
+      <CardHeader className="pb-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle className="text-xl">Gestion des modules</CardTitle>
+            <CardDescription>
+              Activez ou désactivez les modules de l'application
+            </CardDescription>
+          </div>
+          <button 
+            onClick={() => setShowInfo(!showInfo)}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+          >
+            <InfoCircle className="h-4 w-4 mr-1" />
+            <span>{showInfo ? "Masquer" : "Afficher"} les informations</span>
+          </button>
+        </div>
+      </CardHeader>
+      
+      {/* Information panel */}
+      {showInfo && (
+        <div className="px-6 py-2">
+          <Alert variant="default" className="bg-muted/50">
+            <MoreInfo className="h-4 w-4" />
+            <AlertTitle>Informations sur les modules</AlertTitle>
+            <AlertDescription className="text-sm">
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Les modules <strong>core</strong> sont essentiels et ne peuvent pas être désactivés</li>
+                <li>La désactivation d'un module désactive aussi ses fonctionnalités</li>
+                <li>Les modules ayant des dépendances requises ne peuvent pas être désactivés</li>
+                <li>Les changements ne sont appliqués qu'après avoir cliqué sur "Enregistrer"</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
+      {/* Header with refresh button and last refresh time */}
       <ModulesHeader 
         lastRefresh={lastRefresh} 
-        onRefresh={handleRefresh} 
-      />
-      <ModulesContent
-        modules={modules}
-        dependencies={dependencies}
-        pendingChanges={pendingChanges}
-        isModuleActive={isModuleActive}
-        canToggleModule={canToggleModule}
-        handleToggleModule={handleToggleModule}
-        getModuleStatus={getModuleStatus}
         onRefresh={handleRefresh}
       />
+      
+      {/* Tabs for modules and features */}
+      <div className="px-6 pb-4">
+        <Tabs defaultValue="modules" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="modules">Modules</TabsTrigger>
+            <TabsTrigger value="features">Fonctionnalités</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="modules">
+            <ModulesTable
+              modules={modules}
+              dependencies={dependencies}
+              pendingChanges={pendingChanges}
+              isModuleActive={isModuleActive}
+              canToggleModule={canToggleModule}
+              handleToggleModule={handleToggleModule}
+              getModuleStatus={getModuleStatus}
+              isLoading={isLoading || saving}
+            />
+          </TabsContent>
+          
+          <TabsContent value="features">
+            <ModuleFeatures />
+          </TabsContent>
+        </Tabs>
+      </div>
+      
       <CardFooter>
         <ModulesFooter
           moduleCount={modules.length}
