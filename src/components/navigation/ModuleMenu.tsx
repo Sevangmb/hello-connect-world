@@ -34,6 +34,17 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
   );
 };
 
+// Composant de menu d'administration conditionnel
+const AdminMenuGroup: React.FC = () => {
+  const { isUserAdmin } = useMenu();
+  
+  if (!isUserAdmin) {
+    return null;
+  }
+  
+  return <CategoryGroup title="Administration" category="admin" />;
+};
+
 // Composant de menu principal
 export const ModuleMenu: React.FC = () => {
   const { isModuleDegraded } = useModuleRegistry();
@@ -46,7 +57,10 @@ export const ModuleMenu: React.FC = () => {
         <CategoryGroup title="Social" category="social" />
         <CategoryGroup title="Marketplace" category="marketplace" />
         <CategoryGroup title="Utilitaires" category="utility" />
-        <CategoryGroup title="Administration" category="admin" />
+        
+        {/* Menu d'administration toujours affiché pour les admin */}
+        <AdminMenuGroup />
+        
         <CategoryGroup title="Système" category="system" />
       </div>
     </TooltipProvider>

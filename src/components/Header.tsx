@@ -142,6 +142,7 @@ export function Header() {
             <Link to="/boutiques">Boutiques</Link>
           </Button>
           
+          {/* Toujours afficher le bouton admin pour les administrateurs */}
           {isAdmin && (
             <Button variant="outline" size="sm" className="ml-2 border-primary text-primary" asChild>
               <Link to="/admin/dashboard">
@@ -191,6 +192,7 @@ export function Header() {
                 </Link>
               </DropdownMenuItem>
               
+              {/* Toujours afficher l'option admin pour les administrateurs */}
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
@@ -244,6 +246,16 @@ export function Header() {
               </Link>
             </Button>
             
+            {/* Toujours afficher l'option admin pour les administrateurs dans le menu mobile */}
+            {isAdmin && (
+              <Button variant="outline" className="w-full justify-start border-primary text-primary" asChild>
+                <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Administration
+                </Link>
+              </Button>
+            )}
+            
             <div className="pt-2 border-t grid grid-cols-3 gap-2">
               <Button variant="outline" size="sm" className="justify-center" asChild>
                 <Link to="/search" onClick={() => setMenuOpen(false)}>
@@ -261,15 +273,6 @@ export function Header() {
                 </Link>
               </Button>
             </div>
-            
-            {isAdmin && (
-              <Button variant="outline" className="w-full justify-center mt-2 border-primary text-primary" asChild>
-                <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Administration
-                </Link>
-              </Button>
-            )}
           </div>
         </div>
       )}

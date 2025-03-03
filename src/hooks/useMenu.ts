@@ -7,6 +7,7 @@ import { MenuService } from '@/services/menu/MenuService';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useMenu = (options?: {
   category?: MenuItemCategory;
@@ -16,11 +17,33 @@ export const useMenu = (options?: {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const { isModuleActive } = useModules();
   
-  // Détermine si l'utilisateur est administrateur (à remplacer par une logique appropriée)
-  const isUserAdmin = false; // À remplacer par une vérification réelle de l'administrateur
+  // Vérifier si l'utilisateur est administrateur
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Vérifier si l'utilisateur est admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        setIsUserAdmin(profile?.is_admin || false);
+      } catch (err) {
+        console.error("Erreur lors de la vérification du statut admin:", err);
+        setIsUserAdmin(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, []);
   
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -74,6 +97,7 @@ export const useMenu = (options?: {
     menuItems: options?.hierarchical ? menuTree : menuItems,
     loading,
     error,
+    isUserAdmin,
     getMenusByCategory,
     mainMenu: useMemo(() => getMenusByCategory('main'), [menuItems]),
     adminMenu: useMemo(() => getMenusByCategory('admin'), [menuItems]),
