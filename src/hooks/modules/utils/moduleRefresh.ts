@@ -75,6 +75,8 @@ export const refreshModulesWithCache = async (
                 resolve([]);
               }
             })
+            // Corrigé: Ajouté .then() vide avant .catch() pour éviter l'erreur TS2339
+            .then(() => {})
             .catch((error) => {
               clearTimeout(timeoutId);
               reject(error);
@@ -243,7 +245,7 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Fixed: removed third parameter
+    // Corrigé: supprimé le troisième paramètre
     await handleModuleRefresh(refreshFunction);
   } catch (error) {
     console.error('Safe refresh failed:', error);

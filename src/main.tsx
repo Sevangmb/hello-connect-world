@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -5,43 +6,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
+import { ModulePageRegistry } from "@/services/modules/ModulePageRegistry";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
-import HelpAndSupport from "@/pages/HelpAndSupport";
-import Shops from "@/pages/Shops";
-import CreateShop from "@/pages/CreateShop";
-import StoresMap from "@/pages/StoresMap";
-import StoresList from "@/pages/StoresList";
-import Search from "@/pages/Search";
-import TrendingOutfits from "@/pages/TrendingOutfits";
-import Hashtags from "@/pages/Hashtags";
-import Explore from "@/pages/Explore";
-import Suggestions from "@/pages/Suggestions";
-import Feed from "@/pages/Feed";
-import Challenges from "@/pages/Challenges";
-import Challenge from "@/pages/Challenge";
-import Clothes from "@/pages/Clothes";
-import Outfits from "@/pages/Outfits";
-import Personal from "@/pages/Personal";
-import Community from "@/pages/Community";
-import Groups from "@/pages/Groups";
-import Messages from "@/pages/Messages";
-import Notifications from "@/pages/Notifications";
-import Friends from "@/pages/Friends";
-import FindFriends from "@/pages/FindFriends";
-import Profile from "@/pages/Profile";
-import Settings from "@/pages/Settings";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
-import Calendar from "@/pages/Calendar";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import Boutiques from "@/pages/Boutiques";
-import ShopDetail from "@/pages/ShopDetail";
-import Suitcases from "@/pages/Suitcases";
-import VirtualTryOn from "@/pages/VirtualTryOn";
-import Cart from "@/pages/Cart";
-import Favorites from "@/pages/Favorites";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminShops from "@/pages/admin/AdminShops";
@@ -53,7 +24,7 @@ import AdminMarketing from "@/pages/admin/AdminMarketing";
 import AdminModules from "@/pages/admin/AdminModules";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
-import Checkout from "@/pages/Checkout";
+import { lazy, Suspense } from "react";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -65,39 +36,10 @@ const queryClient = new QueryClient({
   },
 });
 
-const moduleRoutes = {
-  '/suggestions': { component: Suggestions, moduleCode: 'suggestions' },
-  '/feed': { component: Feed, moduleCode: 'social_feed' },
-  '/challenges': { component: Challenges, moduleCode: 'challenges' },
-  '/challenge/:id': { component: Challenge, moduleCode: 'challenges' },
-  '/search': { component: Search, moduleCode: 'search' },
-  '/trending/outfits': { component: TrendingOutfits, moduleCode: 'trending' },
-  '/hashtags': { component: Hashtags, moduleCode: 'hashtags' },
-  '/explore': { component: Explore, moduleCode: 'explore' },
-  '/boutiques': { component: Boutiques, moduleCode: 'marketplace' },
-  '/shops/:id': { component: ShopDetail, moduleCode: 'marketplace' },
-  '/shops/create': { component: CreateShop, moduleCode: 'marketplace' },
-  '/clothes': { component: Clothes, moduleCode: 'wardrobe' },
-  '/outfits': { component: Outfits, moduleCode: 'outfits' },
-  '/personal': { component: Personal, moduleCode: 'profile' },
-  '/suitcases': { component: Suitcases, moduleCode: 'suitcases' },
-  '/community': { component: Community, moduleCode: 'community' },
-  '/messages': { component: Messages, moduleCode: 'messaging' },
-  '/groups': { component: Groups, moduleCode: 'groups' },
-  '/notifications': { component: Notifications, moduleCode: 'notifications' },
-  '/friends': { component: Friends, moduleCode: 'friends' },
-  '/find-friends': { component: FindFriends, moduleCode: 'friends' },
-  '/profile': { component: Profile, moduleCode: 'profile' },
-  '/profile/settings': { component: Settings, moduleCode: 'profile' },
-  '/marketplace': { component: Shops, moduleCode: 'marketplace' },
-  '/help': { component: HelpAndSupport, moduleCode: 'help' },
-  '/virtual-tryon': { component: VirtualTryOn, moduleCode: 'virtual_tryon' },
-  '/cart': { component: Cart, moduleCode: 'shopping' },
-  '/checkout': { component: Checkout, moduleCode: 'shopping' },
-  '/favorites': { component: Favorites, moduleCode: 'favorites' },
-  '/calendar': { component: Calendar, moduleCode: 'calendar' },
-};
+// Récupérer les pages pour les routes
+const modulePages = ModulePageRegistry.getAllPages();
 
+// Routes disponibles sans authentification
 const alwaysAvailableRoutes = [
   { path: "/landing", element: <Landing /> },
   { path: "/auth", element: <Auth /> },
@@ -105,13 +47,22 @@ const alwaysAvailableRoutes = [
   { path: "/auth/admin", element: <AdminLogin /> },
 ];
 
+// Loading fallback pour les composants chargés dynamiquement
+const LoadingFallback = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+  </div>
+);
+
 const App = () => {
   return (
     <Routes>
+      {/* Routes toujours disponibles */}
       {alwaysAvailableRoutes.map(route => (
         <Route key={route.path} path={route.path} element={route.element} />
       ))}
 
+      {/* Route racine */}
       <Route
         path="/"
         element={
@@ -121,6 +72,7 @@ const App = () => {
         }
       />
 
+      {/* Routes d'administration */}
       <Route
         path="/admin"
         element={
@@ -143,23 +95,39 @@ const App = () => {
         <Route path="help" element={<AdminHelp />} />
       </Route>
 
-      {Object.entries(moduleRoutes).map(([path, { component: Component, moduleCode }]) => (
-        <Route
-          key={path}
-          path={path}
-          element={
-            <PrivateRoute>
-              <ModuleGuard 
-                moduleCode={moduleCode} 
-                fallback={<Navigate to="/" replace />}
-              >
-                <Component />
-              </ModuleGuard>
-            </PrivateRoute>
-          }
-        />
-      ))}
+      {/* Routes des modules - générées dynamiquement */}
+      {modulePages.map(page => {
+        // Créer un composant lazy pour le chargement dynamique
+        const LazyComponent = lazy(() => 
+          import(`@/pages/${page.path.replace(/^\//, '').split('/')[0]}`)
+            .then(module => ({ default: module.default }))
+            .catch(err => {
+              console.error(`Erreur lors du chargement de ${page.path}:`, err);
+              return import("@/pages/NotFound"); // Fallback à NotFound
+            })
+        );
 
+        return (
+          <Route
+            key={page.path}
+            path={page.path}
+            element={
+              <PrivateRoute>
+                <ModuleGuard 
+                  moduleCode={page.moduleCode} 
+                  fallback={<Navigate to="/" replace />}
+                >
+                  <Suspense fallback={<LoadingFallback />}>
+                    <LazyComponent />
+                  </Suspense>
+                </ModuleGuard>
+              </PrivateRoute>
+            }
+          />
+        );
+      })}
+
+      {/* Route 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

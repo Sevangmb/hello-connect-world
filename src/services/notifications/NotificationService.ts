@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationType } from "@/components/notifications/types";
 
@@ -104,19 +105,19 @@ export class NotificationService {
       if (profileError) throw profileError;
 
       // Mettre à jour les préférences
-      let preferences = userProfile?.preferences || {};
+      // Assurez-vous que preferences est un objet valide
+      const preferences = userProfile?.preferences && typeof userProfile.preferences === 'object' 
+        ? userProfile.preferences as Record<string, any>
+        : {};
       
-      // Ensure preferences is an object
-      if (typeof preferences !== 'object' || preferences === null) {
-        preferences = {};
-      }
+      // Initialiser l'objet des notifications s'il n'existe pas
+      const notificationsObj = preferences?.notifications && typeof preferences.notifications === 'object'
+        ? preferences.notifications as Record<string, boolean>
+        : {};
       
-      // Initialize the notifications object if needed
-      const notificationsObj = (preferences as Record<string, any>).notifications || {};
-      
-      // Create the updated preferences object with proper typing
+      // Créer l'objet de préférences mis à jour avec un typage correct
       const updatedPreferences = {
-        ...preferences as Record<string, any>,
+        ...preferences,
         notifications: {
           ...notificationsObj,
           [notificationType]: enabled
