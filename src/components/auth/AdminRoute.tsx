@@ -1,14 +1,17 @@
 
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
+import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 
 const useAdminCheck = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const authService = getAuthService();
+  const userService = getUserService();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -16,13 +19,13 @@ const useAdminCheck = () => {
         setLoading(true);
         
         // Vérifier la session
-        const { data: { session } } = await supabase.auth.getSession();
+        const user = await authService.getCurrentUser();
         
         if (process.env.NODE_ENV === 'development') { 
-          console.log("Checking admin status for session:", session); 
+          console.log("Checking admin status for user:", user?.id); 
         }
 
-        if (!session) {
+        if (!user) {
           if (process.env.NODE_ENV === 'development') { 
             console.log("No active session found"); 
           }
@@ -47,57 +50,16 @@ const useAdminCheck = () => {
           }
         }
 
-        // Vérifier si l'utilisateur est admin directement avec RPC
-        try {
-          const { data: isUserAdmin, error: rpcError } = await supabase.rpc('is_admin', {
-            user_id: session.user.id
+        // Vérifier si l'utilisateur est admin
+        const isUserAdmin = await userService.isUserAdmin(user.id);
+        setIsAdmin(isUserAdmin);
+        
+        if (!isUserAdmin) {
+          toast({
+            variant: "destructive",
+            title: "Accès refusé",
+            description: "Vous n'avez pas les droits administrateur nécessaires",
           });
-          
-          if (rpcError) {
-            console.error("Error checking admin status with RPC:", rpcError);
-            // Si la fonction RPC échoue, revenons à la méthode directe
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('is_admin')
-              .eq('id', session.user.id)
-              .single();
-
-            if (error) {
-              console.error("Error checking admin status:", error);
-              toast({
-                variant: "destructive",
-                title: "Erreur",
-                description: "Impossible de vérifier les permissions d'administrateur",
-              });
-              setIsAdmin(false);
-            } else {
-              setIsAdmin(profile?.is_admin || false);
-            }
-          } else {
-            // Utiliser le résultat de la fonction RPC
-            console.log("Admin status from RPC:", isUserAdmin);
-            setIsAdmin(!!isUserAdmin);
-          }
-        } catch (error) {
-          console.error("Error in admin check:", error);
-          // Fallback à la méthode directe
-          const { data: profile, error: queryError } = await supabase
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', session.user.id)
-            .single();
-
-          if (queryError) {
-            console.error("Error checking admin status:", queryError);
-            toast({
-              variant: "destructive",
-              title: "Erreur",
-              description: "Impossible de vérifier les permissions d'administrateur",
-            });
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(profile?.is_admin || false);
-          }
         }
         
         setLoading(false);

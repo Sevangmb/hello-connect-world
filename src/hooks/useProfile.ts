@@ -1,10 +1,16 @@
 
+/**
+ * Hook pour la gestion des profils utilisateurs
+ * Utilise le microservice des utilisateurs
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
+import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
+import { UserUpdateData } from "@/core/users/domain/types";
 
 export type Profile = {
-  id: string;  // Adding the id field that was missing
+  id: string;  
   username: string;
   full_name: string;
   avatar_url: string | null;
@@ -18,33 +24,22 @@ export type Profile = {
 export const useProfile = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const userService = getUserService();
+  const authService = getAuthService();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not found");
+        const currentUser = await authService.getCurrentUser();
+        if (!currentUser) throw new Error("User not found");
 
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (error) throw error;
+        const { profile, error } = await userService.getUserProfile(currentUser.id);
         
-        return {
-          id: user.id,  // Ensure we always have an id
-          username: data?.username || "",
-          full_name: data?.full_name || "",
-          phone: data?.phone || "",
-          address: data?.address || "",
-          preferred_language: data?.preferred_language || "fr",
-          visibility: (data?.visibility || "public") as "public" | "private",
-          email_notifications: data?.email_notifications ?? true,
-          avatar_url: data?.avatar_url,
-        } as Profile;
+        if (error) throw new Error(error);
+        if (!profile) throw new Error("Profile not found");
+        
+        return profile as Profile;
       } catch (error: any) {
         // Check if this is a chrome extension interference error
         if (error.message.includes("chrome-extension") || error.message.includes("rejected")) {
@@ -60,20 +55,16 @@ export const useProfile = () => {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (updatedProfile: Partial<Profile>) => {
+    mutationFn: async (updatedProfile: UserUpdateData) => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("User not found");
+        const currentUser = await authService.getCurrentUser();
+        if (!currentUser) throw new Error("User not found");
 
-        const { error } = await supabase
-          .from("profiles")
-          .update({
-            ...updatedProfile,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", user.id);
-
-        if (error) throw error;
+        const result = await userService.updateUserProfile(currentUser.id, updatedProfile);
+        
+        if (!result.success) {
+          throw new Error(result.error || "Failed to update profile");
+        }
       } catch (error: any) {
         // Check if this is a chrome extension interference error
         if (error.message.includes("chrome-extension") || error.message.includes("rejected")) {

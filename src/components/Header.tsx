@@ -1,8 +1,6 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { Menu, Settings, LogOut, User, Store, Package, Shield, Search, Bell, ShoppingCart } from "lucide-react";
 import {
@@ -14,56 +12,40 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
+import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 
 export function Header() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const authService = getAuthService();
+  const userService = getUserService();
 
   // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await authService.getCurrentUser();
         if (!user) return;
 
-        // Essayer d'abord avec RPC si disponible
-        try {
-          const { data: isUserAdmin } = await supabase.rpc('is_admin', {
-            user_id: user.id
-          });
-          
-          if (isUserAdmin !== undefined) {
-            setIsAdmin(!!isUserAdmin);
+        // Mode développement: permettre l'accès admin plus facilement
+        if (process.env.NODE_ENV === 'development') {
+          const devBypass = localStorage.getItem('dev_admin_bypass');
+          if (devBypass === 'true') {
+            console.warn("DEV MODE: Admin bypass enabled in header");
+            setIsAdmin(true);
             return;
           }
-        } catch (error) {
-          console.log("RPC not available, using direct query");
         }
 
-        // Fallback à la requête directe
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-
-        setIsAdmin(profile?.is_admin || false);
+        const isUserAdmin = await userService.isUserAdmin(user.id);
+        setIsAdmin(isUserAdmin);
       } catch (error) {
         console.error("Error checking admin status:", error);
       }
     };
-
-    // Mode développement: permettre l'accès admin plus facilement
-    if (process.env.NODE_ENV === 'development') {
-      const devBypass = localStorage.getItem('dev_admin_bypass');
-      if (devBypass === 'true') {
-        console.warn("DEV MODE: Admin bypass enabled in header");
-        setIsAdmin(true);
-        return;
-      }
-    }
 
     checkAdminStatus();
   }, []);
@@ -73,10 +55,7 @@ export function Header() {
   } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      const {
-        data,
-        error
-      } = await supabase.from("site_settings").select("*").order('key');
+      const { data, error } = await supabase.from("site_settings").select("*").order('key');
       if (error) throw error;
       return data || [];
     }
@@ -94,7 +73,7 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await authService.signOut();
       toast({
         title: "Déconnexion réussie",
         description: "Vous avez été déconnecté avec succès",

@@ -1,13 +1,15 @@
 
 /**
  * Hook pour la gestion des menus dynamiques
+ * Intégration avec le microservice utilisateur pour la vérification d'admin
  */
 import { useState, useEffect, useMemo } from 'react';
 import { MenuService } from '@/services/menu/MenuService';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
-import { supabase } from '@/integrations/supabase/client';
+import { getUserService } from '@/core/users/infrastructure/userDependencyProvider';
+import { getAuthService } from '@/core/auth/infrastructure/authDependencyProvider';
 import { ADMIN_MODULE_CODE } from '@/hooks/modules/constants';
 
 export const useMenu = (options?: {
@@ -21,38 +23,18 @@ export const useMenu = (options?: {
   const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const { isModuleActive } = useModules();
+  const userService = getUserService();
+  const authService = getAuthService();
   
   // Vérifier si l'utilisateur est administrateur
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await authService.getCurrentUser();
         if (!user) return;
         
-        // Essayer d'abord avec RPC si disponible
-        try {
-          const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
-            user_id: user.id
-          });
-          
-          if (rpcError) {
-            console.error("RPC error:", rpcError);
-          } else if (isAdmin !== undefined) {
-            setIsUserAdmin(!!isAdmin);
-            return;
-          }
-        } catch (error) {
-          console.log("RPC not available, using direct query");
-        }
-        
-        // Fallback à la requête directe
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
-        
-        setIsUserAdmin(profile?.is_admin || false);
+        const isAdmin = await userService.isUserAdmin(user.id);
+        setIsUserAdmin(isAdmin);
       } catch (err) {
         console.error("Erreur lors de la vérification du statut admin:", err);
         setIsUserAdmin(false);

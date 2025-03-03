@@ -1,8 +1,9 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
+import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 
 interface AdminCheckProps {
   children: React.ReactNode;
@@ -11,20 +12,18 @@ interface AdminCheckProps {
 export function AdminCheck({ children }: AdminCheckProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const authService = getAuthService();
+  const userService = getUserService();
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("No session");
+        const user = await authService.getCurrentUser();
+        if (!user) throw new Error("No session");
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (!profile?.is_admin) {
+        const isAdmin = await userService.isUserAdmin(user.id);
+        
+        if (!isAdmin) {
           throw new Error("Not an admin");
         }
       } catch (error) {

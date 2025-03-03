@@ -3,34 +3,28 @@
 
 import * as React from 'react';
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 
 const useAuthCheck = () => {
   const [loading, setLoading] = React.useState(true);
   const [authenticated, setAuthenticated] = React.useState(false);
   const { toast } = useToast();
+  const authService = getAuthService();
 
   React.useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error checking auth status:", error);
-          toast({
-            variant: "destructive",
-            title: "Authentication error",
-            description: "Please sign in again",
-          });
-          setAuthenticated(false);
-          return;
-        }
-
-        setAuthenticated(!!session);
+        const user = await authService.getCurrentUser();
+        setAuthenticated(!!user);
       } catch (error) {
         console.error("Error in auth check:", error);
+        toast({
+          variant: "destructive",
+          title: "Authentication error",
+          description: "Please sign in again",
+        });
         setAuthenticated(false);
       } finally {
         setLoading(false);
@@ -39,20 +33,14 @@ const useAuthCheck = () => {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session);
-      
-      if (event === 'SIGNED_OUT') {
-        setAuthenticated(false);
-      } else if (session) {
-        setAuthenticated(true);
-      }
-      
+    // Subscribe to auth state changes
+    const unsubscribe = authService.subscribeToAuthChanges((user) => {
+      setAuthenticated(!!user);
       setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, [toast]);
 
