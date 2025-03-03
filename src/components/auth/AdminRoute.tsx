@@ -36,6 +36,17 @@ const useAdminCheck = () => {
           return;
         }
 
+        // Mode développement: permettre l'accès admin plus facilement
+        if (process.env.NODE_ENV === 'development') {
+          const devBypass = localStorage.getItem('dev_admin_bypass');
+          if (devBypass === 'true') {
+            console.warn("DEV MODE: Admin bypass enabled");
+            setIsAdmin(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         // Vérifier si l'utilisateur est admin directement avec RPC
         try {
           const { data: isUserAdmin, error: rpcError } = await supabase.rpc('is_admin', {
@@ -102,17 +113,6 @@ const useAdminCheck = () => {
       }
     };
 
-    // Mode développement: permettre l'accès admin plus facilement
-    if (process.env.NODE_ENV === 'development') {
-      const devBypass = localStorage.getItem('dev_admin_bypass');
-      if (devBypass === 'true') {
-        console.warn("DEV MODE: Admin bypass enabled");
-        setIsAdmin(true);
-        setLoading(false);
-        return;
-      }
-    }
-
     checkAdminStatus();
   }, [toast]);
 
@@ -125,9 +125,15 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-facebook-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // En mode développement, autoriser l'accès admin même sans authentification
+  if (process.env.NODE_ENV === 'development' && localStorage.getItem('dev_admin_bypass') === 'true') {
+    console.warn("DEV MODE: Admin bypass active - accès admin autorisé sans vérification");
+    return <>{children}</>;
   }
 
   if (!isAdmin) {

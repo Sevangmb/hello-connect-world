@@ -1,66 +1,53 @@
 
-/**
- * Fonctions pour rafraîchir les modules depuis Supabase
- */
-
 import { supabase } from "@/integrations/supabase/client";
-import { AppModule } from "../types";
-import { validateModuleStatus } from "./statusValidation";
-import { invalidateAllCache } from "../cache/moduleCache";
+import { AppModule, ModuleStatus } from "../types";
 
 /**
- * Charge les modules directement depuis Supabase
+ * Rafraîchit les modules directement depuis Supabase et met à jour le cache
  */
-export const loadModulesFromSupabase = async (): Promise<AppModule[]> => {
-  console.log("Tentative de chargement direct depuis Supabase");
+export const refreshModulesWithCache = async (setModules: React.Dispatch<React.SetStateAction<AppModule[]>>): Promise<AppModule[]> => {
   try {
-    const { data, error } = await supabase.from('app_modules').select('*');
+    console.log("Chargement des modules directement depuis Supabase");
     
+    const { data, error } = await supabase
+      .from('app_modules')
+      .select('*')
+      .order('name');
+      
     if (error) {
-      console.error("Erreur lors du chargement direct des modules:", error);
-      return [];
+      console.error("Erreur lors du chargement des modules:", error);
+      throw error;
     }
     
     if (data && data.length > 0) {
-      console.log(`${data.length} modules chargés directement depuis Supabase`);
-      // Convertir explicitement les statuts en ModuleStatus
-      const validatedModules = data.map(module => ({
-        ...module,
-        status: validateModuleStatus(module.status)
-      }));
+      // Assurer que les statuts sont des ModuleStatus valides
+      const typedModules = data.map(module => {
+        let status = module.status;
+        // S'assurer que le statut est un ModuleStatus valide
+        if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
+          status = 'inactive';
+        }
+        return { ...module, status } as AppModule;
+      });
       
-      // Marquer tous les modules comme actifs pour la compatibilité
-      const activatedModules = validatedModules.map(module => ({
-        ...module,
-        status: 'active' as const
-      }));
+      // Mettre à jour l'état
+      setModules(typedModules);
       
-      return activatedModules;
+      // Mettre à jour le cache localStorage
+      try {
+        localStorage.setItem('modules_cache', JSON.stringify(typedModules));
+        localStorage.setItem('modules_cache_timestamp', Date.now().toString());
+      } catch (e) {
+        console.error("Erreur lors de la mise en cache des modules:", e);
+      }
+      
+      console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
+      return typedModules;
     }
-  } catch (e) {
-    console.error("Exception lors du chargement direct depuis Supabase:", e);
+    
+    return [];
+  } catch (error) {
+    console.error("Exception lors du rafraîchissement des modules:", error);
+    return [];
   }
-  
-  return [];
-};
-
-/**
- * Rafraîchit les modules avec gestion du cache
- */
-export const refreshModulesWithCache = async (
-  setModules: (modules: AppModule[]) => void
-): Promise<AppModule[]> => {
-  console.log("useModules: Forçage du rafraîchissement des modules");
-  
-  // Invalider tous les caches
-  invalidateAllCache();
-  
-  const updatedModules = await loadModulesFromSupabase();
-  console.log(`useModules: ${updatedModules.length} modules récupérés`);
-  
-  if (updatedModules.length > 0) {
-    setModules(updatedModules);
-  }
-  
-  return updatedModules;
 };

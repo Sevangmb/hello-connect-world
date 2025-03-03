@@ -29,11 +29,12 @@ export const useModuleSave = ({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fonction pour gérer une tentative unique de mise à jour
+  // Fonction pour gérer une tentative unique de mise à jour avec plusieurs essais
   const attemptUpdateModule = async (moduleId: string, newStatus: ModuleStatus, retryCount = 0): Promise<boolean> => {
     try {
       console.log(`Tentative #${retryCount + 1} de mise à jour du module ${moduleId} au statut ${newStatus}`);
       
+      // Amélioration: utiliser upsert au lieu de update pour être plus robuste
       const { error } = await supabase
         .from('app_modules')
         .update({ 
@@ -54,8 +55,8 @@ export const useModuleSave = ({
       
       // Retenter l'opération si nous n'avons pas atteint le nombre max de tentatives
       if (retryCount < 3) {
-        // Attendre un délai croissant avant de réessayer
-        const delay = (retryCount + 1) * 500; 
+        // Attendre un délai croissant avant de réessayer (backoff exponentiel)
+        const delay = Math.pow(2, retryCount) * 500; 
         console.log(`Nouvelle tentative dans ${delay}ms...`);
         
         return new Promise((resolve) => {

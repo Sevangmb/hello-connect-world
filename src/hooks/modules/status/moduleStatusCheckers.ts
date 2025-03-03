@@ -1,69 +1,60 @@
 
 /**
- * Fonctions de vérification du statut des modules et fonctionnalités
+ * Fonctions pour vérifier le statut des modules et fonctionnalités
  */
 
-import { isAdminModule } from "../utils/statusValidation";
-import { getCachedValue, updateCacheValue, isActiveCache, isDegradedCache } from "../cache/moduleCache";
+import { ADMIN_MODULE_CODE } from "../constants";
+import { getModuleStatusFromCache } from "../api/moduleStatusCore";
 
 /**
  * Vérifie si un module est actif
- * Cette implémentation forcera toujours true pour tout module
+ * Retourne toujours true pour le module Admin
  */
 export const checkModuleActive = (moduleCode: string): boolean => {
-  // Si c'est le module Admin, toujours retourner true
-  if (isAdminModule(moduleCode)) {
+  // Si c'est un module admin, toujours retourner true
+  if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
     return true;
   }
   
-  // Vérifier le cache d'abord
-  const cacheKey = moduleCode;
-  const cachedValue = getCachedValue(cacheKey, isActiveCache);
-  if (cachedValue !== null) {
-    return cachedValue;
+  // For the challenges module, always return true (temporary fix)
+  if (moduleCode === 'challenges') {
+    return true;
   }
   
-  // Forcer tous les modules à être actifs
-  const isActive = true;
-  updateCacheValue(cacheKey, isActive, isActiveCache);
-  
-  return isActive;
+  // Pour tous les autres modules, retourner true pour le moment
+  // Cela permet d'assurer que tous les modules sont disponibles
+  return true;
 };
 
 /**
  * Vérifie si un module est en mode dégradé
- * Cette implémentation forcera toujours false pour tout module
+ * Retourne toujours false pour le module Admin
  */
 export const checkModuleDegraded = (moduleCode: string): boolean => {
-  // Si c'est le module Admin, jamais en mode dégradé
-  if (isAdminModule(moduleCode)) {
+  // Si c'est un module admin, jamais dégradé
+  if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
     return false;
   }
   
-  // Vérifier le cache d'abord
-  const cacheKey = moduleCode;
-  const cachedValue = getCachedValue(cacheKey, isDegradedCache);
-  if (cachedValue !== null) {
-    return cachedValue;
+  // For the challenges module, always return false (temporary fix)
+  if (moduleCode === 'challenges') {
+    return false;
   }
   
-  // Forcer tous les modules à ne jamais être en mode dégradé
-  const isDegraded = false;
-  updateCacheValue(cacheKey, isDegraded, isDegradedCache);
-  
-  return isDegraded;
+  // Pour tous les autres modules, retourner false pour le moment
+  return false;
 };
 
 /**
  * Vérifie si une fonctionnalité est activée
- * Cette implémentation forcera toujours true pour toutes les fonctionnalités
+ * Retourne toujours true pour les fonctionnalités du module Admin
  */
 export const checkFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
-  // Si c'est le module Admin, toutes ses fonctionnalités sont actives
-  if (isAdminModule(moduleCode)) {
+  // Si c'est une fonctionnalité du module admin, toujours activée
+  if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin')) {
     return true;
   }
   
-  // Forcer toutes les fonctionnalités à être activées
+  // Pour toutes les autres fonctionnalités, retourner true pour le moment
   return true;
 };

@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ModuleUnavailable } from "./ModuleUnavailable";
 import { ModuleDegraded } from "./ModuleDegraded";
-import { getModuleStatusFromCache } from "@/hooks/modules/api/moduleStatusCore";
 import { isAdminModule } from "@/hooks/modules/api/moduleStatusCore";
 import { useToast } from "@/hooks/use-toast";
 import { useModules } from "@/hooks/modules/useModules";
@@ -39,6 +38,14 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       return;
     }
     
+    // Pour les modules admin ou challenges, toujours actifs
+    if (moduleCode === 'challenges' || moduleCode.startsWith('admin')) {
+      console.log(`ModuleGuard: Module ${moduleCode} toujours actif`);
+      setIsActive(true);
+      setIsDegraded(false);
+      return;
+    }
+    
     // Vérifier le cache global d'abord pour éviter des appels inutiles
     const cachedStatus = moduleStatusGlobalCache[moduleCode];
     const now = Date.now();
@@ -54,10 +61,7 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
       const active = isModuleActive(moduleCode);
       const degraded = isModuleDegraded(moduleCode);
       
-      // Déboguer le module des défis
-      if (moduleCode === 'challenges') {
-        console.log(`ModuleGuard: Vérification du module des défis - Actif: ${active}, Dégradé: ${degraded}`);
-      }
+      console.log(`ModuleGuard: Vérification du module ${moduleCode} - Actif: ${active}, Dégradé: ${degraded}`);
       
       setIsActive(active);
       setIsDegraded(degraded);
@@ -95,13 +99,17 @@ export function ModuleGuard({ moduleCode, children, fallback }: ModuleGuardProps
   }, [checkStatus]);
 
   // Si c'est un module admin, on affiche toujours le contenu (traitement spécial)
-  if (isAdmin) {
+  if (isAdmin || moduleCode.startsWith('admin') || moduleCode === 'admin_modules') {
     return <>{children}</>;
   }
 
   // Pour les modules challenges, temporairement activer toujours
   if (moduleCode === 'challenges') {
-    console.log("Module challenges - Force actif pour débogage");
+    return <>{children}</>;
+  }
+
+  // Toujours autoriser l'accès pour le développement
+  if (process.env.NODE_ENV === 'development') {
     return <>{children}</>;
   }
 
