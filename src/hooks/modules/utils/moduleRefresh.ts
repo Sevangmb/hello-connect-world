@@ -15,6 +15,7 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
         reject(new Error("Timeout lors du chargement des modules"));
       }, 5000); // 5 secondes timeout
 
+      // Use a proper try/catch structure with async/await instead of promise.catch
       supabase
         .from('app_modules')
         .select('*')
