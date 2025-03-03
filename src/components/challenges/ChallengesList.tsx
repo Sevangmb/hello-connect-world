@@ -7,7 +7,7 @@ import { ChallengeMetadata } from "./ChallengeMetadata";
 import { ParticipantsList } from "./ParticipantsList";
 import { useChallengeActions } from "./ChallengeActions";
 import { Challenge } from "./types";
-import { useModules } from "@/hooks/modules";
+import { useModules } from "@/hooks/useModules";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,16 +19,16 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
   const { handleJoinChallenge, handleVote } = useChallengeActions();
   const { isModuleActive } = useModules();
   const { toast } = useToast();
-  const [isModuleEnabled, setIsModuleEnabled] = useState(true);
+  const [moduleEnabled, setModuleEnabled] = useState(false);
   const now = new Date().toISOString();
 
-  // Vérifier si le module est actif
+  // Vérifier le statut du module
   useEffect(() => {
-    const checkModuleStatus = async () => {
-      const isEnabled = isModuleActive('challenges');
-      setIsModuleEnabled(isEnabled);
+    const checkModule = async () => {
+      const enabled = await isModuleActive('challenges');
+      setModuleEnabled(enabled);
       
-      if (!isEnabled) {
+      if (!enabled) {
         toast({
           variant: "destructive",
           title: "Module désactivé",
@@ -37,46 +37,31 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
       }
     };
     
-    checkModuleStatus();
+    checkModule();
   }, [isModuleActive, toast]);
 
+  // Requête pour obtenir les défis
   const { data: challenges, isLoading } = useQuery({
     queryKey: ["challenges", filter],
     queryFn: async () => {
-      // Vérifier si le module est actif avant de charger les données
-      if (!isModuleEnabled) {
-        return [];
-      }
+      if (!moduleEnabled) return [];
       
-      console.log("Fetching challenges...");
-      
-      // D'abord, mettre à jour le statut des défis terminés
-      const { error: updateError } = await supabase
+      // Mettre à jour les défis terminés
+      await supabase
         .from("challenges")
         .update({ status: "completed" })
         .eq("status", "active")
         .lt("end_date", now);
 
-      if (updateError) {
-        console.error("Error updating challenge statuses:", updateError);
-      }
-
-      // Ensuite, récupérer les défis selon le filtre
+      // Construire la requête de base
       let query = supabase
         .from("challenges")
         .select(`
           *,
           profiles(username),
           participants:challenge_participants(
-            id,
-            user_id,
-            outfit_id,
-            comment,
-            status,
-            moderated_at,
-            moderated_by,
-            moderation_status,
-            moderation_reason,
+            id, user_id, outfit_id, comment, status,
+            moderated_at, moderated_by, moderation_status, moderation_reason,
             outfits!inner(
               name,
               top:clothes!top_id(name, image_url),
@@ -89,40 +74,28 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
           votes:challenge_votes(count)
         `);
 
-      // Appliquer les filtres en fonction de l'onglet sélectionné
+      // Appliquer les filtres
       switch (filter) {
         case "ongoing":
-          query = query
-            .lte("start_date", now)
-            .gt("end_date", now)
-            .eq("status", "active");
+          query = query.lte("start_date", now).gt("end_date", now).eq("status", "active");
           break;
         case "upcoming":
-          query = query
-            .gt("start_date", now)
-            .eq("status", "active");
+          query = query.gt("start_date", now).eq("status", "active");
           break;
         case "completed":
-          query = query
-            .eq("status", "completed");
+          query = query.eq("status", "completed");
           break;
       }
 
       const { data, error } = await query.order("start_date", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching challenges:", error);
-        throw error;
-      }
-
-      console.log("Fetched challenges:", data);
+      if (error) throw error;
       return data as Challenge[];
     },
-    enabled: isModuleEnabled // Activer/désactiver la requête en fonction du statut du module
+    enabled: moduleEnabled
   });
 
-  // Si le module est désactivé, afficher un message
-  if (!isModuleEnabled) {
+  if (!moduleEnabled) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         Le module des défis est actuellement désactivé.

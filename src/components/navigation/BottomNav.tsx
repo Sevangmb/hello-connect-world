@@ -16,9 +16,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useNotifications } from "@/hooks/useNotifications";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
-import { useModules } from "@/hooks/modules";
+import { useModules } from "@/hooks/useModules";
 
-// Composant pour afficher le bouton - mémorisé pour éviter les rendus inutiles
 const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   <TooltipProvider key={item.path}>
     <Tooltip>
@@ -62,58 +61,49 @@ const NavButton = memo(({ item, isActive, unreadCount, onClick }: any) => (
   </TooltipProvider>
 ));
 
-// Composant principal mémorisé pour éviter les rendus inutiles
 export const BottomNav = memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const { notifications } = useNotifications();
-  const { isModuleActive, refreshModules } = useModules();
+  const { isModuleActive } = useModules();
+  const [moduleStatus, setModuleStatus] = useState({});
   
-  // État pour suivre les modules actifs
-  const [activeModules, setActiveModules] = useState({
-    explore: false,
-    wardrobe: false,
-    community: false,
-    profile: false
-  });
-  
-  // Charger l'état des modules au montage
+  // Initialiser l'état des modules
   useEffect(() => {
-    const loadModuleStatus = async () => {
-      await refreshModules();
-      setActiveModules({
-        explore: isModuleActive('explore'),
-        wardrobe: isModuleActive('wardrobe'),
-        community: isModuleActive('community'),
-        profile: isModuleActive('profile')
-      });
+    const checkModules = async () => {
+      const status = {
+        explore: await isModuleActive('explore'),
+        wardrobe: await isModuleActive('wardrobe'),
+        community: await isModuleActive('community'),
+        profile: await isModuleActive('profile')
+      };
+      setModuleStatus(status);
     };
     
-    loadModuleStatus();
-  }, [refreshModules, isModuleActive]);
-  
-  // Compteur de notifications non lues
+    checkModules();
+  }, [isModuleActive]);
+
+  // Compteur de notifications
   const unreadCount = useMemo(() => 
     notifications?.filter(n => !n.read).length || 0,
     [notifications]
   );
 
-  // Configuration des éléments du menu
+  // Configuration du menu
   const MENU_ITEMS = useMemo(() => [
     {
       label: "Accueil",
       icon: Home,
       path: "/",
       description: "Météo et suggestions",
-      isAlwaysVisible: true // Toujours visible
+      isAlwaysVisible: true
     },
     {
       label: "Explorer",
       icon: Search,
       path: "/explore",
       description: "Recherche et tendances",
-      moduleCode: "explore",
-      isVisible: activeModules.explore
+      moduleKey: "explore"
     },
     {
       label: "Mon Univers",
@@ -121,83 +111,63 @@ export const BottomNav = memo(() => {
       path: "/personal",
       description: "Garde-robe et tenues",
       isMain: true,
-      moduleCode: "wardrobe",
-      isVisible: activeModules.wardrobe
+      moduleKey: "wardrobe"
     },
     {
       label: "Social",
       icon: Users,
       path: "/friends",
       description: "Amis et groupes",
-      moduleCode: "community",
-      hasNotifications: true,
-      isVisible: activeModules.community
+      moduleKey: "community",
+      hasNotifications: true
     },
     {
       label: "Profil",
       icon: User,
       path: "/profile",
       description: "Mon profil et paramètres",
-      moduleCode: "profile",
-      isVisible: activeModules.profile
+      moduleKey: "profile"
     }
-  ], [activeModules]);
+  ], []);
 
-  // Filtrer pour n'afficher que les modules actifs ou toujours visibles
-  const visibleMenuItems = useMemo(() => 
-    MENU_ITEMS.filter(item => item.isAlwaysVisible || item.isVisible),
-    [MENU_ITEMS]
+  // Filtrer les éléments du menu
+  const filteredMenuItems = useMemo(() => 
+    MENU_ITEMS.filter(item => 
+      item.isAlwaysVisible || 
+      (item.moduleKey && moduleStatus[item.moduleKey])
+    ),
+    [MENU_ITEMS, moduleStatus]
   );
 
-  // Déterminer si un élément est actif
-  const isItemActive = useCallback((itemPath: string) => {
-    return itemPath === "/" 
+  // Vérifier si un chemin est actif
+  const isActive = useCallback((path) => {
+    return path === "/" 
       ? location.pathname === "/" 
-      : location.pathname.startsWith(itemPath);
+      : location.pathname.startsWith(path);
   }, [location.pathname]);
-
-  // Générer les boutons de navigation de manière optimisée
-  const navElements = useMemo(() => {
-    return visibleMenuItems.map(item => {
-      const isActive = isItemActive(item.path);
-      
-      // Créer une fonction de clic avec capture de l'élément spécifique
-      const handleClick = () => {
-        navigate(item.path);
-      };
-
-      return (
-        <NavButton 
-          key={`btn-${item.path}`}
-          item={item} 
-          isActive={isActive} 
-          unreadCount={unreadCount} 
-          onClick={handleClick}
-        />
-      );
-    });
-  }, [visibleMenuItems, isItemActive, unreadCount, navigate]);
-
-  // Créer un tableau d'indicateurs actifs pour l'affichage des traits en haut
-  const activeIndicators = useMemo(() => 
-    visibleMenuItems.map(item => isItemActive(item.path)),
-    [visibleMenuItems, isItemActive]
-  );
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50 shadow-lg">
       <div className="flex justify-around items-center relative px-1 pt-1 pb-2">
-        {navElements}
+        {filteredMenuItems.map((item) => (
+          <NavButton 
+            key={item.path}
+            item={item} 
+            isActive={isActive(item.path)} 
+            unreadCount={unreadCount} 
+            onClick={() => navigate(item.path)}
+          />
+        ))}
       </div>
 
-      {/* Indicateur de position (petit trait) */}
+      {/* Indicateur de position */}
       <div className="absolute top-0 left-0 w-full flex justify-around">
-        {activeIndicators.map((isActive, index) => (
+        {filteredMenuItems.map((item, index) => (
           <div 
             key={`indicator-${index}`}
             className={cn(
               "h-0.5 w-12 rounded-full transition-all duration-300",
-              isActive ? "bg-facebook-primary" : "bg-transparent"
+              isActive(item.path) ? "bg-facebook-primary" : "bg-transparent"
             )}
           />
         ))}

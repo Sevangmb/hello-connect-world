@@ -14,36 +14,41 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useModules } from "@/hooks/modules/useModules";
+import { useModules } from "@/hooks/useModules";
 import { useEffect, useState } from "react";
 
 export const CommunitySection = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isModuleActive, refreshModules } = useModules();
-  const [moduleStates, setModuleStates] = useState({
-    social_feed: true,
-    friends: true,
-    messaging: true,
-    groups: true,
-    challenges: true
+  const { isModuleActive } = useModules();
+  const [modules, setModules] = useState({
+    social_feed: false,
+    friends: false,
+    messaging: false,
+    groups: false,
+    challenges: false
   });
 
-  // Forcer un rechargement des données des modules au montage
+  // Charger les statuts des modules au montage
   useEffect(() => {
-    const loadModules = async () => {
-      await refreshModules();
-      setModuleStates({
-        social_feed: isModuleActive('social_feed'),
-        friends: isModuleActive('friends'),
-        messaging: isModuleActive('messaging'),
-        groups: isModuleActive('groups'),
-        challenges: isModuleActive('challenges')
+    const loadModulesStatus = async () => {
+      const social_feed = await isModuleActive('social_feed');
+      const friends = await isModuleActive('friends');
+      const messaging = await isModuleActive('messaging');
+      const groups = await isModuleActive('groups');
+      const challenges = await isModuleActive('challenges');
+
+      setModules({
+        social_feed,
+        friends,
+        messaging,
+        groups,
+        challenges
       });
     };
     
-    loadModules();
-  }, [refreshModules, isModuleActive]);
+    loadModulesStatus();
+  }, [isModuleActive]);
 
   return (
     <AccordionItem value="community" className="border-none">
@@ -55,7 +60,7 @@ export const CommunitySection = () => {
       </AccordionTrigger>
       <AccordionContent>
         <div className="flex flex-col gap-1 pl-6">
-          {moduleStates.social_feed && (
+          {modules.social_feed && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -67,7 +72,7 @@ export const CommunitySection = () => {
               Fil d'actualité
             </Button>
           )}
-          {moduleStates.friends && (
+          {modules.friends && (
             <>
               <Button
                 variant="ghost"
@@ -91,7 +96,7 @@ export const CommunitySection = () => {
               </Button>
             </>
           )}
-          {moduleStates.messaging && (
+          {modules.messaging && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -103,7 +108,7 @@ export const CommunitySection = () => {
               Messages
             </Button>
           )}
-          {moduleStates.groups && (
+          {modules.groups && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
@@ -115,8 +120,7 @@ export const CommunitySection = () => {
               Groupes
             </Button>
           )}
-          {/* Afficher le bouton des défis uniquement si le module est actif */}
-          {moduleStates.challenges && (
+          {modules.challenges && (
             <Button
               variant="ghost"
               className={cn("w-full justify-start gap-2", {
