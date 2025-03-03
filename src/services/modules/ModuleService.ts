@@ -1,150 +1,195 @@
 
 /**
- * Service principal pour la gestion des modules
- * Implémente une API claire et cohérente avec communication via Event Bus
+ * Service central pour la gestion des modules
+ * Implémente l'API de communication avec les modules
  */
-import { eventBus } from "@/core/event-bus/EventBus";
-import { MODULE_EVENTS, ModuleStatusChangedEvent, FeatureStatusChangedEvent, ModuleErrorEvent } from "./ModuleEvents";
-import { AppModule, ModuleStatus } from "@/hooks/modules/types";
-import { moduleRegistry } from "@/hooks/modules/services/ModuleRegistry";
-import { circuitBreakerService } from "@/hooks/modules/services/CircuitBreakerService";
-import { moduleCacheService } from "@/hooks/modules/services/ModuleCacheService";
-import { moduleDbService } from "@/hooks/modules/services/ModuleDbService";
+import { eventBus } from '@/core/event-bus/EventBus';
+import { MODULE_EVENTS } from './ModuleEvents';
+import { 
+  AppModule, 
+  ModuleStatus 
+} from '@/hooks/modules/types';
+import { 
+  refreshModulesWithCache, 
+  refreshModulesWithRetry 
+} from '@/hooks/modules/utils/moduleRefresh';
+import { moduleValidator } from '@/hooks/modules/services/ModuleValidator';
+import { moduleCacheService } from '@/hooks/modules/services/ModuleCacheService';
+import { supabase } from '@/integrations/supabase/client';
 
 class ModuleService {
-  private initialized = false;
-  private initPromise: Promise<boolean> | null = null;
-
-  constructor() {
-    this.setupEventListeners();
-  }
+  private modules: AppModule[] = [];
+  private dependencies: any[] = [];
+  private features: Record<string, Record<string, boolean>> = {};
+  private initialized: boolean = false;
+  private moduleStatusCache: Record<string, { status: ModuleStatus, timestamp: number }> = {};
 
   /**
    * Initialise le service de modules
-   * Cette méthode doit être appelée au démarrage de l'application
+   * @returns True si l'initialisation a réussi
    */
   async initialize(): Promise<boolean> {
-    // Éviter les initialisations multiples
     if (this.initialized) {
       return true;
     }
 
-    // Utiliser une promesse partagée pour éviter les multiples appels
-    if (this.initPromise) {
-      return this.initPromise;
-    }
-
-    this.initPromise = (async () => {
-      try {
-        console.log("ModuleService: Initialisation du service de modules");
+    try {
+      // Tenter de charger depuis le cache d'abord
+      const cachedModules = moduleCacheService.getModulesFromCache();
+      if (cachedModules && cachedModules.length > 0) {
+        this.modules = cachedModules;
         
-        // Initialiser le registre de modules
-        await moduleRegistry.initialize();
-        
-        // Récupérer les données initiales depuis la base de données
-        await this.refreshModules(true);
-        
-        // Marquer comme initialisé
-        this.initialized = true;
-        
-        // Publier l'événement d'initialisation
+        // Publier un événement d'initialisation
         eventBus.publish(MODULE_EVENTS.MODULES_INITIALIZED, {
+          count: cachedModules.length,
           timestamp: Date.now(),
-          source: 'init'
+          source: 'cache'
         });
-        
-        console.log("ModuleService: Service de modules initialisé avec succès");
-        return true;
-      } catch (error) {
-        console.error("ModuleService: Erreur lors de l'initialisation", error);
-        
-        // Publier l'événement d'erreur
-        this.publishError("Erreur lors de l'initialisation du service de modules", "initialization");
-        
-        // Essayer de récupérer depuis le cache
-        try {
-          const cachedModules = moduleCacheService.getModulesFromCache();
-          if (cachedModules && cachedModules.length > 0) {
-            console.log(`ModuleService: Utilisation de ${cachedModules.length} modules du cache après échec d'initialisation`);
-            return true;
-          }
-        } catch (e) {
-          console.error("ModuleService: Erreur lors de la récupération depuis le cache", e);
-        }
-        
-        return false;
-      } finally {
-        this.initPromise = null;
       }
-    })();
-
-    return this.initPromise;
+      
+      // Charger les dépendances et fonctionnalités
+      await this.refreshDependencies();
+      await this.refreshFeatures();
+      
+      // Essayer de rafraîchir depuis l'API en arrière-plan
+      this.refreshModules(false).catch(err => {
+        console.error("Erreur lors du rafraîchissement des modules:", err);
+        
+        // Publier un événement d'erreur
+        eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+          error: "Erreur lors du rafraîchissement des modules",
+          context: "init",
+          timestamp: Date.now()
+        });
+      });
+      
+      this.initialized = true;
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de l'initialisation du service de modules:", error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: "Erreur lors de l'initialisation du service de modules",
+        context: "init",
+        timestamp: Date.now()
+      });
+      
+      return false;
+    }
   }
 
   /**
-   * Rafraîchit tous les modules depuis la base de données
-   * @param force Force le rafraîchissement même si les données sont récentes
+   * Rafraîchit les modules depuis l'API
+   * @param force Force le rafraîchissement même si des données existent déjà
+   * @returns Liste des modules mis à jour
    */
   async refreshModules(force: boolean = false): Promise<AppModule[]> {
+    // Si pas forcé et des modules existent déjà, retourner les modules existants
+    if (!force && this.modules.length > 0) {
+      return this.modules;
+    }
+    
     try {
-      console.log(`ModuleService: Rafraîchissement des modules (force=${force})`);
-      
-      // Utiliser le circuit breaker pour éviter les appels répétés en cas d'erreur
-      const modules = await circuitBreakerService.execute('modules_refresh', async () => {
-        return moduleDbService.fetchAllModules();
-      });
-      
-      // Publier l'événement de rafraîchissement
-      eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
-        count: modules.length,
-        timestamp: Date.now(),
-        source: 'api'
-      });
-      
-      return modules;
-    } catch (error) {
-      console.error("ModuleService: Erreur lors du rafraîchissement des modules", error);
-      
-      // Publier l'événement d'erreur
-      this.publishError("Erreur lors du rafraîchissement des modules", "refresh");
-      
-      // Essayer de récupérer depuis le cache
-      try {
-        const cachedModules = moduleCacheService.getModulesFromCache();
-        if (cachedModules && cachedModules.length > 0) {
-          console.log(`ModuleService: Utilisation de ${cachedModules.length} modules du cache après échec de rafraîchissement`);
-          return cachedModules;
+      // Utiliser refreshModulesWithRetry qui possède une logique de backoff exponentiel
+      const updatedModules = await refreshModulesWithRetry(
+        (modules) => {
+          this.modules = modules;
         }
-      } catch (e) {
-        console.error("ModuleService: Erreur lors de la récupération depuis le cache", e);
+      );
+      
+      // Mettre à jour l'état interne
+      this.modules = updatedModules;
+      
+      // Mettre à jour le cache pour chaque module
+      updatedModules.forEach(module => {
+        this.moduleStatusCache[module.code] = {
+          status: module.status,
+          timestamp: Date.now()
+        };
+      });
+      
+      return updatedModules;
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des modules:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rafraîchit les dépendances des modules
+   * @returns Liste des dépendances mises à jour
+   */
+  async refreshDependencies(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('module_dependencies')
+        .select(`
+          module_id,
+          module_code,
+          module_name,
+          module_status,
+          dependency_id,
+          dependency_code,
+          dependency_name,
+          dependency_status,
+          is_required
+        `);
+      
+      if (error) {
+        throw error;
       }
+      
+      this.dependencies = data || [];
+      return this.dependencies;
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des dépendances:", error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: "Erreur lors du rafraîchissement des dépendances",
+        context: "dependencies",
+        timestamp: Date.now()
+      });
       
       return [];
     }
   }
 
   /**
-   * Rafraîchit toutes les fonctionnalités depuis la base de données
+   * Rafraîchit les fonctionnalités des modules
+   * @returns Liste des fonctionnalités mises à jour
    */
   async refreshFeatures(): Promise<Record<string, Record<string, boolean>>> {
     try {
-      console.log("ModuleService: Rafraîchissement des fonctionnalités");
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*');
       
-      // Utiliser le circuit breaker pour éviter les appels répétés en cas d'erreur
-      return await circuitBreakerService.execute('features_refresh', async () => {
-        return moduleDbService.fetchAllFeatures();
-      });
-    } catch (error) {
-      console.error("ModuleService: Erreur lors du rafraîchissement des fonctionnalités", error);
-      
-      // Publier l'événement d'erreur
-      this.publishError("Erreur lors du rafraîchissement des fonctionnalités", "features");
-      
-      // Essayer de récupérer depuis le cache
-      const cachedFeatures = moduleCacheService.getFeaturesFromCache();
-      if (cachedFeatures) {
-        return cachedFeatures;
+      if (error) {
+        throw error;
       }
+      
+      // Organiser les fonctionnalités par module
+      const featuresData: Record<string, Record<string, boolean>> = {};
+      data.forEach(feature => {
+        if (!featuresData[feature.module_code]) {
+          featuresData[feature.module_code] = {};
+        }
+        featuresData[feature.module_code][feature.feature_code] = feature.is_enabled;
+      });
+      
+      this.features = featuresData;
+      return featuresData;
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement des fonctionnalités:", error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: "Erreur lors du rafraîchissement des fonctionnalités",
+        context: "features",
+        timestamp: Date.now()
+      });
       
       return {};
     }
@@ -152,52 +197,85 @@ class ModuleService {
 
   /**
    * Met à jour le statut d'un module
-   * @param moduleId ID du module
+   * @param moduleId Identifiant du module
    * @param status Nouveau statut
+   * @returns True si la mise à jour a réussi
    */
   async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
     try {
-      console.log(`ModuleService: Mise à jour du statut du module ${moduleId} à ${status}`);
-      
-      // Récupérer l'ancien statut pour l'événement
-      const module = moduleRegistry.getModules().find(m => m.id === moduleId);
-      const oldStatus = module?.status || 'unknown';
-      
-      // Mettre à jour le statut via le registre
-      const success = await moduleRegistry.updateModuleStatus(moduleId, status);
-      
-      if (success && module) {
-        // Publier l'événement de changement de statut
-        this.publishStatusChange(moduleId, module.code, oldStatus, status);
-        
-        // Publier également un événement spécifique selon le nouveau statut
-        if (status === 'active') {
-          eventBus.publish(MODULE_EVENTS.MODULE_ACTIVATED, {
-            moduleId,
-            moduleCode: module.code,
-            timestamp: Date.now()
-          });
-        } else if (status === 'degraded') {
-          eventBus.publish(MODULE_EVENTS.MODULE_DEGRADED, {
-            moduleId,
-            moduleCode: module.code,
-            timestamp: Date.now()
-          });
-        } else if (status === 'inactive') {
-          eventBus.publish(MODULE_EVENTS.MODULE_DEACTIVATED, {
-            moduleId,
-            moduleCode: module.code,
-            timestamp: Date.now()
-          });
-        }
+      // Trouver le module actuel pour pouvoir émettre un événement avec l'ancien statut
+      const currentModule = this.modules.find(m => m.id === moduleId);
+      if (!currentModule) {
+        throw new Error(`Module avec l'ID ${moduleId} non trouvé`);
       }
       
-      return success;
-    } catch (error) {
-      console.error(`ModuleService: Erreur lors de la mise à jour du statut du module ${moduleId}`, error);
+      const oldStatus = currentModule.status;
       
-      // Publier l'événement d'erreur
-      this.publishError(`Erreur lors de la mise à jour du statut du module ${moduleId}`, "status_update");
+      // Faire la mise à jour dans la base de données
+      const { error } = await supabase
+        .from('app_modules')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', moduleId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Mettre à jour localement
+      const moduleIndex = this.modules.findIndex(m => m.id === moduleId);
+      if (moduleIndex !== -1) {
+        this.modules[moduleIndex].status = status;
+        
+        // Mettre à jour le cache
+        this.moduleStatusCache[currentModule.code] = {
+          status,
+          timestamp: Date.now()
+        };
+      }
+      
+      // Publier un événement de changement de statut
+      eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
+        moduleId,
+        moduleCode: currentModule.code,
+        oldStatus,
+        newStatus: status,
+        timestamp: Date.now()
+      });
+      
+      // Publier un événement spécifique selon le nouveau statut
+      if (status === 'active') {
+        eventBus.publish(MODULE_EVENTS.MODULE_ACTIVATED, {
+          moduleId,
+          moduleCode: currentModule.code,
+          timestamp: Date.now()
+        });
+      } else if (status === 'inactive') {
+        eventBus.publish(MODULE_EVENTS.MODULE_DEACTIVATED, {
+          moduleId,
+          moduleCode: currentModule.code,
+          timestamp: Date.now()
+        });
+      } else if (status === 'degraded') {
+        eventBus.publish(MODULE_EVENTS.MODULE_DEGRADED, {
+          moduleId,
+          moduleCode: currentModule.code,
+          timestamp: Date.now()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut du module:", error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: `Erreur lors de la mise à jour du statut du module: ${error}`,
+        context: "update_status",
+        timestamp: Date.now()
+      });
       
       return false;
     }
@@ -207,44 +285,63 @@ class ModuleService {
    * Met à jour le statut d'une fonctionnalité
    * @param moduleCode Code du module
    * @param featureCode Code de la fonctionnalité
-   * @param isEnabled Nouvel état
+   * @param isEnabled Statut d'activation
+   * @returns True si la mise à jour a réussi
    */
-  async updateFeatureStatus(
-    moduleCode: string,
-    featureCode: string,
-    isEnabled: boolean
-  ): Promise<boolean> {
+  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
     try {
-      console.log(`ModuleService: Mise à jour de la fonctionnalité ${moduleCode}.${featureCode} à ${isEnabled}`);
+      const { error } = await supabase
+        .from('module_features')
+        .update({ 
+          is_enabled: isEnabled,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
       
-      // Mettre à jour la fonctionnalité via le registre
-      const success = await moduleRegistry.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-      
-      if (success) {
-        // Publier l'événement de changement de statut de fonctionnalité
-        const event: FeatureStatusChangedEvent = {
-          moduleCode,
-          featureCode,
-          isEnabled,
-          timestamp: Date.now()
-        };
-        
-        eventBus.publish(MODULE_EVENTS.FEATURE_STATUS_CHANGED, event);
-        
-        // Publier également un événement spécifique selon le nouveau statut
-        if (isEnabled) {
-          eventBus.publish(MODULE_EVENTS.FEATURE_ACTIVATED, event);
-        } else {
-          eventBus.publish(MODULE_EVENTS.FEATURE_DEACTIVATED, event);
-        }
+      if (error) {
+        throw error;
       }
       
-      return success;
-    } catch (error) {
-      console.error(`ModuleService: Erreur lors de la mise à jour de la fonctionnalité ${moduleCode}.${featureCode}`, error);
+      // Mettre à jour localement
+      if (!this.features[moduleCode]) {
+        this.features[moduleCode] = {};
+      }
+      this.features[moduleCode][featureCode] = isEnabled;
       
-      // Publier l'événement d'erreur
-      this.publishError(`Erreur lors de la mise à jour de la fonctionnalité ${moduleCode}.${featureCode}`, "feature_update");
+      // Publier un événement de changement de statut de fonctionnalité
+      eventBus.publish(MODULE_EVENTS.FEATURE_STATUS_CHANGED, {
+        moduleCode,
+        featureCode,
+        isEnabled,
+        timestamp: Date.now()
+      });
+      
+      // Publier un événement spécifique selon le nouveau statut
+      if (isEnabled) {
+        eventBus.publish(MODULE_EVENTS.FEATURE_ACTIVATED, {
+          moduleCode,
+          featureCode,
+          timestamp: Date.now()
+        });
+      } else {
+        eventBus.publish(MODULE_EVENTS.FEATURE_DEACTIVATED, {
+          moduleCode,
+          featureCode,
+          timestamp: Date.now()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut de la fonctionnalité:", error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: `Erreur lors de la mise à jour du statut de la fonctionnalité: ${error}`,
+        context: "update_feature",
+        timestamp: Date.now()
+      });
       
       return false;
     }
@@ -253,101 +350,92 @@ class ModuleService {
   /**
    * Vérifie si un module est actif
    * @param moduleCode Code du module
+   * @returns True si le module est actif
    */
   isModuleActive(moduleCode: string): boolean {
-    return moduleRegistry.isModuleActive(moduleCode);
+    // Administrateur toujours actif
+    if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
+      return true;
+    }
+    
+    // Vérifier le cache (validité: 30 secondes)
+    const cached = this.moduleStatusCache[moduleCode];
+    if (cached && (Date.now() - cached.timestamp < 30000)) {
+      return cached.status === 'active';
+    }
+    
+    // Sinon, vérifier dans la liste des modules
+    const module = this.modules.find(m => m.code === moduleCode);
+    if (module) {
+      // Mettre à jour le cache
+      this.moduleStatusCache[moduleCode] = {
+        status: module.status,
+        timestamp: Date.now()
+      };
+      return module.status === 'active';
+    }
+    
+    return false;
   }
 
   /**
    * Vérifie si un module est en mode dégradé
    * @param moduleCode Code du module
+   * @returns True si le module est en mode dégradé
    */
   isModuleDegraded(moduleCode: string): boolean {
-    return moduleRegistry.isModuleDegraded(moduleCode);
+    // Vérifier le cache (validité: 30 secondes)
+    const cached = this.moduleStatusCache[moduleCode];
+    if (cached && (Date.now() - cached.timestamp < 30000)) {
+      return cached.status === 'degraded';
+    }
+    
+    // Sinon, vérifier dans la liste des modules
+    const module = this.modules.find(m => m.code === moduleCode);
+    if (module) {
+      // Mettre à jour le cache
+      this.moduleStatusCache[moduleCode] = {
+        status: module.status,
+        timestamp: Date.now()
+      };
+      return module.status === 'degraded';
+    }
+    
+    return false;
   }
 
   /**
    * Vérifie si une fonctionnalité est activée
    * @param moduleCode Code du module
    * @param featureCode Code de la fonctionnalité
+   * @returns True si la fonctionnalité est activée
    */
   isFeatureEnabled(moduleCode: string, featureCode: string): boolean {
-    return moduleRegistry.isFeatureEnabled(moduleCode, featureCode);
+    return this.features[moduleCode]?.[featureCode] === true;
   }
 
   /**
-   * Récupère tous les modules
+   * Récupère la liste des modules
+   * @returns Liste des modules
    */
   getModules(): AppModule[] {
-    return moduleRegistry.getModules();
+    return this.modules;
   }
 
   /**
-   * Récupère toutes les fonctionnalités
-   */
-  getFeatures(): Record<string, Record<string, boolean>> {
-    return moduleRegistry.getFeatures();
-  }
-
-  /**
-   * Récupère toutes les dépendances
+   * Récupère la liste des dépendances
+   * @returns Liste des dépendances
    */
   getDependencies(): any[] {
-    return moduleRegistry.getDependencies();
+    return this.dependencies;
   }
 
   /**
-   * Publie un événement de changement de statut
+   * Récupère la liste des fonctionnalités
+   * @returns Liste des fonctionnalités
    */
-  private publishStatusChange(
-    moduleId: string,
-    moduleCode: string,
-    oldStatus: string,
-    newStatus: string
-  ): void {
-    const event: ModuleStatusChangedEvent = {
-      moduleId,
-      moduleCode,
-      oldStatus,
-      newStatus,
-      timestamp: Date.now()
-    };
-    
-    eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, event);
-  }
-
-  /**
-   * Publie un événement d'erreur
-   */
-  private publishError(error: string, context: string): void {
-    const event: ModuleErrorEvent = {
-      error,
-      context,
-      timestamp: Date.now()
-    };
-    
-    eventBus.publish(MODULE_EVENTS.MODULE_ERROR, event);
-  }
-
-  /**
-   * Configure les écouteurs d'événements
-   */
-  private setupEventListeners(): void {
-    // Écouter les événements de synchronisation
-    eventBus.subscribe(MODULE_EVENTS.MODULES_SYNC_REQUESTED, () => {
-      this.refreshModules(true).catch(console.error);
-    });
-    
-    // Écouter les événements DOM pour la synchronisation entre onglets
-    if (typeof window !== 'undefined') {
-      eventBus.subscribeToGlobal(MODULE_EVENTS.MODULE_STATUS_CHANGED, () => {
-        this.refreshModules(true).catch(console.error);
-      });
-      
-      eventBus.subscribeToGlobal(MODULE_EVENTS.FEATURE_STATUS_CHANGED, () => {
-        this.refreshFeatures().catch(console.error);
-      });
-    }
+  getFeatures(): Record<string, Record<string, boolean>> {
+    return this.features;
   }
 }
 
