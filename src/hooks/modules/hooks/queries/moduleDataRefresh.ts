@@ -1,5 +1,5 @@
 
-import { AppModule } from '../../types';
+import { AppModule, ModuleStatus } from '../../types';
 import { getModuleCache, updateModuleCache } from '../../api/moduleStatusCore';
 import { fetchAllModules, fetchAllFeatures } from '../../api/moduleSync';
 
