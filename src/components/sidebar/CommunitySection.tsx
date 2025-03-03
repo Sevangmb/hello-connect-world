@@ -22,11 +22,11 @@ export const CommunitySection = () => {
   const navigate = useNavigate();
   const { isModuleActive, refreshModules } = useModules();
   const [moduleStates, setModuleStates] = useState({
-    social_feed: false,
-    friends: false,
-    messaging: false,
-    groups: false,
-    challenges: false
+    social_feed: true,
+    friends: true,
+    messaging: true,
+    groups: true,
+    challenges: true
   });
 
   // Forcer un rechargement des données des modules au montage
@@ -40,9 +40,6 @@ export const CommunitySection = () => {
         groups: isModuleActive('groups'),
         challenges: isModuleActive('challenges')
       });
-      
-      // Temporairement, toujours activer le module des défis
-      console.log("DEBUG: État du module challenges:", isModuleActive('challenges'));
     };
     
     loadModules();
@@ -118,7 +115,7 @@ export const CommunitySection = () => {
               Groupes
             </Button>
           )}
-          {/* Pour déboguer, toujours afficher le bouton des défis */}
+          {/* Afficher le bouton des défis */}
           <Button
             variant="ghost"
             className={cn("w-full justify-start gap-2", {

@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppModule, ModuleStatus } from "../types";
-import { useToast } from "@/hooks/use-toast";
 
 /**
  * Rafraîchit les modules directement depuis Supabase et met à jour le cache
@@ -30,40 +29,45 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
         });
     });
     
-    const { data, error } = await fetchPromise;
-      
-    if (error) {
-      console.error("Erreur lors du chargement des modules:", error);
-      throw error;
-    }
-    
-    if (data && data.length > 0) {
-      // Assurer que les statuts sont des ModuleStatus valides
-      const typedModules = data.map(module => {
-        let status = module.status;
-        // S'assurer que le statut est un ModuleStatus valide
-        if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
-          status = 'inactive';
-        }
-        return { ...module, status } as AppModule;
-      });
-      
-      // Mettre à jour l'état
-      setModules(typedModules);
-      
-      // Mettre à jour le cache localStorage
-      try {
-        localStorage.setItem('modules_cache', JSON.stringify(typedModules));
-        localStorage.setItem('modules_cache_timestamp', Date.now().toString());
-        console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
+    try {
+      const { data, error } = await fetchPromise;
         
-        // Émettre un événement pour informer les autres composants
-        window.dispatchEvent(new CustomEvent('modules_updated'));
-      } catch (e) {
-        console.error("Erreur lors de la mise en cache des modules:", e);
+      if (error) {
+        console.error("Erreur lors du chargement des modules:", error);
+        throw error;
       }
       
-      return typedModules;
+      if (data && data.length > 0) {
+        // Assurer que les statuts sont des ModuleStatus valides
+        const typedModules = data.map(module => {
+          let status = module.status;
+          // S'assurer que le statut est un ModuleStatus valide
+          if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
+            status = 'inactive';
+          }
+          return { ...module, status } as AppModule;
+        });
+        
+        // Mettre à jour l'état
+        setModules(typedModules);
+        
+        // Mettre à jour le cache localStorage
+        try {
+          localStorage.setItem('modules_cache', JSON.stringify(typedModules));
+          localStorage.setItem('modules_cache_timestamp', Date.now().toString());
+          console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
+          
+          // Émettre un événement pour informer les autres composants
+          window.dispatchEvent(new CustomEvent('modules_updated'));
+        } catch (e) {
+          console.error("Erreur lors de la mise en cache des modules:", e);
+        }
+        
+        return typedModules;
+      }
+    } catch (fetchError) {
+      console.error("Erreur lors de la requête Supabase:", fetchError);
+      throw fetchError;
     }
     
     return [];

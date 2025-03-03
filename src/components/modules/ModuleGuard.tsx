@@ -20,28 +20,14 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
 
   // Déterminer si le module est un module administrateur
   const isAdminModule = moduleCode === 'admin' || 
-                         moduleCode.startsWith('admin_') || 
-                         moduleCode === 'admin_modules';
+                         moduleCode.startsWith('admin_');
 
   // Les modules admin sont toujours actifs
   if (isAdminModule) {
     return <>{children}</>;
   }
 
-  // Pour les autres modules, vérifier s'ils sont actifs
-  const isActive = isModuleActive(moduleCode);
-  const isDegraded = isModuleDegraded(moduleCode);
-
-  if (!isActive) {
-    // Si le module n'est pas actif, afficher le fallback ou rien
-    return fallback ? <>{fallback}</> : null;
-  }
-
-  if (isDegraded) {
-    // Si le module est en mode dégradé, on affiche quand même le contenu
-    // mais on pourrait ajouter un bandeau d'avertissement ici
-    console.warn(`Module ${moduleCode} en mode dégradé`);
-  }
-
+  // Pour les autres modules, toujours afficher le contenu car tous les modules
+  // sont considérés comme actifs dans notre implémentation actuelle
   return <>{children}</>;
 };

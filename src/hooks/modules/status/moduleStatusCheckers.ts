@@ -34,12 +34,7 @@ export const checkModuleActive = (moduleCode: string): boolean => {
     return true;
   }
   
-  // Pour le module challenges, toujours retourner true (correctif temporaire)
-  if (moduleCode === 'challenges') {
-    return true;
-  }
-  
-  // Pour tous les autres modules, retourner true pour le moment
+  // Pour tous les modules, retourner true pour le moment
   // Cela permet d'assurer que tous les modules sont disponibles
   return true;
 };
@@ -68,11 +63,6 @@ export const checkModuleDegraded = (moduleCode: string): boolean => {
   
   // Si c'est un module admin ou commence par admin_, jamais dégradé
   if (adminModuleCodes.includes(moduleCode) || moduleCode.startsWith('admin_')) {
-    return false;
-  }
-  
-  // Pour le module challenges, toujours retourner false (correctif temporaire)
-  if (moduleCode === 'challenges') {
     return false;
   }
   
