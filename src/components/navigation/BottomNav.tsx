@@ -66,16 +66,21 @@ export const BottomNav = memo(() => {
   const location = useLocation();
   const { notifications } = useNotifications();
   const { isModuleActive } = useModules();
-  const [moduleStatus, setModuleStatus] = useState({});
+  const [moduleStatus, setModuleStatus] = useState({
+    explore: false,
+    wardrobe: false,
+    community: false,
+    profile: false
+  });
   
   // Initialiser l'état des modules
   useEffect(() => {
     const checkModules = async () => {
       const status = {
-        explore: await isModuleActive('explore'),
-        wardrobe: await isModuleActive('wardrobe'),
-        community: await isModuleActive('community'),
-        profile: await isModuleActive('profile')
+        explore: isModuleActive('explore'),
+        wardrobe: isModuleActive('wardrobe'),
+        community: isModuleActive('community'),
+        profile: isModuleActive('profile')
       };
       setModuleStatus(status);
     };
@@ -134,7 +139,7 @@ export const BottomNav = memo(() => {
   const filteredMenuItems = useMemo(() => 
     MENU_ITEMS.filter(item => 
       item.isAlwaysVisible || 
-      (item.moduleKey && moduleStatus[item.moduleKey])
+      (item.moduleKey && moduleStatus[item.moduleKey as keyof typeof moduleStatus])
     ),
     [MENU_ITEMS, moduleStatus]
   );

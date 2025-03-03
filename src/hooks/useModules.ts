@@ -2,14 +2,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Types
+type ModuleStatus = 'active' | 'inactive' | 'degraded';
+interface AppModule {
+  id: string;
+  name: string;
+  code: string;
+  status: ModuleStatus;
+  description?: string;
+  is_core: boolean;
+}
+
 export const useModules = () => {
   const [loading, setLoading] = useState(true);
-  const [modules, setModules] = useState([]);
-  const [features, setFeatures] = useState({});
-  const [error, setError] = useState(null);
+  const [modules, setModules] = useState<AppModule[]>([]);
+  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
+  const [error, setError] = useState<any>(null);
+  const [dependencies, setDependencies] = useState<any[]>([]);
 
   // Cache en mémoire pour les vérifications répétées
-  const moduleStatusCache = {};
+  const moduleStatusCache: Record<string, { status: ModuleStatus, timestamp: number }> = {};
   
   // Récupérer tous les modules
   const fetchModules = useCallback(async () => {
@@ -51,7 +63,7 @@ export const useModules = () => {
       if (error) throw error;
       
       // Organiser les fonctionnalités par module
-      const featuresData = {};
+      const featuresData: Record<string, Record<string, boolean>> = {};
       data.forEach(feature => {
         if (!featuresData[feature.module_code]) {
           featuresData[feature.module_code] = {};
@@ -68,8 +80,36 @@ export const useModules = () => {
     }
   }, []);
 
+  // Récupérer les dépendances
+  const fetchDependencies = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('module_dependencies')
+        .select(`
+          module_id,
+          module_code,
+          module_name,
+          module_status,
+          dependency_id,
+          dependency_code,
+          dependency_name,
+          dependency_status,
+          is_required
+        `);
+      
+      if (error) throw error;
+      
+      setDependencies(data);
+      return data;
+    } catch (err) {
+      console.error('Erreur lors du chargement des dépendances:', err);
+      setError(err.message);
+      return [];
+    }
+  }, []);
+
   // Vérifier si un module est actif
-  const isModuleActive = useCallback(async (moduleCode) => {
+  const isModuleActive = useCallback((moduleCode: string): boolean => {
     // Administrateur toujours actif
     if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
       return true;
@@ -81,34 +121,22 @@ export const useModules = () => {
       return cached.status === 'active';
     }
     
-    try {
-      // Sinon, faire une requête à la base de données
-      const { data, error } = await supabase
-        .from('app_modules')
-        .select('status')
-        .eq('code', moduleCode)
-        .single();
-      
-      if (error) {
-        console.error(`Erreur lors de la vérification du module ${moduleCode}:`, error);
-        return false;
-      }
-      
+    // Sinon, vérifier dans la liste des modules
+    const module = modules.find(m => m.code === moduleCode);
+    if (module) {
       // Mettre à jour le cache
       moduleStatusCache[moduleCode] = {
-        status: data.status,
+        status: module.status,
         timestamp: Date.now()
       };
-      
-      return data.status === 'active';
-    } catch (err) {
-      console.error(`Exception lors de la vérification du module ${moduleCode}:`, err);
-      return false;
+      return module.status === 'active';
     }
-  }, []);
+    
+    return false;
+  }, [modules]);
 
   // Mettre à jour le statut d'un module
-  const updateModuleStatus = useCallback(async (moduleId, status) => {
+  const updateModuleStatus = useCallback(async (moduleId: string, status: ModuleStatus) => {
     try {
       const { error } = await supabase
         .from('app_modules')
@@ -130,11 +158,39 @@ export const useModules = () => {
     }
   }, [fetchModules]);
 
+  // Mettre à jour le statut d'une fonctionnalité
+  const updateFeatureStatus = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('module_features')
+        .update({ 
+          is_enabled: isEnabled,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
+      
+      if (error) throw error;
+      
+      // Rafraîchir les fonctionnalités après la mise à jour
+      await fetchFeatures();
+      return true;
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour de la fonctionnalité:', err);
+      setError(err.message);
+      return false;
+    }
+  }, [fetchFeatures]);
+
+  // Alias pour refreshModules (prévisibilité de l'API)
+  const refreshModules = fetchModules;
+
   // Initialiser les données au montage
   useEffect(() => {
     const init = async () => {
       await fetchModules();
       await fetchFeatures();
+      await fetchDependencies();
     };
     
     init();
@@ -145,16 +201,18 @@ export const useModules = () => {
     }, 60000); // Toutes les 60 secondes
     
     return () => clearInterval(refreshInterval);
-  }, [fetchModules, fetchFeatures]);
+  }, [fetchModules, fetchFeatures, fetchDependencies]);
 
   return {
     loading,
     error,
     modules,
+    dependencies,
+    features,
     isModuleActive,
     updateModuleStatus,
-    fetchModules
+    updateFeatureStatus,
+    fetchModules,
+    refreshModules
   };
 };
-
-export * from './modules';

@@ -32,11 +32,11 @@ export const CommunitySection = () => {
   // Charger les statuts des modules au montage
   useEffect(() => {
     const loadModulesStatus = async () => {
-      const social_feed = await isModuleActive('social_feed');
-      const friends = await isModuleActive('friends');
-      const messaging = await isModuleActive('messaging');
-      const groups = await isModuleActive('groups');
-      const challenges = await isModuleActive('challenges');
+      const social_feed = isModuleActive('social_feed');
+      const friends = isModuleActive('friends');
+      const messaging = isModuleActive('messaging');
+      const groups = isModuleActive('groups');
+      const challenges = isModuleActive('challenges');
 
       setModules({
         social_feed,

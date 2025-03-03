@@ -7,11 +7,37 @@ import { Badge } from "@/components/ui/badge";
 import { Boxes, ArrowRightCircle, AlertCircle, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ModuleDependencyGraph from "./ModuleDependencyGraph";
+import { ModuleDependencyGraph } from "./ModuleDependencyGraph";
 import "./dependency-graph.css";
 
+interface ModuleDependency {
+  module_id: string;
+  module_code: string;
+  module_name: string;
+  module_status: string;
+  dependency_id: string;
+  dependency_code: string;
+  dependency_name: string;
+  dependency_status: string;
+  is_required: boolean;
+}
+
+interface GroupedDependency {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  dependencies: Array<{
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    isRequired: boolean;
+  }>;
+}
+
 export const ModuleDependencies = () => {
-  const { dependencies, loading, error } = useModules();
+  const { dependencies, loading, error, isModuleActive } = useModules();
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
 
   // Grouper les dépendances par module
@@ -37,7 +63,7 @@ export const ModuleDependencies = () => {
     }
     
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, GroupedDependency>);
 
   // Convertir en tableau pour l'affichage
   const modules = Object.values(groupedDependencies);
@@ -134,7 +160,7 @@ export const ModuleDependencies = () => {
                       <TableCell>
                         {module.dependencies.length > 0 ? (
                           <div className="flex flex-wrap gap-2 items-center">
-                            {module.dependencies.map((dep: any) => (
+                            {module.dependencies.map((dep) => (
                               <div key={dep.id} className="flex items-center gap-1">
                                 <ArrowRightCircle className="h-4 w-4 text-gray-400" />
                                 <span>{dep.name}</span>

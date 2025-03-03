@@ -5,8 +5,6 @@ import {
   Hash,
   Compass,
   Store,
-  LocateFixed,
-  List,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -102,28 +100,16 @@ export const ExploreSection = () => {
             </Button>
           )}
           {moduleStates.marketplace && (
-            <>
-              <Button
-                variant="ghost"
-                className={cn("w-full justify-start gap-2", {
-                  "bg-custom-blue text-white": location.pathname === "/marketplace",
-                })}
-                onClick={() => navigate("/marketplace")}
-              >
-                <Store className="h-4 w-4" />
-                Marketplace
-              </Button>
-              <Button
-                variant="ghost"
-                className={cn("w-full justify-start gap-2", {
-                  "bg-custom-blue text-white": location.pathname === "/boutiques",
-                })}
-                onClick={() => navigate("/boutiques")}
-              >
-                <Store className="h-4 w-4" />
-                Boutiques
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              className={cn("w-full justify-start gap-2", {
+                "bg-custom-blue text-white": location.pathname === "/marketplace",
+              })}
+              onClick={() => navigate("/marketplace")}
+            >
+              <Store className="h-4 w-4" />
+              Marketplace
+            </Button>
           )}
         </div>
       </AccordionContent>

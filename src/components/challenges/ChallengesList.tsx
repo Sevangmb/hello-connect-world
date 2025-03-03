@@ -25,7 +25,7 @@ export const ChallengesList = ({ filter }: ChallengesListProps) => {
   // Vérifier le statut du module
   useEffect(() => {
     const checkModule = async () => {
-      const enabled = await isModuleActive('challenges');
+      const enabled = isModuleActive('challenges');
       setModuleEnabled(enabled);
       
       if (!enabled) {
