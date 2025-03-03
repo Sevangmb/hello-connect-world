@@ -1,63 +1,86 @@
+
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import RootLayout from './layouts/RootLayout';
-import HomePage from './pages/HomePage';
-import Boutiques from './pages/Boutiques';
-import VirtualDressing from './pages/VirtualDressing';
-import Login from './pages/Login';
-import PrivateRoute from './components/PrivateRoute';
-import AdminRoute from './components/AdminRoute';
-import AdminLayout from './layouts/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UsersManagement from './pages/admin/UsersManagement';
-import ContentManagement from './pages/admin/ContentManagement';
-import SiteSettings from './pages/admin/SiteSettings';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { PrivateRoute } from './components/auth/PrivateRoute';
+import { AdminRoute } from './components/auth/AdminRoute';
+import { AdminLayout } from './components/admin/AdminLayout';
+import Landing from './pages/Landing';
+import Index from './pages/Index';
 import NotFound from './pages/NotFound';
-import { AdminModules } from './pages/admin';
-import { AdminNotifications } from './pages/admin';
-import { AdminReports } from './pages/admin';
-import { AdminPayments } from './pages/admin';
-import { AdminAnalytics } from './pages/admin';
-import { AdminModeration } from './pages/admin';
-import { AdminBackups } from './pages/admin';
+import Auth from './pages/Auth';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminShops from './pages/admin/AdminShops';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminMarketplace from './pages/admin/AdminMarketplace';
+import AdminContent from './pages/admin/AdminContent';
+import AdminStats from './pages/admin/AdminStats';
+import AdminMarketing from './pages/admin/AdminMarketing';
+import AdminModules from './pages/admin/AdminModules';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminHelp from './pages/admin/AdminHelp';
+import AdminReports from './pages/admin/AdminReports';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
+import AdminModeration from './pages/admin/AdminModeration';
+import AdminApiKeys from './pages/admin/AdminApiKeys';
+import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminBackup from './pages/admin/AdminBackup';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Pages publiques */}
-        <Route path="/" element={<RootLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="boutiques" element={<Boutiques />} />
-          <Route path="virtual-dressing" element={<VirtualDressing />} />
-          <Route path="login" element={<Login />} />
-          
-          {/* Routes protégées */}
-          <Route element={<PrivateRoute />}>
-            {/* Ajouter d'autres routes protégées ici */}
-          </Route>
-          
-          {/* Routes d'administration */}
-          <Route path="admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<UsersManagement />} />
-            <Route path="content" element={<ContentManagement />} />
-            <Route path="modules" element={<AdminModules />} />
-            <Route path="settings" element={<SiteSettings />} />
-            <Route path="notifications" element={<AdminNotifications />} />
-            <Route path="reports" element={<AdminReports />} />
-            <Route path="payments" element={<AdminPayments />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="moderation" element={<AdminModeration />} />
-            <Route path="backups" element={<AdminBackups />} />
-          </Route>
-          
-          {/* Route 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Router>
+    <Routes>
+      {/* Routes publiques */}
+      <Route path="/landing" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/login" element={<Auth />} />
+      <Route path="/auth/admin" element={<AdminLogin />} />
+      
+      {/* Route racine */}
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <Index />
+          </PrivateRoute>
+        }
+      />
+      
+      {/* Routes d'administration */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="shops" element={<AdminShops />} />
+        <Route path="orders" element={<AdminOrders />} />
+        <Route path="marketplace" element={<AdminMarketplace />} />
+        <Route path="content" element={<AdminContent />} />
+        <Route path="stats" element={<AdminStats />} />
+        <Route path="marketing" element={<AdminMarketing />} />
+        <Route path="modules" element={<AdminModules />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="help" element={<AdminHelp />} />
+        {/* Nouvelles routes d'administration */}
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="payments" element={<AdminPayments />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="moderation" element={<AdminModeration />} />
+        <Route path="api-keys" element={<AdminApiKeys />} />
+        <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="backup" element={<AdminBackup />} />
+      </Route>
+      
+      {/* Route 404 */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
