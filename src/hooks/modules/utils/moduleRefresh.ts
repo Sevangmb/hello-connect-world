@@ -77,6 +77,14 @@ export const refreshModulesWithCache = async (
       status: "active",
       is_core: true,
       description: "Core functionality"
+    } as AppModule,
+    {
+      id: "menu-1",
+      name: "Menu",
+      code: "menu",
+      status: "active",
+      is_core: true,
+      description: "Application menu system"
     } as AppModule
   ];
   setModules(fallbackModules);
@@ -128,6 +136,14 @@ export const refreshModulesWithRetry = async (
       status: "active",
       is_core: true,
       description: "Core functionality"
+    } as AppModule,
+    {
+      id: "menu-1",
+      name: "Menu",
+      code: "menu",
+      status: "active",
+      is_core: true,
+      description: "Application menu system"
     } as AppModule
   ];
   
