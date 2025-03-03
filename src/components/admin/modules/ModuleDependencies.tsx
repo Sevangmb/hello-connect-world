@@ -9,8 +9,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModuleDependencyGraph } from "./ModuleDependencyGraph";
 import "./dependency-graph.css";
+import { ModuleDependency, ModuleStatus } from "@/hooks/modules/types";
 
-interface ModuleDependency {
+interface ModuleDependencyView {
   module_id: string;
   module_code: string;
   module_name: string;
@@ -41,7 +42,7 @@ export const ModuleDependencies = () => {
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
 
   // Grouper les dépendances par module
-  const groupedDependencies = dependencies.reduce((acc, dep) => {
+  const groupedDependencies = (dependencies as ModuleDependencyView[]).reduce((acc, dep) => {
     if (!acc[dep.module_code]) {
       acc[dep.module_code] = {
         id: dep.module_id,
