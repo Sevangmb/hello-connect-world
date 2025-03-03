@@ -1,102 +1,169 @@
 
-import { defineModule } from "../services/ModuleRegistry";
+/**
+ * Définitions des modules de l'application
+ * Ce fichier centralise les informations sur les modules disponibles
+ */
 
-// Définition du module Admin (core)
-export const AdminModule = defineModule({
-  code: 'admin',
-  name: 'Administration',
-  description: 'Module d\'administration de l\'application',
-  dependencies: [],
-  isCore: true,
-  features: ['settings', 'users', 'modules']
-});
+export interface ModuleDefinition {
+  code: string;
+  name: string;
+  description?: string;
+  isCore?: boolean;
+  dependencies?: {
+    code: string;
+    required: boolean;
+  }[];
+  features?: {
+    code: string;
+    name: string;
+    description?: string;
+    enabledByDefault?: boolean;
+  }[];
+}
 
-// Modules Utilisateur
-export const ProfileModule = defineModule({
-  code: 'profile',
-  name: 'Profil Utilisateur',
-  description: 'Gestion du profil utilisateur',
-  dependencies: [],
-  features: ['settings', 'avatar', 'preferences']
-});
+export const APP_MODULES: Record<string, ModuleDefinition> = {
+  // Module d'administration - toujours actif
+  ADMIN: {
+    code: 'admin',
+    name: 'Administration',
+    description: 'Module d\'administration principal',
+    isCore: true,
+    features: [
+      {
+        code: 'modules_management',
+        name: 'Gestion des modules',
+        description: 'Permet de gérer les modules de l\'application',
+        enabledByDefault: true
+      },
+      {
+        code: 'users_management',
+        name: 'Gestion des utilisateurs',
+        description: 'Permet de gérer les utilisateurs de l\'application',
+        enabledByDefault: true
+      }
+    ]
+  },
+  
+  // Module de profil utilisateur
+  PROFILE: {
+    code: 'profile',
+    name: 'Profil utilisateur',
+    description: 'Gestion du profil utilisateur',
+    isCore: true,
+    features: [
+      {
+        code: 'edit_profile',
+        name: 'Édition du profil',
+        enabledByDefault: true
+      },
+      {
+        code: 'avatar_upload',
+        name: 'Téléchargement d\'avatar',
+        enabledByDefault: true
+      }
+    ]
+  },
+  
+  // Module de notifications
+  NOTIFICATIONS: {
+    code: 'notifications',
+    name: 'Notifications',
+    description: 'Système de notifications',
+    dependencies: [
+      {
+        code: 'profile',
+        required: true
+      }
+    ],
+    features: [
+      {
+        code: 'push_notifications',
+        name: 'Notifications push',
+        enabledByDefault: false
+      },
+      {
+        code: 'email_notifications',
+        name: 'Notifications par email',
+        enabledByDefault: true
+      }
+    ]
+  },
+  
+  // Module de suggestions
+  SUGGESTIONS: {
+    code: 'suggestions',
+    name: 'Suggestions',
+    description: 'Système de suggestions personnalisées',
+    dependencies: [
+      {
+        code: 'profile',
+        required: true
+      }
+    ]
+  },
+  
+  // Module d'intelligence artificielle
+  AI: {
+    code: 'ai',
+    name: 'Intelligence artificielle',
+    description: 'Fonctionnalités d\'IA et recommandations',
+    dependencies: [
+      {
+        code: 'profile',
+        required: true
+      },
+      {
+        code: 'suggestions',
+        required: false
+      }
+    ],
+    features: [
+      {
+        code: 'outfit_recommendations',
+        name: 'Recommandations de tenues',
+        enabledByDefault: true
+      },
+      {
+        code: 'style_analysis',
+        name: 'Analyse de style',
+        enabledByDefault: true
+      }
+    ]
+  }
+};
 
-export const NotificationsModule = defineModule({
-  code: 'notifications',
-  name: 'Notifications',
-  description: 'Système de notifications',
-  dependencies: ['profile'],
-  features: ['push', 'email', 'settings']
-});
+// Exporter les codes de module comme constantes pour faciliter l'utilisation
+export const MODULE_CODES = Object.fromEntries(
+  Object.entries(APP_MODULES).map(([key, module]) => [key, module.code])
+);
 
-// Modules Social
-export const SuggestionsModule = defineModule({
-  code: 'suggestions',
-  name: 'Suggestions',
-  description: 'Suggestions de contenu basées sur les préférences',
-  dependencies: ['profile'],
-  features: []
-});
+// Fonction utilitaire pour obtenir une définition de module par son code
+export function getModuleDefinitionByCode(code: string): ModuleDefinition | undefined {
+  return Object.values(APP_MODULES).find(module => module.code === code);
+}
 
-export const AIModule = defineModule({
-  code: 'ai',
-  name: 'Intelligence Artificielle',
-  description: 'Recommandations et assistance par IA',
-  dependencies: [],
-  features: ['recommendations', 'assistant']
-});
+// Fonction utilitaire pour vérifier si un module dépend d'un autre
+export function moduleDepends(moduleCode: string, dependencyCode: string): boolean {
+  const module = getModuleDefinitionByCode(moduleCode);
+  if (!module || !module.dependencies) return false;
+  
+  return module.dependencies.some(dep => dep.code === dependencyCode);
+}
 
-// Modules Exploration
-export const SearchModule = defineModule({
-  code: 'search',
-  name: 'Recherche',
-  description: 'Fonctionnalité de recherche',
-  dependencies: [],
-  features: ['advanced_filters', 'saved_searches']
-});
+// Fonction utilitaire pour obtenir toutes les dépendances d'un module
+export function getModuleDependencies(moduleCode: string): string[] {
+  const module = getModuleDefinitionByCode(moduleCode);
+  if (!module || !module.dependencies) return [];
+  
+  return module.dependencies.map(dep => dep.code);
+}
 
-export const TrendingModule = defineModule({
-  code: 'trending',
-  name: 'Tendances',
-  description: 'Contenu populaire et tendances',
-  dependencies: [],
-  features: ['daily', 'weekly', 'personalized']
-});
-
-export const HashtagsModule = defineModule({
-  code: 'hashtags',
-  name: 'Hashtags',
-  description: 'Exploration par hashtags',
-  dependencies: ['search'],
-  features: ['trending_tags', 'follow_tags']
-});
-
-export const MarketplaceModule = defineModule({
-  code: 'marketplace',
-  name: 'Marketplace',
-  description: 'Place de marché pour les vêtements',
-  dependencies: [],
-  features: ['buy', 'sell', 'exchange']
-});
-
-// Autres modules
-export const ChallengesModule = defineModule({
-  code: 'challenges',
-  name: 'Défis',
-  description: 'Challenges et compétitions',
-  dependencies: ['profile'],
-  features: ['create', 'participate', 'vote']
-});
-
-// Exporter la liste complète des modules pour référence
-export const AppModules = [
-  AdminModule,
-  ProfileModule,
-  NotificationsModule,
-  SuggestionsModule,
-  AIModule,
-  SearchModule,
-  TrendingModule,
-  HashtagsModule,
-  MarketplaceModule,
-  ChallengesModule
-];
+// Fonction utilitaire pour obtenir toutes les dépendances requises d'un module
+export function getRequiredModuleDependencies(moduleCode: string): string[] {
+  const module = getModuleDefinitionByCode(moduleCode);
+  if (!module || !module.dependencies) return [];
+  
+  return module.dependencies
+    .filter(dep => dep.required)
+    .map(dep => dep.code);
+}

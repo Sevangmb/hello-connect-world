@@ -1,117 +1,185 @@
 
-import { moduleRegistry } from "./ModuleRegistry";
-import { ModuleStatus } from "../types";
-
 /**
- * Service responsable de la validation des dépendances et de l'intégrité des modules
+ * Service de validation des modules et de leurs dépendances
+ * Vérifie les règles métier sur la structure et l'activation des modules
  */
-export class ModuleValidator {
+import { AppModule, ModuleStatus } from "../types";
+import { ADMIN_MODULE_CODE } from "../constants";
+
+class ModuleValidator {
   /**
-   * Vérifier si un module peut être activé en fonction de ses dépendances
+   * Valide qu'un statut de module est conforme au type ModuleStatus
    */
-  static canActivateModule(moduleCode: string): { canActivate: boolean; missingDependencies: string[] } {
-    const module = moduleRegistry.getModule(moduleCode);
-    if (!module) {
-      return { canActivate: false, missingDependencies: [] };
+  validateModuleStatus(status: any): ModuleStatus {
+    if (status === 'active' || status === 'inactive' || status === 'degraded') {
+      return status as ModuleStatus;
     }
-    
-    const missingDependencies: string[] = [];
-    
-    // Vérifier chaque dépendance
-    for (const depCode of module.dependencies) {
-      if (!moduleRegistry.isModuleActive(depCode)) {
-        missingDependencies.push(depCode);
-      }
+    // Statut par défaut en cas de valeur invalide
+    console.warn(`ModuleValidator: Statut de module invalide "${status}", utilisation de "inactive" par défaut`);
+    return 'inactive';
+  }
+
+  /**
+   * Vérifie si un module peut être désactivé 
+   * (pas de dépendances actives requérant ce module)
+   */
+  canDeactivateModule(
+    moduleId: string, 
+    moduleCode: string,
+    isCore: boolean,
+    dependencies: any[]
+  ): boolean {
+    // Les modules core ne peuvent pas être désactivés
+    if (isCore) {
+      console.log(`ModuleValidator: Le module core ${moduleCode} ne peut pas être désactivé`);
+      return false;
     }
-    
-    return {
-      canActivate: missingDependencies.length === 0,
-      missingDependencies
-    };
-  }
-  
-  /**
-   * Vérifier l'impact sur les autres modules si un module est désactivé
-   */
-  static getImpactOfDeactivation(moduleCode: string): { 
-    affectedModules: string[]; 
-    criticallyAffected: string[] 
-  } {
-    const affectedModules: string[] = [];
-    const criticallyAffected: string[] = [];
-    
-    // Vérifier tous les modules qui pourraient être affectés
-    moduleRegistry.getAllModules().forEach(module => {
-      if (module.dependencies.includes(moduleCode)) {
-        affectedModules.push(module.code);
-        
-        // Si c'est une dépendance critique, ajouter à la liste des modules critiquement affectés
-        const validationResult = this.canActivateModule(module.code);
-        if (!validationResult.canActivate) {
-          criticallyAffected.push(module.code);
-        }
-      }
-    });
-    
-    return { affectedModules, criticallyAffected };
-  }
-  
-  /**
-   * Vérifier la validité de l'état des modules
-   */
-  static validateModuleStates(): Map<string, { 
-    status: ModuleStatus; 
-    isValid: boolean; 
-    issues: string[] 
-  }> {
-    const results = new Map<string, { 
-      status: ModuleStatus; 
-      isValid: boolean; 
-      issues: string[] 
-    }>();
-    
-    moduleRegistry.getAllModules().forEach(module => {
-      const currentStatus = moduleRegistry.getModuleStatus(module.code);
-      const issues: string[] = [];
-      
-      // Vérifier la validité de l'état actuel
-      if (currentStatus === 'active') {
-        const validationResult = this.canActivateModule(module.code);
-        if (!validationResult.canActivate) {
-          issues.push(`Le module a des dépendances manquantes: ${validationResult.missingDependencies.join(', ')}`);
-        }
-      }
-      
-      results.set(module.code, {
-        status: currentStatus,
-        isValid: issues.length === 0,
-        issues
+
+    // Le module admin ne peut pas être désactivé
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin_')) {
+      console.log(`ModuleValidator: Le module admin ${moduleCode} ne peut pas être désactivé`);
+      return false;
+    }
+
+    // Vérifier que ce module n'est pas requis par d'autres modules actifs
+    const requiredBy = dependencies.filter(d => 
+      d.dependency_id === moduleId && 
+      d.is_required && 
+      d.module_status === 'active'
+    );
+
+    if (requiredBy.length > 0) {
+      console.log(`ModuleValidator: Le module ${moduleCode} ne peut pas être désactivé car il est requis par ${requiredBy.length} autres modules actifs`);
+      requiredBy.forEach(dep => {
+        console.log(`  - Requis par: ${dep.module_name} (${dep.module_code})`);
       });
-    });
-    
-    return results;
+      return false;
+    }
+
+    return true;
   }
-  
+
   /**
-   * Réparer automatiquement les états invalides des modules
+   * Vérifie si un module peut être activé
+   * (toutes ses dépendances requises sont actives)
    */
-  static async autoRepairModuleStates(): Promise<boolean> {
-    let changes = false;
-    const validationResults = this.validateModuleStates();
-    
-    for (const [moduleCode, result] of validationResults.entries()) {
-      if (!result.isValid && result.status === 'active') {
-        // Désactiver les modules avec des états invalides
-        moduleRegistry.setModuleStatus(moduleCode, 'inactive');
-        changes = true;
-      }
+  canActivateModule(
+    moduleId: string, 
+    moduleCode: string,
+    dependencies: any[]
+  ): boolean {
+    // Vérifier que toutes les dépendances requises sont actives
+    const requiredDependencies = dependencies.filter(d => 
+      d.module_id === moduleId && 
+      d.is_required
+    );
+
+    const inactiveDependencies = requiredDependencies.filter(d => 
+      d.dependency_status !== 'active'
+    );
+
+    if (inactiveDependencies.length > 0) {
+      console.log(`ModuleValidator: Le module ${moduleCode} ne peut pas être activé car il a ${inactiveDependencies.length} dépendances requises inactives`);
+      inactiveDependencies.forEach(dep => {
+        console.log(`  - Dépendance inactive: ${dep.dependency_name} (${dep.dependency_code}), statut: ${dep.dependency_status}`);
+      });
+      return false;
     }
-    
-    // Si des changements ont été effectués, synchroniser avec la base de données
-    if (changes) {
-      await moduleRegistry.syncChangesToDb();
+
+    return true;
+  }
+
+  /**
+   * Détermine le statut approprié d'un module en fonction de ses dépendances
+   */
+  determineModuleStatus(
+    moduleCode: string, 
+    currentStatus: ModuleStatus,
+    dependencies: any[]
+  ): ModuleStatus {
+    // Si c'est le module admin, il est toujours actif
+    if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin_')) {
+      return 'active';
     }
-    
-    return changes;
+
+    // Si déjà inactif, on ne change rien
+    if (currentStatus === 'inactive') {
+      return 'inactive';
+    }
+
+    // Vérifier s'il manque des dépendances requises
+    const moduleDependencies = dependencies.filter(d => 
+      d.module_code === moduleCode
+    );
+
+    const requiredDependencies = moduleDependencies.filter(d => d.is_required);
+    const inactiveRequiredDependencies = requiredDependencies.filter(d => 
+      d.dependency_status !== 'active'
+    );
+
+    // S'il manque des dépendances requises, le module doit être inactif
+    if (inactiveRequiredDependencies.length > 0) {
+      return 'inactive';
+    }
+
+    // Vérifier s'il manque des dépendances optionnelles
+    const optionalDependencies = moduleDependencies.filter(d => !d.is_required);
+    const inactiveOptionalDependencies = optionalDependencies.filter(d => 
+      d.dependency_status !== 'active'
+    );
+
+    // S'il manque des dépendances optionnelles, le module peut être en mode dégradé
+    if (inactiveOptionalDependencies.length > 0) {
+      return 'degraded';
+    }
+
+    // Si tout est bon, le module est actif
+    return 'active';
+  }
+
+  /**
+   * Valide un module entier
+   * @returns Le module avec un statut corrigé si nécessaire
+   */
+  validateModule(module: AppModule, dependencies: any[]): AppModule {
+    // Valider le statut
+    let status = this.validateModuleStatus(module.status);
+
+    // Déterminer le statut en fonction des dépendances
+    const computedStatus = this.determineModuleStatus(
+      module.code,
+      status,
+      dependencies
+    );
+
+    // Si le statut calculé est différent, on le corrige
+    if (computedStatus !== status) {
+      console.log(`ModuleValidator: Correction du statut du module ${module.code} de ${status} à ${computedStatus}`);
+      status = computedStatus;
+    }
+
+    return { ...module, status };
+  }
+
+  /**
+   * Valide tous les modules et leurs interdépendances
+   * @returns Les modules avec des statuts corrigés si nécessaire
+   */
+  validateAllModules(modules: AppModule[], dependencies: any[]): AppModule[] {
+    // Première passe: valider les statuts individuels
+    const firstPassModules = modules.map(module => ({
+      ...module,
+      status: this.validateModuleStatus(module.status)
+    }));
+
+    // Deuxième passe: ajouter les dépendances pour valider les statuts
+    const validatedModules = firstPassModules.map(module => 
+      this.validateModule(module, dependencies)
+    );
+
+    return validatedModules;
   }
 }
+
+// Créer et exporter une instance unique pour toute l'application
+export const moduleValidator = new ModuleValidator();

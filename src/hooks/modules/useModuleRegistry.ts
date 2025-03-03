@@ -1,153 +1,136 @@
 
-import { useEffect, useState } from "react";
-import { moduleRegistry, RegisteredModule } from "./services/ModuleRegistry";
-import { ModuleDbService } from "./services/ModuleDbService";
-import { ModuleValidator } from "./services/ModuleValidator";
-import { ModuleStatus } from "./types";
-
 /**
- * Hook pour utiliser le registre de modules dans les composants
+ * Hook pour accéder au registre des modules dans les composants React
  */
+import { useEffect, useState, useCallback } from 'react';
+import { AppModule, ModuleStatus } from './types';
+import { moduleRegistry, MODULE_EVENTS } from './services/ModuleRegistry';
+
 export const useModuleRegistry = () => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Initialiser le registre au montage du composant
+  const [modules, setModules] = useState<AppModule[]>(moduleRegistry.getModules());
+  const [dependencies, setDependencies] = useState<any[]>(moduleRegistry.getDependencies());
+  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>(moduleRegistry.getFeatures());
+  const [loading, setLoading] = useState<boolean>(moduleRegistry.isLoading());
+  const [error, setError] = useState<string | null>(moduleRegistry.getError());
+  const [initialized, setInitialized] = useState<boolean>(moduleRegistry.getInitialized());
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(moduleRegistry.getLastRefreshTime());
+
+  // Initialiser le registre au montage si pas déjà fait
   useEffect(() => {
-    const initializeRegistry = async () => {
-      if (isInitialized) return;
-      
-      try {
-        setIsLoading(true);
-        
-        // Charger les modules et les fonctionnalités depuis la base de données
-        const [modules, features] = await Promise.all([
-          ModuleDbService.loadAllModules(),
-          ModuleDbService.loadAllFeatures()
-        ]);
-        
-        // Charger les données dans le registre
-        moduleRegistry.loadFromApiData(modules, features);
-        
-        // Valider l'état des modules et réparer automatiquement les incohérences
-        await ModuleValidator.autoRepairModuleStates();
-        
-        setIsInitialized(true);
-        setError(null);
-      } catch (err: any) {
-        console.error("Erreur lors de l'initialisation du registre:", err);
-        setError(err.message || "Erreur lors de l'initialisation du registre");
-      } finally {
-        setIsLoading(false);
+    if (!initialized) {
+      moduleRegistry.initialize().then(success => {
+        setInitialized(success);
+      });
+    }
+  }, [initialized]);
+
+  // S'abonner aux événements de mise à jour des modules
+  useEffect(() => {
+    // Mettre à jour l'état local quand les modules sont mis à jour
+    const modulesUpdateUnsubscribe = moduleRegistry.addListener(
+      MODULE_EVENTS.MODULES_UPDATED,
+      () => {
+        setModules(moduleRegistry.getModules());
+        setLastRefreshTime(moduleRegistry.getLastRefreshTime());
       }
+    );
+    
+    // Mettre à jour l'état local quand les fonctionnalités sont mises à jour
+    const featuresUpdateUnsubscribe = moduleRegistry.addListener(
+      MODULE_EVENTS.FEATURES_UPDATED,
+      () => {
+        setFeatures(moduleRegistry.getFeatures());
+      }
+    );
+    
+    // Mettre à jour l'état local quand l'état de chargement change
+    const loadingUpdateUnsubscribe = moduleRegistry.addListener(
+      MODULE_EVENTS.LOADING_STATE_CHANGED,
+      () => {
+        setLoading(moduleRegistry.isLoading());
+      }
+    );
+    
+    // Mettre à jour l'état local quand une erreur survient
+    const errorUpdateUnsubscribe = moduleRegistry.addListener(
+      MODULE_EVENTS.ERROR_OCCURRED,
+      () => {
+        setError(moduleRegistry.getError());
+      }
+    );
+    
+    // S'assurer que toutes les données sont à jour
+    setModules(moduleRegistry.getModules());
+    setDependencies(moduleRegistry.getDependencies());
+    setFeatures(moduleRegistry.getFeatures());
+    setLoading(moduleRegistry.isLoading());
+    setError(moduleRegistry.getError());
+    setLastRefreshTime(moduleRegistry.getLastRefreshTime());
+    
+    // Nettoyer les abonnements au démontage
+    return () => {
+      modulesUpdateUnsubscribe();
+      featuresUpdateUnsubscribe();
+      loadingUpdateUnsubscribe();
+      errorUpdateUnsubscribe();
     };
-    
-    initializeRegistry();
-  }, [isInitialized]);
-  
-  /**
-   * Vérifier si un module est actif
-   */
-  const isModuleActive = async (code: string): Promise<boolean> => {
-    return moduleRegistry.isModuleActive(code);
-  };
-  
-  /**
-   * Vérifier si une fonctionnalité est activée
-   */
-  const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
+  }, []);
+
+  // Callback pour rafraîchir les modules
+  const refreshModules = useCallback(async (force: boolean = false) => {
+    return moduleRegistry.refreshModules(force);
+  }, []);
+
+  // Callback pour rafraîchir les dépendances
+  const refreshDependencies = useCallback(async () => {
+    return moduleRegistry.refreshDependencies();
+  }, []);
+
+  // Callback pour rafraîchir les fonctionnalités
+  const refreshFeatures = useCallback(async () => {
+    return moduleRegistry.refreshFeatures();
+  }, []);
+
+  // Callback pour mettre à jour le statut d'un module
+  const updateModuleStatus = useCallback(async (moduleId: string, status: ModuleStatus) => {
+    return moduleRegistry.updateModuleStatus(moduleId, status);
+  }, []);
+
+  // Callback pour mettre à jour le statut d'une fonctionnalité
+  const updateFeatureStatus = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    return moduleRegistry.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+  }, []);
+
+  // Callback pour vérifier si un module est actif
+  const isModuleActive = useCallback((moduleCode: string) => {
+    return moduleRegistry.isModuleActive(moduleCode);
+  }, []);
+
+  // Callback pour vérifier si un module est en mode dégradé
+  const isModuleDegraded = useCallback((moduleCode: string) => {
+    return moduleRegistry.isModuleDegraded(moduleCode);
+  }, []);
+
+  // Callback pour vérifier si une fonctionnalité est activée
+  const isFeatureEnabled = useCallback((moduleCode: string, featureCode: string) => {
     return moduleRegistry.isFeatureEnabled(moduleCode, featureCode);
-  };
-  
-  /**
-   * Mettre à jour le statut d'un module
-   */
-  const updateModuleStatus = async (moduleId: string, code: string, status: ModuleStatus): Promise<boolean> => {
-    // Vérifier si la mise à jour est valide
-    if (status === 'active') {
-      const validationResult = ModuleValidator.canActivateModule(code);
-      if (!validationResult.canActivate) {
-        console.error(`Impossible d'activer le module ${code} en raison de dépendances manquantes:`, validationResult.missingDependencies);
-        return false;
-      }
-    } else if (status === 'inactive') {
-      // Vérifier l'impact de la désactivation
-      const impact = ModuleValidator.getImpactOfDeactivation(code);
-      if (impact.criticallyAffected.length > 0) {
-        console.warn(`La désactivation du module ${code} affectera critiquement:`, impact.criticallyAffected);
-      }
-    }
-    
-    // Mettre à jour dans le registre
-    moduleRegistry.setModuleStatus(code, status);
-    
-    // Mettre à jour dans la base de données
-    const success = await ModuleDbService.updateModuleStatus(moduleId, status);
-    
-    return success;
-  };
-  
-  /**
-   * Mettre à jour le statut d'une fonctionnalité
-   */
-  const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> => {
-    // Vérifier si le module est actif
-    if (isEnabled && !moduleRegistry.isModuleActive(moduleCode)) {
-      console.error(`Impossible d'activer la fonctionnalité ${featureCode} car le module ${moduleCode} est inactif`);
-      return false;
-    }
-    
-    // Mettre à jour dans le registre
-    moduleRegistry.setFeatureStatus(moduleCode, featureCode, isEnabled);
-    
-    // Mettre à jour dans la base de données
-    const success = await ModuleDbService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-    
-    return success;
-  };
-  
-  /**
-   * Rafraîchir les modules depuis la base de données
-   */
-  const refreshModules = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      
-      // Charger les modules et les fonctionnalités depuis la base de données
-      const [modules, features] = await Promise.all([
-        ModuleDbService.loadAllModules(),
-        ModuleDbService.loadAllFeatures()
-      ]);
-      
-      // Charger les données dans le registre
-      moduleRegistry.loadFromApiData(modules, features);
-      
-      setError(null);
-    } catch (err: any) {
-      console.error("Erreur lors du rafraîchissement des modules:", err);
-      setError(err.message || "Erreur lors du rafraîchissement des modules");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  /**
-   * Obtenir tous les modules enregistrés
-   */
-  const getAllModules = (): RegisteredModule[] => {
-    return moduleRegistry.getAllModules();
-  };
-  
+  }, []);
+
   return {
-    isLoading,
+    modules,
+    dependencies,
+    features,
+    loading,
     error,
-    isInitialized,
-    isModuleActive,
-    isFeatureEnabled,
+    initialized,
+    lastRefreshTime,
+    refreshModules,
+    refreshDependencies,
+    refreshFeatures,
     updateModuleStatus,
     updateFeatureStatus,
-    refreshModules,
-    getAllModules
+    isModuleActive,
+    isModuleDegraded,
+    isFeatureEnabled
   };
 };

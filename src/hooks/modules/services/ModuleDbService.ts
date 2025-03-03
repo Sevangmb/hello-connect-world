@@ -1,167 +1,195 @@
 
+/**
+ * Service responsable des interactions avec la base de données pour les modules
+ * Encapsule toutes les requêtes Supabase relatives aux modules
+ */
 import { supabase } from "@/integrations/supabase/client";
 import { AppModule, ModuleStatus } from "../types";
-import { moduleRegistry } from "./ModuleRegistry";
+import { circuitBreakerService } from "./CircuitBreakerService";
+import { validateModuleStatus } from "../utils/statusValidation";
 
-/**
- * Service responsable des opérations de base de données pour les modules
- */
-export class ModuleDbService {
+// Clés pour le circuit breaker
+const CIRCUIT_KEYS = {
+  MODULES: 'modules_fetch',
+  FEATURES: 'features_fetch',
+  DEPENDENCIES: 'dependencies_fetch',
+  MODULE_UPDATE: 'module_update',
+  FEATURE_UPDATE: 'feature_update'
+};
+
+class ModuleDbService {
   /**
-   * Charger tous les modules depuis la base de données
+   * Récupère tous les modules depuis Supabase
    */
-  static async loadAllModules(): Promise<AppModule[]> {
+  async fetchAllModules(): Promise<AppModule[]> {
     try {
-      console.log("Chargement des modules depuis la base de données");
-      
-      const { data, error } = await supabase
-        .from('app_modules')
-        .select('*')
-        .order('name');
-        
-      if (error) {
-        console.error("Erreur lors du chargement des modules:", error);
-        throw error;
-      }
-      
-      // Convertir les statuts vers ModuleStatus valide
-      const modules = (data || []).map(module => {
-        let status = module.status;
-        if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
-          status = 'inactive';
+      const modulesResult = await circuitBreakerService.execute(
+        CIRCUIT_KEYS.MODULES,
+        async () => {
+          return await supabase
+            .from('app_modules')
+            .select('*')
+            .order('name');
         }
+      );
+
+      if (modulesResult.error) {
+        console.error('ModuleDbService: Erreur lors du chargement des modules:', modulesResult.error);
+        throw modulesResult.error;
+      }
+
+      // Valider les statuts des modules
+      const validModules = (modulesResult.data || []).map(module => {
+        // S'assurer que le statut est valide
+        let status = validateModuleStatus(module.status);
         return { ...module, status } as AppModule;
       });
-      
-      console.log(`${modules.length} modules chargés depuis la base de données`);
-      return modules;
+
+      return validModules;
     } catch (error) {
-      console.error("Exception lors du chargement des modules:", error);
+      console.error('ModuleDbService: Exception lors du chargement des modules:', error);
       throw error;
     }
   }
-  
+
   /**
-   * Charger les fonctionnalités des modules depuis la base de données
+   * Récupère toutes les fonctionnalités depuis Supabase
    */
-  static async loadAllFeatures(): Promise<Record<string, Record<string, boolean>>> {
+  async fetchAllFeatures(): Promise<Record<string, Record<string, boolean>>> {
     try {
-      console.log("Chargement des fonctionnalités depuis la base de données");
-      
-      const { data, error } = await supabase
-        .from('module_features')
-        .select('*');
-        
-      if (error) {
-        console.error("Erreur lors du chargement des fonctionnalités:", error);
-        throw error;
-      }
-      
-      // Organiser les fonctionnalités par module
-      const features: Record<string, Record<string, boolean>> = {};
-      
-      (data || []).forEach(feature => {
-        if (!features[feature.module_code]) {
-          features[feature.module_code] = {};
+      const featuresResult = await circuitBreakerService.execute(
+        CIRCUIT_KEYS.FEATURES,
+        async () => {
+          return await supabase
+            .from('module_features')
+            .select('*');
         }
-        features[feature.module_code][feature.feature_code] = feature.is_enabled;
+      );
+
+      if (featuresResult.error) {
+        console.error('ModuleDbService: Erreur lors du chargement des fonctionnalités:', featuresResult.error);
+        throw featuresResult.error;
+      }
+
+      // Organiser les fonctionnalités par module
+      const featuresData: Record<string, Record<string, boolean>> = {};
+      (featuresResult.data || []).forEach(feature => {
+        if (!featuresData[feature.module_code]) {
+          featuresData[feature.module_code] = {};
+        }
+        featuresData[feature.module_code][feature.feature_code] = feature.is_enabled;
       });
-      
-      console.log(`Fonctionnalités chargées pour ${Object.keys(features).length} modules`);
-      return features;
+
+      return featuresData;
     } catch (error) {
-      console.error("Exception lors du chargement des fonctionnalités:", error);
+      console.error('ModuleDbService: Exception lors du chargement des fonctionnalités:', error);
       throw error;
     }
   }
-  
+
   /**
-   * Mettre à jour le statut d'un module dans la base de données
+   * Récupère toutes les dépendances depuis Supabase
    */
-  static async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+  async fetchAllDependencies(): Promise<any[]> {
     try {
-      console.log(`Mise à jour du statut du module ${moduleId} à ${status}`);
-      
-      const { error } = await supabase
-        .from('app_modules')
-        .update({ 
-          status, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', moduleId);
-        
-      if (error) {
-        console.error("Erreur lors de la mise à jour du statut du module:", error);
+      const dependenciesResult = await circuitBreakerService.execute(
+        CIRCUIT_KEYS.DEPENDENCIES,
+        async () => {
+          return await supabase
+            .from('module_dependencies_view')
+            .select('*');
+        }
+      );
+
+      if (dependenciesResult.error) {
+        console.error('ModuleDbService: Erreur lors du chargement des dépendances:', dependenciesResult.error);
+        throw dependenciesResult.error;
+      }
+
+      return dependenciesResult.data || [];
+    } catch (error) {
+      console.error('ModuleDbService: Exception lors du chargement des dépendances:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Met à jour le statut d'un module
+   */
+  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+    try {
+      const result = await circuitBreakerService.execute(
+        CIRCUIT_KEYS.MODULE_UPDATE,
+        async () => {
+          return await supabase
+            .from('app_modules')
+            .update({
+              status,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', moduleId);
+        }
+      );
+
+      if (result.error) {
+        console.error('ModuleDbService: Erreur lors de la mise à jour du statut du module:', result.error);
         return false;
       }
-      
+
       return true;
     } catch (error) {
-      console.error("Exception lors de la mise à jour du statut du module:", error);
+      console.error('ModuleDbService: Exception lors de la mise à jour du statut du module:', error);
       return false;
     }
   }
-  
+
   /**
-   * Mettre à jour le statut d'une fonctionnalité dans la base de données
+   * Met à jour le statut d'une fonctionnalité
    */
-  static async updateFeatureStatus(
-    moduleCode: string, 
-    featureCode: string, 
+  async updateFeatureStatus(
+    moduleCode: string,
+    featureCode: string,
     isEnabled: boolean
   ): Promise<boolean> {
     try {
-      console.log(`Mise à jour de la fonctionnalité ${featureCode} du module ${moduleCode} à ${isEnabled}`);
-      
-      const { error } = await supabase
-        .from('module_features')
-        .update({ 
-          is_enabled: isEnabled, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('module_code', moduleCode)
-        .eq('feature_code', featureCode);
-        
-      if (error) {
-        console.error("Erreur lors de la mise à jour de la fonctionnalité:", error);
+      const result = await circuitBreakerService.execute(
+        CIRCUIT_KEYS.FEATURE_UPDATE,
+        async () => {
+          return await supabase
+            .from('module_features')
+            .update({
+              is_enabled: isEnabled,
+              updated_at: new Date().toISOString()
+            })
+            .eq('module_code', moduleCode)
+            .eq('feature_code', featureCode);
+        }
+      );
+
+      if (result.error) {
+        console.error('ModuleDbService: Erreur lors de la mise à jour de la fonctionnalité:', result.error);
         return false;
       }
-      
+
       return true;
     } catch (error) {
-      console.error("Exception lors de la mise à jour de la fonctionnalité:", error);
+      console.error('ModuleDbService: Exception lors de la mise à jour de la fonctionnalité:', error);
       return false;
     }
   }
 
   /**
-   * Synchroniser l'état du registre des modules avec la base de données
+   * Vérifier le statut de connexion à Supabase
    */
-  static async syncRegistryToDatabase(): Promise<boolean> {
+  async checkConnection(): Promise<boolean> {
     try {
-      // Charger tous les modules depuis la base de données
-      const dbModules = await this.loadAllModules();
-      
-      // Comparer avec l'état actuel du registre et appliquer les mises à jour nécessaires
-      let allSuccessful = true;
-      
-      for (const module of dbModules) {
-        const registryStatus = moduleRegistry.getModuleStatus(module.code);
-        
-        if (module.status !== registryStatus) {
-          const success = await this.updateModuleStatus(module.id, registryStatus);
-          if (!success) {
-            allSuccessful = false;
-          }
-        }
-      }
-      
-      // TODO: Ajouter la synchronisation des fonctionnalités
-      
-      return allSuccessful;
-    } catch (error) {
-      console.error("Exception lors de la synchronisation du registre:", error);
+      const { error } = await supabase.from('app_modules').select('count').limit(1);
+      return !error;
+    } catch (e) {
       return false;
     }
   }
 }
+
+// Créer et exporter une instance unique pour toute l'application
+export const moduleDbService = new ModuleDbService();
