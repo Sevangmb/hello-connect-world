@@ -4,7 +4,7 @@
  * Implémente l'architecture Clean dans le microservice Menu
  */
 import { supabase } from "@/integrations/supabase/client";
-import { MenuItem } from "./types";
+import { MenuItem, MenuItemCategory } from "./types";
 import { CACHE_VALIDITY_MS, MENU_MODULE_CODE } from "@/hooks/modules/constants";
 
 // Repository Layer
@@ -23,7 +23,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data || [];
+    return data as MenuItem[] || [];
   }
   
   /**
@@ -49,7 +49,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data || [];
+    return data as MenuItem[] || [];
   }
   
   /**
@@ -57,7 +57,7 @@ class MenuRepository {
    * @param category Catégorie des éléments de menu
    * @param isAdmin Indique si l'utilisateur est administrateur
    */
-  async getMenuItemsByCategory(category: string, isAdmin: boolean): Promise<MenuItem[]> {
+  async getMenuItemsByCategory(category: MenuItemCategory, isAdmin: boolean): Promise<MenuItem[]> {
     const query = supabase
       .from('menu_items')
       .select('*')
@@ -77,7 +77,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data || [];
+    return data as MenuItem[] || [];
   }
   
   /**
@@ -105,7 +105,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data || [];
+    return data as MenuItem[] || [];
   }
   
   /**
@@ -125,7 +125,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data;
+    return data as MenuItem;
   }
   
   /**
@@ -144,7 +144,7 @@ class MenuRepository {
       throw error;
     }
     
-    return data;
+    return data as MenuItem;
   }
   
   /**
@@ -160,6 +160,26 @@ class MenuRepository {
     if (error) {
       console.error(`Erreur lors de la suppression de l'élément de menu:`, error);
       throw error;
+    }
+  }
+  
+  /**
+   * Met à jour les positions des éléments de menu
+   * @param updates Tableau de mises à jour avec ID et nouvelle position
+   */
+  async updateMenuPositions(updates: { id: string; position: number }[]): Promise<void> {
+    // Traiter les mises à jour une par une car Supabase ne prend pas en charge 
+    // les mises à jour en masse avec conditions multiples
+    for (const update of updates) {
+      const { error } = await supabase
+        .from('menu_items')
+        .update({ position: update.position })
+        .eq('id', update.id);
+      
+      if (error) {
+        console.error(`Erreur lors de la mise à jour de la position du menu ${update.id}:`, error);
+        throw error;
+      }
     }
   }
 }
@@ -223,7 +243,7 @@ class MenuUseCase {
    * @param category Catégorie des éléments de menu
    * @param isAdmin Indique si l'utilisateur est administrateur
    */
-  async getMenuItemsByCategory(category: string, isAdmin: boolean): Promise<MenuItem[]> {
+  async getMenuItemsByCategory(category: MenuItemCategory, isAdmin: boolean): Promise<MenuItem[]> {
     return this.repository.getMenuItemsByCategory(category, isAdmin);
   }
   
@@ -294,6 +314,17 @@ class MenuUseCase {
     // Invalider le cache
     this.cache.timestamp = 0;
   }
+  
+  /**
+   * Met à jour les positions des éléments de menu
+   * @param updates Tableau de mises à jour avec ID et nouvelle position
+   */
+  async updateMenuPositions(updates: { id: string; position: number }[]): Promise<void> {
+    await this.repository.updateMenuPositions(updates);
+    
+    // Invalider le cache
+    this.cache.timestamp = 0;
+  }
 }
 
 // Singleton instance
@@ -303,10 +334,11 @@ const menuUseCase = new MenuUseCase();
 export const MenuService = {
   getAllMenuItems: () => menuUseCase.getAllMenuItems(),
   getVisibleMenuItems: (isAdmin: boolean) => menuUseCase.getVisibleMenuItems(isAdmin),
-  getMenuItemsByCategory: (category: string, isAdmin: boolean) => menuUseCase.getMenuItemsByCategory(category, isAdmin),
+  getMenuItemsByCategory: (category: MenuItemCategory, isAdmin: boolean) => menuUseCase.getMenuItemsByCategory(category, isAdmin),
   getMenuItemsByModule: (moduleCode: string, isAdmin: boolean) => new MenuRepository().getMenuItemsByModule(moduleCode, isAdmin),
   buildMenuTree: (menuItems: MenuItem[]) => menuUseCase.buildMenuTree(menuItems),
   updateMenuItem: (menuItem: Partial<MenuItem> & { id: string }) => menuUseCase.updateMenuItem(menuItem),
   createMenuItem: (menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>) => menuUseCase.createMenuItem(menuItem),
-  deleteMenuItem: (id: string) => menuUseCase.deleteMenuItem(id)
+  deleteMenuItem: (id: string) => menuUseCase.deleteMenuItem(id),
+  updateMenuPositions: (updates: { id: string; position: number }[]) => menuUseCase.updateMenuPositions(updates)
 };

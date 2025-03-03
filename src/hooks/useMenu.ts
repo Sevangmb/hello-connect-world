@@ -6,7 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MenuService } from '@/services/menu/MenuService';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { useToast } from '@/hooks/use-toast';
-import { useModule } from '@/hooks/modules/useModules';
+import { useModules } from '@/hooks/modules/useModules';
 
 export const useMenu = (options?: {
   category?: MenuItemCategory;
@@ -17,10 +17,10 @@ export const useMenu = (options?: {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { isAdmin } = useModule();
+  const { isModuleActive } = useModules();
   
-  // Détermine si l'utilisateur est administrateur
-  const isUserAdmin = isAdmin || false;
+  // Détermine si l'utilisateur est administrateur (à remplacer par une logique appropriée)
+  const isUserAdmin = false; // À remplacer par une vérification réelle de l'administrateur
   
   useEffect(() => {
     const fetchMenuItems = async () => {
