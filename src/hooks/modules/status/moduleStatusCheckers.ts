@@ -5,6 +5,7 @@
 
 import { ADMIN_MODULE_CODE } from "../constants";
 import { getModuleStatusFromCache } from "../api/moduleStatusCore";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Vérifie si un module est actif
@@ -34,9 +35,28 @@ export const checkModuleActive = (moduleCode: string): boolean => {
     return true;
   }
   
-  // Pour tous les modules, retourner true pour le moment
-  // Cela permet d'assurer que tous les modules sont disponibles
-  return true;
+  // Pour les autres modules, vérifier dans le cache
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'active';
+  }
+  
+  // Si pas de cache, vérifier dans localStorage
+  try {
+    const modulesCache = localStorage.getItem('modules_cache');
+    if (modulesCache) {
+      const modules = JSON.parse(modulesCache);
+      const module = modules.find((m: any) => m.code === moduleCode);
+      if (module) {
+        return module.status === 'active';
+      }
+    }
+  } catch (e) {
+    console.error("Erreur lors de la lecture du cache des modules:", e);
+  }
+  
+  // Par défaut, considérer comme inactif si non trouvé
+  return false;
 };
 
 /**
@@ -66,7 +86,27 @@ export const checkModuleDegraded = (moduleCode: string): boolean => {
     return false;
   }
   
-  // Pour tous les autres modules, retourner false pour le moment
+  // Pour les autres modules, vérifier dans le cache
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'degraded';
+  }
+  
+  // Si pas de cache, vérifier dans localStorage
+  try {
+    const modulesCache = localStorage.getItem('modules_cache');
+    if (modulesCache) {
+      const modules = JSON.parse(modulesCache);
+      const module = modules.find((m: any) => m.code === moduleCode);
+      if (module) {
+        return module.status === 'degraded';
+      }
+    }
+  } catch (e) {
+    console.error("Erreur lors de la lecture du cache des modules:", e);
+  }
+  
+  // Par défaut, considérer comme non dégradé si non trouvé
   return false;
 };
 
@@ -97,6 +137,24 @@ export const checkFeatureEnabled = (moduleCode: string, featureCode: string): bo
     return true;
   }
   
-  // Pour toutes les autres fonctionnalités, retourner true pour le moment
+  // D'abord vérifier si le module lui-même est actif
+  if (!checkModuleActive(moduleCode)) {
+    return false;
+  }
+  
+  // Pour les autres fonctionnalités, vérifier dans le cache
+  try {
+    const featuresCache = localStorage.getItem('features_cache');
+    if (featuresCache) {
+      const features = JSON.parse(featuresCache);
+      if (features[moduleCode] && features[moduleCode][featureCode] !== undefined) {
+        return features[moduleCode][featureCode];
+      }
+    }
+  } catch (e) {
+    console.error("Erreur lors de la lecture du cache des fonctionnalités:", e);
+  }
+  
+  // Par défaut, permettre l'accès si le module est actif
   return true;
 };

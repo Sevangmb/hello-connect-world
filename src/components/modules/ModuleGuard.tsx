@@ -16,7 +16,7 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   fallback,
   children,
 }) => {
-  const { isModuleActive, isModuleDegraded } = useModules();
+  const { isModuleActive } = useModules();
 
   // Déterminer si le module est un module administrateur
   const isAdminModule = moduleCode === 'admin' || 
@@ -27,7 +27,14 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
     return <>{children}</>;
   }
 
-  // Pour les autres modules, toujours afficher le contenu car tous les modules
-  // sont considérés comme actifs dans notre implémentation actuelle
-  return <>{children}</>;
+  // Pour les autres modules, vérifier si le module est actif
+  const isActive = isModuleActive(moduleCode);
+  
+  // Afficher le contenu seulement si le module est actif
+  if (isActive) {
+    return <>{children}</>;
+  }
+  
+  // Sinon, afficher le fallback ou rien
+  return <>{fallback}</> || null;
 };

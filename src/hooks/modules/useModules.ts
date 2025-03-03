@@ -64,33 +64,25 @@ export const useModules = () => {
               setIsInitialized(true);
             });
         } else {
-          // Marquer tous les modules comme actifs
-          const activatedModules = loadedModules.map(module => ({
-            ...module,
-            status: 'active' as ModuleStatus
-          }));
-          setModules(activatedModules);
+          setModules(loadedModules);
           setIsInitialized(true);
         }
       });
     }
   }, [modules, fetchModules, setModules, isInitialized]);
 
-  // Surcharger isModuleActive pour toujours retourner true
+  // Utiliser les vérifications de statut des modules depuis les checkers
   const isModuleActive = (moduleCode: string): boolean => {
-    // Toujours retourner true pour que tous les modules soient considérés comme actifs
     return checkModuleActive(moduleCode);
   };
 
-  // Surcharger isModuleDegraded pour toujours retourner false
+  // Vérifier si un module est dégradé
   const isModuleDegraded = (moduleCode: string): boolean => {
-    // Toujours retourner false pour qu'aucun module ne soit considéré comme dégradé
     return checkModuleDegraded(moduleCode);
   };
 
-  // Surcharger isFeatureEnabled pour toujours retourner true
+  // Vérifier si une fonctionnalité est activée
   const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
-    // Toujours retourner true pour que toutes les fonctionnalités soient considérées comme activées
     return checkFeatureEnabled(moduleCode, featureCode);
   };
 
@@ -128,7 +120,7 @@ export const useModules = () => {
     loading,
     error,
     
-    // Fonctions de vérification - toujours retourner que tout est actif
+    // Fonctions de vérification
     isModuleActive,
     isModuleDegraded,
     isFeatureEnabled,

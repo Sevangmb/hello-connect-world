@@ -65,12 +65,11 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
         
         return typedModules;
       }
+      return [];
     } catch (fetchError) {
       console.error("Erreur lors de la requête Supabase:", fetchError);
       throw fetchError;
     }
-    
-    return [];
   } catch (error) {
     console.error("Exception lors du rafraîchissement des modules:", error);
     // En cas d'erreur, essayer de lire depuis le cache local
