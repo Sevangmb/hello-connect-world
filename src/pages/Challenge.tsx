@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
@@ -55,7 +54,6 @@ export default function Challenge() {
 
       if (error) throw error;
 
-      // Validate participation_type and assert the type
       if (data.participation_type !== "virtual" && data.participation_type !== "photo") {
         throw new Error("Invalid participation_type value");
       }
@@ -93,6 +91,18 @@ export default function Challenge() {
       </div>
     );
   }
+
+  const sortedParticipants = !challenge.isActive && challenge.participants
+    ? [...challenge.participants].sort((a, b) => {
+        const votesA = a.votes?.length || 0;
+        const votesB = b.votes?.length || 0;
+        return votesB - votesA;
+      })
+    : challenge.participants;
+  
+  const winner = !challenge.isActive && sortedParticipants?.length > 0 
+    ? sortedParticipants[0] 
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -139,6 +149,22 @@ export default function Challenge() {
                       Ce défi est terminé. Les votes et la participation ne sont plus possibles.
                     </p>
                   </div>
+                  
+                  {winner && winner.outfits && (
+                    <div className="mt-3 flex flex-col items-center space-y-2">
+                      <p className="text-sm font-semibold text-center">Vainqueur du défi:</p>
+                      <img 
+                        src={`https://img.shields.io/badge/${encodeURIComponent(challenge.title.replace(/ /g, '_'))}-Vainqueur-green?style=for-the-badge&logo=trophy&logoColor=gold`}
+                        alt="Badge vainqueur"
+                        className="h-8"
+                      />
+                      <img 
+                        src={`https://img.shields.io/badge/${encodeURIComponent(winner.profiles.username || 'Utilisateur')}-${encodeURIComponent(winner.outfits.name.replace(/ /g, '_'))}-blue?style=flat-square&logo=fashion`}
+                        alt="Badge tenue gagnante"
+                        className="h-6 mt-1"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               

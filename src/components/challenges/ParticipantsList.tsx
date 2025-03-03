@@ -38,6 +38,15 @@ export const ParticipantsList = ({
       })
     : participants;
 
+  // Obtenir le nom du défi pour le badge du vainqueur
+  const getChallengeName = () => {
+    // Obtenir le nom du défi depuis l'URL si disponible
+    const path = window.location.pathname;
+    const segments = path.split('/');
+    // Simplifié pour démonstration
+    return "Défi";
+  };
+
   return (
     <div className="mt-4 space-y-3">
       <div className="flex items-center justify-between">
@@ -62,9 +71,31 @@ export const ParticipantsList = ({
           <div key={participant.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
             <div>
               {showFinalRanking && index === 0 && (
-                <Badge variant="secondary" className="mb-2">
-                  🏆 Gagnant
-                </Badge>
+                <div className="mb-2 space-y-1">
+                  <Badge variant="secondary" className="mb-1">
+                    🏆 Vainqueur
+                  </Badge>
+                  
+                  {/* Badge Shield.io pour le vainqueur */}
+                  <div className="flex items-center">
+                    <img 
+                      src={`https://img.shields.io/badge/${encodeURIComponent(getChallengeName().replace(/ /g, '_'))}-Vainqueur-green?style=for-the-badge&logo=trophy&logoColor=gold`}
+                      alt="Badge vainqueur"
+                      className="h-6"
+                    />
+                  </div>
+                  
+                  {/* Badge Shield.io pour le nom de la tenue */}
+                  {participant.outfits && (
+                    <div className="flex items-center mt-1">
+                      <img 
+                        src={`https://img.shields.io/badge/Tenue-${encodeURIComponent(participant.outfits.name.replace(/ /g, '_'))}-blue?style=flat-square`}
+                        alt="Badge tenue"
+                        className="h-5"
+                      />
+                    </div>
+                  )}
+                </div>
               )}
               <p className="font-medium">
                 {participant.profiles?.username || "Utilisateur inconnu"}
@@ -79,6 +110,17 @@ export const ParticipantsList = ({
               )}
               {participant.comment && (
                 <p className="text-sm text-gray-500">{participant.comment}</p>
+              )}
+              
+              {/* Afficher un badge pour les 2e et 3e positions */}
+              {showFinalRanking && (index === 1 || index === 2) && participant.outfits && (
+                <div className="mt-1">
+                  <img 
+                    src={`https://img.shields.io/badge/Tenue-${encodeURIComponent(participant.outfits.name.replace(/ /g, '_'))}-${index === 1 ? 'silver' : 'bronze'}?style=flat-square&logo=fashion&logoColor=white`}
+                    alt={`Badge ${index === 1 ? '2e' : '3e'} place`}
+                    className="h-5"
+                  />
+                </div>
               )}
             </div>
           </div>
