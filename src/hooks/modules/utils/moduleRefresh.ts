@@ -1,4 +1,3 @@
-
 /**
  * Utilitaires pour rafraîchir les modules depuis Supabase avec gestion avancée du cache
  */
@@ -75,7 +74,7 @@ export const refreshModulesWithCache = async (
                 resolve([]);
               }
             })
-            // Corrigé: Ajouté .then() vide avant .catch() pour éviter l'erreur TS2339
+            // Ajout d'un .then() vide avant .catch() pour résoudre l'erreur TS2339
             .then(() => {})
             .catch((error) => {
               clearTimeout(timeoutId);
@@ -123,7 +122,7 @@ export const refreshModulesWithCache = async (
       if (cachedModules && cachedModules.length > 0) {
         console.log(`Utilisation des ${cachedModules.length} modules en cache après erreur du circuit breaker`);
         
-        // Publier un événement pour informer les autres composants
+        // Émettre un événement pour informer les autres composants
         eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
           count: cachedModules.length,
           timestamp: Date.now(),
@@ -245,7 +244,7 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Corrigé: supprimé le troisième paramètre
+    // Correction: utiliser seulement 2 paramètres
     await handleModuleRefresh(refreshFunction);
   } catch (error) {
     console.error('Safe refresh failed:', error);

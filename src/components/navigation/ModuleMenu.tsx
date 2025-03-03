@@ -35,6 +35,7 @@ export interface ModuleMenuItem {
   path: string;
   moduleCode?: string;
   isAdmin?: boolean;
+  isAvailable?: boolean;
   category: 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
   description?: string;
   isDegraded?: boolean;
@@ -73,7 +74,8 @@ const convertPageToMenuItem = (page: ModulePageDefinition, isDegraded = false): 
     isAdmin: page.moduleCode.startsWith('admin_'),
     category: page.category as 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility',
     description: page.description,
-    isDegraded
+    isDegraded,
+    isAvailable: true // Default to true, will be updated by the effect
   };
 };
 
@@ -90,11 +92,11 @@ export const ModuleMenu: React.FC = () => {
       const menuPages = ModulePageRegistry.getMenuPages();
       
       // Convertir les pages en éléments de menu et vérifier leur disponibilité
-      const availableItems = await Promise.all(
+      const menuItems = await Promise.all(
         menuPages.map(async (page) => {
           // Les éléments admin sont toujours disponibles (vérification faite ailleurs)
           if (page.moduleCode.startsWith('admin_')) {
-            return convertPageToMenuItem(page, false);
+            return {...convertPageToMenuItem(page, false), isAvailable: true};
           }
           
           // Vérifier si le module est actif
@@ -107,7 +109,7 @@ export const ModuleMenu: React.FC = () => {
       );
       
       // Ne garder que les éléments disponibles
-      setAvailableMenuItems(availableItems.filter(item => item.isAvailable));
+      setAvailableMenuItems(menuItems.filter(item => item.isAvailable));
     };
     
     filterMenuItems();

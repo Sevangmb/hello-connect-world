@@ -97,15 +97,8 @@ const App = () => {
 
       {/* Routes des modules - générées dynamiquement */}
       {modulePages.map(page => {
-        // Créer un composant lazy pour le chargement dynamique
-        const LazyComponent = lazy(() => 
-          import(`@/pages/${page.path.replace(/^\//, '').split('/')[0]}`)
-            .then(module => ({ default: module.default }))
-            .catch(err => {
-              console.error(`Erreur lors du chargement de ${page.path}:`, err);
-              return import("@/pages/NotFound"); // Fallback à NotFound
-            })
-        );
+        // Utiliser directement le composant lazy de la définition de page
+        const PageComponent = page.component as React.ComponentType<any>;
 
         return (
           <Route
@@ -118,7 +111,7 @@ const App = () => {
                   fallback={<Navigate to="/" replace />}
                 >
                   <Suspense fallback={<LoadingFallback />}>
-                    <LazyComponent />
+                    <PageComponent />
                   </Suspense>
                 </ModuleGuard>
               </PrivateRoute>

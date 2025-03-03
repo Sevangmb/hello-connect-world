@@ -2,6 +2,7 @@
 import { AppModule } from "@/hooks/modules/types";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
 import { ReactNode } from "react";
+import { lazy } from "react";
 
 // Structure de données pour associer les pages aux modules
 export interface ModulePageDefinition {
@@ -11,13 +12,13 @@ export interface ModulePageDefinition {
   icon: string;
   moduleCode: string;
   category: 'main' | 'admin' | 'utility' | 'marketplace' | 'social';
-  component: React.ComponentType<any>;
+  component: React.ComponentType<any> | (() => Promise<React.ComponentType<any>>);
   showInMenu: boolean;
   menuOrder?: number;
   requireAuth?: boolean;
 }
 
-// Définition du mapping des pages aux modules
+// Définition du mapping des pages aux modules avec des importations lazy
 const modulePages: ModulePageDefinition[] = [
   // Module notifications
   {
@@ -27,7 +28,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Bell',
     moduleCode: 'notifications',
     category: 'main',
-    component: () => import('@/pages/Notifications').then(m => m.default),
+    component: lazy(() => import('@/pages/Notifications')),
     showInMenu: true,
     menuOrder: 50,
     requireAuth: true
@@ -41,7 +42,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Activity',
     moduleCode: 'social_feed',
     category: 'social',
-    component: () => import('@/pages/Feed').then(m => m.default),
+    component: lazy(() => import('@/pages/Feed')),
     showInMenu: true,
     menuOrder: 10,
     requireAuth: true
@@ -53,7 +54,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Users',
     moduleCode: 'friends',
     category: 'social',
-    component: () => import('@/pages/Friends').then(m => m.default),
+    component: lazy(() => import('@/pages/Friends')),
     showInMenu: true,
     menuOrder: 20,
     requireAuth: true
@@ -65,7 +66,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'MessageSquare',
     moduleCode: 'messaging',
     category: 'social',
-    component: () => import('@/pages/Messages').then(m => m.default),
+    component: lazy(() => import('@/pages/Messages')),
     showInMenu: true,
     menuOrder: 30,
     requireAuth: true
@@ -79,7 +80,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Store',
     moduleCode: 'marketplace',
     category: 'marketplace',
-    component: () => import('@/pages/Boutiques').then(m => m.default),
+    component: lazy(() => import('@/pages/Boutiques')),
     showInMenu: true,
     menuOrder: 10,
     requireAuth: true
@@ -91,7 +92,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'ShoppingBag',
     moduleCode: 'marketplace',
     category: 'marketplace',
-    component: () => import('@/pages/Shops').then(m => m.default),
+    component: lazy(() => import('@/pages/Shops')),
     showInMenu: false,
     requireAuth: true
   },
@@ -102,7 +103,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'ShoppingCart',
     moduleCode: 'shopping',
     category: 'marketplace',
-    component: () => import('@/pages/Cart').then(m => m.default),
+    component: lazy(() => import('@/pages/Cart')),
     showInMenu: true,
     menuOrder: 20,
     requireAuth: true
@@ -116,7 +117,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Shirt',
     moduleCode: 'wardrobe',
     category: 'main',
-    component: () => import('@/pages/Clothes').then(m => m.default),
+    component: lazy(() => import('@/pages/Clothes')),
     showInMenu: true,
     menuOrder: 10,
     requireAuth: true
@@ -128,7 +129,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Palette',
     moduleCode: 'outfits',
     category: 'main',
-    component: () => import('@/pages/Outfits').then(m => m.default),
+    component: lazy(() => import('@/pages/Outfits')),
     showInMenu: true,
     menuOrder: 20,
     requireAuth: true
@@ -142,7 +143,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Award',
     moduleCode: 'challenges',
     category: 'social',
-    component: () => import('@/pages/Challenges').then(m => m.default),
+    component: lazy(() => import('@/pages/Challenges')),
     showInMenu: true,
     menuOrder: 40,
     requireAuth: true
@@ -156,7 +157,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Calendar',
     moduleCode: 'calendar',
     category: 'utility',
-    component: () => import('@/pages/Calendar').then(m => m.default),
+    component: lazy(() => import('@/pages/Calendar')),
     showInMenu: true,
     menuOrder: 30,
     requireAuth: true
@@ -170,7 +171,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Globe',
     moduleCode: 'explore',
     category: 'main',
-    component: () => import('@/pages/Explore').then(m => m.default),
+    component: lazy(() => import('@/pages/Explore')),
     showInMenu: true,
     menuOrder: 5,
     requireAuth: true
@@ -184,7 +185,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'User',
     moduleCode: 'profile',
     category: 'main',
-    component: () => import('@/pages/Profile').then(m => m.default),
+    component: lazy(() => import('@/pages/Profile')),
     showInMenu: false,
     requireAuth: true
   },
@@ -195,7 +196,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'Settings',
     moduleCode: 'profile',
     category: 'utility',
-    component: () => import('@/pages/Settings').then(m => m.default),
+    component: lazy(() => import('@/pages/Settings')),
     showInMenu: false,
     requireAuth: true
   },
@@ -208,7 +209,7 @@ const modulePages: ModulePageDefinition[] = [
     icon: 'HelpCircle',
     moduleCode: 'help',
     category: 'utility',
-    component: () => import('@/pages/HelpAndSupport').then(m => m.default),
+    component: lazy(() => import('@/pages/HelpAndSupport')),
     showInMenu: false,
     requireAuth: false
   }
