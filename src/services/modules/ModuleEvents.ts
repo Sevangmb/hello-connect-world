@@ -4,6 +4,7 @@
  * Centralise tous les types d'événements pour éviter les erreurs de frappe
  */
 
+// Configuration TypeScript pour garantir l'exhaustivité et éviter les erreurs de type
 export const MODULE_EVENTS = {
   // Événements de chargement
   MODULES_INITIALIZED: 'modules:initialized',
@@ -33,8 +34,16 @@ export const MODULE_EVENTS = {
   CACHE_INVALIDATED: 'modules:cache_invalidated',
   
   // Événements de performance
-  MODULE_PERFORMANCE: 'modules:performance'
-};
+  MODULE_PERFORMANCE: 'modules:performance',
+  
+  // Nouveaux événements de circuit breaker
+  CIRCUIT_OPENED: 'modules:circuit_opened',
+  CIRCUIT_CLOSED: 'modules:circuit_closed',
+  CIRCUIT_HALF_OPEN: 'modules:circuit_half_open'
+} as const;
+
+// Type utilitaire pour garantir l'exhaustivité
+export type ModuleEventType = typeof MODULE_EVENTS[keyof typeof MODULE_EVENTS];
 
 // Types d'événements pour le typage TypeScript
 export interface ModuleEventPayloads {
@@ -113,12 +122,14 @@ export interface ModuleEventPayloads {
     context: string;
     moduleCode?: string;
     timestamp: number;
+    details?: any;
   };
   [MODULE_EVENTS.MODULE_WARNING]: {
     warning: string;
     context: string;
     moduleCode?: string;
     timestamp: number;
+    details?: any;
   };
   
   // Événements de cache
@@ -140,4 +151,27 @@ export interface ModuleEventPayloads {
     moduleCode?: string;
     timestamp: number;
   };
+  
+  // Nouveaux événements de circuit breaker
+  [MODULE_EVENTS.CIRCUIT_OPENED]: {
+    service: string;
+    failures: number;
+    timestamp: number;
+    reason: string;
+  };
+  [MODULE_EVENTS.CIRCUIT_CLOSED]: {
+    service: string;
+    timestamp: number;
+  };
+  [MODULE_EVENTS.CIRCUIT_HALF_OPEN]: {
+    service: string;
+    timestamp: number;
+    attempts: number;
+  };
 }
+
+// Type d'événement générique pour faciliter l'utilisation avec l'Event Bus
+export type ModuleEvent<T extends ModuleEventType> = {
+  type: T;
+  payload: ModuleEventPayloads[T];
+};

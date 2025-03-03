@@ -3,6 +3,8 @@
  * Service de circuit breaker pour éviter les appels répétés en cas d'erreur
  * Permet de court-circuiter temporairement les appels après plusieurs échecs
  */
+import { eventBus } from '@/core/event-bus/EventBus';
+import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
 
 interface CircuitState {
   failures: number;
@@ -10,6 +12,9 @@ interface CircuitState {
   isOpen: boolean;
   lastReset: number;
   consecutiveSuccesses: number;
+  halfOpenAttempts: number;
+  totalFailures: number;
+  totalSuccesses: number;
 }
 
 export class CircuitBreakerService {
@@ -18,6 +23,7 @@ export class CircuitBreakerService {
   private RESET_TIMEOUT_MS = 60000; // 1 minute
   private HALF_OPEN_TIMEOUT_MS = 5000; // 5 secondes
   private SUCCESS_THRESHOLD = 2; // Nombre de succès consécutifs pour fermer le circuit
+  private MAX_RETRY_ATTEMPTS = 5; // Nombre maximum de tentatives avant échec définitif
 
   /**
    * Configure les paramètres du circuit breaker
@@ -28,11 +34,13 @@ export class CircuitBreakerService {
     resetTimeoutMs?: number;
     halfOpenTimeoutMs?: number;
     successThreshold?: number;
+    maxRetryAttempts?: number;
   }): void {
     if (config.failureThreshold !== undefined) this.FAILURE_THRESHOLD = config.failureThreshold;
     if (config.resetTimeoutMs !== undefined) this.RESET_TIMEOUT_MS = config.resetTimeoutMs;
     if (config.halfOpenTimeoutMs !== undefined) this.HALF_OPEN_TIMEOUT_MS = config.halfOpenTimeoutMs;
     if (config.successThreshold !== undefined) this.SUCCESS_THRESHOLD = config.successThreshold;
+    if (config.maxRetryAttempts !== undefined) this.MAX_RETRY_ATTEMPTS = config.maxRetryAttempts;
   }
 
   /**
@@ -48,6 +56,7 @@ export class CircuitBreakerService {
     options: { 
       timeout?: number;
       fallback?: () => Promise<T>;
+      silentErrors?: boolean;
     } = {}
   ): Promise<T> {
     // Initialiser le circuit si nécessaire
@@ -57,7 +66,10 @@ export class CircuitBreakerService {
         lastFailure: 0,
         isOpen: false,
         lastReset: Date.now(),
-        consecutiveSuccesses: 0
+        consecutiveSuccesses: 0,
+        halfOpenAttempts: 0,
+        totalFailures: 0,
+        totalSuccesses: 0
       };
     }
     
@@ -73,16 +85,44 @@ export class CircuitBreakerService {
       } else if (timeSinceLastFailure > this.HALF_OPEN_TIMEOUT_MS) {
         // Si le temps de semi-ouverture est écoulé, permettre une tentative
         console.log(`Circuit ${operationKey} semi-ouvert, autorisant une tentative`);
+        
+        // Passer en mode semi-ouvert
+        circuit.isOpen = false;
+        circuit.halfOpenAttempts++;
+        
+        // Publier un événement de circuit semi-ouvert
+        eventBus.publish(MODULE_EVENTS.CIRCUIT_HALF_OPEN, {
+          service: operationKey,
+          timestamp: Date.now(),
+          attempts: circuit.halfOpenAttempts
+        });
       } else {
         // Circuit toujours ouvert, essayer le fallback si disponible
         if (options.fallback) {
           console.log(`Circuit ${operationKey} ouvert, utilisation du fallback`);
-          return options.fallback();
+          try {
+            return await options.fallback();
+          } catch (fallbackError: any) {
+            // Si le fallback échoue également, journaliser mais ne pas modifier l'état du circuit
+            console.error(`Fallback pour ${operationKey} a échoué:`, fallbackError?.message || fallbackError);
+            
+            if (!options.silentErrors) {
+              // Publier un événement d'erreur
+              eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+                error: `Fallback pour ${operationKey} a échoué`,
+                context: 'circuit_breaker_fallback',
+                timestamp: Date.now(),
+                details: fallbackError
+              });
+            }
+            
+            throw new Error(`Circuit ouvert pour ${operationKey} et fallback échoué: ${fallbackError?.message || 'Erreur inconnue'}`);
+          }
         }
         
         // Sinon rejeter l'opération
         console.error(`Circuit ${operationKey} ouvert, opération rejetée`);
-        throw new Error(`Opération non disponible (circuit ouvert): ${operationKey}`);
+        throw new Error(`Opération non disponible (circuit ouvert): ${operationKey}. Réessayez plus tard.`);
       }
     }
     
@@ -97,7 +137,7 @@ export class CircuitBreakerService {
       }
       
       // Gérer le succès
-      if (circuit.isOpen) {
+      if (circuit.halfOpenAttempts > 0) {
         // Si le circuit était en mode semi-ouvert, incrémenter le compteur de succès
         circuit.consecutiveSuccesses++;
         
@@ -105,6 +145,12 @@ export class CircuitBreakerService {
         if (circuit.consecutiveSuccesses >= this.SUCCESS_THRESHOLD) {
           console.log(`Circuit ${operationKey} fermé après ${circuit.consecutiveSuccesses} succès consécutifs`);
           this.resetCircuit(operationKey);
+          
+          // Publier un événement de circuit fermé
+          eventBus.publish(MODULE_EVENTS.CIRCUIT_CLOSED, {
+            service: operationKey,
+            timestamp: Date.now()
+          });
         }
       } else if (circuit.failures > 0) {
         // Réinitialiser progressivement les compteurs d'échec
@@ -112,17 +158,39 @@ export class CircuitBreakerService {
         circuit.consecutiveSuccesses++;
       }
       
+      // Incrémenter le compteur total de succès
+      circuit.totalSuccesses++;
+      
       return result;
-    } catch (error) {
+    } catch (error: any) {
       // Incrémenter le compteur d'échecs
       circuit.failures++;
       circuit.lastFailure = Date.now();
       circuit.consecutiveSuccesses = 0;
+      circuit.totalFailures++;
       
       // Si le seuil est dépassé, ouvrir le circuit
       if (circuit.failures >= this.FAILURE_THRESHOLD) {
         circuit.isOpen = true;
         console.warn(`Circuit ${operationKey} ouvert après ${circuit.failures} échecs`);
+        
+        // Publier un événement de circuit ouvert
+        eventBus.publish(MODULE_EVENTS.CIRCUIT_OPENED, {
+          service: operationKey,
+          failures: circuit.failures,
+          timestamp: Date.now(),
+          reason: error?.message || 'Trop d\'échecs consécutifs'
+        });
+      }
+      
+      if (!options.silentErrors) {
+        // Publier un événement d'erreur
+        eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+          error: `Erreur dans ${operationKey}: ${error?.message || 'Erreur inconnue'}`,
+          context: 'circuit_breaker_operation',
+          timestamp: Date.now(),
+          details: error
+        });
       }
       
       // Essayer le fallback si disponible
@@ -130,8 +198,19 @@ export class CircuitBreakerService {
         console.log(`Échec de l'opération ${operationKey}, utilisation du fallback`);
         try {
           return await options.fallback();
-        } catch (fallbackError) {
-          console.error(`Échec du fallback pour ${operationKey}:`, fallbackError);
+        } catch (fallbackError: any) {
+          console.error(`Échec du fallback pour ${operationKey}:`, fallbackError?.message || fallbackError);
+          
+          if (!options.silentErrors) {
+            // Publier un événement d'erreur
+            eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+              error: `Fallback pour ${operationKey} a échoué`,
+              context: 'circuit_breaker_fallback',
+              timestamp: Date.now(),
+              details: fallbackError
+            });
+          }
+          
           throw error; // Renvoyer l'erreur originale
         }
       }
@@ -169,12 +248,21 @@ export class CircuitBreakerService {
    * @param operationKey Clé du circuit à réinitialiser
    */
   private resetCircuit(operationKey: string): void {
+    const oldStats = this.circuits[operationKey] || {
+      totalFailures: 0,
+      totalSuccesses: 0
+    };
+    
     this.circuits[operationKey] = {
       failures: 0,
       lastFailure: 0,
       isOpen: false,
       lastReset: Date.now(),
-      consecutiveSuccesses: 0
+      consecutiveSuccesses: 0,
+      halfOpenAttempts: 0,
+      // Conserver les statistiques globales
+      totalFailures: oldStats.totalFailures,
+      totalSuccesses: oldStats.totalSuccesses
     };
     console.log(`Circuit ${operationKey} réinitialisé`);
   }
@@ -200,17 +288,31 @@ export class CircuitBreakerService {
     lastFailure: number; 
     timeSinceLastFailure: number;
     consecutiveSuccesses: number;
+    halfOpenAttempts: number;
+    totalFailures: number;
+    totalSuccesses: number;
+    healthScore: number; // Score de 0 à 100
   } | null {
     const circuit = this.circuits[operationKey];
     
     if (!circuit) return null;
+    
+    // Calculer un score de santé basé sur les réussites/échecs
+    const totalOperations = circuit.totalSuccesses + circuit.totalFailures;
+    const healthScore = totalOperations > 0
+      ? Math.min(100, Math.max(0, Math.round((circuit.totalSuccesses / totalOperations) * 100)))
+      : 100; // 100% par défaut s'il n'y a pas d'opérations
     
     return {
       isOpen: circuit.isOpen,
       failures: circuit.failures,
       lastFailure: circuit.lastFailure,
       timeSinceLastFailure: Date.now() - circuit.lastFailure,
-      consecutiveSuccesses: circuit.consecutiveSuccesses
+      consecutiveSuccesses: circuit.consecutiveSuccesses,
+      halfOpenAttempts: circuit.halfOpenAttempts,
+      totalFailures: circuit.totalFailures,
+      totalSuccesses: circuit.totalSuccesses,
+      healthScore
     };
   }
   
@@ -222,6 +324,35 @@ export class CircuitBreakerService {
   isCircuitOpen(operationKey: string): boolean {
     const circuit = this.circuits[operationKey];
     return circuit ? circuit.isOpen : false;
+  }
+  
+  /**
+   * Récupère les statistiques de tous les circuits
+   * @returns Statistiques des circuits
+   */
+  getAllCircuitStats(): Record<string, {
+    isOpen: boolean;
+    failures: number;
+    healthScore: number;
+    operationCount: number;
+  }> {
+    const stats: Record<string, any> = {};
+    
+    Object.entries(this.circuits).forEach(([key, circuit]) => {
+      const totalOperations = circuit.totalSuccesses + circuit.totalFailures;
+      const healthScore = totalOperations > 0
+        ? Math.min(100, Math.max(0, Math.round((circuit.totalSuccesses / totalOperations) * 100)))
+        : 100;
+      
+      stats[key] = {
+        isOpen: circuit.isOpen,
+        failures: circuit.failures,
+        healthScore,
+        operationCount: totalOperations
+      };
+    });
+    
+    return stats;
   }
 }
 

@@ -13,7 +13,9 @@ import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
 /**
  * Rafraîchit les modules directement depuis Supabase et met à jour le cache
  */
-export const refreshModulesWithCache = async (setModules: React.Dispatch<React.SetStateAction<AppModule[]>>): Promise<AppModule[]> => {
+export const refreshModulesWithCache = async (
+  setModules: React.Dispatch<React.SetStateAction<AppModule[]>>
+): Promise<AppModule[]> => {
   try {
     console.log("Chargement des modules directement depuis Supabase");
     
@@ -25,61 +27,115 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
     }
     
     // Utiliser le circuit breaker pour éviter les appels répétés en cas d'erreur
-    return await circuitBreakerService.execute('modules_refresh', async () => {
-      // Création d'une nouvelle Promise pour gérer correctement les types et le timeout
-      return new Promise<AppModule[]>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error("Timeout lors du chargement des modules"));
-        }, 5000); // 5 secondes timeout
-
-        supabase
-          .from('app_modules')
-          .select('*')
-          .order('name')
-          .then(({ data, error }) => {
-            clearTimeout(timeoutId);
-            
-            if (error) {
-              console.error("Erreur lors du chargement des modules:", error);
+    try {
+      const modules = await circuitBreakerService.execute('modules_refresh', async () => {
+        return new Promise<AppModule[]>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error("Timeout lors du chargement des modules"));
+          }, 5000); // 5 secondes timeout
+  
+          supabase
+            .from('app_modules')
+            .select('*')
+            .order('name')
+            .then(({ data, error }) => {
+              clearTimeout(timeoutId);
+              
+              if (error) {
+                console.error("Erreur lors du chargement des modules:", error);
+                reject(error);
+                return;
+              }
+              
+              if (data && data.length > 0) {
+                // Assurer que les statuts sont des ModuleStatus valides
+                const typedModules = data.map(module => {
+                  // Utiliser le validateur pour s'assurer que le statut est valide
+                  const status = moduleValidator.validateModuleStatus(module.status);
+                  return { ...module, status } as AppModule;
+                });
+                
+                // Mettre à jour l'état
+                setModules(typedModules);
+                
+                // Mettre à jour le cache
+                moduleCacheService.cacheModules(typedModules);
+                
+                console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
+                
+                // Émettre un événement pour informer les autres composants via le nouveau EventBus
+                eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
+                  count: typedModules.length,
+                  timestamp: Date.now(),
+                  source: 'api'
+                });
+                
+                resolve(typedModules);
+              } else {
+                resolve([]);
+              }
+            })
+            .catch((error) => {
+              clearTimeout(timeoutId);
               reject(error);
-              return;
-            }
+            });
+        });
+      }, {
+        timeout: 8000, // 8 secondes de timeout pour l'opération complète
+        fallback: async () => {
+          console.log("Utilisation du fallback pour le chargement des modules");
+          const cachedModules = moduleCacheService.getModulesFromCache();
+          
+          if (cachedModules && cachedModules.length > 0) {
+            console.log(`Utilisation des ${cachedModules.length} modules en cache depuis le fallback`);
             
-            if (data && data.length > 0) {
-              // Assurer que les statuts sont des ModuleStatus valides
-              const typedModules = data.map(module => {
-                // Utiliser le validateur pour s'assurer que le statut est valide
-                const status = moduleValidator.validateModuleStatus(module.status);
-                return { ...module, status } as AppModule;
-              });
-              
-              // Mettre à jour l'état
-              setModules(typedModules);
-              
-              // Mettre à jour le cache
-              moduleCacheService.cacheModules(typedModules);
-              
-              console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
-              
-              // Émettre un événement pour informer les autres composants via le nouveau EventBus
-              eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
-                count: typedModules.length,
-                timestamp: Date.now(),
-                source: 'api'
-              });
-              
-              resolve(typedModules);
-            } else {
-              resolve([]);
-            }
-          })
-          .catch((error) => {
-            clearTimeout(timeoutId);
-            reject(error);
-          });
+            // Émettre un événement pour informer les autres composants
+            eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
+              count: cachedModules.length,
+              timestamp: Date.now(),
+              source: 'cache'
+            });
+            
+            return cachedModules;
+          }
+          
+          throw new Error("Aucun module disponible dans le cache");
+        }
       });
-    });
-  } catch (error) {
+      
+      return modules;
+    } catch (error: any) {
+      // Capturer l'erreur du circuit breaker et réessayer avec le cache
+      console.error("Erreur du circuit breaker:", error?.message || error);
+      
+      // Publier un événement d'erreur
+      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+        error: error?.message || "Erreur inconnue lors du rafraîchissement des modules",
+        context: "circuit_breaker",
+        timestamp: Date.now(),
+        details: error
+      });
+      
+      // Utiliser le cache comme dernier recours
+      const cachedModules = moduleCacheService.getModulesFromCache();
+      if (cachedModules && cachedModules.length > 0) {
+        console.log(`Utilisation des ${cachedModules.length} modules en cache après erreur du circuit breaker`);
+        
+        // Publier un événement pour informer les autres composants
+        eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
+          count: cachedModules.length,
+          timestamp: Date.now(),
+          source: 'cache'
+        });
+        
+        setModules(cachedModules);
+        return cachedModules;
+      }
+      
+      // Si aucun cache disponible, propager l'erreur
+      throw error;
+    }
+  } catch (error: any) {
     console.error("Exception lors du rafraîchissement des modules:", error);
     
     // En cas d'erreur, essayer de lire depuis le cache local
@@ -102,6 +158,7 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
       console.error("Erreur lors de la lecture du cache des modules:", e);
     }
     
+    // Si tout échoue, retourner un tableau vide
     return [];
   }
 };
@@ -140,8 +197,17 @@ export const refreshModulesWithRetry = async (
   eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
     error: `Échec après ${maxRetries} tentatives de rafraîchissement des modules`,
     context: "retry",
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    details: lastError
   });
+  
+  // Utiliser une dernière fois le cache comme filet de sécurité
+  const cachedModules = moduleCacheService.getModulesFromCache();
+  if (cachedModules && cachedModules.length > 0) {
+    console.log(`Utilisation des ${cachedModules.length} modules en cache après échec des tentatives`);
+    setModules(cachedModules);
+    return cachedModules;
+  }
   
   throw lastError || new Error("Échec du rafraîchissement des modules après plusieurs tentatives");
 };
