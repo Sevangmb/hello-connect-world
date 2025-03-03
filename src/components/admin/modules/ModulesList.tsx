@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModulesHeader } from "./components/ModulesHeader";
@@ -10,7 +9,7 @@ import { useModuleToggle } from "./hooks/useModuleToggle";
 import { useModuleSave } from "./hooks/useModuleSave";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModuleFeatures } from "./ModuleFeatures";
-import { Info, CircleInfo } from "lucide-react";
+import { Info, CircleCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ModulesListProps {
@@ -18,7 +17,6 @@ interface ModulesListProps {
 }
 
 export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
-  // Use our custom hooks to manage state and logic
   const {
     modules,
     dependencies,
@@ -76,11 +74,10 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
         </div>
       </CardHeader>
       
-      {/* Information panel */}
       {showInfo && (
         <div className="px-6 py-2">
           <Alert variant="default" className="bg-muted/50">
-            <CircleInfo className="h-4 w-4" />
+            <CircleCheck className="h-4 w-4" />
             <AlertTitle>Informations sur les modules</AlertTitle>
             <AlertDescription className="text-sm">
               <ul className="list-disc pl-5 mt-2 space-y-1">
@@ -94,13 +91,11 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
         </div>
       )}
       
-      {/* Header with refresh button and last refresh time */}
       <ModulesHeader 
         lastRefresh={lastRefresh} 
         onRefresh={handleRefresh}
       />
       
-      {/* Tabs for modules and features */}
       <div className="px-6 pb-4">
         <Tabs defaultValue="modules" className="w-full">
           <TabsList className="mb-4">
