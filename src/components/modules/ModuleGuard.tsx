@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
 import { ModuleUnavailable } from "./ModuleUnavailable";
 import { ModuleDegraded } from "./ModuleDegraded";
+import { eventBus } from "@/core/event-bus/EventBus";
+import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
 
 interface ModuleGuardProps {
   moduleCode: string;
@@ -14,7 +16,7 @@ interface ModuleGuardProps {
 
 /**
  * Composant qui vérifie si un module est actif avant d'afficher son contenu
- * Version améliorée pour l'architecture microservices
+ * Version améliorée pour l'architecture microservices avec Event Bus
  */
 export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   moduleCode,
@@ -73,6 +75,17 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
       };
       
       checkModule();
+      
+      // S'abonner aux événements de changement de statut des modules
+      const unsubscribe = eventBus.subscribe(MODULE_EVENTS.MODULE_STATUS_CHANGED, (event) => {
+        if (event.moduleCode === moduleCode) {
+          checkModule();
+        }
+      });
+      
+      return () => {
+        unsubscribe();
+      };
     }
   }, [moduleCode, isModuleActive, isModuleDegraded, strictMode, initialized]);
 

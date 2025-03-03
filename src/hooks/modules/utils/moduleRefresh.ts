@@ -7,6 +7,8 @@ import { AppModule, ModuleStatus } from "../types";
 import { moduleValidator } from "../services/ModuleValidator";
 import { moduleCacheService } from "../services/ModuleCacheService";
 import { circuitBreakerService } from "../services/CircuitBreakerService";
+import { eventBus } from "@/core/event-bus/EventBus";
+import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
 
 /**
  * Rafraîchit les modules directement depuis Supabase et met à jour le cache
@@ -59,8 +61,12 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
               
               console.log(`${typedModules.length} modules chargés depuis Supabase et mis en cache`);
               
-              // Émettre un événement pour informer les autres composants
-              window.dispatchEvent(new CustomEvent('modules_updated'));
+              // Émettre un événement pour informer les autres composants via le nouveau EventBus
+              eventBus.publish(MODULE_EVENTS.MODULES_REFRESHED, {
+                count: typedModules.length,
+                timestamp: Date.now(),
+                source: 'api'
+              });
               
               resolve(typedModules);
             } else {
@@ -82,6 +88,14 @@ export const refreshModulesWithCache = async (setModules: React.Dispatch<React.S
       if (cachedModules && cachedModules.length > 0) {
         console.log(`Utilisation des ${cachedModules.length} modules en cache après erreur`);
         setModules(cachedModules);
+        
+        // Publier un événement d'erreur via l'Event Bus
+        eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+          error: "Erreur lors du rafraîchissement des modules, utilisation du cache",
+          context: "refresh",
+          timestamp: Date.now()
+        });
+        
         return cachedModules;
       }
     } catch (e) {
@@ -121,5 +135,13 @@ export const refreshModulesWithRetry = async (
   }
 
   console.error(`Échec après ${maxRetries} tentatives de rafraîchissement des modules`, lastError);
+  
+  // Publier un événement d'erreur via l'Event Bus
+  eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+    error: `Échec après ${maxRetries} tentatives de rafraîchissement des modules`,
+    context: "retry",
+    timestamp: Date.now()
+  });
+  
   throw lastError || new Error("Échec du rafraîchissement des modules après plusieurs tentatives");
 };
