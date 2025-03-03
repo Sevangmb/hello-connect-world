@@ -9,6 +9,8 @@ import { MenuItemCategory } from "@/services/menu/types";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { eventBus } from "@/core/event-bus/EventBus";
 import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinator";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface CategoryGroupProps {
   title: string;
@@ -43,6 +45,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
 export const ModuleMenu: React.FC = () => {
   const { isModuleDegraded } = useModuleRegistry();
   const { isUserAdmin, refreshMenu } = useMenu();
+  const navigate = useNavigate();
   
   // Écouter les événements de mise à jour de menu et de modules
   useEffect(() => {
@@ -96,7 +99,18 @@ export const ModuleMenu: React.FC = () => {
         
         {/* Menu d'administration - toujours affiché pour les admin */}
         {isUserAdmin && (
-          <CategoryGroup title="Administration" category="admin" />
+          <>
+            <CategoryGroup title="Administration" category="admin" />
+            <div className="px-3 py-2 mt-2">
+              <Button 
+                onClick={() => navigate('/admin')}
+                variant="outline" 
+                className="w-full bg-primary/5 hover:bg-primary/10 text-primary"
+              >
+                Console d'administration
+              </Button>
+            </div>
+          </>
         )}
         
         <CategoryGroup title="Système" category="system" />
