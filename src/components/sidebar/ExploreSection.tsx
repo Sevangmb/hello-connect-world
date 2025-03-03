@@ -35,10 +35,18 @@ export const ExploreSection = () => {
       await refreshModules();
       
       // Vérifier explicitement chaque module
-      const searchActive = isModuleActive('search');
-      const trendingActive = isModuleActive('trending');
-      const hashtagsActive = isModuleActive('hashtags');
-      const marketplaceActive = isModuleActive('marketplace');
+      const checkModule = async (code: string) => {
+        const isActive = await isModuleActive(code);
+        return isActive;
+      };
+      
+      const [searchActive, trendingActive, hashtagsActive, marketplaceActive] = 
+        await Promise.all([
+          checkModule('search'),
+          checkModule('trending'),
+          checkModule('hashtags'),
+          checkModule('marketplace')
+        ]);
       
       console.log(`ExploreSection: États des modules - search: ${searchActive}, trending: ${trendingActive}, hashtags: ${hashtagsActive}, marketplace: ${marketplaceActive}`);
       

@@ -31,8 +31,16 @@ export const ProfileSection = () => {
       await refreshModules();
       
       // Vérifier explicitement chaque module
-      const profileActive = isModuleActive('profile');
-      const notificationsActive = isModuleActive('notifications');
+      const checkModule = async (code: string) => {
+        const isActive = await isModuleActive(code);
+        return isActive;
+      };
+      
+      const [profileActive, notificationsActive] = 
+        await Promise.all([
+          checkModule('profile'),
+          checkModule('notifications')
+        ]);
       
       console.log(`ProfileSection: États des modules - profile: ${profileActive}, notifications: ${notificationsActive}`);
       

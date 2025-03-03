@@ -31,8 +31,16 @@ export const HomeSection = () => {
       await refreshModules();
       
       // Vérifier explicitement chaque module et mettre à jour l'état local
-      const suggestionsActive = isModuleActive('suggestions');
-      const aiActive = isModuleActive('ai');
+      const checkModule = async (code: string) => {
+        const isActive = await isModuleActive(code);
+        return isActive;
+      };
+      
+      const [suggestionsActive, aiActive] = 
+        await Promise.all([
+          checkModule('suggestions'),
+          checkModule('ai')
+        ]);
       
       console.log(`HomeSection: État des modules - suggestions: ${suggestionsActive}, ai: ${aiActive}`);
       
