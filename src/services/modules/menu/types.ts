@@ -7,13 +7,18 @@ export interface MenuItem {
   id: string;
   name: string;
   path: string;
-  icon?: string;
-  parentId?: string | null;
-  moduleCode: string;
+  icon?: string | null;
+  module_code: string | null;
+  category: 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
   position: number;
-  isVisible: boolean;
-  requiresAuth: boolean;
-  roles?: string[];
+  parent_id: string | null;
+  description: string | null;
+  is_active: boolean;
+  is_visible: boolean;
+  requires_admin: boolean;
+  created_at: string;
+  updated_at: string;
+  children?: MenuItem[];
 }
 
 export interface MenuSection {
@@ -26,3 +31,4 @@ export interface MenuConfiguration {
   sections: MenuSection[];
   defaultActiveItem?: string;
 }
+

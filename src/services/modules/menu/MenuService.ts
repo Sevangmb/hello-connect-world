@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { MenuItem, MenuConfiguration } from "./types";
+import { MenuItem, MenuSection, MenuConfiguration } from "./types";
 import { eventBus } from "@/core/event-bus/EventBus";
 import { MENU_MODULE_CODE } from "@/hooks/modules/constants";
 
@@ -24,7 +24,7 @@ export class MenuService {
         throw error;
       }
       
-      return data as MenuItem[];
+      return data as unknown as MenuItem[];
     } catch (error) {
       console.error("Exception lors de la récupération des éléments de menu:", error);
       return [];
@@ -41,14 +41,14 @@ export class MenuService {
       
       // Filtrer par module si nécessaire
       const filteredItems = moduleCode 
-        ? menuItems.filter(item => item.moduleCode === moduleCode)
+        ? menuItems.filter(item => item.module_code === moduleCode)
         : menuItems;
       
       // Organiser les éléments par section
       const sections: { [key: string]: MenuSection } = {};
       
       filteredItems.forEach(item => {
-        const sectionId = item.parentId || 'main';
+        const sectionId = item.parent_id || 'main';
         if (!sections[sectionId]) {
           sections[sectionId] = {
             id: sectionId,
@@ -72,7 +72,7 @@ export class MenuService {
   /**
    * Ajoute un nouvel élément de menu
    */
-  async addMenuItem(item: Omit<MenuItem, 'id'>): Promise<MenuItem | null> {
+  async addMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
     try {
       const { data, error } = await supabase
         .from('menu_items')
@@ -88,7 +88,7 @@ export class MenuService {
       // Publier un événement pour notifier les composants de menu
       eventBus.publish('menu:updated', { action: 'add', item: data });
       
-      return data as MenuItem;
+      return data as unknown as MenuItem;
     } catch (error) {
       console.error("Exception lors de l'ajout d'un élément de menu:", error);
       return null;
@@ -151,19 +151,16 @@ export class MenuService {
   async reorderMenuItems(itemIds: string[]): Promise<boolean> {
     try {
       // Mettre à jour la position de chaque élément
-      const updates = itemIds.map((id, index) => ({
-        id,
-        position: index
-      }));
-      
-      // Mettre à jour en batch
-      const { error } = await supabase
-        .from('menu_items')
-        .upsert(updates);
-      
-      if (error) {
-        console.error("Erreur lors de la réorganisation des éléments de menu:", error);
-        throw error;
+      for (let i = 0; i < itemIds.length; i++) {
+        const { error } = await supabase
+          .from('menu_items')
+          .update({ position: i })
+          .eq('id', itemIds[i]);
+          
+        if (error) {
+          console.error(`Erreur lors de la mise à jour de la position du menu ${itemIds[i]}:`, error);
+          throw error;
+        }
       }
       
       // Publier un événement pour notifier les composants de menu
