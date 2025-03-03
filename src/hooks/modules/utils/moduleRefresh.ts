@@ -1,3 +1,4 @@
+
 /**
  * Utilitaires pour rafraîchir les modules depuis Supabase avec gestion avancée du cache
  */
@@ -74,8 +75,6 @@ export const refreshModulesWithCache = async (
                 resolve([]);
               }
             })
-            // Ajout d'un .then() vide avant .catch() pour résoudre l'erreur TS2339
-            .then(() => {})
             .catch((error) => {
               clearTimeout(timeoutId);
               reject(error);
@@ -217,8 +216,7 @@ export const refreshModulesWithRetry = async (
  * Exécute une fonction de rafraîchissement des modules et gère les erreurs
  */
 export const handleModuleRefresh = async (
-  refreshModules: () => Promise<void>,
-  onRefreshComplete?: () => void
+  refreshModules: () => Promise<void>
 ): Promise<void> => {
   try {
     console.log('Starting module refresh process...');
@@ -226,11 +224,6 @@ export const handleModuleRefresh = async (
     // Exécuter la fonction de rafraîchissement des modules
     await refreshModules();
     console.log('Module refresh completed successfully');
-    
-    // Appeler le callback de complétion si fourni
-    if (onRefreshComplete && typeof onRefreshComplete === 'function') {
-      onRefreshComplete();
-    }
   } catch (error) {
     console.error('Error during module refresh:', error);
     // Erreur gérée ici dans le try/catch
@@ -244,7 +237,6 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Correction: utiliser seulement 2 paramètres
     await handleModuleRefresh(refreshFunction);
   } catch (error) {
     console.error('Safe refresh failed:', error);

@@ -24,6 +24,13 @@ import AdminMarketing from "@/pages/admin/AdminMarketing";
 import AdminModules from "@/pages/admin/AdminModules";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminHelp from "@/pages/admin/AdminHelp";
+import AdminReports from "@/pages/admin/AdminReports";
+import AdminPayments from "@/pages/admin/AdminPayments";
+import AdminAnalytics from "@/pages/admin/AdminAnalytics";
+import AdminModeration from "@/pages/admin/AdminModeration";
+import AdminApiKeys from "@/pages/admin/AdminApiKeys";
+import AdminNotifications from "@/pages/admin/AdminNotifications";
+import AdminBackup from "@/pages/admin/AdminBackup";
 import { lazy, Suspense } from "react";
 import "./index.css";
 
@@ -93,6 +100,14 @@ const App = () => {
         <Route path="modules" element={<AdminModules />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="help" element={<AdminHelp />} />
+        {/* Nouvelles routes d'administration */}
+        <Route path="reports" element={<AdminReports />} />
+        <Route path="payments" element={<AdminPayments />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="moderation" element={<AdminModeration />} />
+        <Route path="api-keys" element={<AdminApiKeys />} />
+        <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="backup" element={<AdminBackup />} />
       </Route>
 
       {/* Routes des modules - générées dynamiquement */}

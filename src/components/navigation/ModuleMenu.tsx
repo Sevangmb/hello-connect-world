@@ -20,6 +20,13 @@ import {
   HelpCircle,
   Shirt,
   Palette,
+  Database,
+  FileText,
+  Flag,
+  CreditCard,
+  BarChart2,
+  Shield,
+  Key,
   LucideIcon
 } from "lucide-react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
@@ -58,8 +65,89 @@ const iconMap: Record<string, LucideIcon> = {
   Users,
   HelpCircle,
   Shirt,
-  Palette
+  Palette,
+  Database,
+  FileText,
+  Flag,
+  CreditCard,
+  BarChart2,
+  Shield,
+  Key
 };
+
+// Items de menu administrateur supplémentaires
+const adminMenuItems: ModuleMenuItem[] = [
+  {
+    id: "admin-reports",
+    label: "Rapports",
+    icon: Flag,
+    path: "/admin/reports",
+    isAdmin: true,
+    category: 'admin',
+    description: "Rapports utilisateurs et système",
+    isAvailable: true
+  },
+  {
+    id: "admin-payments",
+    label: "Paiements",
+    icon: CreditCard,
+    path: "/admin/payments",
+    isAdmin: true,
+    category: 'admin',
+    description: "Gestion des paiements et transactions",
+    isAvailable: true
+  },
+  {
+    id: "admin-analytics",
+    label: "Analytique",
+    icon: BarChart2,
+    path: "/admin/analytics",
+    isAdmin: true,
+    category: 'admin',
+    description: "Statistiques et analyses d'utilisation",
+    isAvailable: true
+  },
+  {
+    id: "admin-moderation",
+    label: "Modération",
+    icon: Shield,
+    path: "/admin/moderation",
+    isAdmin: true,
+    category: 'admin',
+    description: "Modération de contenu",
+    isAvailable: true
+  },
+  {
+    id: "admin-api-keys",
+    label: "Clés API",
+    icon: Key,
+    path: "/admin/api-keys",
+    isAdmin: true,
+    category: 'admin',
+    description: "Gestion des clés API",
+    isAvailable: true
+  },
+  {
+    id: "admin-notifications",
+    label: "Notifications",
+    icon: Bell,
+    path: "/admin/notifications",
+    isAdmin: true,
+    category: 'admin',
+    description: "Gestion des notifications",
+    isAvailable: true
+  },
+  {
+    id: "admin-backup",
+    label: "Sauvegardes",
+    icon: Database,
+    path: "/admin/backup",
+    isAdmin: true,
+    category: 'admin',
+    description: "Sauvegardes et restauration",
+    isAvailable: true
+  }
+];
 
 // Convertir les définitions de pages en éléments de menu
 const convertPageToMenuItem = (page: ModulePageDefinition, isDegraded = false): ModuleMenuItem => {
@@ -108,12 +196,18 @@ export const ModuleMenu: React.FC = () => {
         })
       );
       
+      // Si nous sommes dans l'interface d'administration, ajouter les éléments admin
+      const isAdmin = location.pathname.startsWith('/admin');
+      const allItems = isAdmin 
+        ? [...menuItems, ...adminMenuItems]
+        : menuItems;
+      
       // Ne garder que les éléments disponibles
-      setAvailableMenuItems(menuItems.filter(item => item.isAvailable));
+      setAvailableMenuItems(allItems.filter(item => item.isAvailable));
     };
     
     filterMenuItems();
-  }, [isModuleActive, isModuleDegraded]);
+  }, [isModuleActive, isModuleDegraded, location.pathname]);
 
   // Vérifier si un chemin est actif
   const isActive = (path: string) => {
