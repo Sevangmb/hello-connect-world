@@ -1,124 +1,104 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { MenuConfiguration, MenuItem } from '@/services/modules/menu/types';
-import { menuService } from '@/services/modules/menu/MenuService';
-import { useModuleRegistry } from '@/hooks/modules/useModuleRegistry';
-import { MENU_MODULE_CODE } from '@/hooks/modules/constants';
-import { eventBus } from '@/core/event-bus/EventBus';
-
 /**
- * Hook pour gérer les menus de l'application
+ * Hook pour la gestion des menus dynamiques
  */
-export const useMenu = (moduleCode?: string) => {
-  const [menuConfig, setMenuConfig] = useState<MenuConfiguration>({ sections: [] });
+import { useState, useEffect, useMemo } from 'react';
+import { MenuService } from '@/services/menu/MenuService';
+import { MenuItem, MenuItemCategory } from '@/services/menu/types';
+import { useToast } from '@/hooks/use-toast';
+import { useModule } from '@/hooks/modules/useModules';
+
+export const useMenu = (options?: {
+  category?: MenuItemCategory;
+  moduleCode?: string;
+  hierarchical?: boolean;
+}) => {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { isModuleActive } = useModuleRegistry();
-
-  // Charger les éléments de menu
-  const loadMenuItems = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Vérifier si le module menu est actif
-      const isMenuActive = await isModuleActive(MENU_MODULE_CODE);
-      
-      if (!isMenuActive) {
-        setError('Le module Menu n\'est pas actif');
-        setLoading(false);
-        return;
-      }
-      
-      // Charger la configuration du menu
-      const config = await menuService.getMenuConfiguration(moduleCode || '');
-      setMenuConfig(config);
-    } catch (err) {
-      console.error('Erreur lors du chargement des éléments de menu:', err);
-      setError('Impossible de charger les éléments de menu');
-    } finally {
-      setLoading(false);
-    }
-  }, [moduleCode, isModuleActive]);
-
-  // Modifier un élément de menu
-  const updateMenuItem = useCallback(async (id: string, updates: Partial<MenuItem>) => {
-    try {
-      const success = await menuService.updateMenuItem(id, updates);
-      if (success) {
-        loadMenuItems();
-      }
-      return success;
-    } catch (err) {
-      console.error('Erreur lors de la mise à jour d\'un élément de menu:', err);
-      return false;
-    }
-  }, [loadMenuItems]);
-
-  // Ajouter un élément de menu
-  const addMenuItem = useCallback(async (item: Omit<MenuItem, 'id'>) => {
-    try {
-      const newItem = await menuService.addMenuItem(item);
-      if (newItem) {
-        loadMenuItems();
-      }
-      return newItem;
-    } catch (err) {
-      console.error('Erreur lors de l\'ajout d\'un élément de menu:', err);
-      return null;
-    }
-  }, [loadMenuItems]);
-
-  // Supprimer un élément de menu
-  const deleteMenuItem = useCallback(async (id: string) => {
-    try {
-      const success = await menuService.deleteMenuItem(id);
-      if (success) {
-        loadMenuItems();
-      }
-      return success;
-    } catch (err) {
-      console.error('Erreur lors de la suppression d\'un élément de menu:', err);
-      return false;
-    }
-  }, [loadMenuItems]);
-
-  // Réorganiser les éléments de menu
-  const reorderMenuItems = useCallback(async (itemIds: string[]) => {
-    try {
-      const success = await menuService.reorderMenuItems(itemIds);
-      if (success) {
-        loadMenuItems();
-      }
-      return success;
-    } catch (err) {
-      console.error('Erreur lors de la réorganisation des éléments de menu:', err);
-      return false;
-    }
-  }, [loadMenuItems]);
-
-  // Effet pour charger les éléments de menu au montage
+  const { toast } = useToast();
+  const { isAdmin } = useModule();
+  
+  // Détermine si l'utilisateur est administrateur
+  const isUserAdmin = isAdmin || false;
+  
   useEffect(() => {
-    loadMenuItems();
-    
-    // S'abonner aux mises à jour du menu
-    const unsubscribe = eventBus.subscribe('menu:updated', () => {
-      loadMenuItems();
-    });
-    
-    return () => {
-      unsubscribe();
+    const fetchMenuItems = async () => {
+      setLoading(true);
+      try {
+        let items: MenuItem[] = [];
+        
+        if (options?.category) {
+          // Récupérer les éléments de menu par catégorie
+          items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
+        } else if (options?.moduleCode) {
+          // Récupérer les éléments de menu par module
+          items = await MenuService.getMenuItemsByModule(options.moduleCode, isUserAdmin);
+        } else {
+          // Récupérer tous les éléments de menu visibles
+          items = await MenuService.getVisibleMenuItems(isUserAdmin);
+        }
+        
+        setMenuItems(items);
+        setError(null);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des éléments de menu:", err);
+        setError("Impossible de charger le menu");
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger le menu",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [loadMenuItems]);
-
+    
+    fetchMenuItems();
+  }, [options?.category, options?.moduleCode, isUserAdmin, toast]);
+  
+  // Construit une structure de menu hiérarchique si demandé
+  const menuTree = useMemo(() => {
+    if (options?.hierarchical) {
+      return MenuService.buildMenuTree(menuItems);
+    }
+    return menuItems;
+  }, [menuItems, options?.hierarchical]);
+  
+  // Filtrer les menus par catégorie
+  const getMenusByCategory = (category: MenuItemCategory): MenuItem[] => {
+    return menuItems.filter(item => item.category === category);
+  };
+  
   return {
-    menuConfig,
+    menuItems: options?.hierarchical ? menuTree : menuItems,
     loading,
     error,
-    loadMenuItems,
-    updateMenuItem,
-    addMenuItem,
-    deleteMenuItem,
-    reorderMenuItems
+    getMenusByCategory,
+    mainMenu: useMemo(() => getMenusByCategory('main'), [menuItems]),
+    adminMenu: useMemo(() => getMenusByCategory('admin'), [menuItems]),
+    socialMenu: useMemo(() => getMenusByCategory('social'), [menuItems]),
+    marketplaceMenu: useMemo(() => getMenusByCategory('marketplace'), [menuItems]),
+    utilityMenu: useMemo(() => getMenusByCategory('utility'), [menuItems]),
   };
+};
+
+// Hook spécifique pour le menu principal
+export const useMainMenu = () => {
+  return useMenu({ category: 'main' });
+};
+
+// Hook spécifique pour le menu d'administration
+export const useAdminMenu = () => {
+  return useMenu({ category: 'admin' });
+};
+
+// Hook spécifique pour les menus sociaux
+export const useSocialMenu = () => {
+  return useMenu({ category: 'social' });
+};
+
+// Hook spécifique pour les menus de la marketplace
+export const useMarketplaceMenu = () => {
+  return useMenu({ category: 'marketplace' });
 };

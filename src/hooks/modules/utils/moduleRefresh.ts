@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { AppModule } from "../types";
+import { MENU_MODULE_CODE } from "../constants";
 
 /**
  * Refreshes modules with cache fallback
@@ -81,7 +82,7 @@ export const refreshModulesWithCache = async (
     {
       id: "menu-1",
       name: "Menu",
-      code: "menu",
+      code: MENU_MODULE_CODE,
       status: "active",
       is_core: true,
       description: "Application menu system"
@@ -140,7 +141,7 @@ export const refreshModulesWithRetry = async (
     {
       id: "menu-1",
       name: "Menu",
-      code: "menu",
+      code: MENU_MODULE_CODE,
       status: "active",
       is_core: true,
       description: "Application menu system"

@@ -1,37 +1,35 @@
 
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useMenu } from '@/hooks/useMenu';
-import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, Menu as MenuIcon } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ModuleGuard } from '@/components/modules/ModuleGuard';
-import { MENU_MODULE_CODE } from '@/hooks/modules/constants';
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useMenu } from "@/hooks/useMenu";
+import { MenuItemCategory } from "@/services/menu/types";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import * as LucideIcons from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface DynamicMenuProps {
+type DynamicMenuProps = {
+  category?: MenuItemCategory;
   moduleCode?: string;
   className?: string;
-  compact?: boolean;
-}
+  hierarchical?: boolean;
+};
 
-/**
- * Composant de menu dynamique
- * Affiche les éléments de menu basés sur la configuration
- */
-export const DynamicMenu: React.FC<DynamicMenuProps> = ({ 
+export const DynamicMenu: React.FC<DynamicMenuProps> = ({
+  category,
   moduleCode,
   className,
-  compact = false
+  hierarchical = false,
 }) => {
-  const { menuConfig, loading, error } = useMenu(moduleCode);
+  const { menuItems, loading, error } = useMenu({
+    category,
+    moduleCode,
+    hierarchical,
+  });
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
-  // Détecter si un chemin est actif
+  // Vérifier si un chemin est actif
   const isActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/';
@@ -39,131 +37,55 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     return location.pathname.startsWith(path);
   };
 
-  // Gérer le clic sur un élément de menu
-  const handleMenuItemClick = (path: string) => {
-    navigate(path);
+  // Récupérer l'icône à partir de la bibliothèque Lucide
+  const getIcon = (iconName: string | null) => {
+    if (!iconName) return null;
+    
+    // @ts-ignore - Les icônes sont dynamiques
+    const IconComponent = LucideIcons[iconName];
+    return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
 
-  // Gérer l'expansion/réduction des sections
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
-  };
-
-  // Rendu en cas de chargement
   if (loading) {
     return (
-      <div className={cn("space-y-4 p-2", className)}>
-        {[1, 2, 3].map(i => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-5 w-32" />
-            <div className="space-y-1 pl-4">
-              {[1, 2, 3].map(j => (
-                <Skeleton key={j} className="h-8 w-full" />
-              ))}
-            </div>
+      <div className={cn("space-y-2", className)}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center space-x-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-8 w-32" />
           </div>
         ))}
       </div>
     );
   }
 
-  // Rendu en cas d'erreur
   if (error) {
-    return (
-      <div className={cn("p-4 text-red-500", className)}>
-        <p>Erreur: {error}</p>
-      </div>
-    );
+    return <div className="text-red-500 text-sm py-2">{error}</div>;
   }
 
-  // Si aucun élément de menu n'est disponible
-  if (menuConfig.sections.length === 0) {
-    return (
-      <div className={cn("p-4 text-gray-400 text-center", className)}>
-        <MenuIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p>Aucun élément de menu disponible</p>
-      </div>
-    );
+  if (menuItems.length === 0) {
+    return <div className="text-gray-500 text-sm py-2">Aucun élément de menu disponible</div>;
   }
 
   return (
-    <ModuleGuard moduleCode={MENU_MODULE_CODE}>
-      <nav className={cn("space-y-4", className)}>
-        {menuConfig.sections.map(section => (
-          <div key={section.id} className="space-y-1">
-            {section.name !== 'main' && (
-              <>
-                <h3 className="px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {section.name}
-                </h3>
-                <Separator className="my-1" />
-              </>
-            )}
-            
-            {compact ? (
-              // Version compacte du menu (accordéon)
-              <Accordion
-                type="multiple"
-                value={expandedSections}
-                className="space-y-1"
-              >
-                {section.items.map(item => (
-                  <AccordionItem key={item.id} value={item.id} className="border-none">
-                    <AccordionTrigger
-                      className={cn(
-                        "py-2 px-3 text-sm rounded-md hover:bg-gray-100 transition-colors",
-                        isActive(item.path) && "bg-blue-50 text-blue-700 font-medium"
-                      )}
-                      onClick={() => handleMenuItemClick(item.path)}
-                    >
-                      {item.name}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {/* Contenu des sous-menus ici si nécessaire */}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            ) : (
-              // Version standard du menu
-              <div className="space-y-1">
-                {section.items.map(item => (
-                  <TooltipProvider key={item.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          className={cn(
-                            "flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                            isActive(item.path)
-                              ? "bg-blue-50 text-blue-700"
-                              : "text-gray-700 hover:bg-gray-100"
-                          )}
-                          onClick={() => handleMenuItemClick(item.path)}
-                        >
-                          {/* Icône à ajouter si disponible */}
-                          <span className="truncate">{item.name}</span>
-                          
-                          {/* Indicateur de sous-menu si nécessaire */}
-                          {false && (
-                            <ChevronRight className="ml-auto h-4 w-4" />
-                          )}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>{item.name}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </nav>
-    </ModuleGuard>
+    <nav className={cn("flex flex-col space-y-1", className)}>
+      {menuItems.map((item) => (
+        <Button
+          key={item.id}
+          variant={isActive(item.path) ? "secondary" : "ghost"}
+          size="sm"
+          className={cn(
+            "justify-start font-medium",
+            isActive(item.path) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+          )}
+          onClick={() => navigate(item.path)}
+        >
+          {getIcon(item.icon)}
+          <span>{item.name}</span>
+        </Button>
+      ))}
+    </nav>
   );
 };
+
+export default DynamicMenu;

@@ -741,6 +741,86 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_items: {
+        Row: {
+          category: Database["public"]["Enums"]["menu_item_category"]
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_visible: boolean
+          module_code: string | null
+          name: string
+          parent_id: string | null
+          path: string
+          position: number
+          requires_admin: boolean
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["menu_item_category"]
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_visible?: boolean
+          module_code?: string | null
+          name: string
+          parent_id?: string | null
+          path: string
+          position?: number
+          requires_admin?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["menu_item_category"]
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_visible?: boolean
+          module_code?: string | null
+          name?: string
+          parent_id?: string | null
+          path?: string
+          position?: number
+          requires_admin?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "menu_items_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["module_code"]
+          },
+          {
+            foreignKeyName: "menu_items_module_code_fkey"
+            columns: ["module_code"]
+            isOneToOne: false
+            referencedRelation: "module_dependencies_view"
+            referencedColumns: ["dependency_code"]
+          },
+          {
+            foreignKeyName: "menu_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_dependencies: {
         Row: {
           created_at: string
@@ -2483,6 +2563,13 @@ export type Database = {
     }
     Enums: {
       challenge_status: "active" | "completed"
+      menu_item_category:
+        | "main"
+        | "admin"
+        | "system"
+        | "marketplace"
+        | "social"
+        | "utility"
       module_status: "active" | "inactive" | "degraded"
       shipping_carrier_type: "integrated" | "manual"
       suitcase_status: "active" | "archived"

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DynamicMenu } from "@/components/menu/DynamicMenu";
 
 interface MainSidebarProps {
   className?: string;
