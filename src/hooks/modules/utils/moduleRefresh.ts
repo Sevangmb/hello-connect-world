@@ -231,8 +231,7 @@ export const handleModuleRefresh = async (
     }
   } catch (error) {
     console.error('Error during module refresh:', error);
-    // Ici, l'erreur est gérée dans le try/catch plutôt qu'avec .catch()
-    // puisque PromiseLike<void> n'a pas de méthode .catch()
+    // Erreur gérée ici dans le try/catch
   }
 };
 
@@ -243,9 +242,8 @@ export const safeRefreshModules = async (
   refreshFunction: () => Promise<void>
 ): Promise<void> => {
   try {
-    // Fixer l'appel pour n'utiliser que 2 arguments comme attendu
+    // Fixed: utiliser 2 arguments au lieu de 3
     await handleModuleRefresh(refreshFunction);
-    // Le rappel de complétion est omis volontairement ici
   } catch (error) {
     console.error('Safe refresh failed:', error);
   }

@@ -105,18 +105,34 @@ export class NotificationService {
       if (profileError) throw profileError;
 
       // Mettre à jour les préférences
-      const preferences = userProfile?.preferences || {};
+      let preferences = userProfile?.preferences || {};
       
-      if (!preferences.notifications) {
-        preferences.notifications = {};
+      // Ensure preferences is an object
+      if (typeof preferences !== 'object' || preferences === null) {
+        preferences = {};
       }
       
-      preferences.notifications[notificationType] = enabled;
+      // Initialize notifications object if needed
+      if (!preferences.hasOwnProperty('notifications')) {
+        preferences = {
+          ...preferences,
+          notifications: {}
+        };
+      }
+      
+      // Update the specific notification type preference
+      const updatedPreferences = {
+        ...preferences,
+        notifications: {
+          ...(preferences.notifications as Record<string, boolean>),
+          [notificationType]: enabled
+        }
+      };
 
       // Enregistrer les préférences mises à jour
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ preferences })
+        .update({ preferences: updatedPreferences })
         .eq("id", userId);
 
       if (updateError) throw updateError;

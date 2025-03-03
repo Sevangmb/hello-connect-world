@@ -24,8 +24,15 @@ export const useNotificationCenter = () => {
     
     try {
       const data = await NotificationService.getUserNotifications(user.id);
-      setNotifications(data as Notification[]);
-      setUnreadCount(data.filter((notification: Notification) => !notification.read).length);
+      // Cast the data to ensure it matches the Notification type
+      const typedNotifications = data.map((item: any) => ({
+        ...item,
+        type: item.type as NotificationType,
+      })) as Notification[];
+      
+      setNotifications(typedNotifications);
+      // Fixed: use typedNotifications for filtering to ensure type safety
+      setUnreadCount(typedNotifications.filter(notification => !notification.read).length);
     } catch (err) {
       setError(err as Error);
       console.error("Error fetching notifications:", err);
@@ -161,8 +168,14 @@ export const useNotificationCenter = () => {
     const subscription = NotificationService.subscribeToNotifications(
       user.id,
       (newNotification) => {
+        // Ensure the notification type matches our type definition
+        const typedNotification = {
+          ...newNotification,
+          type: newNotification.type as NotificationType
+        } as Notification;
+
         // Ajouter la nouvelle notification à l'état
-        setNotifications(prev => [newNotification, ...prev]);
+        setNotifications(prev => [typedNotification, ...prev]);
         
         // Incrémenter le compteur de notifications non lues
         setUnreadCount(prev => prev + 1);

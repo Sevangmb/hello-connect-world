@@ -1,7 +1,7 @@
 
 import { useCallback, useMemo } from "react";
 import { NotificationData } from "./types";
-import { Notification as UINotification } from "@/components/notifications/types";
+import { Notification as UINotification, NotificationType } from "@/components/notifications/types";
 
 export function useNotificationUtils(notifications: NotificationData[] | undefined) {
   // Calcul des notifications non lues
@@ -29,7 +29,8 @@ export function useNotificationUtils(notifications: NotificationData[] | undefin
     
     return notifications.map((notification): UINotification => ({
       id: notification.id,
-      type: notification.type,
+      // Cast the notification type to NotificationType explicitly
+      type: notification.type as NotificationType,
       actor_id: notification.data?.actor_id || null,
       post_id: notification.data?.post_id || null,
       read: notification.is_read,

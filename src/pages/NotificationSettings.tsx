@@ -1,23 +1,31 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, Mail, Smartphone } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { TimePicker } from "@/components/ui/time-picker";
-import { Separator } from "@/components/ui/separator";
 
 export default function NotificationSettings() {
-  const [emailEnabled, setEmailEnabled] = React.useState(true);
-  const [pushEnabled, setPushEnabled] = React.useState(true);
-  const [dndEnabled, setDndEnabled] = React.useState(false);
-  const [startTime, setStartTime] = React.useState<Date | undefined>(new Date().setHours(22, 0));
-  const [endTime, setEndTime] = React.useState<Date | undefined>(new Date().setHours(8, 0));
+  const [activeTab, setActiveTab] = useState("preferences");
+  const [doNotDisturb, setDoNotDisturb] = useState(false);
+  
+  // Fixed: Convert timestamp numbers to Date objects
+  const [startTime, setStartTime] = useState<Date>(() => {
+    const date = new Date();
+    date.setHours(22, 0, 0, 0);
+    return date;
+  });
+  
+  const [endTime, setEndTime] = useState<Date>(() => {
+    const date = new Date();
+    date.setHours(7, 0, 0, 0);
+    return date;
+  });
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -27,136 +35,117 @@ export default function NotificationSettings() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Paramètres de notification</h1>
           
-          <Tabs defaultValue="preferences" className="mb-8">
-            <TabsList>
-              <TabsTrigger value="preferences" className="flex items-center gap-1">
-                <Bell className="h-4 w-4" />
-                <span>Préférences</span>
-              </TabsTrigger>
-              <TabsTrigger value="channels" className="flex items-center gap-1">
-                <Smartphone className="h-4 w-4" />
-                <span>Canaux</span>
-              </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center gap-1">
-                <Mail className="h-4 w-4" />
-                <span>Horaires</span>
-              </TabsTrigger>
+          <Tabs defaultValue="preferences" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="preferences">Préférences</TabsTrigger>
+              <TabsTrigger value="channels">Canaux de notification</TabsTrigger>
+              <TabsTrigger value="schedule">Horaires</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="preferences" className="mt-6">
-              <NotificationPreferences />
-            </TabsContent>
-            
-            <TabsContent value="channels" className="mt-6">
+            <TabsContent value="preferences">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    Canaux de notification
-                  </CardTitle>
+                  <CardTitle>Préférences de notification</CardTitle>
+                  <CardDescription>
+                    Personnalisez les types de notifications que vous souhaitez recevoir
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <NotificationPreferences />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="channels">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Canaux de notification</CardTitle>
                   <CardDescription>
                     Choisissez comment vous souhaitez recevoir vos notifications
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center">
-                        <Bell className="h-4 w-4 text-primary" />
-                        <span className="ml-2 font-medium">Notifications dans l'application</span>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Notifications push</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Recevez des alertes sur votre appareil
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Afficher les notifications dans l'application
-                      </p>
+                      <Switch id="push-notifications" />
                     </div>
-                    <Switch checked disabled />
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center">
-                        <Smartphone className="h-4 w-4 text-green-500" />
-                        <span className="ml-2 font-medium">Notifications push</span>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Notifications par email</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Recevez un résumé par email
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Recevoir des notifications sur votre appareil même lorsque l'application est fermée
-                      </p>
+                      <Switch id="email-notifications" />
                     </div>
-                    <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} />
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center">
-                        <Mail className="h-4 w-4 text-blue-500" />
-                        <span className="ml-2 font-medium">Notifications par email</span>
+                    
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Notifications dans l'application</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Notifications visibles dans l'application
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Recevoir des notifications importantes par email
-                      </p>
+                      <Switch id="in-app-notifications" defaultChecked />
                     </div>
-                    <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
             
-            <TabsContent value="schedule" className="mt-6">
+            <TabsContent value="schedule">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    Horaires de notification
-                  </CardTitle>
+                  <CardTitle>Horaires de notification</CardTitle>
                   <CardDescription>
-                    Définissez quand vous souhaitez recevoir des notifications
+                    Définissez des plages horaires pendant lesquelles vous ne souhaitez pas être dérangé
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="dnd-mode" className="font-medium">Mode Ne pas déranger</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Désactive temporairement les notifications push
-                      </p>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">Mode Ne pas déranger</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Désactivez temporairement toutes les notifications
+                        </p>
+                      </div>
+                      <Switch 
+                        id="do-not-disturb" 
+                        checked={doNotDisturb}
+                        onCheckedChange={setDoNotDisturb}
+                      />
                     </div>
-                    <Switch 
-                      id="dnd-mode" 
-                      checked={dndEnabled} 
-                      onCheckedChange={setDndEnabled} 
-                    />
-                  </div>
-                  
-                  {dndEnabled && (
-                    <div className="space-y-4 pt-2">
-                      <Separator />
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
+                    
+                    {doNotDisturb && (
+                      <div className="space-y-4 pt-4">
+                        <div>
                           <Label htmlFor="start-time">Heure de début</Label>
                           <TimePicker 
-                            id="start-time"
-                            value={startTime} 
-                            onChange={setStartTime as any} 
+                            date={startTime} 
+                            setDate={setStartTime}
+                            className="mt-1"
                           />
                         </div>
-                        <div className="space-y-2">
+                        
+                        <div>
                           <Label htmlFor="end-time">Heure de fin</Label>
                           <TimePicker 
-                            id="end-time"
-                            value={endTime} 
-                            onChange={setEndTime as any} 
+                            date={endTime} 
+                            setDate={setEndTime}
+                            className="mt-1"
                           />
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Les notifications push seront désactivées entre ces heures
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
