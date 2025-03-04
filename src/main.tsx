@@ -3,16 +3,21 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { PrivateRoute } from "@/components/auth/PrivateRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { ModulePageRegistry } from "@/services/modules/ModulePageRegistry";
+import { RootLayout } from "@/components/RootLayout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { PrelaunchRedirect } from "@/components/home/PrelaunchRedirect";
+import { Toaster } from "@/components/ui/toaster";
 import Landing from "@/pages/Landing";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import Auth from "@/pages/Auth";
 import AdminLogin from "@/pages/AdminLogin";
-import { AdminLayout } from "@/components/admin/AdminLayout";
+import Waitlist from "@/pages/Waitlist";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminShops from "@/pages/admin/AdminShops";
@@ -31,17 +36,30 @@ import AdminModeration from "@/pages/admin/AdminModeration";
 import AdminApiKeys from "@/pages/admin/AdminApiKeys";
 import AdminNotifications from "@/pages/admin/AdminNotifications";
 import AdminBackup from "@/pages/admin/AdminBackup";
-import { lazy, Suspense } from "react";
-import "./index.css";
 import AdminMenuPage from "@/pages/admin/AdminMenus";
 import Settings from "@/pages/Settings";
 import Notifications from "@/pages/Notifications";
+import Home from "@/pages/Home";
+import Feed from "@/pages/Feed";
+import Profile from "@/pages/Profile";
+import Clothes from "@/pages/Clothes";
+import Outfits from "@/pages/Outfits";
+import TrendingOutfits from "@/pages/TrendingOutfits";
+import Suitcases from "@/pages/Suitcases";
+import VirtualTryOn from "@/pages/VirtualTryOn";
+import Shop from "@/pages/Shop";
+import Admin from "@/pages/Admin";
+import AdminWaitlist from "@/pages/admin/AdminWaitlist";
+import { lazy, Suspense } from "react";
+import "./index.css";
 
+// Création du client de requête pour React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
@@ -56,10 +74,11 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Composant principal qui contient toutes les routes de l'application
 const App = () => {
   return (
     <Routes>
-      {/* Rediriger la route racine vers /landing si non authentifié */}
+      {/* Rediriger la route racine vers /app si authentifié, sinon vers /landing */}
       <Route
         path="/"
         element={<Navigate to="/app" replace />}
@@ -67,6 +86,7 @@ const App = () => {
       
       {/* Page d'accueil publique avec authentification intégrée */}
       <Route path="/landing" element={<Landing />} />
+      <Route path="/waitlist" element={<Waitlist />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/login" element={<Auth />} />
       <Route path="/auth/admin" element={<AdminLogin />} />
@@ -122,6 +142,7 @@ const App = () => {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="help" element={<AdminHelp />} />
         <Route path="menus" element={<AdminMenuPage />} />
+        <Route path="waitlist" element={<AdminWaitlist />} />
         {/* Nouvelles routes d'administration */}
         <Route path="reports" element={<AdminReports />} />
         <Route path="payments" element={<AdminPayments />} />
@@ -163,11 +184,16 @@ const App = () => {
   );
 };
 
+// Rendu du composant racine
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <PrelaunchRedirect>
+          <App />
+        </PrelaunchRedirect>
+        <Toaster />
+        <ReactQueryDevtools initialIsOpen={false} />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>
