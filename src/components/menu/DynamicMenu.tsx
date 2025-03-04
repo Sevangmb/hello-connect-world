@@ -92,6 +92,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
+  // Fonction pour gérer la navigation
+  const handleNavigate = (path: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    navigate(path);
+  };
+
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
       {visibleMenuItems.map((item) => (
@@ -103,7 +109,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
             "justify-start font-medium",
             isActive(item.path) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
           )}
-          onClick={() => navigate(item.path)}
+          onClick={(e) => handleNavigate(item.path, e)}
         >
           {getIcon(item.icon)}
           <span>{item.name}</span>

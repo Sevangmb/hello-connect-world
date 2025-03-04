@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useNotificationCenter } from "@/hooks/notifications/useNotificationCenter";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,7 +29,7 @@ export const UserButton: React.FC<UserButtonProps> = ({ className }) => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate("/login");
+      navigate("/auth");
     } catch (error) {
       console.error("Error signing out:", error);
     }

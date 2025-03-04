@@ -100,6 +100,11 @@ export function Header() {
   const toggleMobileMenu = () => {
     setMenuOpen(!menuOpen);
   };
+  
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    setMenuOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm">
@@ -116,39 +121,57 @@ export function Header() {
         </div>
         
         <nav className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/">Accueil</Link>
+          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/")}>
+            Accueil
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/explore">Explorer</Link>
+          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/explore")}>
+            Explorer
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/personal">Mon Univers</Link>
+          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/personal")}>
+            Mon Univers
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/boutiques">Boutiques</Link>
+          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/boutiques")}>
+            Boutiques
           </Button>
           
           {isAdmin && (
-            <Button variant="outline" size="sm" className="ml-2 border-primary text-primary" asChild>
-              <Link to="/admin/dashboard">
-                <Shield className="mr-1 h-4 w-4" />
-                Admin
-              </Link>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2 border-primary text-primary"
+              onClick={() => handleNavigate("/admin/dashboard")}
+            >
+              <Shield className="mr-1 h-4 w-4" />
+              Admin
             </Button>
           )}
         </nav>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden sm:flex"
+            onClick={() => handleNavigate("/search")}
+          >
             <Search className="h-5 w-5" />
           </Button>
           
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden sm:flex"
+            onClick={() => handleNavigate("/notifications")}
+          >
             <Bell className="h-5 w-5" />
           </Button>
           
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="hidden sm:flex"
+            onClick={() => handleNavigate("/cart")}
+          >
             <ShoppingCart className="h-5 w-5" />
           </Button>
           
@@ -159,43 +182,33 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profil</span>
-                </Link>
+              <DropdownMenuItem onClick={() => handleNavigate("/profile")}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profil</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/personal" className="cursor-pointer">
-                  <Package className="mr-2 h-4 w-4" />
-                  <span>Garde-robe</span>
-                </Link>
+              <DropdownMenuItem onClick={() => handleNavigate("/personal")}>
+                <Package className="mr-2 h-4 w-4" />
+                <span>Garde-robe</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/boutiques" className="cursor-pointer">
-                  <Store className="mr-2 h-4 w-4" />
-                  <span>Boutiques</span>
-                </Link>
+              <DropdownMenuItem onClick={() => handleNavigate("/boutiques")}>
+                <Store className="mr-2 h-4 w-4" />
+                <span>Boutiques</span>
               </DropdownMenuItem>
               
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/admin/dashboard" className="cursor-pointer">
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Administration</span>
-                    </Link>
+                  <DropdownMenuItem onClick={() => handleNavigate("/admin/dashboard")}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    <span>Administration</span>
                   </DropdownMenuItem>
                 </>
               )}
               
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/profile/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Paramètres</span>
-                </Link>
+              <DropdownMenuItem onClick={() => handleNavigate("/profile/settings")}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Paramètres</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
                 <LogOut className="mr-2 h-4 w-4" />
@@ -209,51 +222,70 @@ export function Header() {
       {menuOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container py-4 space-y-3">
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link to="/" onClick={() => setMenuOpen(false)}>
-                Accueil
-              </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigate("/")}
+            >
+              Accueil
             </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link to="/explore" onClick={() => setMenuOpen(false)}>
-                Explorer
-              </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigate("/explore")}
+            >
+              Explorer
             </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link to="/personal" onClick={() => setMenuOpen(false)}>
-                Mon Univers
-              </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigate("/personal")}
+            >
+              Mon Univers
             </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link to="/boutiques" onClick={() => setMenuOpen(false)}>
-                Boutiques
-              </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start"
+              onClick={() => handleNavigate("/boutiques")}
+            >
+              Boutiques
             </Button>
             
             {isAdmin && (
-              <Button variant="outline" className="w-full justify-start border-primary text-primary" asChild>
-                <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)}>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Administration
-                </Link>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start border-primary text-primary"
+                onClick={() => handleNavigate("/admin/dashboard")}
+              >
+                <Shield className="mr-2 h-4 w-4" />
+                Administration
               </Button>
             )}
             
             <div className="pt-2 border-t grid grid-cols-3 gap-2">
-              <Button variant="outline" size="sm" className="justify-center" asChild>
-                <Link to="/search" onClick={() => setMenuOpen(false)}>
-                  <Search className="h-4 w-4" />
-                </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-center"
+                onClick={() => handleNavigate("/search")}
+              >
+                <Search className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" className="justify-center" asChild>
-                <Link to="/notifications" onClick={() => setMenuOpen(false)}>
-                  <Bell className="h-4 w-4" />
-                </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-center"
+                onClick={() => handleNavigate("/notifications")}
+              >
+                <Bell className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" className="justify-center" asChild>
-                <Link to="/cart" onClick={() => setMenuOpen(false)}>
-                  <ShoppingCart className="h-4 w-4" />
-                </Link>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="justify-center"
+                onClick={() => handleNavigate("/cart")}
+              >
+                <ShoppingCart className="h-4 w-4" />
               </Button>
             </div>
           </div>

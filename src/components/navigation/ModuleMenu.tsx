@@ -88,6 +88,11 @@ export const ModuleMenu: React.FC = () => {
     }
   }, [isUserAdmin]);
   
+  const handleNavigateToAdmin = (event: React.MouseEvent) => {
+    event.preventDefault();
+    navigate('/admin');
+  };
+  
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-2 w-full">
@@ -103,7 +108,7 @@ export const ModuleMenu: React.FC = () => {
             <CategoryGroup title="Administration" category="admin" />
             <div className="px-3 py-2 mt-2">
               <Button 
-                onClick={() => navigate('/admin')}
+                onClick={handleNavigateToAdmin}
                 variant="outline" 
                 className="w-full bg-primary/5 hover:bg-primary/10 text-primary"
               >
