@@ -75,7 +75,7 @@ export const UserButton: React.FC<UserButtonProps> = ({ className }) => {
               </Badge>
             )}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate('/settings')}>
+          <DropdownMenuItem onClick={() => navigate('/profile/settings')}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Paramètres</span>
           </DropdownMenuItem>

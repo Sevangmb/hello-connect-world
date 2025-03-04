@@ -1,3 +1,4 @@
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -33,6 +34,8 @@ import AdminBackup from "@/pages/admin/AdminBackup";
 import { lazy, Suspense } from "react";
 import "./index.css";
 import AdminMenuPage from "@/pages/admin/AdminMenus";
+import Settings from "@/pages/Settings";
+import Notifications from "@/pages/Notifications";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +78,25 @@ const App = () => {
         element={
           <PrivateRoute>
             <Index />
+          </PrivateRoute>
+        }
+      />
+      
+      {/* Routes utilisateur */}
+      <Route
+        path="/profile/settings"
+        element={
+          <PrivateRoute>
+            <Settings />
+          </PrivateRoute>
+        }
+      />
+      
+      <Route
+        path="/notifications"
+        element={
+          <PrivateRoute>
+            <Notifications />
           </PrivateRoute>
         }
       />
