@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PrivateRoute } from './components/auth/PrivateRoute';
@@ -27,60 +26,72 @@ import AdminModeration from './pages/admin/AdminModeration';
 import AdminApiKeys from './pages/admin/AdminApiKeys';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminBackup from './pages/admin/AdminBackup';
+import { AdminWaitlist } from "./pages/admin";
+import { QueryClientProvider, QueryClient } from 'react-query';
+import { BrowserRouter } from 'react-router-dom';
+import { PrelaunchRedirect } from './components/auth/PrelaunchRedirect';
+import { Toaster } from 'react-hot-toast';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Routes>
-      {/* Routes publiques */}
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/auth/login" element={<Auth />} />
-      <Route path="/auth/admin" element={<AdminLogin />} />
-      
-      {/* Route racine */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <Index />
-          </PrivateRoute>
-        }
-      />
-      
-      {/* Routes d'administration */}
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <AdminLayout />
-          </AdminRoute>
-        }
-      >
-        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="shops" element={<AdminShops />} />
-        <Route path="orders" element={<AdminOrders />} />
-        <Route path="marketplace" element={<AdminMarketplace />} />
-        <Route path="content" element={<AdminContent />} />
-        <Route path="stats" element={<AdminStats />} />
-        <Route path="marketing" element={<AdminMarketing />} />
-        <Route path="modules" element={<AdminModules />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="help" element={<AdminHelp />} />
-        {/* Nouvelles routes d'administration */}
-        <Route path="reports" element={<AdminReports />} />
-        <Route path="payments" element={<AdminPayments />} />
-        <Route path="analytics" element={<AdminAnalytics />} />
-        <Route path="moderation" element={<AdminModeration />} />
-        <Route path="api-keys" element={<AdminApiKeys />} />
-        <Route path="notifications" element={<AdminNotifications />} />
-        <Route path="backup" element={<AdminBackup />} />
-      </Route>
-      
-      {/* Route 404 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <div className="App">
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <PrelaunchRedirect>
+            <Routes>
+              <Route path="/landing" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/login" element={<Auth />} />
+              <Route path="/auth/admin" element={<AdminLogin />} />
+              
+              <Route
+                path="/"
+                element={
+                  <PrivateRoute>
+                    <Index />
+                  </PrivateRoute>
+                }
+              />
+              
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminLayout />
+                  </AdminRoute>
+                }
+              >
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="shops" element={<AdminShops />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="marketplace" element={<AdminMarketplace />} />
+                <Route path="content" element={<AdminContent />} />
+                <Route path="stats" element={<AdminStats />} />
+                <Route path="marketing" element={<AdminMarketing />} />
+                <Route path="modules" element={<AdminModules />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="help" element={<AdminHelp />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="payments" element={<AdminPayments />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="moderation" element={<AdminModeration />} />
+                <Route path="api-keys" element={<AdminApiKeys />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="backup" element={<AdminBackup />} />
+                <Route path="waitlist" element={<AdminWaitlist />} />
+              </Route>
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PrelaunchRedirect>
+        </BrowserRouter>
+        <Toaster />
+      </QueryClientProvider>
+    </div>
   );
 }
 
