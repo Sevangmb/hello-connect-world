@@ -6,16 +6,36 @@ import { handleSuggestionProcess } from "./outfit-suggestion/utils/suggestionHan
 import { showLoadingToast } from "./outfit-suggestion/utils/toastManager";
 import { OutfitSuggestionState } from "./outfit-suggestion/types/suggestionTypes";
 
-export const useOutfitSuggestion = (temperature: number, description: string) => {
+export interface OutfitSuggestionOptions {
+  temperature: number;
+  description: string;
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other';
+  windSpeed?: number;
+  humidity?: number;
+}
+
+export const useOutfitSuggestion = ({
+  temperature, 
+  description, 
+  condition,
+  windSpeed,
+  humidity
+}: OutfitSuggestionOptions) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [state, setState] = useState<OutfitSuggestionState>({ toastId: null });
 
   const result = useQuery({
-    queryKey: ["outfit-suggestion", temperature, description],
+    queryKey: ["outfit-suggestion", temperature, description, condition, windSpeed, humidity],
     queryFn: async () => {
       try {
-        console.log("Fetching outfit suggestion for:", { temperature, description });
+        console.log("Fetching outfit suggestion for:", { 
+          temperature, 
+          description,
+          condition,
+          windSpeed,
+          humidity
+        });
         
         // Toast de chargement initial
         const toastResult = showLoadingToast(toast, {
@@ -25,11 +45,16 @@ export const useOutfitSuggestion = (temperature: number, description: string) =>
         
         setState({ toastId: toastResult.id });
         
-        // Processus de suggestion
+        // Processus de suggestion avec données météo enrichies
         const result = await handleSuggestionProcess(
           toast,
-          temperature,
-          description,
+          {
+            temperature,
+            description,
+            condition,
+            windSpeed,
+            humidity
+          },
           toastResult.id,
           toastResult.dismiss
         );

@@ -14,7 +14,10 @@ export const generateAISuggestion = async (
   temperature: number,
   description: string,
   useMistral: boolean = true,
-  maxRetries = 3
+  maxRetries = 3,
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other',
+  windSpeed?: number,
+  humidity?: number
 ): Promise<SuggestionResult> => {
   let lastError = null;
 
@@ -22,6 +25,7 @@ export const generateAISuggestion = async (
     try {
       console.log(`Tentative ${attempt + 1} de génération de suggestion avec ${useMistral ? 'Mistral' : 'autre modèle'}`);
       console.log(`Envoi de ${clothes.length} vêtements à l'API`);
+      console.log(`Conditions météo: ${temperature}°C, ${description}, ${condition || 'non spécifié'}`);
       
       // Catégorisation des vêtements
       const categorizedClothes = categorizeClothes(clothes);
@@ -49,13 +53,21 @@ export const generateAISuggestion = async (
         throw new Error(`Vous n'avez pas assez de vêtements dans certaines catégories (${missingCategories.join(", ")}) pour générer une suggestion`);
       }
       
+      // Préparation des données météo enrichies
+      const weatherData = {
+        temperature,
+        description,
+        condition: condition || determineConditionFromDescription(description),
+        windSpeed,
+        humidity
+      };
+      
       // Appel de la fonction Edge de Supabase appropriée selon le modèle choisi
       const { data: aiSuggestion, error: aiError } = await supabase.functions.invoke(
         useMistral ? 'generate-mistral-suggestion' : 'generate-outfit-suggestion',
         {
           body: {
-            temperature,
-            description,
+            weather: weatherData,
             clothes: finalCategorizedClothes,
             allClothes: clothes
           }
@@ -87,7 +99,8 @@ export const generateAISuggestion = async (
         clothes, 
         finalCategorizedClothes,
         temperature,
-        description
+        description,
+        condition
       );
       
     } catch (retryError) {
@@ -95,7 +108,7 @@ export const generateAISuggestion = async (
       lastError = retryError as Error;
       
       if (attempt === maxRetries) {
-        // Si on a épuisé toutes les tentatives, on essaie de choisir des vêtements au hasard
+        // Si on a épuisé toutes les tentatives, on essaie de choisir des vêtements au hasard adaptés à la météo
         const categorizedForFallback = categorizeClothes(clothes);
         const fallbackCategories = handleMissingCategories(categorizedForFallback, clothes);
         
@@ -103,7 +116,8 @@ export const generateAISuggestion = async (
           clothes, 
           temperature, 
           description, 
-          fallbackCategories
+          fallbackCategories,
+          condition
         );
       }
       
@@ -118,6 +132,19 @@ export const generateAISuggestion = async (
   };
 };
 
+// Déterminer la condition météo à partir de la description si non fournie
+function determineConditionFromDescription(description: string): 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other' {
+  const desc = description.toLowerCase();
+  
+  if (desc.includes('pluie') || desc.includes('averse')) return 'rain';
+  if (desc.includes('neige')) return 'snow';
+  if (desc.includes('nuage')) return 'clouds';
+  if (desc.includes('clair') || desc.includes('dégagé') || desc.includes('soleil')) return 'clear';
+  if (desc.includes('orage') || desc.includes('tempête')) return 'extreme';
+  
+  return 'other';
+}
+
 // Traitement de la réponse de l'IA pour extraire les vêtements identifiés
 async function processAIResponse(
   aiSuggestion: AISuggestionResponse,
@@ -128,7 +155,8 @@ async function processAIResponse(
     shoes: ClothingItem[];
   },
   temperature: number,
-  description: string
+  description: string,
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other'
 ): Promise<SuggestionResult> {
   const { top: topId, bottom: bottomId, shoes: shoesId } = aiSuggestion.suggestion;
   
@@ -170,7 +198,8 @@ async function processAIResponse(
       shoes: finalShoes,
       explanation: aiSuggestion.explanation || "Voici une tenue adaptée à la météo actuelle.",
       temperature,
-      description
+      description,
+      condition: condition || determineConditionFromDescription(description)
     },
     error: null
   };

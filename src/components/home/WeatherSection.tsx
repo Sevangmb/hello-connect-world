@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WeatherOutfitSuggestion } from "./WeatherOutfitSuggestion";
@@ -143,6 +142,9 @@ export const WeatherSection = () => {
       <WeatherOutfitSuggestion 
         temperature={weather.current.temp} 
         description={weather.current.description}
+        condition={weather.current.condition}
+        windSpeed={weather.current.windSpeed}
+        humidity={weather.current.humidity}
       />
     </div>
   );

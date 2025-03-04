@@ -1,220 +1,262 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { corsHeaders } from '../_shared/cors.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-// Types
-interface ClothingItem {
-  id: string;
-  name: string;
-  image_url: string | null;
-  brand?: string;
-  category: string;
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface WeatherRequest {
-  temperature: number;
-  description: string;
-  clothes: {
-    tops: ClothingItem[];
-    bottoms: ClothingItem[];
-    shoes: ClothingItem[];
-  };
-  allClothes: ClothingItem[];
-}
-
-interface SuggestionResponse {
-  suggestion: {
-    top: string;
-    bottom: string;
-    shoes: string;
-  };
-  explanation: string;
-}
-
-// Récupère l'API key depuis les secrets 
-const mistralApiKey = Deno.env.get('MISTRAL_API_KEY') || '';
-
-// Fonction qui génère des suggestions avec Mistral
-async function generateMistralSuggestion(data: WeatherRequest): Promise<SuggestionResponse> {
-  console.log("Generating outfit suggestion using Mistral API...");
-  console.log(`Weather data: ${data.temperature}°C, ${data.description}`);
-  console.log(`Available clothes: ${data.clothes.tops.length} tops, ${data.clothes.bottoms.length} bottoms, ${data.clothes.shoes.length} shoes`);
-  
-  // Construire le prompt pour Mistral
-  const prompt = `En tant qu'assistant mode pour la météo, aide-moi à choisir une tenue adaptée à ces conditions: ${data.temperature}°C, ${data.description}.
-
-Voici mes vêtements disponibles (avec l'ID entre parenthèses):
-
-HAUTS:
-${data.clothes.tops.map(c => `- ${c.name} (${c.id})${c.brand ? ` de ${c.brand}` : ''}`).join('\n')}
-
-BAS:
-${data.clothes.bottoms.map(c => `- ${c.name} (${c.id})${c.brand ? ` de ${c.brand}` : ''}`).join('\n')}
-
-CHAUSSURES:
-${data.clothes.shoes.map(c => `- ${c.name} (${c.id})${c.brand ? ` de ${c.brand}` : ''}`).join('\n')}
-
-Recommande-moi une tenue complète (un haut, un bas et une paire de chaussures) qui soit:
-1. Adaptée à la température de ${data.temperature}°C
-2. Appropriée pour un temps "${data.description}"
-3. Assortie et élégante
-
-Réponds UNIQUEMENT avec un objet JSON au format suivant:
-{
-  "suggestion": {
-    "top": "ID_DU_HAUT",
-    "bottom": "ID_DU_BAS",
-    "shoes": "ID_DES_CHAUSSURES"
-  },
-  "explanation": "EXPLICATION_DE_LA_TENUE_RECOMMANDÉE"
-}`;
-
-  try {
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${mistralApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'mistral-large-latest',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 800,
-        response_format: { type: 'json_object' }
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('Mistral API Error:', errorData);
-      throw new Error(`Mistral API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    console.log("Mistral response received");
-    
-    // Extraire et parser la réponse JSON
-    let jsonResponse: SuggestionResponse;
-    try {
-      const content = result.choices[0].message.content;
-      jsonResponse = JSON.parse(content);
-      
-      // Vérifier si la réponse a la structure attendue
-      if (!jsonResponse.suggestion || !jsonResponse.suggestion.top || 
-          !jsonResponse.suggestion.bottom || !jsonResponse.suggestion.shoes) {
-        throw new Error('Format de réponse invalide: suggestions incomplètes');
-      }
-      
-      // Vérifier que tous les IDs suggérés existent bien dans les vêtements disponibles
-      const topExists = data.clothes.tops.some(item => item.id === jsonResponse.suggestion.top);
-      const bottomExists = data.clothes.bottoms.some(item => item.id === jsonResponse.suggestion.bottom);
-      const shoesExists = data.clothes.shoes.some(item => item.id === jsonResponse.suggestion.shoes);
-      
-      if (!topExists || !bottomExists || !shoesExists) {
-        console.log("Un ou plusieurs IDs suggérés n'existent pas, génération de suggestions alternatives...");
-        
-        // Générer des alternatives pour les IDs invalides
-        if (!topExists) {
-          jsonResponse.suggestion.top = data.clothes.tops.length > 0 
-            ? data.clothes.tops[Math.floor(Math.random() * data.clothes.tops.length)].id
-            : '';
-        }
-        
-        if (!bottomExists) {
-          jsonResponse.suggestion.bottom = data.clothes.bottoms.length > 0 
-            ? data.clothes.bottoms[Math.floor(Math.random() * data.clothes.bottoms.length)].id
-            : '';
-        }
-        
-        if (!shoesExists) {
-          jsonResponse.suggestion.shoes = data.clothes.shoes.length > 0 
-            ? data.clothes.shoes[Math.floor(Math.random() * data.clothes.shoes.length)].id
-            : '';
-        }
-      }
-      
-      return jsonResponse;
-      
-    } catch (parseError) {
-      console.error('Error parsing Mistral response:', parseError);
-      throw new Error('Impossible de parser la réponse du modèle');
-    }
-  } catch (error) {
-    console.error('Error calling Mistral API:', error);
-    throw error;
-  }
-}
-
-Deno.serve(async (req) => {
-  // Gérer les requêtes CORS preflight
+serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    console.log("Début de la fonction generate-mistral-suggestion")
+    const { weather, clothes } = await req.json()
+    
+    console.log("Données météo reçues:", weather)
+    console.log("Nombre de vêtements reçus:", clothes ? Object.keys(clothes).map(k => `${k}: ${clothes[k].length}`).join(', ') : 'aucun')
+
+    if (!clothes || !clothes.tops || !clothes.bottoms || !clothes.shoes ||
+        clothes.tops.length === 0 || clothes.bottoms.length === 0 || clothes.shoes.length === 0) {
+      console.error("Vêtements insuffisants pour générer une suggestion")
+      return new Response(
+        JSON.stringify({ error: "Vêtements insuffisants pour générer une suggestion" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+    
+    const { temperature, description, condition, windSpeed, humidity } = weather || {}
+    
+    if (!temperature) {
+      console.error("Données météo manquantes")
+      return new Response(
+        JSON.stringify({ error: "Données météo manquantes" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Sélectionner intelligemment des vêtements en fonction des conditions météo
+    const recommendation = selectClothesBasedOnWeather(clothes, weather)
+    
+    console.log("Recommandation générée:", recommendation)
+
+    return new Response(
+      JSON.stringify(recommendation),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error("Erreur dans generate-mistral-suggestion:", error)
+    return new Response(
+      JSON.stringify({ error: error.message || "Une erreur s'est produite" }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
+})
+
+interface Weather {
+  temperature: number
+  description: string
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other'
+  windSpeed?: number
+  humidity?: number
+}
+
+interface ClothingItem {
+  id: string
+  name: string
+  category?: string
+  material?: string
+  color?: string
+  season?: string
+  waterproof?: boolean
+  warmth?: number
+}
+
+interface CategorizedClothes {
+  tops: ClothingItem[]
+  bottoms: ClothingItem[]
+  shoes: ClothingItem[]
+}
+
+function selectClothesBasedOnWeather(clothes: CategorizedClothes, weather: Weather) {
+  const { temperature, description, condition, windSpeed, humidity } = weather
+  
+  // Filtrer les vêtements en fonction des conditions météo
+  let suitableTops = [...clothes.tops]
+  let suitableBottoms = [...clothes.bottoms]
+  let suitableShoes = [...clothes.shoes]
+
+  // Filtres basés sur la température
+  if (temperature < 5) {
+    // Très froid: privilégier vêtements chauds
+    suitableTops = filterForColdWeather(suitableTops)
+    suitableBottoms = filterForColdWeather(suitableBottoms)
+    suitableShoes = filterForColdWeather(suitableShoes)
+  } else if (temperature < 15) {
+    // Frais: vêtements mi-saison
+    suitableTops = filterForMildWeather(suitableTops)
+    suitableBottoms = filterForMildWeather(suitableBottoms)
+  } else if (temperature > 25) {
+    // Chaud: vêtements légers
+    suitableTops = filterForHotWeather(suitableTops)
+    suitableBottoms = filterForHotWeather(suitableBottoms)
+  }
+
+  // Filtres basés sur les conditions
+  if (condition === 'rain') {
+    // Pluie: privilégier imperméables
+    suitableTops = filterForRain(suitableTops)
+    suitableShoes = filterForRain(suitableShoes)
+  } else if (condition === 'snow') {
+    // Neige: imperméables et chauds
+    suitableTops = filterForSnow(suitableTops)
+    suitableBottoms = filterForSnow(suitableBottoms)
+    suitableShoes = filterForSnow(suitableShoes)
+  }
+
+  // Si les filtres ont trop réduit les options, réutiliser tous les vêtements
+  if (suitableTops.length === 0) suitableTops = [...clothes.tops]
+  if (suitableBottoms.length === 0) suitableBottoms = [...clothes.bottoms]
+  if (suitableShoes.length === 0) suitableShoes = [...clothes.shoes]
+
+  // Sélectionner un élément aléatoire de chaque catégorie
+  const selectedTop = suitableTops[Math.floor(Math.random() * suitableTops.length)]
+  const selectedBottom = suitableBottoms[Math.floor(Math.random() * suitableBottoms.length)]
+  const selectedShoes = suitableShoes[Math.floor(Math.random() * suitableShoes.length)]
+
+  // Préparer l'explication
+  let explanation = `Voici une tenue adaptée pour une température de ${temperature}°C`
+  
+  if (condition) {
+    const conditionText = 
+      condition === 'clear' ? 'ensoleillé' :
+      condition === 'clouds' ? 'nuageux' :
+      condition === 'rain' ? 'pluvieux' :
+      condition === 'snow' ? 'neigeux' :
+      condition === 'extreme' ? 'avec des conditions extrêmes' :
+      'variable'
+    
+    explanation += ` et un temps ${conditionText}`
+  } else {
+    explanation += ` et un temps ${description.toLowerCase()}`
   }
   
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') || '',
-      Deno.env.get('SUPABASE_ANON_KEY') || '',
-      {
-        global: { headers: { Authorization: req.headers.get('Authorization')! } },
-        auth: { persistSession: false }
-      }
-    );
-    
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized', message: 'User not authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Extraire les données de la requête
-    const requestData: WeatherRequest = await req.json();
-    
-    // Vérifier que les données nécessaires sont présentes
-    if (!requestData.temperature || !requestData.description || !requestData.clothes) {
-      return new Response(
-        JSON.stringify({ error: 'Missing data', message: 'temperature, description, and clothes are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Vérifier qu'il y a suffisamment de vêtements pour générer une suggestion
-    if (requestData.clothes.tops.length === 0 || 
-        requestData.clothes.bottoms.length === 0 || 
-        requestData.clothes.shoes.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Insufficient clothes', 
-          message: 'You need at least one item in each category (tops, bottoms, shoes)'
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Générer les suggestions avec Mistral
-    const suggestion = await generateMistralSuggestion(requestData);
-    
-    // Retourner les suggestions
-    return new Response(
-      JSON.stringify(suggestion),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-    
-  } catch (error) {
-    console.error('Error processing request:', error);
-    
-    return new Response(
-      JSON.stringify({ error: error.message || 'Une erreur est survenue' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+  if (windSpeed && windSpeed > 15) {
+    explanation += `, avec du vent (${windSpeed} km/h)`
   }
-});
+  
+  if (temperature < 5) {
+    explanation += `. Cette tenue privilégie la chaleur pour vous protéger du froid.`
+  } else if (temperature < 15) {
+    explanation += `. Cette tenue de mi-saison est adaptée aux températures fraîches.`
+  } else if (temperature > 25) {
+    explanation += `. Cette tenue légère est idéale pour les journées chaudes.`
+  } else {
+    explanation += `. Cette tenue est confortable pour les températures modérées.`
+  }
+  
+  if (condition === 'rain') {
+    explanation += ` Les vêtements sélectionnés vous protégeront de la pluie.`
+  } else if (condition === 'snow') {
+    explanation += ` Les vêtements choisis sont adaptés pour la neige, offrant chaleur et protection contre l'humidité.`
+  }
+
+  return {
+    suggestion: {
+      top: selectedTop.id,
+      bottom: selectedBottom.id,
+      shoes: selectedShoes.id
+    },
+    explanation
+  }
+}
+
+// Fonctions de filtrage
+function filterForColdWeather(items: ClothingItem[]): ClothingItem[] {
+  return items.filter(item => {
+    const name = item.name.toLowerCase()
+    // Conserver les vêtements chauds
+    return (
+      item.warmth === 3 || 
+      item.season === 'winter' ||
+      name.includes('pull') || 
+      name.includes('manteau') || 
+      name.includes('veste') || 
+      name.includes('sweat') || 
+      name.includes('doudoune') || 
+      name.includes('bottes') ||
+      name.includes('épais') ||
+      name.includes('chaud')
+    )
+  })
+}
+
+function filterForMildWeather(items: ClothingItem[]): ClothingItem[] {
+  return items.filter(item => {
+    const name = item.name.toLowerCase()
+    // Éviter les vêtements extrêmes (trop chauds ou trop légers)
+    return !(
+      name.includes('doudoune') || 
+      name.includes('maillot de bain') || 
+      name.includes('débardeur') ||
+      name.includes('short') ||
+      item.season === 'summer'
+    )
+  })
+}
+
+function filterForHotWeather(items: ClothingItem[]): ClothingItem[] {
+  return items.filter(item => {
+    const name = item.name.toLowerCase()
+    // Conserver les vêtements légers
+    return (
+      item.warmth === 1 || 
+      item.season === 'summer' ||
+      name.includes('t-shirt') || 
+      name.includes('débardeur') || 
+      name.includes('short') || 
+      name.includes('légère') || 
+      name.includes('sandales') ||
+      name.includes('léger')
+    )
+  })
+}
+
+function filterForRain(items: ClothingItem[]): ClothingItem[] {
+  return items.filter(item => {
+    const name = item.name.toLowerCase()
+    // Conserver les vêtements imperméables
+    return (
+      item.waterproof === true ||
+      name.includes('imperméable') || 
+      name.includes('pluie') || 
+      name.includes('veste') ||
+      name.includes('bottes') ||
+      name.includes('manteau')
+    )
+  })
+}
+
+function filterForSnow(items: ClothingItem[]): ClothingItem[] {
+  // Combiner les filtres pour temps froid et pluie
+  const coldItems = filterForColdWeather(items)
+  const rainItems = filterForRain(items)
+  
+  // Fusionner les deux listes sans doublons
+  const allIds = new Set()
+  const result = []
+  
+  for (const item of [...coldItems, ...rainItems]) {
+    if (!allIds.has(item.id)) {
+      allIds.add(item.id)
+      result.push(item)
+    }
+  }
+  
+  return result
+}

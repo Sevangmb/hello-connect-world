@@ -8,10 +8,17 @@ import { createSuggestionError, determineErrorCode } from "./errorHandling";
 import { categorizeClothingItems } from "./clothingCategorization";
 import { getCurrentUser } from "./authManager";
 
+export interface WeatherConditions {
+  temperature: number;
+  description: string;
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other';
+  windSpeed?: number;
+  humidity?: number;
+}
+
 export async function handleSuggestionProcess(
   toast: typeof toastFunction,
-  temperature: number,
-  description: string,
+  weatherConditions: WeatherConditions,
   toastId: string,
   dismissToast: () => void
 ): Promise<OutfitSuggestionResult> {
@@ -49,7 +56,7 @@ export async function handleSuggestionProcess(
     toast({
       id: toastId,
       title: "Analyse des conditions météo",
-      description: "Nous analysons la température et les conditions..."
+      description: `Nous analysons la température (${weatherConditions.temperature}°C) et les conditions (${weatherConditions.condition || 'standard'})...`
     });
 
     // Étape 5: Catégoriser les vêtements
@@ -62,11 +69,16 @@ export async function handleSuggestionProcess(
       description: "Notre IA génère une tenue adaptée à votre style et à la météo..."
     });
 
-    // Étape 7: Générer la suggestion de tenue
+    // Étape 7: Générer la suggestion de tenue avec conditions météo enrichies
     const result = await generateAISuggestion(
       clothes,
-      temperature,
-      description
+      weatherConditions.temperature,
+      weatherConditions.description,
+      true, // Use Mistral by default
+      3, // Max retries
+      weatherConditions.condition,
+      weatherConditions.windSpeed,
+      weatherConditions.humidity
     );
 
     if (result.error) {

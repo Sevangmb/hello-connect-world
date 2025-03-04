@@ -2,6 +2,9 @@
 export type WeatherOutfitSuggestionProps = {
   temperature: number;
   description: string;
+  condition?: 'clear' | 'rain' | 'clouds' | 'snow' | 'extreme' | 'other';
+  windSpeed?: number;
+  humidity?: number;
 };
 
 export interface OutfitSuggestion {
@@ -11,6 +14,7 @@ export interface OutfitSuggestion {
   explanation: string;
   temperature: number;
   description: string;
+  condition?: string;
 }
 
 interface ClothingItem {
@@ -19,4 +23,3 @@ interface ClothingItem {
   image_url: string | null;
   brand?: string;
 }
-
