@@ -15,10 +15,24 @@ export class SupabaseAuthRepository implements IAuthRepository {
    */
   async getCurrentUser(): Promise<User | null> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      // Vérifier d'abord la session actuelle
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (error) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", error);
+      if (sessionError) {
+        console.error("Erreur lors de la récupération de la session:", sessionError);
+        return null;
+      }
+      
+      if (!session) {
+        console.log("Aucune session active");
+        return null;
+      }
+      
+      // Si nous avons une session, récupérer l'utilisateur
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("Erreur lors de la récupération de l'utilisateur:", userError);
         return null;
       }
       
@@ -34,15 +48,18 @@ export class SupabaseAuthRepository implements IAuthRepository {
    */
   async signIn(email: string, password: string): Promise<AuthResult> {
     try {
+      console.log("Tentative de connexion avec", email);
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
       });
       
       if (error) {
+        console.error("Erreur de connexion:", error);
         return { user: null, error: this.formatAuthError(error) };
       }
       
+      console.log("Connexion réussie pour", email);
       eventBus.publish(AUTH_EVENTS.SIGNED_IN, { user: data.user });
       return { user: data.user, error: null };
     } catch (error) {
@@ -59,6 +76,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
    */
   async signUp(email: string, password: string, metadata?: SignUpMetadata): Promise<AuthResult> {
     try {
+      console.log("Tentative d'inscription pour", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -69,9 +87,11 @@ export class SupabaseAuthRepository implements IAuthRepository {
       });
 
       if (error) {
+        console.error("Erreur d'inscription:", error);
         return { user: null, error: this.formatAuthError(error) };
       }
       
+      console.log("Inscription réussie pour", email);
       eventBus.publish(AUTH_EVENTS.SIGNED_UP, { user: data.user });
       return { user: data.user, error: null };
     } catch (error) {
@@ -88,12 +108,15 @@ export class SupabaseAuthRepository implements IAuthRepository {
    */
   async signOut(): Promise<{ error: string | null }> {
     try {
+      console.log("Tentative de déconnexion");
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error("Erreur de déconnexion:", error);
         return { error: this.formatAuthError(error) };
       }
       
+      console.log("Déconnexion réussie");
       eventBus.publish(AUTH_EVENTS.SIGNED_OUT, {});
       return { error: null };
     } catch (error) {
@@ -106,7 +129,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
    * S'abonne aux changements d'état d'authentification
    */
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
+    console.log("Mise en place de l'écoute des changements d'authentification");
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Événement d'authentification:", event);
       if (event === 'SIGNED_OUT') {
         callback(null);
       } else if (session?.user) {
@@ -115,6 +140,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
     });
 
     return () => {
+      console.log("Nettoyage de l'écoute des changements d'authentification");
       subscription.unsubscribe();
     };
   }

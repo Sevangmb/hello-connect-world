@@ -1,10 +1,11 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
+import { supabase } from "@/integrations/supabase/client";
 
 const useAdminCheck = () => {
   const [loading, setLoading] = useState(true);
@@ -12,6 +13,7 @@ const useAdminCheck = () => {
   const { toast } = useToast();
   const authService = getAuthService();
   const userService = getUserService();
+  const location = useLocation();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -19,16 +21,40 @@ const useAdminCheck = () => {
         setLoading(true);
         
         // Vérifier la session
-        const user = await authService.getCurrentUser();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Erreur de session:", sessionError);
+          toast({
+            variant: "destructive",
+            title: "Erreur de session",
+            description: "Impossible de vérifier votre session",
+          });
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+        
+        if (!session) {
+          console.log("AdminRoute - Aucune session active");
+          toast({
+            variant: "destructive",
+            title: "Accès refusé",
+            description: "Veuillez vous connecter pour accéder à cette page",
+          });
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+        
+        const user = session.user;
         
         if (process.env.NODE_ENV === 'development') { 
-          console.log("Checking admin status for user:", user?.id); 
+          console.log("Vérification du statut admin pour l'utilisateur:", user?.id); 
         }
 
         if (!user) {
-          if (process.env.NODE_ENV === 'development') { 
-            console.log("No active session found"); 
-          }
+          console.log("AdminRoute - Utilisateur non trouvé dans la session");
           toast({
             variant: "destructive",
             title: "Accès refusé",
@@ -50,8 +76,37 @@ const useAdminCheck = () => {
           }
         }
 
-        // Vérifier si l'utilisateur est admin
+        // Vérifier si l'utilisateur est admin via RPC
+        try {
+          const { data: isUserAdmin, error: rpcError } = await supabase.rpc('is_admin', {
+            user_id: user.id
+          });
+          
+          if (rpcError) {
+            console.error("Erreur RPC is_admin:", rpcError);
+            // Continue with fallback
+          } else if (isUserAdmin !== undefined) {
+            console.log("Statut admin (via RPC):", isUserAdmin);
+            setIsAdmin(!!isUserAdmin);
+            setLoading(false);
+            
+            if (!isUserAdmin) {
+              toast({
+                variant: "destructive",
+                title: "Accès refusé",
+                description: "Vous n'avez pas les droits administrateur nécessaires",
+              });
+            }
+            
+            return;
+          }
+        } catch (rpcError) {
+          console.log("RPC is_admin non disponible, utilisation de la méthode alternative");
+        }
+
+        // Méthode alternative via le service utilisateur
         const isUserAdmin = await userService.isUserAdmin(user.id);
+        console.log("Statut admin (via service):", isUserAdmin);
         setIsAdmin(isUserAdmin);
         
         if (!isUserAdmin) {
@@ -64,7 +119,7 @@ const useAdminCheck = () => {
         
         setLoading(false);
       } catch (error) {
-        console.error("Error in admin check:", error);
+        console.error("Erreur dans la vérification du statut admin:", error);
         toast({
           variant: "destructive",
           title: "Erreur",
@@ -76,13 +131,14 @@ const useAdminCheck = () => {
     };
 
     checkAdminStatus();
-  }, [toast]);
+  }, [toast, location.pathname]);
 
   return { loading, isAdmin };
 };
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { loading, isAdmin } = useAdminCheck();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -99,10 +155,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAdmin) {
-    console.log("Access denied: User is not admin, redirecting to home");
-    return <Navigate to="/" replace />;
+    console.log("Accès refusé: L'utilisateur n'est pas admin, redirection vers la page d'accueil");
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  console.log("Admin access granted");
+  console.log("Accès admin accordé");
   return <>{children}</>;
 }

@@ -6,26 +6,34 @@ import Login from "@/components/auth/Login";
 import { Card } from "@/components/ui/card";
 
 const Auth = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (user) {
-      // Redirect to home page or the page they were trying to access
+    if (!loading && user) {
+      console.log("Auth page - Utilisateur déjà connecté, redirection");
+      // Rediriger vers la page d'origine ou la page d'accueil
       const from = location.state?.from?.pathname || "/";
       navigate(from, { replace: true });
     }
-  }, [user, navigate, location]);
+  }, [user, loading, navigate, location]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <img 
+            src="/lovable-uploads/9a2d6f53-d074-4690-bd16-a9c6c1e5f3c5.png" 
+            alt="FRING!" 
+            className="h-16 w-16 rounded-full"
+          />
+        </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Welcome back
+          Bienvenue sur FRING!
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Sign in to your account to continue
+          Connectez-vous ou créez un compte pour accéder à l'application
         </p>
       </div>
 
