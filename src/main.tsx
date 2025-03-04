@@ -1,4 +1,3 @@
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -33,6 +32,7 @@ import AdminNotifications from "@/pages/admin/AdminNotifications";
 import AdminBackup from "@/pages/admin/AdminBackup";
 import { lazy, Suspense } from "react";
 import "./index.css";
+import AdminMenuPage from "@/pages/admin/AdminMenus";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +100,7 @@ const App = () => {
         <Route path="modules" element={<AdminModules />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="help" element={<AdminHelp />} />
+        <Route path="menus" element={<AdminMenuPage />} /> {/* Ajout de la route manquante */}
         {/* Nouvelles routes d'administration */}
         <Route path="reports" element={<AdminReports />} />
         <Route path="payments" element={<AdminPayments />} />
