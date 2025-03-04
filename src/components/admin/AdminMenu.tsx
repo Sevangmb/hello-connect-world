@@ -5,7 +5,7 @@ import {
   Settings, Users, ShoppingBag, BarChart2, 
   FileText, Bell, Database, Tag, Key, AlertTriangle,
   Server, HelpCircle, LayoutDashboard, Menu, 
-  PackageOpen, CloudUpload
+  PackageOpen, CloudUpload, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +38,7 @@ export const AdminMenu: React.FC = () => {
     { name: "Tableau de bord", path: "/admin", icon: <LayoutDashboard className="h-5 w-5 mr-3" /> },
     { name: "Statistiques", path: "/admin/stats", icon: <BarChart2 className="h-5 w-5 mr-3" /> },
     { name: "Utilisateurs", path: "/admin/users", icon: <Users className="h-5 w-5 mr-3" /> },
+    { name: "Liste d'attente", path: "/admin/waitlist", icon: <Clock className="h-5 w-5 mr-3" /> },
     { name: "Commandes", path: "/admin/orders", icon: <ShoppingBag className="h-5 w-5 mr-3" /> },
     { name: "Contenu", path: "/admin/content", icon: <FileText className="h-5 w-5 mr-3" /> },
     { name: "Paramètres", path: "/admin/settings", icon: <Settings className="h-5 w-5 mr-3" /> },

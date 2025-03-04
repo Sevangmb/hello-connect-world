@@ -9,6 +9,8 @@ import { Loader2, Mail, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface WaitlistEntry {
   id: string;
@@ -24,9 +26,12 @@ const AdminWaitlist = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredEntries, setFilteredEntries] = useState<WaitlistEntry[]>([]);
+  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
+  const [isTogglingRegistration, setIsTogglingRegistration] = useState(false);
 
   useEffect(() => {
     fetchWaitlist();
+    fetchRegistrationStatus();
   }, []);
 
   useEffect(() => {
@@ -66,6 +71,74 @@ const AdminWaitlist = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRegistrationStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'registration_open')
+        .single();
+      
+      if (error) {
+        // Si le paramètre n'existe pas, on le crée avec une valeur par défaut
+        if (error.code === 'PGRST116') {
+          await supabase
+            .from('site_settings')
+            .insert({ 
+              key: 'registration_open', 
+              value: { is_open: false } 
+            });
+          setIsRegistrationOpen(false);
+        } else {
+          console.error("Erreur lors de la récupération du statut des inscriptions:", error);
+        }
+        return;
+      }
+      
+      if (data && data.value) {
+        setIsRegistrationOpen(data.value.is_open === true);
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
+
+  const toggleRegistrationStatus = async () => {
+    try {
+      setIsTogglingRegistration(true);
+      
+      const newStatus = !isRegistrationOpen;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non authentifié");
+      
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ 
+          key: 'registration_open', 
+          value: { is_open: newStatus },
+          updated_by: user.id 
+        });
+
+      if (error) throw error;
+
+      setIsRegistrationOpen(newStatus);
+      toast({
+        title: "Statut mis à jour",
+        description: `Les inscriptions sont maintenant ${newStatus ? "ouvertes" : "fermées"}`,
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut des inscriptions:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut des inscriptions",
+      });
+    } finally {
+      setIsTogglingRegistration(false);
     }
   };
 
@@ -138,8 +211,26 @@ const AdminWaitlist = () => {
           <CardTitle>Gestion de la liste d'attente</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex gap-2">
-            <div className="relative flex-grow">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="registration-status" 
+                checked={isRegistrationOpen}
+                onCheckedChange={toggleRegistrationStatus}
+                disabled={isTogglingRegistration}
+              />
+              <Label htmlFor="registration-status" className="font-medium">
+                {isRegistrationOpen ? "Inscriptions ouvertes" : "Inscriptions fermées (liste d'attente active)"}
+              </Label>
+              {isTogglingRegistration && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+            <Button onClick={() => fetchWaitlist()} variant="outline">
+              Actualiser
+            </Button>
+          </div>
+          
+          <div className="mb-4">
+            <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher par email, nom ou message..."
@@ -148,9 +239,6 @@ const AdminWaitlist = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button onClick={() => fetchWaitlist()} variant="outline">
-              Actualiser
-            </Button>
           </div>
           
           <Table>
