@@ -49,14 +49,6 @@ const queryClient = new QueryClient({
 // Récupérer les pages pour les routes
 const modulePages = ModulePageRegistry.getAllPages();
 
-// Routes disponibles sans authentification
-const alwaysAvailableRoutes = [
-  { path: "/landing", element: <Landing /> },
-  { path: "/auth", element: <Auth /> },
-  { path: "/auth/login", element: <Auth /> },
-  { path: "/auth/admin", element: <AdminLogin /> },
-];
-
 // Loading fallback pour les composants chargés dynamiquement
 const LoadingFallback = () => (
   <div className="flex min-h-screen items-center justify-center">
@@ -67,14 +59,21 @@ const LoadingFallback = () => (
 const App = () => {
   return (
     <Routes>
-      {/* Routes toujours disponibles */}
-      {alwaysAvailableRoutes.map(route => (
-        <Route key={route.path} path={route.path} element={route.element} />
-      ))}
-
-      {/* Route racine */}
+      {/* Rediriger la route racine vers /landing si non authentifié */}
       <Route
         path="/"
+        element={<Navigate to="/app" replace />}
+      />
+      
+      {/* Page d'accueil publique avec authentification intégrée */}
+      <Route path="/landing" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/login" element={<Auth />} />
+      <Route path="/auth/admin" element={<AdminLogin />} />
+      
+      {/* Application authentifiée */}
+      <Route
+        path="/app"
         element={
           <PrivateRoute>
             <Index />
@@ -122,7 +121,7 @@ const App = () => {
         <Route path="modules" element={<AdminModules />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="help" element={<AdminHelp />} />
-        <Route path="menus" element={<AdminMenuPage />} /> {/* Ajout de la route manquante */}
+        <Route path="menus" element={<AdminMenuPage />} />
         {/* Nouvelles routes d'administration */}
         <Route path="reports" element={<AdminReports />} />
         <Route path="payments" element={<AdminPayments />} />
@@ -146,7 +145,7 @@ const App = () => {
               <PrivateRoute>
                 <ModuleGuard 
                   moduleCode={page.moduleCode} 
-                  fallback={<Navigate to="/" replace />}
+                  fallback={<Navigate to="/app" replace />}
                 >
                   <Suspense fallback={<LoadingFallback />}>
                     <PageComponent />

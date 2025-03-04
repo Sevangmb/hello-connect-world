@@ -17,7 +17,7 @@ export const Auth = () => {
     if (!loading && isAuthenticated) {
       console.log("Auth page - Utilisateur déjà connecté, redirection");
       // Rediriger vers la page d'origine ou la page d'accueil
-      const from = location.state?.from?.pathname || "/";
+      const from = location.state?.from?.pathname || "/app";
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, loading, navigate, location]);

@@ -1,7 +1,7 @@
 
 /**
  * Composant de route protégée
- * Redirige vers la page d'authentification si l'utilisateur n'est pas connecté
+ * Redirige vers la page d'accueil si l'utilisateur n'est pas connecté
  */
 import * as React from 'react';
 import { Navigate, useLocation } from "react-router-dom";
@@ -27,8 +27,8 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated || !user) {
-    console.log("PrivateRoute - Non authentifié - redirection vers /auth depuis", location.pathname);
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    console.log("PrivateRoute - Non authentifié - redirection vers /landing depuis", location.pathname);
+    return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
   console.log("PrivateRoute - Authentifié - accès autorisé à", location.pathname);
