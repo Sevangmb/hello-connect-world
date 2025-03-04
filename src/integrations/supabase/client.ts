@@ -9,15 +9,63 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-// Detect auth state changes and store in localStorage for persistence
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    console.log('User signed in', session.user.id);
-    localStorage.setItem('supabase.auth.token', JSON.stringify(session));
-  } else if (event === 'SIGNED_OUT') {
-    console.log('User signed out');
-    localStorage.removeItem('supabase.auth.token');
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'fring-auth-storage',
+    detectSessionInUrl: true
   }
 });
+
+// Détecter les changements d'état d'authentification et les logger
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('Supabase Auth Event:', event, session ? 'Session active' : 'Pas de session');
+  
+  if (event === 'SIGNED_IN' && session) {
+    console.log('Utilisateur connecté:', session.user.id);
+    // Stocker les données utilisateur dans localStorage pour une meilleure persistance
+    localStorage.setItem('supabase.auth.session', JSON.stringify(session));
+  } else if (event === 'SIGNED_OUT') {
+    console.log('Utilisateur déconnecté');
+    // Nettoyer localStorage
+    localStorage.removeItem('supabase.auth.session');
+  } else if (event === 'TOKEN_REFRESHED' && session) {
+    console.log('Token rafraîchi pour:', session.user.id);
+    localStorage.setItem('supabase.auth.session', JSON.stringify(session));
+  }
+});
+
+// Fonction utilitaire pour vérifier si une session est active
+export const isSessionActive = async (): Promise<boolean> => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error("Erreur lors de la vérification de session:", error);
+      return false;
+    }
+    
+    return !!session;
+  } catch (error) {
+    console.error("Exception lors de la vérification de session:", error);
+    return false;
+  }
+};
+
+// Fonction utilitaire pour récupérer l'utilisateur courant
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error("Erreur lors de la récupération de l'utilisateur:", error);
+      return null;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error("Exception lors de la récupération de l'utilisateur:", error);
+    return null;
+  }
+};

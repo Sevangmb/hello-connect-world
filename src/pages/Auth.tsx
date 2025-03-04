@@ -6,18 +6,18 @@ import Login from "@/components/auth/Login";
 import { Card } from "@/components/ui/card";
 
 const Auth = () => {
-  const { user, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && isAuthenticated) {
       console.log("Auth page - Utilisateur déjà connecté, redirection");
       // Rediriger vers la page d'origine ou la page d'accueil
       const from = location.state?.from?.pathname || "/";
       navigate(from, { replace: true });
     }
-  }, [user, loading, navigate, location]);
+  }, [isAuthenticated, loading, navigate, location]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

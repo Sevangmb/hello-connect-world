@@ -1,10 +1,9 @@
 
 import { useState } from "react";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -14,30 +13,24 @@ const AuthForm = () => {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Rediriger si déjà authentifié
+  // Déterminer la destination de redirection après la connexion
   const from = location.state?.from?.pathname || "/";
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
       if (isSignUp) {
         // Inscription
         if (!email || !password || !username) {
-          toast({
-            variant: "destructive",
-            title: "Champs requis",
-            description: "Veuillez remplir tous les champs obligatoires",
-          });
-          setLoading(false);
+          setIsSubmitting(false);
           return;
         }
 
@@ -47,54 +40,23 @@ const AuthForm = () => {
         });
         
         if (!result.error) {
-          toast({
-            title: "Compte créé avec succès",
-            description: "Veuillez vérifier votre email pour confirmer votre compte.",
-          });
           // Basculer vers le formulaire de connexion
           setIsSignUp(false);
         }
       } else {
         // Connexion
         if (!email || !password) {
-          toast({
-            variant: "destructive",
-            title: "Champs requis",
-            description: "Email et mot de passe sont requis",
-          });
-          setLoading(false);
+          setIsSubmitting(false);
           return;
         }
 
         const result = await signIn(email, password);
         if (!result.error) {
-          toast({
-            title: "Connexion réussie",
-            description: "Bienvenue sur FRING!",
-          });
           navigate(from, { replace: true });
         }
       }
-    } catch (err: any) {
-      let errorMessage = "Une erreur est survenue";
-      
-      if (err.message === "Invalid login credentials") {
-        errorMessage = "Email ou mot de passe incorrect";
-      } else if (err.message.includes("Email not confirmed")) {
-        errorMessage = "Veuillez confirmer votre email avant de vous connecter";
-      } else if (err.message.includes("already registered")) {
-        errorMessage = "Cet email est déjà enregistré";
-      } else if (err.message.includes("username already exists")) {
-        errorMessage = "Ce nom d'utilisateur existe déjà";
-      }
-      
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -122,6 +84,7 @@ const AuthForm = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Nom d'utilisateur"
                 required={isSignUp}
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
@@ -132,6 +95,7 @@ const AuthForm = () => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Nom complet"
+                disabled={isSubmitting}
               />
             </div>
           </>
@@ -146,6 +110,7 @@ const AuthForm = () => {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="votre@email.com"
             required
+            disabled={isSubmitting}
           />
         </div>
         
@@ -160,11 +125,13 @@ const AuthForm = () => {
               placeholder="••••••••"
               required
               className="pr-10"
+              disabled={isSubmitting}
             />
             <button
               type="button" 
               onClick={togglePasswordVisibility}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              disabled={isSubmitting}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -181,9 +148,9 @@ const AuthForm = () => {
         <Button
           type="submit"
           className="w-full"
-          disabled={loading}
+          disabled={isSubmitting}
         >
-          {loading ? (
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {isSignUp ? "Création du compte..." : "Connexion..."}
@@ -199,6 +166,7 @@ const AuthForm = () => {
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
             className="text-primary hover:underline font-medium"
+            disabled={isSubmitting}
           >
             {isSignUp ? "Se connecter" : "S'inscrire"}
           </button>
