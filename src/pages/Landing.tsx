@@ -43,7 +43,7 @@ const Landing = () => {
           return;
         }
         
-        if (data && data.value) {
+        if (data && typeof data.value === 'object' && data.value !== null) {
           setWaitlistOpen(data.value.is_open === false);
         }
       } catch (error) {

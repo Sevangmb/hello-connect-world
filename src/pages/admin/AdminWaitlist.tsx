@@ -98,7 +98,7 @@ const AdminWaitlist = () => {
         return;
       }
       
-      if (data && data.value) {
+      if (data && typeof data.value === 'object' && data.value !== null) {
         setIsRegistrationOpen(data.value.is_open === true);
       }
     } catch (error) {
