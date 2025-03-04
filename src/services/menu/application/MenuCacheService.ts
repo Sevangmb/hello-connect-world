@@ -7,44 +7,53 @@ import { CACHE_VALIDITY_MS } from "@/hooks/modules/constants";
  * Couche Application de la Clean Architecture
  */
 export class MenuCacheService {
-  private cache: {
-    items: MenuItem[];
-    timestamp: number;
-  } = {
-    items: [],
-    timestamp: 0
-  };
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
   
   /**
-   * Vérifie si le cache est valide
+   * Récupère des données du cache
+   * @param key Clé du cache
+   * @returns Données en cache ou null si non trouvées ou expirées
    */
-  isCacheValid(): boolean {
+  getCache<T>(key: string): T | null {
+    const cached = this.cache.get(key);
+    
+    if (!cached) {
+      return null;
+    }
+    
     const now = Date.now();
-    return this.cache.items.length > 0 && (now - this.cache.timestamp) < CACHE_VALIDITY_MS;
+    if (now - cached.timestamp > CACHE_VALIDITY_MS) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return cached.data as T;
   }
   
   /**
-   * Récupère les éléments du cache
+   * Met en cache des données
+   * @param key Clé du cache
+   * @param data Données à mettre en cache
    */
-  getCachedItems(): MenuItem[] {
-    return this.cache.items;
-  }
-  
-  /**
-   * Met à jour le cache
-   * @param items Nouveaux éléments à mettre en cache
-   */
-  updateCache(items: MenuItem[]): void {
-    this.cache = {
-      items,
+  setCache<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
       timestamp: Date.now()
-    };
+    });
   }
   
   /**
-   * Invalide le cache
+   * Invalide le cache complet
    */
   invalidateCache(): void {
-    this.cache.timestamp = 0;
+    this.cache.clear();
+  }
+  
+  /**
+   * Efface le cache complet
+   * Alias de invalidateCache pour la compatibilité
+   */
+  clearCache(): void {
+    this.invalidateCache();
   }
 }

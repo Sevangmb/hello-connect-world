@@ -109,13 +109,14 @@ export class SupabaseMenuRepository implements IMenuRepository {
   
   /**
    * Met à jour un élément de menu
-   * @param menuItem Élément de menu à mettre à jour
+   * @param id Identifiant de l'élément à mettre à jour
+   * @param updates Mises à jour à appliquer
    */
-  async updateMenuItem(menuItem: Partial<MenuItem> & { id: string }): Promise<MenuItem> {
+  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem> {
     const { data, error } = await supabase
       .from('menu_items')
-      .update(menuItem)
-      .eq('id', menuItem.id)
+      .update(updates)
+      .eq('id', id)
       .select()
       .single();
     
@@ -150,7 +151,7 @@ export class SupabaseMenuRepository implements IMenuRepository {
    * Supprime un élément de menu
    * @param id Identifiant de l'élément de menu
    */
-  async deleteMenuItem(id: string): Promise<void> {
+  async deleteMenuItem(id: string): Promise<boolean> {
     const { error } = await supabase
       .from('menu_items')
       .delete()
@@ -159,7 +160,10 @@ export class SupabaseMenuRepository implements IMenuRepository {
     if (error) {
       console.error(`Erreur lors de la suppression de l'élément de menu:`, error);
       throw error;
+      return false;
     }
+    
+    return true;
   }
   
   /**
