@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 export interface WeatherData {
   current: {
     temp: number;
+    feelsLike?: number;
     humidity: number;
     windSpeed: number;
     description: string;

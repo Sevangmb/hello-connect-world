@@ -58,17 +58,21 @@ serve(async (req) => {
       JSON.stringify({
         current: {
           temp: Math.round(currentData.main.temp),
+          feelsLike: Math.round(currentData.main.feels_like),
           humidity: currentData.main.humidity,
           windSpeed: Math.round(currentData.wind.speed * 3.6),
           description: currentData.weather[0].description,
           icon: currentData.weather[0].icon,
         },
-        forecasts: forecastData.list.slice(0, 5).map((item: any) => ({
-          date: new Date(item.dt * 1000).toLocaleDateString('fr-FR', { weekday: 'short' }),
-          temp: Math.round(item.main.temp),
-          description: item.weather[0].description,
-          icon: item.weather[0].icon,
-        })),
+        forecasts: forecastData.list
+          .filter((item: any, index: number) => index % 8 === 0) // Un point par jour environ
+          .slice(0, 5)
+          .map((item: any) => ({
+            date: new Date(item.dt * 1000).toLocaleDateString('fr-FR', { weekday: 'short' }),
+            temp: Math.round(item.main.temp),
+            description: item.weather[0].description,
+            icon: item.weather[0].icon,
+          })),
         location: {
           name: currentData.name,
           country: currentData.sys.country,

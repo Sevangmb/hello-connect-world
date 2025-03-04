@@ -1,23 +1,39 @@
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw, Shirt, Footprints, ShoppingBag } from "lucide-react";
 import { ClothingItemCard } from "./components/ClothingItemCard";
 import { useOutfitSuggestion } from "./hooks/useOutfitSuggestion";
 import type { WeatherOutfitSuggestionProps } from "./types/weather";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
+import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOutfitSuggestionProps) => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { data: suggestion, isLoading, error, refetch } = useOutfitSuggestion(temperature, description);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
     // Invalider le cache et relancer la requête
     queryClient.invalidateQueries({
       queryKey: ["outfit-suggestion", temperature, description]
     });
-    refetch();
+    
+    toast({
+      title: "Actualisation en cours",
+      description: "Nous générons une nouvelle suggestion de tenue pour vous.",
+    });
+    
+    try {
+      await refetch();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (isLoading) {
@@ -53,8 +69,9 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
             size="sm" 
             onClick={handleRefresh}
             className="flex items-center gap-1"
+            disabled={isRefreshing}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Réessayer
           </Button>
         </div>
@@ -74,8 +91,17 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
     );
   }
 
+  // Formatage amélioré du temps
+  const formatWeatherDescription = (desc: string) => {
+    return desc.charAt(0).toLowerCase() + desc.slice(1);
+  };
+
   return (
-    <Card className="p-6">
+    <Card className="p-6 overflow-hidden relative">
+      {/* Élément décoratif */}
+      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-primary/5 -z-10" />
+      <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-primary/5 -z-10" />
+      
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -86,25 +112,42 @@ export const WeatherOutfitSuggestion = ({ temperature, description }: WeatherOut
           size="sm" 
           onClick={handleRefresh}
           className="flex items-center gap-1"
+          disabled={isRefreshing}
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Actualiser
         </Button>
       </div>
+      
       <p className="text-muted-foreground mb-4">
-        Pour une température de {suggestion.temperature}°C et un temps {suggestion.description}
+        Pour une température de <span className="font-medium">{suggestion.temperature}°C</span> et un temps <span className="font-medium">{formatWeatherDescription(suggestion.description)}</span>
       </p>
       
       {suggestion.explanation && (
-        <p className="mb-6 text-sm bg-muted p-4 rounded-lg">
-          {suggestion.explanation}
-        </p>
+        <div className="mb-6 text-sm bg-muted/50 p-4 rounded-lg border border-muted">
+          <p className="italic">{suggestion.explanation}</p>
+        </div>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Shirt className="h-4 w-4 text-primary" />
+          <h3 className="font-medium">Votre tenue recommandée</h3>
+        </div>
+        <Separator className="mb-4" />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <ClothingItemCard type="top" item={suggestion.top} />
         <ClothingItemCard type="bottom" item={suggestion.bottom} />
         <ClothingItemCard type="shoes" item={suggestion.shoes} />
+      </div>
+      
+      <div className="mt-6 pt-4 border-t border-muted">
+        <p className="text-xs text-muted-foreground text-center">
+          Les suggestions sont basées sur votre garde-robe et les conditions météorologiques actuelles.
+          <br />Ajoutez plus de vêtements à votre collection pour des suggestions plus variées.
+        </p>
       </div>
     </Card>
   );
