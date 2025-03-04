@@ -24,8 +24,16 @@ export const EmailPasswordForm: React.FC<EmailPasswordFormProps> = ({
 }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <EmailField email={email} setEmail={setEmail} />
-      <PasswordField password={password} setPassword={setPassword} />
+      <EmailField 
+        email={email} 
+        onChange={(e) => setEmail(e.target.value)} 
+        isSubmitting={isSubmitting} 
+      />
+      <PasswordField 
+        password={password} 
+        onChange={(e) => setPassword(e.target.value)} 
+        isSubmitting={isSubmitting} 
+      />
       <LoginButton isSubmitting={isSubmitting} />
       <LoginFooter />
     </form>

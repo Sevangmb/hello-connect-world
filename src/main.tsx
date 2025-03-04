@@ -15,7 +15,7 @@ const queryClient = new QueryClient({
       retry: 1,              // Réduire les tentatives pour économiser des requêtes
       refetchOnWindowFocus: false, // Désactiver le rechargement auto lors du retour sur l'onglet
       staleTime: 2 * 60 * 1000,    // Données fraîches pendant 2 minutes
-      cacheTime: 10 * 60 * 1000,   // Conserver en cache 10 minutes
+      gcTime: 10 * 60 * 1000,      // Conserver en cache 10 minutes (remplace cacheTime)
     },
   },
 });
