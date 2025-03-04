@@ -1,7 +1,8 @@
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Route } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useModulePriority } from '@/hooks/modules/hooks/useModulePriority';
 
 // Lazy load des composants pour réduire le bundle initial
 const Landing = lazy(() => import('@/pages/Landing'));
@@ -22,6 +23,27 @@ const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminWaitlist = lazy(() => import('@/pages/admin/AdminWaitlist'));
 // ... autres pages admin
 
+// Préchargement intelligent des routes les plus utilisées
+const preloadRoutes = () => {
+  // Déterminer la page d'accueil en fonction du statut de connexion
+  const isLoggedIn = !!localStorage.getItem('supabase.auth.token');
+  
+  // Précharger les routes principales en fonction du statut
+  if (isLoggedIn) {
+    import('@/pages/Home');
+    import('@/components/RootLayout');
+  } else {
+    import('@/pages/Auth');
+    import('@/pages/Landing');
+  }
+  
+  // Préchargement différé des autres routes importantes
+  setTimeout(() => {
+    import('@/components/auth/PrivateRoute');
+    import('@/components/home/PrelaunchRedirect');
+  }, 2000);
+};
+
 const LoadingFallback = () => (
   <div className="flex h-[50vh] w-full items-center justify-center">
     <LoadingSpinner size="md" />
@@ -29,6 +51,16 @@ const LoadingFallback = () => (
 );
 
 export default function MainRoutes() {
+  const { preloadPriorityModules } = useModulePriority();
+  
+  useEffect(() => {
+    // Précharger les routes
+    preloadRoutes();
+    
+    // Précharger les modules prioritaires
+    preloadPriorityModules();
+  }, [preloadPriorityModules]);
+  
   return (
     <Suspense fallback={<LoadingFallback />}>
       <PrelaunchRedirect>

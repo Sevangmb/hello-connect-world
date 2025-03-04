@@ -1,9 +1,10 @@
+
 /**
  * Core functionality for modules system
  * This file contains the main hook for modules management
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useModuleDataFetcher, ConnectionStatus } from "./fetcher";
 import { useStatusManager } from "./statusManager";
 import { useModuleActive } from "./useModuleActive";
@@ -11,6 +12,10 @@ import { useModuleEffects } from "./useModuleEffects";
 import { useModuleApiContext } from "./ModuleApiContext";
 import { AppModule } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+
+// Cache pour optimiser les performances entre les rendus
+const modulesCache = new Map<string, {data: AppModule[], timestamp: number}>();
+const CACHE_VALIDITY = 60000; // 1 minute
 
 /**
  * Main hook for module management
@@ -23,6 +28,8 @@ export const useModuleCore = () => {
   const [localModules, setLocalModules] = useState<AppModule[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [forcedInitComplete, setForcedInitComplete] = useState(false);
+  const initAttempts = useRef(0);
+  const isMountedRef = useRef(true);
   
   // Récupérer les données des modules et dépendances
   const {
@@ -40,6 +47,32 @@ export const useModuleCore = () => {
     connectionStatus
   } = useModuleDataFetcher();
 
+  // Optimiser le chargement avec une fonction mémoïsée
+  const cachedFetchModules = useCallback(async (force = false) => {
+    // Vérifier le cache sauf si force est true
+    const cacheKey = 'all_modules';
+    if (!force && modulesCache.has(cacheKey)) {
+      const cache = modulesCache.get(cacheKey);
+      if (cache && (Date.now() - cache.timestamp < CACHE_VALIDITY)) {
+        console.log('Utilisation des modules depuis le cache en mémoire');
+        return cache.data;
+      }
+    }
+    
+    // Récupérer les données
+    const result = await fetchModules();
+    
+    // Mettre à jour le cache si nous avons des données
+    if (result && result.length > 0) {
+      modulesCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+      });
+    }
+    
+    return result;
+  }, [fetchModules]);
+
   // Obtenir les fonctions de gestion des statuts
   const {
     updateModuleStatus: updateModule,
@@ -55,42 +88,88 @@ export const useModuleCore = () => {
   } = useModuleActive(modules, features);
 
   // Configurer les effets et abonnements
-  useModuleEffects(modules, setModules, fetchModules, fetchDependencies, fetchFeatures);
+  useModuleEffects(modules, setModules, cachedFetchModules, fetchDependencies, fetchFeatures);
+
+  // Nettoyer lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Utiliser les modules du cache si disponibles, sinon charger depuis Supabase
   useEffect(() => {
     const initializeModules = async () => {
       try {
-        if (!isInitialized) {
+        if (!isInitialized && isMountedRef.current) {
           console.log("Initialisation des modules dans useModuleCore");
+          initAttempts.current += 1;
           
+          // Essayer d'abord de charger depuis le localStorage pour un chargement ultra-rapide
+          try {
+            const cachedModulesData = localStorage.getItem('modules_cache');
+            if (cachedModulesData) {
+              const parsedCache = JSON.parse(cachedModulesData);
+              const now = Date.now();
+              const validCachedModules: AppModule[] = [];
+              
+              // Vérifier chaque module dans le cache
+              Object.entries(parsedCache).forEach(([, moduleData]: [string, any]) => {
+                if (moduleData.timestamp && (now - moduleData.timestamp < 300000)) { // 5 minutes
+                  if (moduleData.data) {
+                    validCachedModules.push(moduleData.data);
+                  }
+                }
+              });
+              
+              if (validCachedModules.length > 0) {
+                console.log("Modules chargés depuis le cache local:", validCachedModules.length);
+                if (isMountedRef.current) {
+                  setLocalModules(validCachedModules);
+                  setModules(validCachedModules);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Erreur lors du chargement du cache local:", e);
+          }
+          
+          // Essayer ensuite l'API des modules
           if (!moduleApi.loading && moduleApi.isInitialized) {
-            const modulesData = await moduleApi.refreshModules(true);
+            const modulesData = await moduleApi.refreshModules(initAttempts.current > 1);
             console.log("Modules chargés depuis l'API:", modulesData?.length || 0);
             
-            if (modulesData && modulesData.length > 0) {
+            if (modulesData && modulesData.length > 0 && isMountedRef.current) {
               setLocalModules(modulesData);
               setModules(modulesData);
             } else {
               // Essayer de charger directement depuis le fetcher
-              const directModules = await fetchModules();
+              const directModules = await cachedFetchModules();
               console.log("Modules chargés directement:", directModules?.length || 0);
-              setLocalModules(directModules);
+              if (isMountedRef.current) {
+                setLocalModules(directModules);
+              }
             }
           } else {
             // Si l'API n'est pas prête, charger directement
             console.log("API non prête, chargement direct des modules");
-            const directModules = await fetchModules();
+            const directModules = await cachedFetchModules();
             console.log("Modules chargés directement:", directModules?.length || 0);
-            setLocalModules(directModules);
+            if (isMountedRef.current) {
+              setLocalModules(directModules);
+            }
           }
           
-          setIsInitialized(true);
+          if (isMountedRef.current) {
+            setIsInitialized(true);
+          }
         }
       } catch (error) {
         console.error("Erreur lors de l'initialisation des modules:", error);
         // Essayer de continuer même en cas d'erreur
-        setIsInitialized(true);
+        if (isMountedRef.current) {
+          setIsInitialized(true);
+        }
       }
     };
     
@@ -98,27 +177,27 @@ export const useModuleCore = () => {
     
     // Force initialization to complete after a timeout
     const timer = setTimeout(() => {
-      if (!isInitialized) {
+      if (!isInitialized && isMountedRef.current) {
         console.log("Forcing initialization completion after timeout");
         setIsInitialized(true);
         setForcedInitComplete(true);
       }
-    }, 5000);
+    }, 3000); // Réduit de 5000 à 3000ms pour améliorer les performances perçues
     
     return () => clearTimeout(timer);
-  }, [moduleApi, setModules, isInitialized, fetchModules]);
+  }, [moduleApi, setModules, isInitialized, cachedFetchModules]);
   
   // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
   useEffect(() => {
-    if (isInitialized && (localModules.length === 0 || modules.length === 0)) {
+    if (isInitialized && isMountedRef.current && (localModules.length === 0 || modules.length === 0)) {
       const timer = setTimeout(async () => {
         console.log("Tentative de rechargement des modules après timeout");
         try {
-          const directModules = await fetchModules();
-          if (directModules.length > 0) {
+          const directModules = await cachedFetchModules(true); // Force refresh
+          if (directModules.length > 0 && isMountedRef.current) {
             setLocalModules(directModules);
             setModules(directModules);
-          } else if (forcedInitComplete) {
+          } else if (forcedInitComplete && isMountedRef.current) {
             // If we completed initialization via timeout and still don't have modules,
             // try one more direct fetch from Supabase
             try {
@@ -127,7 +206,7 @@ export const useModuleCore = () => {
                 .select('*')
                 .order('name');
                 
-              if (data && data.length > 0) {
+              if (data && data.length > 0 && isMountedRef.current) {
                 // Ensure we have proper ModuleStatus types
                 const typedModules = data.map(module => {
                   let status = module.status;
@@ -139,8 +218,10 @@ export const useModuleCore = () => {
                 });
                 
                 console.log("Modules chargés via fetch de secours:", typedModules.length);
-                setLocalModules(typedModules);
-                setModules(typedModules);
+                if (isMountedRef.current) {
+                  setLocalModules(typedModules);
+                  setModules(typedModules);
+                }
               }
             } catch (e) {
               console.error("Erreur lors du fetch de secours:", e);
@@ -149,14 +230,20 @@ export const useModuleCore = () => {
         } catch (e) {
           console.error("Erreur lors du rechargement des modules:", e);
         }
-      }, 3000);
+      }, 2000); // Réduit de 3000 à 2000ms
       
       return () => clearTimeout(timer);
     }
-  }, [isInitialized, localModules.length, modules.length, fetchModules, setModules, forcedInitComplete]);
+  }, [isInitialized, localModules.length, modules.length, cachedFetchModules, setModules, forcedInitComplete]);
+
+  // Mémoïser les modules pour de meilleures performances
+  const memoizedModules = useMemo(() => 
+    localModules.length > 0 ? localModules : modules, 
+    [localModules, modules]
+  );
 
   return {
-    modules: localModules.length > 0 ? localModules : modules,
+    modules: memoizedModules,
     dependencies,
     loading: loading || moduleApi.loading,
     error: error || moduleApi.error,
@@ -167,7 +254,7 @@ export const useModuleCore = () => {
     updateModule,
     updateFeature,
     updateFeatureSilent,
-    fetchModules,
+    fetchModules: cachedFetchModules,
     fetchDependencies,
     fetchFeatures,
     setModules,

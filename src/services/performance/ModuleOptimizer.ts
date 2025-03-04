@@ -1,121 +1,159 @@
 
 /**
  * Service d'optimisation des modules
- * Gère le chargement prioritaire des modules et l'optimisation des performances
+ * Gère le préchargement intelligent et prioritisé des modules
  */
-import { AppModule } from '@/hooks/modules/types';
-
-// Priorités des modules (plus petit = plus prioritaire)
-const MODULE_PRIORITIES: Record<string, number> = {
-  'core': 0,   // Core est toujours prioritaire
-  'admin': 1,  // Admin est le second plus prioritaire
-  'menu': 2,   // Menu est le troisième plus prioritaire
-  'user': 3,   // User est quatrième
-  'auth': 4,   // Auth est cinquième
-  // Les autres modules auront une priorité par défaut plus basse
-};
-
-// Délai maximum pour considérer le cache comme valide (30 min)
-const CACHE_MAX_AGE = 30 * 60 * 1000;
+import { supabase } from '@/integrations/supabase/client';
 
 class ModuleOptimizer {
-  /**
-   * Trie les modules par priorité pour chargement optimal
-   */
-  sortModulesByPriority(modules: AppModule[]): AppModule[] {
-    return [...modules].sort((a, b) => {
-      const priorityA = MODULE_PRIORITIES[a.code] || 99;
-      const priorityB = MODULE_PRIORITIES[b.code] || 99;
-      return priorityA - priorityB;
-    });
+  private priorityModules: string[] = ['auth', 'core', 'admin'];
+  private preloadedModules: Set<string> = new Set();
+  private isInitialized: boolean = false;
+
+  constructor() {
+    // Initialiser au démarrage
+    this.initialize();
   }
 
   /**
-   * Retourne uniquement les modules essentiels pour le premier chargement
+   * Initialise le service d'optimisation
    */
-  getEssentialModules(modules: AppModule[]): AppModule[] {
-    return modules.filter(module => 
-      module.is_core || 
-      MODULE_PRIORITIES[module.code] < 3 ||
-      module.status === 'active'
-    );
+  private async initialize(): Promise<void> {
+    // Ne pas réinitialiser si déjà fait
+    if (this.isInitialized) return;
+
+    // Récupérer les priorités de module depuis le cache si disponible
+    const cachedPriorities = localStorage.getItem('module_priorities');
+    if (cachedPriorities) {
+      try {
+        const parsedPriorities = JSON.parse(cachedPriorities);
+        if (Array.isArray(parsedPriorities) && parsedPriorities.length > 0) {
+          this.priorityModules = parsedPriorities;
+          console.log('Priorités de modules chargées depuis le cache:', this.priorityModules);
+        }
+      } catch (e) {
+        console.error('Erreur lors du chargement des priorités de modules:', e);
+        // Continuer avec les priorités par défaut
+      }
+    }
+
+    // Marquer comme initialisé
+    this.isInitialized = true;
+    
+    // Mettre à jour les priorités en arrière-plan
+    this.updateModulePriorities();
   }
 
   /**
    * Précharge les modules prioritaires
    */
-  preloadPriorityModules(): void {
-    // Récupérer les modules depuis le cache
-    try {
-      const cachedModules = localStorage.getItem('modules_cache');
-      if (cachedModules) {
-        const modules = JSON.parse(cachedModules) as AppModule[];
-        const essentialModules = this.getEssentialModules(modules);
-        
-        // Mettre en cache prioritaire (sessionStorage pour accès plus rapide)
-        sessionStorage.setItem('priority_modules', JSON.stringify(essentialModules));
-      }
-    } catch (error) {
-      console.error('Erreur lors du préchargement des modules prioritaires:', error);
-    }
-  }
-
-  /**
-   * Vérifie si le cache est valide
-   */
-  isCacheValid(): boolean {
-    try {
-      const timestamp = localStorage.getItem('modules_cache_timestamp');
-      if (!timestamp) return false;
-      
-      const cacheTime = parseInt(timestamp, 10);
-      const now = Date.now();
-      
-      return (now - cacheTime) < CACHE_MAX_AGE;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Optimise la stratégie de mise en cache
-   */
-  optimizeCache(modules: AppModule[]): void {
-    try {
-      // Stocker les modules complets dans localStorage
-      localStorage.setItem('modules_cache', JSON.stringify(modules));
-      localStorage.setItem('modules_cache_timestamp', Date.now().toString());
-      
-      // Stocker les modules essentiels dans sessionStorage pour accès plus rapide
-      const essentialModules = this.getEssentialModules(modules);
-      sessionStorage.setItem('priority_modules', JSON.stringify(essentialModules));
-      
-      // Stocker les statuts de modules dans un format plus léger pour vérifications rapides
-      const moduleStatuses: Record<string, string> = {};
-      modules.forEach(module => {
-        moduleStatuses[module.code] = module.status;
+  public preloadPriorityModules(): void {
+    // Précharger en arrière-plan les modules prioritaires
+    setTimeout(() => {
+      this.priorityModules.forEach(moduleCode => {
+        if (!this.preloadedModules.has(moduleCode)) {
+          this.preloadModule(moduleCode);
+        }
       });
-      sessionStorage.setItem('module_statuses', JSON.stringify(moduleStatuses));
+    }, 100);
+  }
+
+  /**
+   * Précharge un module spécifique
+   */
+  private async preloadModule(moduleCode: string): Promise<void> {
+    if (this.preloadedModules.has(moduleCode)) return;
+
+    try {
+      // Marquer comme préchargé pour éviter les duplications
+      this.preloadedModules.add(moduleCode);
+      
+      // Précharger les données du module
+      const { data } = await supabase
+        .from('app_modules')
+        .select('*')
+        .eq('code', moduleCode)
+        .single();
+      
+      if (data) {
+        // Mettre en cache les données du module
+        const moduleCache = localStorage.getItem('modules_cache') || '{}';
+        const modulesData = JSON.parse(moduleCache);
+        modulesData[moduleCode] = {
+          data,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('modules_cache', JSON.stringify(modulesData));
+        
+        console.log(`Module ${moduleCode} préchargé avec succès`);
+        
+        // Précharger également les fonctionnalités du module
+        this.preloadModuleFeatures(moduleCode);
+      }
     } catch (error) {
-      console.error('Erreur lors de l\'optimisation du cache:', error);
+      console.error(`Erreur lors du préchargement du module ${moduleCode}:`, error);
     }
   }
 
   /**
-   * Récupère rapidement les modules essentiels
+   * Précharge les fonctionnalités d'un module
    */
-  getQuickStartModules(): AppModule[] | null {
+  private async preloadModuleFeatures(moduleCode: string): Promise<void> {
     try {
-      const priorityModules = sessionStorage.getItem('priority_modules');
-      if (priorityModules) {
-        return JSON.parse(priorityModules);
+      const { data } = await supabase
+        .from('module_features')
+        .select('*')
+        .eq('module_code', moduleCode);
+      
+      if (data && data.length > 0) {
+        // Mettre en cache les fonctionnalités
+        const featuresCache = localStorage.getItem('features_cache') || '{}';
+        const featuresData = JSON.parse(featuresCache);
+        featuresData[moduleCode] = {
+          data,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('features_cache', JSON.stringify(featuresData));
+        
+        console.log(`Fonctionnalités du module ${moduleCode} préchargées avec succès`);
       }
-      return null;
     } catch (error) {
-      return null;
+      console.error(`Erreur lors du préchargement des fonctionnalités du module ${moduleCode}:`, error);
+    }
+  }
+
+  /**
+   * Met à jour les priorités des modules en fonction de l'utilisation
+   */
+  private async updateModulePriorities(): Promise<void> {
+    try {
+      // Récupérer les statistiques d'utilisation des modules si disponibles
+      const { data } = await supabase
+        .from('module_usage_stats')
+        .select('*')
+        .order('usage_count', { ascending: false })
+        .limit(10);
+      
+      if (data && data.length > 0) {
+        // Extraire les codes de module par ordre de priorité
+        const newPriorities = data.map(stat => stat.module_code);
+        
+        // Fusionner avec les priorités existantes
+        const mergedPriorities = [...new Set([...newPriorities, ...this.priorityModules])];
+        
+        // Mettre à jour les priorités
+        this.priorityModules = mergedPriorities;
+        
+        // Mettre en cache les nouvelles priorités
+        localStorage.setItem('module_priorities', JSON.stringify(this.priorityModules));
+        
+        console.log('Priorités de modules mises à jour:', this.priorityModules);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des priorités de modules:', error);
     }
   }
 }
 
-// Exporter une instance unique
+// Exporter une instance singleton
 export const moduleOptimizer = new ModuleOptimizer();
