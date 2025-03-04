@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { AdminLoginBypass } from '@/components/admin/AdminLoginBypass';
 
 // Utiliser lazy loading pour les routes principales
 const MainRoutes = lazy(() => import('./routes/MainRoutes'));
@@ -48,17 +49,22 @@ export default function App() {
   }, []);
   
   return (
-    <Suspense fallback={
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="flex flex-col items-center">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-muted-foreground">Chargement en cours...</p>
+    <>
+      <Suspense fallback={
+        <div className="flex h-screen w-full items-center justify-center">
+          <div className="flex flex-col items-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-muted-foreground">Chargement en cours...</p>
+          </div>
         </div>
-      </div>
-    }>
-      <Routes>
-        <Route path="/*" element={<MainRoutes />} />
-      </Routes>
-    </Suspense>
+      }>
+        <Routes>
+          <Route path="/*" element={<MainRoutes />} />
+        </Routes>
+      </Suspense>
+      
+      {/* Afficher le bouton de bypass admin en mode développement */}
+      {process.env.NODE_ENV === 'development' && <AdminLoginBypass />}
+    </>
   );
 }

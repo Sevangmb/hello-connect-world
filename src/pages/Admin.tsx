@@ -1,34 +1,24 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAdminAccess = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          navigate("/auth");
-          return;
-        }
-
-        const { data: isAdmin } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        });
-
-        if (!isAdmin) {
-          navigate("/");
-        }
-      } catch (error) {
-        console.error("Error checking admin access:", error);
-        navigate("/auth");
-      }
-    };
-
-    checkAdminAccess();
+    // Rediriger automatiquement vers le dashboard admin
+    navigate("/admin/dashboard");
   }, [navigate]);
 
-  return null; // This component now only handles authentication, routing is managed by App.tsx
+  // Afficher un écran de chargement pendant la redirection
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <LoadingSpinner size="lg" />
+        <p className="text-muted-foreground">Redirection vers le panneau d'administration...</p>
+      </div>
+    </div>
+  );
 }

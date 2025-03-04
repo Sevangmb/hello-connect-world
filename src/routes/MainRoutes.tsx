@@ -75,11 +75,12 @@ export default function MainRoutes() {
             <Route path="/app/*" element={<PrivateRoute><Home /></PrivateRoute>} />
           </Route>
           
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          <Route element={<AdminLayout />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+          {/* Correction des routes admin pour qu'elles soient correctement imbriquées */}
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="waitlist" element={<AdminWaitlist />} />
             {/* Autres routes admin gardées identiques */}
           </Route>
           

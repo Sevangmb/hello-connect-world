@@ -8,16 +8,29 @@ import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useAdminStatus } from "../hooks/useAdminStatus";
+import { useToast } from "@/hooks/use-toast";
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAuthenticated, refreshAuth } = useAuth();
   const { isUserAdmin, loading: adminLoading } = useAdminStatus();
   const location = useLocation();
+  const { toast } = useToast();
 
   React.useEffect(() => {
-    console.log("AdminRoute - Vérification de l'authentification");
+    console.log("AdminRoute - Vérification de l'authentification et des droits admin");
     refreshAuth();
   }, [refreshAuth, location.pathname]);
+
+  // Afficher le statut pour le débogage
+  React.useEffect(() => {
+    console.log("Admin route status:", {
+      isAuthenticated,
+      isUserAdmin,
+      loading,
+      adminLoading,
+      path: location.pathname
+    });
+  }, [isAuthenticated, isUserAdmin, loading, adminLoading, location.pathname]);
 
   if (loading || adminLoading) {
     return (
@@ -28,12 +41,22 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated || !user) {
-    console.log("AdminRoute - Non authentifié - redirection vers /landing depuis", location.pathname);
-    return <Navigate to="/landing" state={{ from: location }} replace />;
+    console.log("AdminRoute - Non authentifié - redirection vers /auth depuis", location.pathname);
+    toast({
+      title: "Accès refusé",
+      description: "Veuillez vous connecter pour accéder à cette page",
+      variant: "destructive"
+    });
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (!isUserAdmin) {
     console.log("AdminRoute - Non admin - redirection vers /app");
+    toast({
+      title: "Accès refusé",
+      description: "Vous n'avez pas les droits d'administration nécessaires",
+      variant: "destructive"
+    });
     return <Navigate to="/app" replace />;
   }
 
