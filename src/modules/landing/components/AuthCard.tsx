@@ -13,7 +13,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ waitlistOpen }) => {
   const [submitted, setSubmitted] = useState(false);
 
   return (
-    <Card className="border shadow-lg">
+    <Card className="border shadow-lg dark:bg-gray-800 dark:border-gray-700">
       <div className="p-6">
         <div className="flex justify-center mb-6">
           <img 
@@ -33,7 +33,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({ waitlistOpen }) => {
           </>
         ) : (
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-center mb-4">Accéder à votre compte</h3>
+            <h3 className="text-xl font-semibold text-center mb-4 dark:text-white">Accéder à votre compte</h3>
             <Login />
           </div>
         )}
