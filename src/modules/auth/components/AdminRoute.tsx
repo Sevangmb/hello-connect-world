@@ -11,7 +11,7 @@ import { useAdminStatus } from "../hooks/useAdminStatus";
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, isAuthenticated, refreshAuth } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdminStatus();
+  const { isUserAdmin, loading: adminLoading } = useAdminStatus();
   const location = useLocation();
 
   React.useEffect(() => {
@@ -32,7 +32,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
+  if (!isUserAdmin) {
     console.log("AdminRoute - Non admin - redirection vers /app");
     return <Navigate to="/app" replace />;
   }
