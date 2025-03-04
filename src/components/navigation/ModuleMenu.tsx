@@ -4,7 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
-import { useMenu } from "@/hooks/useMenu";
+import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { eventBus } from "@/core/event-bus/EventBus";

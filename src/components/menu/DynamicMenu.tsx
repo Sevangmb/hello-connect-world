@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useMenu } from "@/hooks/useMenu";
+import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
