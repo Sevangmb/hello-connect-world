@@ -943,6 +943,33 @@ export type Database = {
           },
         ]
       }
+      module_usage_stats: {
+        Row: {
+          created_at: string
+          id: string
+          last_used: string | null
+          module_code: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used?: string | null
+          module_code: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used?: string | null
+          module_code?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           actor_id: string | null
@@ -2551,6 +2578,12 @@ export type Database = {
       handle_new_group: {
         Args: {
           group_name: string
+        }
+        Returns: undefined
+      }
+      increment_module_usage: {
+        Args: {
+          module_code: string
         }
         Returns: undefined
       }

@@ -130,7 +130,7 @@ class ModuleOptimizer {
       // Récupérer les statistiques d'utilisation des modules si disponibles
       const { data } = await supabase
         .from('module_usage_stats')
-        .select('*')
+        .select('module_code, usage_count')
         .order('usage_count', { ascending: false })
         .limit(10);
       
