@@ -1,143 +1,104 @@
 
-/**
- * Hook pour gérer la priorité des modules
- * Permet de charger en priorité certains modules en fonction de l'historique d'utilisation
- */
-import { useEffect, useState } from 'react';
-import { AppModule } from '../types';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Hook pour gérer la priorité de chargement des modules
+ */
 export const useModulePriority = () => {
-  const [priorityModules, setPriorityModules] = useState<string[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Charger les priorités des modules
+  const [priorityModules, setPriorityModules] = useState<string[]>(['auth', 'core', 'admin']);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Charger les priorités depuis Supabase
   useEffect(() => {
-    if (isInitialized) return;
-
     const loadPriorities = async () => {
       try {
-        // Essayer d'abord de charger depuis le localStorage
-        const cachedPriorities = localStorage.getItem('module_priorities');
-        if (cachedPriorities) {
-          try {
-            const parsed = JSON.parse(cachedPriorities);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPriorityModules(parsed);
-              setIsInitialized(true);
-              return;
-            }
-          } catch (e) {
-            console.error("Erreur lors de la lecture des priorités en cache:", e);
-          }
-        }
-
-        // Sinon charger depuis la base de données
+        // Récupérer les modules les plus utilisés
         const { data, error } = await supabase
           .from('module_usage_stats')
           .select('module_code, usage_count')
           .order('usage_count', { ascending: false })
           .limit(10);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const modules = data.map(item => item.module_code);
-          setPriorityModules(modules);
-          
-          // Mettre en cache
-          localStorage.setItem('module_priorities', JSON.stringify(modules));
-        } else {
-          // Définir des priorités par défaut
-          const defaultPriorities = ['auth', 'core', 'admin', 'shop'];
-          setPriorityModules(defaultPriorities);
-          localStorage.setItem('module_priorities', JSON.stringify(defaultPriorities));
+        
+        if (error) {
+          console.error('Erreur lors du chargement des priorités:', error);
+          return;
         }
         
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Erreur lors du chargement des priorités de modules:", error);
-        // Utiliser des valeurs par défaut en cas d'erreur
-        setPriorityModules(['auth', 'core', 'admin', 'shop']);
-        setIsInitialized(true);
+        if (data && data.length > 0) {
+          // Extraire les codes de module
+          const moduleCodes = data.map(item => item.module_code);
+          
+          // Fusionner avec les priorités par défaut (en gardant les valeurs uniques)
+          const combinedPriorities = [...new Set([...moduleCodes, ...priorityModules])];
+          setPriorityModules(combinedPriorities);
+          
+          console.log('Priorités de modules chargées:', combinedPriorities);
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des priorités:', err);
       }
     };
-
+    
+    // Charger les priorités au démarrage
     loadPriorities();
-  }, [isInitialized]);
-
-  // Enregistrer l'utilisation d'un module
-  const recordModuleUsage = async (moduleCode: string) => {
+  }, [priorityModules]);
+  
+  // Précharger les modules prioritaires
+  const preloadPriorityModules = useCallback(async () => {
+    setIsLoading(true);
+    
     try {
-      // Enregistrement local pour ne pas surcharger la base de données
-      const now = Date.now();
-      const lastRecordTime = localStorage.getItem(`module_usage_last_${moduleCode}`);
-      
-      // Limiter les enregistrements à un par heure par module
-      if (lastRecordTime && now - parseInt(lastRecordTime) < 3600000) {
-        return;
-      }
-      
-      localStorage.setItem(`module_usage_last_${moduleCode}`, now.toString());
-      
-      // Enregistrer en base de données
-      await supabase.rpc('increment_module_usage', {
-        module_code: moduleCode
-      });
-      
-      console.log(`Usage du module ${moduleCode} enregistré`);
-    } catch (error) {
-      console.error(`Erreur lors de l'enregistrement de l'usage du module ${moduleCode}:`, error);
+      // Précharger les modules prioritaires en parallèle
+      await Promise.all(
+        priorityModules.map(async (moduleCode) => {
+          try {
+            console.log(`Préchargement du module ${moduleCode}...`);
+            
+            // Charger les données du module
+            const { data } = await supabase
+              .from('app_modules')
+              .select('*')
+              .eq('code', moduleCode)
+              .single();
+            
+            if (data) {
+              console.log(`Module ${moduleCode} préchargé avec succès`);
+              
+              // Incrémenter les statistiques d'utilisation
+              await incrementModuleUsage(moduleCode);
+            }
+          } catch (err) {
+            console.error(`Erreur lors du préchargement du module ${moduleCode}:`, err);
+          }
+        })
+      );
+    } catch (err) {
+      console.error('Erreur lors du préchargement des modules:', err);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // Précharger un module
-  const preloadModule = async (moduleCode: string) => {
+  }, [priorityModules]);
+  
+  // Incrémenter les statistiques d'utilisation d'un module
+  const incrementModuleUsage = async (moduleCode: string) => {
     try {
-      // Vérifier si déjà préchargé récemment
-      const preloadedModules = localStorage.getItem('preloaded_modules');
-      const preloaded = preloadedModules ? JSON.parse(preloadedModules) : {};
+      // Utiliser la fonction RPC pour incrémenter l'utilisation
+      const { error } = await supabase
+        .rpc('increment_module_usage', { module_code: moduleCode });
       
-      if (preloaded[moduleCode] && Date.now() - preloaded[moduleCode] < 600000) {
-        // Si préchargé il y a moins de 10 minutes, ne pas refaire
-        return;
+      if (error) {
+        console.error(`Erreur lors de l'incrémentation de l'utilisation du module ${moduleCode}:`, error);
       }
-      
-      // Précharger le module
-      const { data } = await supabase
-        .from('app_modules')
-        .select('*')
-        .eq('code', moduleCode)
-        .single();
-      
-      if (data) {
-        // Marquer comme préchargé
-        preloaded[moduleCode] = Date.now();
-        localStorage.setItem('preloaded_modules', JSON.stringify(preloaded));
-        
-        // Précharger aussi les features
-        await supabase
-          .from('module_features')
-          .select('*')
-          .eq('module_code', moduleCode);
-      }
-    } catch (error) {
-      console.error(`Erreur lors du préchargement du module ${moduleCode}:`, error);
+    } catch (err) {
+      console.error(`Erreur lors de l'incrémentation de l'utilisation du module ${moduleCode}:`, err);
     }
   };
-
-  // Précharger tous les modules prioritaires
-  const preloadPriorityModules = async () => {
-    for (const moduleCode of priorityModules) {
-      await preloadModule(moduleCode);
-    }
-  };
-
+  
   return {
     priorityModules,
-    isInitialized,
-    recordModuleUsage,
-    preloadModule,
-    preloadPriorityModules
+    isLoading,
+    preloadPriorityModules,
+    incrementModuleUsage
   };
 };

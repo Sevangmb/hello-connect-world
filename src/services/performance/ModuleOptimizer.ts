@@ -4,11 +4,14 @@
  * Gère le préchargement intelligent et prioritisé des modules
  */
 import { supabase } from '@/integrations/supabase/client';
+import { AppModule } from '@/hooks/modules/types';
 
 class ModuleOptimizer {
   private priorityModules: string[] = ['auth', 'core', 'admin'];
   private preloadedModules: Set<string> = new Set();
   private isInitialized: boolean = false;
+  private cacheTimestamp: number = 0;
+  private CACHE_VALIDITY = 60000; // 1 minute
 
   constructor() {
     // Initialiser au démarrage
@@ -39,29 +42,38 @@ class ModuleOptimizer {
 
     // Marquer comme initialisé
     this.isInitialized = true;
+    this.cacheTimestamp = Date.now();
     
     // Mettre à jour les priorités en arrière-plan
     this.updateModulePriorities();
   }
 
   /**
+   * Vérifie si le cache est valide
+   */
+  public isCacheValid(): boolean {
+    return Date.now() - this.cacheTimestamp < this.CACHE_VALIDITY;
+  }
+
+  /**
    * Précharge les modules prioritaires
    */
-  public preloadPriorityModules(): void {
+  public async preloadPriorityModules(): Promise<void> {
     // Précharger en arrière-plan les modules prioritaires
-    setTimeout(() => {
-      this.priorityModules.forEach(moduleCode => {
-        if (!this.preloadedModules.has(moduleCode)) {
-          this.preloadModule(moduleCode);
-        }
-      });
-    }, 100);
+    try {
+      await Promise.all(
+        this.priorityModules.map(moduleCode => this.preloadModule(moduleCode))
+      );
+      console.log('Préchargement des modules prioritaires terminé');
+    } catch (err) {
+      console.error('Erreur lors du préchargement des modules prioritaires:', err);
+    }
   }
 
   /**
    * Précharge un module spécifique
    */
-  private async preloadModule(moduleCode: string): Promise<void> {
+  public async preloadModule(moduleCode: string): Promise<void> {
     if (this.preloadedModules.has(moduleCode)) return;
 
     try {
@@ -89,6 +101,9 @@ class ModuleOptimizer {
         
         // Précharger également les fonctionnalités du module
         this.preloadModuleFeatures(moduleCode);
+        
+        // Incrémenter les statistiques d'utilisation
+        await this.recordModuleUsage(moduleCode);
       }
     } catch (error) {
       console.error(`Erreur lors du préchargement du module ${moduleCode}:`, error);
@@ -123,16 +138,38 @@ class ModuleOptimizer {
   }
 
   /**
+   * Enregistre l'utilisation d'un module
+   */
+  public async recordModuleUsage(moduleCode: string): Promise<void> {
+    try {
+      // Utiliser la fonction RPC pour incrémenter l'utilisation
+      const { error } = await supabase
+        .rpc('increment_module_usage', { module_code: moduleCode });
+      
+      if (error) {
+        console.error(`Erreur lors de l'enregistrement de l'utilisation du module ${moduleCode}:`, error);
+      }
+    } catch (error) {
+      console.error(`Erreur lors de l'enregistrement de l'utilisation du module ${moduleCode}:`, error);
+    }
+  }
+
+  /**
    * Met à jour les priorités des modules en fonction de l'utilisation
    */
   private async updateModulePriorities(): Promise<void> {
     try {
-      // Récupérer les statistiques d'utilisation des modules si disponibles
-      const { data } = await supabase
+      // Récupérer les statistiques d'utilisation des modules
+      const { data, error } = await supabase
         .from('module_usage_stats')
         .select('module_code, usage_count')
         .order('usage_count', { ascending: false })
         .limit(10);
+      
+      if (error) {
+        console.error('Erreur lors de la récupération des statistiques d\'utilisation:', error);
+        return;
+      }
       
       if (data && data.length > 0) {
         // Extraire les codes de module par ordre de priorité

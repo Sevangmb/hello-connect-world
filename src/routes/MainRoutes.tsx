@@ -1,6 +1,6 @@
 
 import { lazy, Suspense, useEffect } from 'react';
-import { Route } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useModulePriority } from '@/hooks/modules/hooks/useModulePriority';
 
@@ -64,25 +64,27 @@ export default function MainRoutes() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <PrelaunchRedirect>
-        <Route path="/landing" element={<Landing />} />
-        <Route path="/waitlist" element={<Waitlist />} />
-        <Route path="/auth" element={<Auth />} />
-        
-        <Route element={<RootLayout />}>
-          <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
-          <Route path="/app" element={<PrivateRoute><Home /></PrivateRoute>} />
-          <Route path="/app/*" element={<PrivateRoute><Home /></PrivateRoute>} />
-        </Route>
-        
-        <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-        <Route element={<AdminLayout />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/waitlist" element={<AdminWaitlist />} />
-          {/* Autres routes admin gardées identiques */}
-        </Route>
-        
-        <Route path="*" element={<NotFound />} />
+        <Routes>
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/auth" element={<Auth />} />
+          
+          <Route element={<RootLayout />}>
+            <Route path="/" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/app" element={<PrivateRoute><Home /></PrivateRoute>} />
+            <Route path="/app/*" element={<PrivateRoute><Home /></PrivateRoute>} />
+          </Route>
+          
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+            {/* Autres routes admin gardées identiques */}
+          </Route>
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </PrelaunchRedirect>
     </Suspense>
   );

@@ -1,6 +1,6 @@
 
 import { Suspense, lazy, useEffect } from 'react';
-import { Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 
@@ -57,7 +57,7 @@ export default function App() {
       </div>
     }>
       <Routes>
-        <MainRoutes />
+        <Route path="/*" element={<MainRoutes />} />
       </Routes>
     </Suspense>
   );
