@@ -98,8 +98,10 @@ const AdminWaitlist = () => {
         return;
       }
       
-      if (data && typeof data.value === 'object' && data.value !== null) {
-        setIsRegistrationOpen(data.value.is_open === true);
+      if (data && typeof data.value === 'object' && data.value !== null && !Array.isArray(data.value)) {
+        // Ensure the value is an object and not an array before accessing is_open
+        const settingsValue = data.value as { is_open?: boolean };
+        setIsRegistrationOpen(settingsValue.is_open === true);
       }
     } catch (error) {
       console.error("Erreur:", error);

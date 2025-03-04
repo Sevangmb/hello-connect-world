@@ -43,8 +43,10 @@ const Landing = () => {
           return;
         }
         
-        if (data && typeof data.value === 'object' && data.value !== null) {
-          setWaitlistOpen(data.value.is_open === false);
+        if (data && typeof data.value === 'object' && data.value !== null && !Array.isArray(data.value)) {
+          // Ensure the value is an object and not an array before accessing is_open
+          const settingsValue = data.value as { is_open?: boolean };
+          setWaitlistOpen(settingsValue.is_open === false);
         }
       } catch (error) {
         console.error("Erreur:", error);
