@@ -15,20 +15,24 @@ export const PrelaunchRedirect: React.FC<{ children: React.ReactNode }> = ({
   }
   
   // Permettre l'accès à la page d'accueil
-  if (location.pathname === "/landing") {
+  if (location.pathname === "/landing" || location.pathname === "/") {
+    return <>{children}</>;
+  }
+  
+  // Permettre l'accès à la page d'authentification
+  if (location.pathname === "/auth") {
     return <>{children}</>;
   }
   
   // Permettre l'accès aux utilisateurs authentifiés 
-  // ou aux routes d'administration ou d'authentification
+  // ou aux routes d'administration
   if (
     user || 
-    location.pathname.startsWith("/admin") || 
-    location.pathname.startsWith("/auth")
+    location.pathname.startsWith("/admin")
   ) {
     return <>{children}</>;
   }
   
-  // Rediriger vers la liste d'attente
-  return <Navigate to="/waitlist" replace />;
+  // Rediriger vers la page d'accueil
+  return <Navigate to="/" replace />;
 };

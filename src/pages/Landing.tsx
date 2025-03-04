@@ -228,11 +228,25 @@ const Landing = () => {
                             </>
                           ) : "Rejoindre la liste d'attente"}
                         </Button>
+
+                        <div className="text-center mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-sm text-gray-600 mb-2">Déjà inscrit ?</p>
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={() => navigate("/auth")}
+                          >
+                            Se connecter
+                          </Button>
+                        </div>
                       </form>
                     )}
                   </>
                 ) : (
-                  <Login />
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold text-center mb-4">Accéder à votre compte</h3>
+                    <Login />
+                  </div>
                 )}
               </div>
             </Card>

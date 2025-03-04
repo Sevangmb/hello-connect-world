@@ -1,47 +1,49 @@
 
-/**
- * Page d'authentification
- */
-import { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import { Login } from "../components/Login";
-import { Card } from "@/components/ui/card";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { Login } from '../components/Login';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export const Auth = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      console.log("Auth page - Utilisateur déjà connecté, redirection");
-      // Rediriger vers la page d'origine ou la page d'accueil
-      const from = location.state?.from?.pathname || "/app";
-      navigate(from, { replace: true });
+  // Si l'utilisateur est déjà connecté, rediriger vers la page d'accueil
+  React.useEffect(() => {
+    if (user) {
+      navigate('/app');
     }
-  }, [isAuthenticated, loading, navigate, location]);
+  }, [user, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="flex justify-center mb-6">
           <img 
             src="/lovable-uploads/9a2d6f53-d074-4690-bd16-a9c6c1e5f3c5.png" 
             alt="FRING!" 
-            className="h-16 w-16 rounded-full"
+            className="h-24 w-24 rounded-full"
           />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Bienvenue sur FRING!
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Connectez-vous ou créez un compte pour accéder à l'application
-        </p>
-      </div>
-
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Login />
+        
+        <Card className="border shadow-lg">
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-center mb-6">Connexion</h1>
+            <Login />
+          </div>
+        </Card>
+        
+        <div className="mt-4 text-center">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            Retour à l'accueil
+          </Button>
+        </div>
       </div>
     </div>
   );
