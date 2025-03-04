@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,16 +21,13 @@ interface CategoryGroupProps {
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
   const { menuItems, loading, isUserAdmin } = useMenu({ category });
   
+  // Éviter de monter/démonter les catégories pour réduire le clignotement
   // Ne pas afficher la catégorie admin si l'utilisateur n'est pas admin
   if (category === 'admin' && !isUserAdmin) {
     return null;
   }
   
-  // Ne pas afficher si aucun élément dans cette catégorie et ce n'est pas admin en cours de chargement
-  if (!loading && menuItems.length === 0 && !(category === 'admin' && isUserAdmin)) {
-    return null;
-  }
-  
+  // Utiliser une approche qui évite les changements brusques de hauteur
   return (
     <div className="space-y-1 mb-6">
       <h3 className="px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -41,16 +38,39 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
   );
 };
 
-// Composant de menu principal
+// Composant de menu principal avec optimisations pour éviter le clignotement
 export const ModuleMenu: React.FC = () => {
   const { isModuleDegraded } = useModuleRegistry();
   const { isUserAdmin, refreshMenu } = useMenu();
   const navigate = useNavigate();
+  const [initialized, setInitialized] = useState(false);
   
-  // Écouter les événements de mise à jour de menu et de modules
+  // Optimiser les mises à jour de menu pour éviter le clignotement
   useEffect(() => {
+    // Marquer comme initialisé après le premier rendu
+    if (!initialized) {
+      setInitialized(true);
+      // Initialiser le statut admin dans le coordinateur
+      if (isUserAdmin) {
+        moduleMenuCoordinator.enableAdminAccess();
+      }
+    }
+    
+    // Écouter les événements de mise à jour de menu et de modules
+    // en utilisant un délai pour éviter les rafraîchissements trop fréquents
+    let refreshTimeout: NodeJS.Timeout | null = null;
+    
     const handleMenuUpdate = () => {
-      refreshMenu();
+      // Annuler tout timeout existant
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      
+      // Planifier un rafraîchissement avec un délai
+      refreshTimeout = setTimeout(() => {
+        refreshMenu();
+        refreshTimeout = null;
+      }, 300); // Délai pour regrouper les mises à jour rapprochées
     };
     
     const unsubscribeMenuUpdated = eventBus.subscribe(
@@ -74,20 +94,29 @@ export const ModuleMenu: React.FC = () => {
     );
     
     return () => {
+      // Nettoyer les abonnements
       unsubscribeMenuUpdated();
       unsubscribeModuleStatus();
       unsubscribeAdminAccess();
       unsubscribeAdminRevoked();
+      
+      // Annuler tout timeout en attente
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
     };
-  }, [refreshMenu]);
+  }, [refreshMenu, isUserAdmin, initialized]);
   
-  // Initialiser le statut admin dans le coordinateur
-  useEffect(() => {
-    if (isUserAdmin) {
-      moduleMenuCoordinator.enableAdminAccess();
-    }
-  }, [isUserAdmin]);
+  // Optimiser en mémorisant les catégories pour éviter les re-rendus inutiles
+  const categories = useMemo(() => [
+    { id: 'main', title: 'Principales', category: 'main' as MenuItemCategory },
+    { id: 'social', title: 'Social', category: 'social' as MenuItemCategory },
+    { id: 'marketplace', title: 'Marketplace', category: 'marketplace' as MenuItemCategory },
+    { id: 'utility', title: 'Utilitaires', category: 'utility' as MenuItemCategory },
+    { id: 'system', title: 'Système', category: 'system' as MenuItemCategory },
+  ], []);
   
+  // Optimiser la navigation vers l'admin
   const handleNavigateToAdmin = (event: React.MouseEvent) => {
     event.preventDefault();
     navigate('/admin');
@@ -96,13 +125,12 @@ export const ModuleMenu: React.FC = () => {
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-2 w-full">
-        {/* Menus par catégorie */}
-        <CategoryGroup title="Principales" category="main" />
-        <CategoryGroup title="Social" category="social" />
-        <CategoryGroup title="Marketplace" category="marketplace" />
-        <CategoryGroup title="Utilitaires" category="utility" />
+        {/* Menus par catégorie - éviter les changements de DOM qui causent des clignotements */}
+        {categories.map(cat => (
+          <CategoryGroup key={cat.id} title={cat.title} category={cat.category} />
+        ))}
         
-        {/* Menu d'administration - toujours affiché pour les admin */}
+        {/* Menu d'administration - uniquement rendu si admin */}
         {isUserAdmin && (
           <>
             <CategoryGroup title="Administration" category="admin" />
@@ -117,8 +145,6 @@ export const ModuleMenu: React.FC = () => {
             </div>
           </>
         )}
-        
-        <CategoryGroup title="Système" category="system" />
       </div>
     </TooltipProvider>
   );

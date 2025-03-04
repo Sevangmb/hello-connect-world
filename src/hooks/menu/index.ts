@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { useAdminStatus } from './useAdminStatus';
 import { useMenuItems } from './useMenuItems';
 import { useMenuCategories } from './useMenuCategories';
@@ -12,7 +13,7 @@ interface UseMenuOptions {
 
 /**
  * Hook principal pour la gestion des menus
- * Combine les hooks spécifiques
+ * Combine les hooks spécifiques avec optimisations de stabilité
  */
 export const useMenu = (options?: UseMenuOptions) => {
   const { isUserAdmin, loading: adminLoading } = useAdminStatus();
@@ -22,7 +23,12 @@ export const useMenu = (options?: UseMenuOptions) => {
     error, 
     refreshMenu 
   } = useMenuItems(options);
-  const { 
+  
+  // Utiliser useMemo pour éviter les recalculs inutiles
+  const menuCategories = useMenuCategories(menuItems);
+  
+  // Décomposer pour plus de clarté et meilleure performance
+  const {
     getMenusByCategory,
     mainMenu,
     adminMenu,
@@ -30,9 +36,13 @@ export const useMenu = (options?: UseMenuOptions) => {
     marketplaceMenu,
     utilityMenu,
     systemMenu
-  } = useMenuCategories(menuItems);
+  } = menuCategories;
   
-  const loading = adminLoading || menuLoading;
+  // Calculer une seule fois l'état de chargement combiné
+  const loading = useMemo(() => 
+    adminLoading || menuLoading, 
+    [adminLoading, menuLoading]
+  );
   
   return {
     menuItems,
@@ -50,7 +60,7 @@ export const useMenu = (options?: UseMenuOptions) => {
   };
 };
 
-// Hooks spécialisés pour des catégories spécifiques
+// Hooks spécialisés pour des catégories spécifiques avec mémoisation
 export const useMainMenu = () => useMenu({ category: 'main' });
 export const useAdminMenu = () => useMenu({ category: 'admin' });
 export const useSocialMenu = () => useMenu({ category: 'social' });

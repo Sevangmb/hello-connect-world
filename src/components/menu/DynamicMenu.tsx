@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
@@ -23,7 +23,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   className,
   hierarchical = false,
 }) => {
-  const { menuItems, loading, error, isUserAdmin, refreshMenu } = useMenu({
+  const { menuItems, loading, error, isUserAdmin } = useMenu({
     category,
     moduleCode,
     hierarchical,
@@ -49,29 +49,35 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
   
-  // Vérifier si un menu est visible
-  const isMenuItemVisible = (moduleCode: string | null) => {
-    if (!moduleCode) return true;
-    
-    // Si c'est un module admin et que l'utilisateur est admin, toujours visible
-    if ((moduleCode === 'admin' || moduleCode.startsWith('admin_')) && isUserAdmin) {
-      return true;
-    }
-    
-    // Sinon vérifier avec le coordinateur
-    return moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules);
-  };
+  // Mémoiser la vérification de visibilité pour éviter des recalculs inutiles
+  const isMenuItemVisible = useMemo(() => {
+    return (moduleCode: string | null) => {
+      if (!moduleCode) return true;
+      
+      // Si c'est un module admin et que l'utilisateur est admin, toujours visible
+      if ((moduleCode === 'admin' || moduleCode.startsWith('admin_')) && isUserAdmin) {
+        return true;
+      }
+      
+      // Sinon vérifier avec le coordinateur
+      return moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules);
+    };
+  }, [isUserAdmin, modules]);
 
-  // Filtrer les éléments de menu selon leur visibilité
-  const visibleMenuItems = menuItems.filter(item => !item.module_code || isMenuItemVisible(item.module_code));
+  // Mémoiser les éléments de menu filtrés pour éviter des re-rendus inutiles
+  const visibleMenuItems = useMemo(() => {
+    return menuItems.filter(item => !item.module_code || isMenuItemVisible(item.module_code));
+  }, [menuItems, isMenuItemVisible]);
 
+  // Optimisation du rendu pour éviter le clignotement
   if (loading) {
+    // Utiliser un effet de skeleton fixe pour éviter les effets de clignotement
     return (
       <div className={cn("space-y-2", className)}>
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-center space-x-2">
+          <div key={i} className="flex items-center space-x-2 p-2 h-9">
             <Skeleton className="h-5 w-5 rounded-full" />
-            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-5 w-32" />
           </div>
         ))}
       </div>
@@ -92,10 +98,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
-  // Fonction pour gérer la navigation
+  // Fonction pour gérer la navigation sans rechargement
   const handleNavigate = (path: string, event: React.MouseEvent) => {
     event.preventDefault();
-    navigate(path);
+    if (location.pathname !== path) {
+      navigate(path);
+    }
   };
 
   return (

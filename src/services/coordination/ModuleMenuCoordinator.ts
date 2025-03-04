@@ -20,10 +20,31 @@ export class ModuleMenuCoordinator {
   private static instance: ModuleMenuCoordinator;
   private adminAccessEnabled: boolean = false;
   private moduleCache: Record<string, boolean> = {};
+  private lastRefreshTimestamp: number = 0;
+  private debounceTimers: Record<string, NodeJS.Timeout> = {};
+  private DEBOUNCE_DELAY = 300; // ms
 
   private constructor() {
     // Initialiser les écouteurs d'événements
     this.setupEventListeners();
+    
+    // Initialiser avec les valeurs du localStorage
+    this.initializeFromLocalStorage();
+  }
+  
+  /**
+   * Initialiser à partir des données existantes
+   */
+  private initializeFromLocalStorage(): void {
+    try {
+      const adminAccess = localStorage.getItem('admin_access_enabled');
+      if (adminAccess === 'true') {
+        this.adminAccessEnabled = true;
+        console.log('ModuleMenuCoordinator: Admin access initialized from storage');
+      }
+    } catch (e) {
+      console.error('Erreur lors de l\'initialisation du coordinateur:', e);
+    }
   }
 
   /**
@@ -42,13 +63,33 @@ export class ModuleMenuCoordinator {
   private setupEventListeners(): void {
     // Écouter les changements de statut des modules
     eventBus.subscribe('modules:status_changed', (data) => {
-      this.onModuleStatusChanged(data.moduleCode, data.status);
+      this.debounceEvent('module_status', () => {
+        this.onModuleStatusChanged(data.moduleCode, data.status);
+      });
     });
 
     // Écouter les changements de statut admin
     eventBus.subscribe('users:admin_status_changed', (data) => {
-      this.onAdminStatusChanged(data.userId, data.isAdmin);
+      this.debounceEvent('admin_status', () => {
+        this.onAdminStatusChanged(data.userId, data.isAdmin);
+      });
     });
+  }
+  
+  /**
+   * Debouncer pour éviter trop d'événements rapprochés
+   */
+  private debounceEvent(key: string, callback: () => void): void {
+    // Annuler tout timer existant
+    if (this.debounceTimers[key]) {
+      clearTimeout(this.debounceTimers[key]);
+    }
+    
+    // Créer un nouveau timer
+    this.debounceTimers[key] = setTimeout(() => {
+      callback();
+      delete this.debounceTimers[key];
+    }, this.DEBOUNCE_DELAY);
   }
 
   /**
@@ -60,36 +101,66 @@ export class ModuleMenuCoordinator {
       return this.adminAccessEnabled;
     }
 
+    // Cache pour éviter des calculs redondants
+    if (this.moduleCache[moduleCode] !== undefined) {
+      return this.moduleCache[moduleCode];
+    }
+
     // Pour les autres modules, vérifier s'ils sont actifs
-    return getModuleActiveStatus(moduleCode, modules);
+    const isActive = getModuleActiveStatus(moduleCode, modules);
+    
+    // Mettre en cache pour les appels futurs
+    this.moduleCache[moduleCode] = isActive;
+    
+    return isActive;
   }
 
   /**
    * Accorder l'accès admin aux menus
    */
   public enableAdminAccess(): void {
+    if (this.adminAccessEnabled) return; // Éviter les événements inutiles
+    
     this.adminAccessEnabled = true;
     
-    // Notifier les composants abonnés
-    eventBus.publish(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, {
-      timestamp: Date.now()
-    });
+    // Persister l'état
+    try {
+      localStorage.setItem('admin_access_enabled', 'true');
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde du statut admin:', e);
+    }
     
-    console.log('ModuleMenuCoordinator: Admin access enabled');
+    // Notifier les composants abonnés avec debounce
+    this.debounceEvent('admin_granted', () => {
+      eventBus.publish(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, {
+        timestamp: Date.now()
+      });
+      console.log('ModuleMenuCoordinator: Admin access enabled');
+    });
   }
 
   /**
    * Révoquer l'accès admin aux menus
    */
   public disableAdminAccess(): void {
+    if (!this.adminAccessEnabled) return; // Éviter les événements inutiles
+    
     this.adminAccessEnabled = false;
     
-    // Notifier les composants abonnés
-    eventBus.publish(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, {
-      timestamp: Date.now()
-    });
+    // Persister l'état
+    try {
+      localStorage.removeItem('admin_access_enabled');
+    } catch (e) {
+      console.error('Erreur lors de la suppression du statut admin:', e);
+    }
     
-    console.log('ModuleMenuCoordinator: Admin access disabled');
+    // Notifier les composants abonnés avec debounce
+    this.debounceEvent('admin_revoked', () => {
+      eventBus.publish(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, {
+        timestamp: Date.now()
+      });
+      console.log('ModuleMenuCoordinator: Admin access disabled');
+    });
   }
 
   /**
@@ -103,17 +174,21 @@ export class ModuleMenuCoordinator {
    * Gérer les changements de statut des modules
    */
   private onModuleStatusChanged(moduleCode: string, status: string): void {
-    // Mettre à jour le cache
+    // Nettoyer le cache pour ce module
+    delete this.moduleCache[moduleCode];
+    
+    // Mettre à jour le cache avec la nouvelle valeur
     this.moduleCache[moduleCode] = status === 'active';
     
     // Notifier les abonnés
-    eventBus.publish(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, {
-      moduleCode,
-      status,
-      timestamp: Date.now()
+    this.debounceEvent('module_status_changed', () => {
+      eventBus.publish(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, {
+        moduleCode,
+        status,
+        timestamp: Date.now()
+      });
+      console.log(`ModuleMenuCoordinator: Module ${moduleCode} status changed to ${status}`);
     });
-    
-    console.log(`ModuleMenuCoordinator: Module ${moduleCode} status changed to ${status}`);
   }
 
   /**
@@ -128,12 +203,31 @@ export class ModuleMenuCoordinator {
   }
 
   /**
-   * Forcer un rafraîchissement du menu
+   * Forcer un rafraîchissement du menu avec limitation de fréquence
    */
   public refreshMenu(): void {
-    eventBus.publish(MODULE_MENU_EVENTS.MENU_UPDATED, {
-      timestamp: Date.now()
+    const now = Date.now();
+    
+    // Limiter la fréquence des rafraîchissements
+    if (now - this.lastRefreshTimestamp < 500) {
+      return; // Ignorer les rafraîchissements trop fréquents
+    }
+    
+    this.lastRefreshTimestamp = now;
+    
+    // Utiliser le debounce pour éviter les rafraîchissements multiples
+    this.debounceEvent('menu_refresh', () => {
+      eventBus.publish(MODULE_MENU_EVENTS.MENU_UPDATED, {
+        timestamp: now
+      });
     });
+  }
+  
+  /**
+   * Nettoyer le cache des modules
+   */
+  public clearModuleCache(): void {
+    this.moduleCache = {};
   }
 }
 
