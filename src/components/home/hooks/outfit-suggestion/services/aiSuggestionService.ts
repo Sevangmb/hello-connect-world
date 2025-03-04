@@ -7,6 +7,7 @@ import {
 import { exponentialDelay, generateFallbackSuggestion } from "../utils/errorHandling";
 import { ClothingItem, AISuggestionResponse, SuggestionResult } from "../types/aiTypes";
 import { processAIResponse } from "../utils/responseProcessor";
+import { determineConditionFromDescription } from "../utils/weatherUtils";
 
 /**
  * Génère une suggestion d'habits basée sur l'IA en prenant en compte la météo
@@ -132,3 +133,4 @@ export const generateAISuggestion = async (
     error: lastError || new Error("Échec de génération de suggestion après plusieurs tentatives")
   };
 };
+
