@@ -29,6 +29,7 @@ export interface OutfitSuggestionResult {
   explanation: string;
   temperature: number;
   description: string;
+  condition?: string;
 }
 
 export interface SuggestionResult {

@@ -116,8 +116,7 @@ export const generateAISuggestion = async (
           clothes, 
           temperature, 
           description, 
-          fallbackCategories,
-          condition
+          fallbackCategories
         );
       }
       
@@ -190,6 +189,9 @@ async function processAIResponse(
   if (!finalTop || !finalBottom || !finalShoes) {
     throw new Error("Impossible de composer une tenue complète avec les vêtements disponibles");
   }
+
+  // Déterminer la condition météo si non fournie
+  const weatherCondition = condition || determineConditionFromDescription(description);
   
   return {
     suggestion: {
@@ -199,7 +201,7 @@ async function processAIResponse(
       explanation: aiSuggestion.explanation || "Voici une tenue adaptée à la météo actuelle.",
       temperature,
       description,
-      condition: condition || determineConditionFromDescription(description)
+      condition: weatherCondition
     },
     error: null
   };
