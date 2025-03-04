@@ -1,25 +1,34 @@
 
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
-export const PrelaunchRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
+export const PrelaunchRedirect: React.FC<{ children: React.ReactNode }> = ({ 
+  children 
+}) => {
+  const { user } = useAuth();
+  const location = useLocation();
   
-  useEffect(() => {
-    // Redirection vers la page de préinscription
-    // Vous pouvez ajouter une vérification plus complexe ici si nécessaire
-    // Par exemple, vérifier un token spécial pour les testeurs ou les admins
-    const isPrelaunch = true; // Mettre à false pour désactiver la redirection
-    
-    if (isPrelaunch) {
-      // Vérifier si l'utilisateur n'est pas déjà sur la page d'attente ou d'admin
-      if (!['/waitlist', '/admin'].some(path => window.location.pathname.startsWith(path))) {
-        navigate('/waitlist');
-      }
-    }
-  }, [navigate]);
+  // Permettre l'accès à la page de liste d'attente
+  if (location.pathname === "/waitlist") {
+    return <>{children}</>;
+  }
   
-  return <>{children}</>;
+  // Permettre l'accès à la page d'accueil
+  if (location.pathname === "/landing") {
+    return <>{children}</>;
+  }
+  
+  // Permettre l'accès aux utilisateurs authentifiés 
+  // ou aux routes d'administration ou d'authentification
+  if (
+    user || 
+    location.pathname.startsWith("/admin") || 
+    location.pathname.startsWith("/auth")
+  ) {
+    return <>{children}</>;
+  }
+  
+  // Rediriger vers la liste d'attente
+  return <Navigate to="/waitlist" replace />;
 };
-
-export default PrelaunchRedirect;

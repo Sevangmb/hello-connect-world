@@ -1,97 +1,91 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { PrivateRoute } from './components/auth/PrivateRoute';
-import { AdminRoute } from './components/auth/AdminRoute';
-import { AdminLayout } from './components/admin/AdminLayout';
-import Landing from './pages/Landing';
-import Index from './pages/Index';
-import NotFound from './pages/NotFound';
-import Auth from './pages/Auth';
-import AdminLogin from './pages/AdminLogin';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminShops from './pages/admin/AdminShops';
-import AdminOrders from './pages/admin/AdminOrders';
-import AdminMarketplace from './pages/admin/AdminMarketplace';
-import AdminContent from './pages/admin/AdminContent';
-import AdminStats from './pages/admin/AdminStats';
-import AdminMarketing from './pages/admin/AdminMarketing';
-import AdminModules from './pages/admin/AdminModules';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminHelp from './pages/admin/AdminHelp';
-import AdminReports from './pages/admin/AdminReports';
-import AdminPayments from './pages/admin/AdminPayments';
-import AdminAnalytics from './pages/admin/AdminAnalytics';
-import AdminModeration from './pages/admin/AdminModeration';
-import AdminApiKeys from './pages/admin/AdminApiKeys';
-import AdminNotifications from './pages/admin/AdminNotifications';
-import AdminBackup from './pages/admin/AdminBackup';
-import { AdminWaitlist } from "./pages/admin";
-import { QueryClientProvider, QueryClient } from 'react-query';
-import { BrowserRouter } from 'react-router-dom';
-import { PrelaunchRedirect } from './components/auth/PrelaunchRedirect';
-import { Toaster } from 'react-hot-toast';
 
-const queryClient = new QueryClient();
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
+import RootLayout from "./components/RootLayout";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminRoute from "./components/auth/AdminRoute";
+import PrivateRoute from "./components/auth/PrivateRoute";
+import Landing from "./pages/Landing";
+import Home from "./pages/Home";
+import Feed from "./pages/Feed";
+import Profile from "./pages/Profile";
+import Auth from "./pages/Auth";
+import Clothes from "./pages/Clothes";
+import Outfits from "./pages/Outfits";
+import TrendingOutfits from "./pages/TrendingOutfits";
+import AdminDashboard from "./pages/AdminDashboard";
+import Suitcases from "./pages/Suitcases";
+import VirtualTryOn from "./pages/VirtualTryOn";
+import Shop from "./pages/Shop";
+import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
+import { Toaster } from "@/components/ui/toaster";
+import { ToastProvider } from "@/hooks/use-toast";
+import { PrelaunchRedirect } from "./components/home/PrelaunchRedirect";
+import Waitlist from "./pages/Waitlist";
+import AdminWaitlist from "./pages/admin/AdminWaitlist";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 function App() {
   return (
-    <div className="App">
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <PrelaunchRedirect>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <PrelaunchRedirect>
+          <RootLayout>
             <Routes>
+              <Route path="/" element={<Navigate to="/landing" replace />} />
               <Route path="/landing" element={<Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/login" element={<Auth />} />
-              <Route path="/auth/admin" element={<AdminLogin />} />
+              <Route path="/waitlist" element={<Waitlist />} />
               
-              <Route
-                path="/"
-                element={
-                  <PrivateRoute>
-                    <Index />
-                  </PrivateRoute>
-                }
-              />
+              {/* Auth Routes */}
+              <Route path="/auth/*" element={<Auth />} />
               
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminLayout />
-                  </AdminRoute>
-                }
-              >
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              {/* Private Routes */}
+              <Route path="/app" element={<PrivateRoute />}>
+                <Route index element={<Home />} />
+                <Route path="feed" element={<Feed />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="clothes" element={<Clothes />} />
+                <Route path="outfits" element={<Outfits />} />
+                <Route path="trending" element={<TrendingOutfits />} />
+                <Route path="suitcases" element={<Suitcases />} />
+                <Route path="try-on" element={<VirtualTryOn />} />
+                <Route path="shop" element={<Shop />} />
+              </Route>
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminRoute />}>
+                <Route index element={<Admin />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="shops" element={<AdminShops />} />
-                <Route path="orders" element={<AdminOrders />} />
-                <Route path="marketplace" element={<AdminMarketplace />} />
-                <Route path="content" element={<AdminContent />} />
-                <Route path="stats" element={<AdminStats />} />
-                <Route path="marketing" element={<AdminMarketing />} />
-                <Route path="modules" element={<AdminModules />} />
-                <Route path="settings" element={<AdminSettings />} />
-                <Route path="help" element={<AdminHelp />} />
-                <Route path="reports" element={<AdminReports />} />
-                <Route path="payments" element={<AdminPayments />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-                <Route path="moderation" element={<AdminModeration />} />
-                <Route path="api-keys" element={<AdminApiKeys />} />
-                <Route path="notifications" element={<AdminNotifications />} />
-                <Route path="backup" element={<AdminBackup />} />
                 <Route path="waitlist" element={<AdminWaitlist />} />
               </Route>
               
+              {/* Fallback */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </PrelaunchRedirect>
-        </BrowserRouter>
+          </RootLayout>
+        </PrelaunchRedirect>
         <Toaster />
-      </QueryClientProvider>
-    </div>
+      </ToastProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   );
 }
 

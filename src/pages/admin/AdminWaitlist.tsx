@@ -47,6 +47,7 @@ const AdminWaitlist = () => {
   const fetchWaitlist = async () => {
     try {
       setLoading(true);
+      // Récupération des entrées de la liste d'attente
       const { data, error } = await supabase
         .from("waitlist")
         .select("*")
@@ -54,8 +55,8 @@ const AdminWaitlist = () => {
 
       if (error) throw error;
       
-      setEntries(data || []);
-      setFilteredEntries(data || []);
+      setEntries(data as WaitlistEntry[]);
+      setFilteredEntries(data as WaitlistEntry[]);
     } catch (error) {
       console.error("Erreur lors de la récupération de la liste d'attente:", error);
       toast({
