@@ -11,7 +11,7 @@ export const useModuleOptimized = () => {
   const [loading, setLoading] = useState(true);
   const { 
     priorityModules,
-    recordModuleUsage,
+    incrementModuleUsage, // Correction ici : utilisation de incrementModuleUsage au lieu de recordModuleUsage
     preloadPriorityModules
   } = useModulePriority();
 
@@ -28,7 +28,7 @@ export const useModuleOptimized = () => {
           const parsed = JSON.parse(cachedModules);
           if (Array.isArray(parsed) && parsed.length > 0) {
             // Utiliser les modules en cache
-            setModules(parsed);
+            setModules(parsed as AppModule[]); // Conversion explicite pour éviter l'erreur TS
             setLoading(false);
             
             // Précharger les modules prioritaires en arrière-plan
@@ -53,8 +53,8 @@ export const useModuleOptimized = () => {
 
   // Enregistrer l'utilisation d'un module
   const trackModuleUsage = useCallback((moduleCode: string) => {
-    recordModuleUsage(moduleCode);
-  }, [recordModuleUsage]);
+    incrementModuleUsage(moduleCode); // Correction ici aussi
+  }, [incrementModuleUsage]);
 
   return {
     modules,
