@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MenuService } from "@/services/menu/MenuService";
+// Fix import path
+import { MenuService } from "@/services/menu/infrastructure/menuServiceProvider";
 import { MenuItem, MenuItemCategory } from "@/services/menu/types";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

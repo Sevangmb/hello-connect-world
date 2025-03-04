@@ -1,130 +1,143 @@
 
-import { MenuItem, MenuItemCategory } from "../types";
-import { IMenuRepository } from "../domain/interfaces/IMenuRepository";
-import { MenuCacheService } from "./MenuCacheService";
-import { MenuTreeBuilder } from "./MenuTreeBuilder";
+import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
+import { MenuCacheService } from './MenuCacheService';
+import { MenuTreeBuilder } from './MenuTreeBuilder';
+import { MenuItem } from '../types';
+import { eventBus } from '@/core/event-bus/EventBus';
 
-/**
- * Cas d'utilisation pour la gestion des menus
- * Couche Application de la Clean Architecture
- */
 export class MenuUseCase {
-  private repository: IMenuRepository;
-  private cacheService: MenuCacheService;
-  private treeBuilder: MenuTreeBuilder;
-  
-  constructor(repository: IMenuRepository) {
-    this.repository = repository;
-    this.cacheService = new MenuCacheService();
-    this.treeBuilder = new MenuTreeBuilder();
-  }
-  
-  /**
-   * Récupère tous les éléments de menu avec gestion du cache
-   * @param useCache Indique si le cache doit être utilisé
-   */
-  async getAllMenuItems(useCache = true): Promise<MenuItem[]> {
-    // Vérifier si le cache est valide
-    if (useCache && this.cacheService.isCacheValid()) {
-      return this.cacheService.getCachedItems();
-    }
-    
-    try {
-      const items = await this.repository.getAllMenuItems();
-      
-      // Mettre à jour le cache
-      this.cacheService.updateCache(items);
-      
-      return items;
-    } catch (error) {
-      // En cas d'erreur, utiliser le cache même s'il est expiré
-      if (this.cacheService.getCachedItems().length > 0) {
-        console.warn("Utilisation du cache expiré pour les éléments de menu en raison d'une erreur");
-        return this.cacheService.getCachedItems();
-      }
-      throw error;
-    }
-  }
-  
-  /**
-   * Récupère les éléments de menu visibles pour un utilisateur
-   * @param isAdmin Indique si l'utilisateur est administrateur
-   */
-  async getVisibleMenuItems(isAdmin: boolean): Promise<MenuItem[]> {
-    return this.repository.getVisibleMenuItems(isAdmin);
-  }
-  
+  constructor(
+    private menuRepository: IMenuRepository,
+    private cacheService: MenuCacheService,
+    private treeBuilder: MenuTreeBuilder
+  ) {}
+
   /**
    * Récupère les éléments de menu par catégorie
-   * @param category Catégorie des éléments de menu
-   * @param isAdmin Indique si l'utilisateur est administrateur
    */
-  async getMenuItemsByCategory(category: MenuItemCategory, isAdmin: boolean): Promise<MenuItem[]> {
-    return this.repository.getMenuItemsByCategory(category, isAdmin);
+  async getMenuItemsByCategory(category: string, isAdmin: boolean = false): Promise<MenuItem[]> {
+    const cacheKey = `menu_category_${category}_${isAdmin ? 'admin' : 'user'}`;
+    
+    // Essayer de récupérer depuis le cache
+    const cachedItems = this.cacheService.getCache<MenuItem[]>(cacheKey);
+    if (cachedItems) {
+      return cachedItems;
+    }
+    
+    // Récupérer depuis le repository
+    const items = await this.menuRepository.getMenuItemsByCategory(category, isAdmin);
+    
+    // Mettre en cache
+    this.cacheService.setCache(cacheKey, items);
+    
+    return items;
   }
-  
+
   /**
    * Récupère les éléments de menu par module
-   * @param moduleCode Code du module
-   * @param isAdmin Indique si l'utilisateur est administrateur
    */
-  async getMenuItemsByModule(moduleCode: string, isAdmin: boolean): Promise<MenuItem[]> {
-    return this.repository.getMenuItemsByModule(moduleCode, isAdmin);
-  }
-  
-  /**
-   * Organise les éléments de menu sous forme d'arborescence
-   * @param menuItems Liste plate des éléments de menu
-   */
-  buildMenuTree(menuItems: MenuItem[]): MenuItem[] {
-    return this.treeBuilder.buildMenuTree(menuItems);
-  }
-  
-  /**
-   * Met à jour un élément de menu
-   * @param menuItem Élément de menu à mettre à jour
-   */
-  async updateMenuItem(menuItem: Partial<MenuItem> & { id: string }): Promise<MenuItem> {
-    const updatedItem = await this.repository.updateMenuItem(menuItem);
+  async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
+    const cacheKey = `menu_module_${moduleCode}_${isAdmin ? 'admin' : 'user'}`;
     
-    // Invalider le cache
-    this.cacheService.invalidateCache();
+    // Essayer de récupérer depuis le cache
+    const cachedItems = this.cacheService.getCache<MenuItem[]>(cacheKey);
+    if (cachedItems) {
+      return cachedItems;
+    }
     
-    return updatedItem;
+    // Récupérer depuis le repository
+    const items = await this.menuRepository.getMenuItemsByModule(moduleCode, isAdmin);
+    
+    // Mettre en cache
+    this.cacheService.setCache(cacheKey, items);
+    
+    return items;
   }
-  
+
+  /**
+   * Récupère tous les éléments de menu visibles
+   */
+  async getVisibleMenuItems(isAdmin: boolean = false): Promise<MenuItem[]> {
+    const cacheKey = `menu_visible_${isAdmin ? 'admin' : 'user'}`;
+    
+    // Essayer de récupérer depuis le cache
+    const cachedItems = this.cacheService.getCache<MenuItem[]>(cacheKey);
+    if (cachedItems) {
+      return cachedItems;
+    }
+    
+    // Récupérer depuis le repository
+    const items = await this.menuRepository.getVisibleMenuItems(isAdmin);
+    
+    // Mettre en cache
+    this.cacheService.setCache(cacheKey, items);
+    
+    return items;
+  }
+
+  /**
+   * Récupère tous les éléments de menu
+   */
+  async getAllMenuItems(): Promise<MenuItem[]> {
+    const cacheKey = 'menu_all';
+    
+    // Essayer de récupérer depuis le cache
+    const cachedItems = this.cacheService.getCache<MenuItem[]>(cacheKey);
+    if (cachedItems) {
+      return cachedItems;
+    }
+    
+    // Récupérer depuis le repository
+    const items = await this.menuRepository.getAllMenuItems();
+    
+    // Mettre en cache
+    this.cacheService.setCache(cacheKey, items);
+    
+    return items;
+  }
+
   /**
    * Crée un nouvel élément de menu
-   * @param menuItem Élément de menu à créer
    */
-  async createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem> {
-    const newItem = await this.repository.createMenuItem(menuItem);
+  async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem> {
+    const newItem = await this.menuRepository.createMenuItem(item);
     
     // Invalider le cache
     this.cacheService.invalidateCache();
+    
+    // Publier un événement
+    eventBus.publish('menu:updated', { action: 'create', item: newItem });
     
     return newItem;
   }
-  
+
+  /**
+   * Met à jour un élément de menu
+   */
+  async updateMenuItem(item: Partial<MenuItem> & { id: string }): Promise<MenuItem> {
+    const updatedItem = await this.menuRepository.updateMenuItem(item.id, item);
+    
+    // Invalider le cache
+    this.cacheService.invalidateCache();
+    
+    // Publier un événement
+    eventBus.publish('menu:updated', { action: 'update', item: updatedItem });
+    
+    return updatedItem;
+  }
+
   /**
    * Supprime un élément de menu
-   * @param id Identifiant de l'élément de menu
    */
-  async deleteMenuItem(id: string): Promise<void> {
-    await this.repository.deleteMenuItem(id);
+  async deleteMenuItem(id: string): Promise<boolean> {
+    const success = await this.menuRepository.deleteMenuItem(id);
     
     // Invalider le cache
     this.cacheService.invalidateCache();
-  }
-  
-  /**
-   * Met à jour les positions des éléments de menu
-   * @param updates Tableau de mises à jour avec ID et nouvelle position
-   */
-  async updateMenuPositions(updates: { id: string; position: number }[]): Promise<void> {
-    await this.repository.updateMenuPositions(updates);
     
-    // Invalider le cache
-    this.cacheService.invalidateCache();
+    // Publier un événement
+    eventBus.publish('menu:updated', { action: 'delete', itemId: id });
+    
+    return success;
   }
 }

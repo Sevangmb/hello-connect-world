@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
-import { MenuService } from '@/services/menu/MenuService';
+// Fix import path
+import { MenuService } from '@/services/menu/infrastructure/menuServiceProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
 import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
