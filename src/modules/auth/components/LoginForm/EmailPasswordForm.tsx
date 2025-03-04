@@ -1,0 +1,33 @@
+
+import React from "react";
+import { EmailField } from "./EmailField";
+import { PasswordField } from "./PasswordField";
+import { LoginButton } from "./LoginButton";
+import { LoginFooter } from "./LoginFooter";
+
+interface EmailPasswordFormProps {
+  email: string;
+  setEmail: (email: string) => void;
+  password: string;
+  setPassword: (password: string) => void;
+  isSubmitting: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+}
+
+export const EmailPasswordForm: React.FC<EmailPasswordFormProps> = ({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  isSubmitting,
+  onSubmit,
+}) => {
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <EmailField email={email} setEmail={setEmail} />
+      <PasswordField password={password} setPassword={setPassword} />
+      <LoginButton isSubmitting={isSubmitting} />
+      <LoginFooter />
+    </form>
+  );
+};
