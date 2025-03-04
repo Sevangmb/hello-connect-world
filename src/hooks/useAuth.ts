@@ -3,7 +3,7 @@
  * Hook pour l'authentification utilisateur
  * Utilise le microservice d'authentification
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 import { User } from "@/core/auth/domain/types";
 import { useToast } from "@/hooks/use-toast";
@@ -19,28 +19,31 @@ export const useAuth = () => {
   const authService = getAuthService();
   const { toast } = useToast();
 
+  // Fonction pour récupérer l'état d'authentification actuel
+  const refreshAuth = useCallback(async () => {
+    try {
+      console.log("Rafraîchissement de l'état d'authentification");
+      setLoading(true);
+      const currentUser = await authService.getCurrentUser();
+      console.log("Utilisateur actuel:", currentUser ? 'Connecté' : 'Non connecté');
+      setUser(currentUser);
+      return currentUser;
+    } catch (error) {
+      console.error("Erreur dans le rafraîchissement de l'authentification:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur d'authentification",
+        description: "Impossible de récupérer les informations de session",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [authService, toast]);
+
   useEffect(() => {
     // Récupération initiale de la session
-    const initializeAuth = async () => {
-      try {
-        console.log("Initialisation de l'authentification");
-        setLoading(true);
-        const currentUser = await authService.getCurrentUser();
-        console.log("Utilisateur actuel:", currentUser ? 'Connecté' : 'Non connecté');
-        setUser(currentUser);
-      } catch (error) {
-        console.error("Erreur dans l'initialisation de l'authentification:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur d'authentification",
-          description: "Impossible de récupérer les informations de session",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
+    refreshAuth();
 
     // Écoute des changements d'authentification
     const unsubscribe = authService.subscribeToAuthChanges((currentUser) => {
@@ -52,7 +55,7 @@ export const useAuth = () => {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [refreshAuth]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
@@ -162,6 +165,7 @@ export const useAuth = () => {
     signIn, 
     signUp, 
     signOut,
+    refreshAuth,
     isAuthenticated: !!user
   };
 };
