@@ -5,7 +5,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { IUserRepository } from '../domain/interfaces/IUserRepository';
-import { UserProfile, UserUpdateData } from '../domain/types';
+import { UserProfile, UserUpdateData, BillingAddress } from '../domain/types';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { USER_EVENTS } from '../domain/events';
 
@@ -50,9 +50,9 @@ export class SupabaseUserRepository implements IUserRepository {
         is_admin: data.is_admin || false
       };
       
-      // Ajouter les champs de facturation s'ils existent
+      // Convertir et ajouter billing_address si présent (conversion de Json à BillingAddress)
       if (data.billing_address) {
-        profile.billing_address = data.billing_address;
+        profile.billing_address = data.billing_address as BillingAddress;
       }
       
       if (data.stripe_customer_id) {
@@ -80,12 +80,16 @@ export class SupabaseUserRepository implements IUserRepository {
         return { success: false, error: "ID d'utilisateur requis" };
       }
 
+      // Préparer les données pour la mise à jour
+      // Convertir BillingAddress en Json lors de l'envoi à Supabase
+      const updateData: any = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          ...data,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", userId);
 
       if (error) {
