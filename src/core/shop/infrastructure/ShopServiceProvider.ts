@@ -1,13 +1,32 @@
 
-import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
+import { ShopService } from '../application/ShopService';
 
-let shopService: ShopService | null = null;
+// Singleton instance
+let shopServiceInstance: ShopService | null = null;
 
+/**
+ * Gets or creates a ShopService instance
+ */
 export const getShopService = (): ShopService => {
-  if (!shopService) {
-    const shopRepository = new ShopRepository();
-    shopService = new ShopService(shopRepository);
+  if (!shopServiceInstance) {
+    const repository = new ShopRepository();
+    shopServiceInstance = new ShopService(repository);
   }
-  return shopService;
+  
+  return shopServiceInstance;
+};
+
+/**
+ * Reset the shop service (useful for testing)
+ */
+export const resetShopService = (): void => {
+  shopServiceInstance = null;
+};
+
+/**
+ * Creates a new shop service with custom repository (useful for testing)
+ */
+export const createShopService = (repository: any): ShopService => {
+  return new ShopService(repository);
 };

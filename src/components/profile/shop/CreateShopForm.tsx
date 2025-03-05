@@ -1,118 +1,125 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ImageUpload } from '@/components/ui/image-upload';
-import { useToast } from '@/hooks/use-toast';
 import { useShop } from '@/hooks/useShop';
+import { Shop } from '@/core/shop/domain/types';
 import { useAuth } from '@/hooks/useAuth';
-import { ShopStatus } from '@/core/shop/domain/types';
+import { useNavigate } from 'react-router-dom';
 
-interface CreateShopFormProps {
-  onSuccess?: () => void;
-}
-
-const CreateShopForm: React.FC<CreateShopFormProps> = ({ onSuccess }) => {
-  const { createShop } = useShop();
+export const CreateShopForm: React.FC = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const navigate = useNavigate();
+  const { useCreateShop } = useShop();
+  const createShopMutation = useCreateShop();
   
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
       name: '',
       description: '',
+      address: '',
+      phone: '',
+      website: '',
+      image_url: ''
     }
   });
 
-  const onSubmit = async (data: { name: string; description: string }) => {
-    if (!user) {
-      toast({
-        title: "Erreur",
-        description: "Vous devez être connecté pour créer une boutique",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onSubmit = async (data: any) => {
+    if (!user?.id) return;
     
-    setIsSubmitting(true);
+    const shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'> = {
+      user_id: user.id,
+      name: data.name,
+      description: data.description,
+      address: data.address,
+      phone: data.phone,
+      website: data.website,
+      image_url: data.image_url,
+      status: 'pending',
+      average_rating: 0,
+    };
+    
     try {
-      await createShop({
-        name: data.name,
-        description: data.description,
-        image_url: imageUrl || undefined,
-        status: 'pending' as ShopStatus,
-        user_id: user.id
-      });
-      
-      toast({
-        title: "Boutique créée",
-        description: "Votre boutique a été créée avec succès.",
-      });
-      
-      if (onSuccess) {
-        onSuccess();
-      }
+      await createShopMutation.mutateAsync(shopData);
+      navigate('/profile/shop');
     } catch (error) {
       console.error('Error creating shop:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur s'est produite lors de la création de votre boutique.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <Label htmlFor="image">Image de la boutique</Label>
-        <div className="mt-2">
-          <ImageUpload 
-            onChange={setImageUrl}
-            onUploading={setIsUploading}
-            currentImageUrl={imageUrl}
-          />
-        </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="name">Nom de la boutique</Label>
-        <Input
-          id="name"
-          {...register('name', { required: "Le nom est requis" })}
-          className="mt-1"
-        />
-        {errors.name && (
-          <p className="text-red-500 text-sm mt-1">{errors.name.message?.toString()}</p>
-        )}
-      </div>
-      
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          {...register('description')}
-          className="mt-1"
-          rows={4}
-        />
-      </div>
-      
-      <Button 
-        type="submit" 
-        disabled={isSubmitting || isUploading}
-        className="w-full"
-      >
-        {isSubmitting ? "Création en cours..." : "Créer ma boutique"}
-      </Button>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle>Create Your Shop</CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Shop Name</Label>
+            <Input
+              id="name"
+              {...register('name', { required: 'Shop name is required' })}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              {...register('description', { required: 'Description is required' })}
+            />
+            {errors.description && (
+              <p className="text-sm text-red-500">{errors.description.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              {...register('address')}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              {...register('phone')}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              {...register('website')}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="image_url">Image URL</Label>
+            <Input
+              id="image_url"
+              {...register('image_url')}
+            />
+          </div>
+        </CardContent>
+        
+        <CardFooter>
+          <Button type="submit" disabled={createShopMutation.isPending}>
+            {createShopMutation.isPending ? 'Creating...' : 'Create Shop'}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
   );
 };
 

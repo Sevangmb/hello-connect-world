@@ -1,337 +1,352 @@
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Shop, ShopItem, ShopReview, Order, OrderStatus } from '@/core/shop/domain/types';
+import { useParams } from 'react-router-dom';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { useToast } from '@/hooks/use-toast';
+import { 
+  Shop, 
+  ShopItem, 
+  ShopReview, 
+  Order, 
+  OrderStatus, 
+  ShopSettings,
+  ShopItemStatus 
+} from '@/core/shop/domain/types';
+import { useToast } from './use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
 export const useShop = () => {
-  const { toast } = useToast();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const shopService = getShopService();
-
-  // Get shop by ID
+  
+  // Hook to get shop by ID
   const useShopById = (shopId?: string) => {
+    const { id } = useParams<{ id: string }>();
+    const finalId = shopId || id;
+    
     return useQuery({
-      queryKey: ['shop', shopId],
+      queryKey: ['shop', finalId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopById(shopId);
+        if (!finalId) throw new Error('Shop ID is required');
+        return shopService.getShopById(finalId);
       },
-      enabled: !!shopId
+      enabled: !!finalId
     });
   };
-
-  // Get current user's shop
+  
+  // Hook to get the current user's shop
   const useUserShop = () => {
     return useQuery({
       queryKey: ['userShop', user?.id],
       queryFn: async () => {
-        if (!user) throw new Error('User is not authenticated');
-        return await shopService.getShopByUserId(user.id);
+        if (!user?.id) throw new Error('User must be logged in');
+        return shopService.getShopByUserId(user.id);
       },
-      enabled: !!user
+      enabled: !!user?.id
     });
   };
-
-  // Create a shop
+  
+  // Hook to create a shop
   const useCreateShop = () => {
     return useMutation({
-      mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>) => {
-        if (!user) throw new Error('User is not authenticated');
-        // Need to assign a default value for average_rating
-        const shopDataWithRating = {
-          ...shopData,
-          average_rating: 0
-        };
-        return await shopService.createShop(shopDataWithRating);
+      mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => {
+        if (!user?.id) throw new Error('User must be logged in');
+        return shopService.createShop(shopData);
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['userShop'] });
         toast({
-          title: 'Boutique créée',
-          description: 'Votre boutique a été créée avec succès',
+          title: 'Success',
+          description: 'Shop created successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error creating shop:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de créer la boutique',
+          title: 'Error',
+          description: `Failed to create shop: ${error.message}`
         });
       }
     });
   };
-
-  // Update a shop
+  
+  // Hook to update a shop
   const useUpdateShop = () => {
     return useMutation({
-      mutationFn: async ({ id, ...data }: { id: string } & Partial<Shop>) => {
-        return await shopService.updateShop(id, data);
+      mutationFn: async ({ shopId, data }: { shopId: string; data: Partial<Shop> }) => {
+        return shopService.updateShop(shopId, data);
       },
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', data.id] });
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shop', variables.shopId] });
         queryClient.invalidateQueries({ queryKey: ['userShop'] });
         toast({
-          title: 'Boutique mise à jour',
-          description: 'Les informations de votre boutique ont été mises à jour',
+          title: 'Success',
+          description: 'Shop updated successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error updating shop:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de mettre à jour la boutique',
+          title: 'Error',
+          description: `Failed to update shop: ${error.message}`
         });
       }
     });
   };
-
-  // Create a shop item
-  const useCreateShopItem = () => {
+  
+  // Hook to get shop items
+  const useShopItems = (shopId?: string) => {
+    const { id } = useParams<{ id: string }>();
+    const finalId = shopId || id;
+    
+    return useQuery({
+      queryKey: ['shopItems', finalId],
+      queryFn: async () => {
+        if (!finalId) throw new Error('Shop ID is required');
+        return shopService.getShopItems(finalId);
+      },
+      enabled: !!finalId
+    });
+  };
+  
+  // Hook to add a shop item
+  const useAddShopItem = () => {
     return useMutation({
       mutationFn: async (itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>) => {
-        // Remove created_at if it exists in the data
-        const { created_at, ...validItemData } = itemData as any;
-        return await shopService.createShopItem(validItemData);
+        return shopService.createShopItem(itemData);
       },
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems', variables.shop_id] });
         toast({
-          title: 'Article ajouté',
-          description: 'L\'article a été ajouté à votre boutique',
+          title: 'Success',
+          description: 'Item added successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error creating shop item:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible d\'ajouter l\'article',
+          title: 'Error',
+          description: `Failed to add item: ${error.message}`
         });
       }
     });
   };
-
-  // Get shop items
-  const useShopItems = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shopItems', shopId],
-      queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopItems(shopId);
-      },
-      enabled: !!shopId
-    });
-  };
-
-  // Update a shop item
+  
+  // Hook to update a shop item
   const useUpdateShopItem = () => {
     return useMutation({
-      mutationFn: async ({ id, ...data }: { id: string } & Partial<ShopItem>) => {
-        return await shopService.updateShopItem(id, data);
+      mutationFn: async ({ itemId, data }: { itemId: string; data: Partial<ShopItem> }) => {
+        return shopService.updateShopItem(itemId, data);
       },
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
+      onSuccess: (item) => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems', item.shop_id] });
         toast({
-          title: 'Article mis à jour',
-          description: 'L\'article a été mis à jour avec succès',
+          title: 'Success',
+          description: 'Item updated successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error updating shop item:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de mettre à jour l\'article',
+          title: 'Error',
+          description: `Failed to update item: ${error.message}`
         });
       }
     });
   };
-
-  // Get shop orders
-  const useShopOrders = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shopOrders', shopId],
-      queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getOrders(shopId);
+  
+  // Hook to delete a shop item
+  const useDeleteShopItem = () => {
+    return useMutation({
+      mutationFn: async ({ itemId, shopId }: { itemId: string; shopId: string }) => {
+        return shopService.deleteShopItem(itemId);
       },
-      enabled: !!shopId
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems', variables.shopId] });
+        toast({
+          title: 'Success',
+          description: 'Item deleted successfully'
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: `Failed to delete item: ${error.message}`
+        });
+      }
     });
   };
-
-  // Get user orders
+  
+  // Hook to get shop orders
+  const useShopOrders = (shopId?: string) => {
+    const { id } = useParams<{ id: string }>();
+    const finalId = shopId || id;
+    
+    return useQuery({
+      queryKey: ['shopOrders', finalId],
+      queryFn: async () => {
+        if (!finalId) throw new Error('Shop ID is required');
+        return shopService.getOrders(finalId);
+      },
+      enabled: !!finalId
+    });
+  };
+  
+  // Hook to get user orders
   const useUserOrders = () => {
     return useQuery({
       queryKey: ['userOrders', user?.id],
       queryFn: async () => {
-        if (!user) throw new Error('User is not authenticated');
-        return await shopService.getOrders(user.id);
+        if (!user?.id) throw new Error('User must be logged in');
+        return shopService.getOrdersByCustomer(user.id);
       },
-      enabled: !!user
+      enabled: !!user?.id
     });
   };
-
-  // Update order status
+  
+  // Hook to update order status
   const useUpdateOrderStatus = () => {
     return useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string, status: OrderStatus }) => {
-        return await shopService.updateOrderStatus(orderId, status);
+      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+        return shopService.updateOrderStatus(orderId, status);
       },
-      onSuccess: (_, variables) => {
+      onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
         queryClient.invalidateQueries({ queryKey: ['userOrders'] });
         toast({
-          title: 'Statut mis à jour',
-          description: 'Le statut de la commande a été mis à jour',
+          title: 'Success',
+          description: 'Order status updated successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error updating order status:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de mettre à jour le statut de la commande',
+          title: 'Error',
+          description: `Failed to update order status: ${error.message}`
         });
       }
     });
   };
-
-  // Get shop reviews
+  
+  // Hook to get shop reviews
   const useShopReviews = (shopId?: string) => {
+    const { id } = useParams<{ id: string }>();
+    const finalId = shopId || id;
+    
     return useQuery({
-      queryKey: ['shopReviews', shopId],
+      queryKey: ['shopReviews', finalId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopReviews(shopId);
+        if (!finalId) throw new Error('Shop ID is required');
+        return shopService.getShopReviews(finalId);
       },
-      enabled: !!shopId
+      enabled: !!finalId
     });
   };
-
-  // Create a shop review
-  const useCreateShopReview = () => {
+  
+  // Hook to add a shop review
+  const useAddShopReview = () => {
     return useMutation({
       mutationFn: async (reviewData: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>) => {
-        if (!user) throw new Error('User is not authenticated');
-        // Remove id if it exists in the data
-        const { id, ...validReviewData } = reviewData as any;
-        return await shopService.createShopReview(validReviewData);
+        if (!user?.id) throw new Error('User must be logged in');
+        return shopService.createShopReview(reviewData);
       },
-      onSuccess: (data) => {
-        queryClient.invalidateQueries({ queryKey: ['shopReviews', data.shop_id] });
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shopReviews', variables.shop_id] });
+        queryClient.invalidateQueries({ queryKey: ['shop', variables.shop_id] });
         toast({
-          title: 'Avis ajouté',
-          description: 'Votre avis a été ajouté avec succès',
+          title: 'Success',
+          description: 'Review added successfully'
         });
       },
-      onError: (error) => {
-        console.error('Error creating shop review:', error);
+      onError: (error: any) => {
         toast({
           variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible d\'ajouter votre avis',
+          title: 'Error',
+          description: `Failed to add review: ${error.message}`
         });
       }
     });
   };
-
-  // Use favorite shops
+  
+  // Hook to check if a shop is favorited
+  const useIsFavorited = (shopId?: string) => {
+    const { id } = useParams<{ id: string }>();
+    const finalId = shopId || id;
+    
+    return useQuery({
+      queryKey: ['shopFavorited', finalId, user?.id],
+      queryFn: async () => {
+        if (!finalId) throw new Error('Shop ID is required');
+        if (!user?.id) return false;
+        return shopService.isShopFavorited(user.id, finalId);
+      },
+      enabled: !!finalId && !!user?.id
+    });
+  };
+  
+  // Hook to toggle favorite status
+  const useToggleFavorite = () => {
+    return useMutation({
+      mutationFn: async ({ shopId, isFavorited }: { shopId: string; isFavorited: boolean }) => {
+        if (!user?.id) throw new Error('User must be logged in');
+        
+        if (isFavorited) {
+          return shopService.removeShopFromFavorites(user.id, shopId);
+        } else {
+          return shopService.addShopToFavorites(user.id, shopId);
+        }
+      },
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shopFavorited', variables.shopId] });
+        queryClient.invalidateQueries({ queryKey: ['favoriteShops'] });
+        toast({
+          title: 'Success',
+          description: variables.isFavorited 
+            ? 'Shop removed from favorites' 
+            : 'Shop added to favorites'
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: `Failed to update favorites: ${error.message}`
+        });
+      }
+    });
+  };
+  
+  // Hook to get favorite shops
   const useFavoriteShops = () => {
     return useQuery({
       queryKey: ['favoriteShops', user?.id],
       queryFn: async () => {
-        if (!user) throw new Error('User is not authenticated');
-        return await shopService.getUserFavoriteShops(user.id);
+        if (!user?.id) throw new Error('User must be logged in');
+        return shopService.getUserFavoriteShops(user.id);
       },
-      enabled: !!user
+      enabled: !!user?.id
     });
   };
 
-  // Add shop to favorites
-  const useAddToFavorites = () => {
-    return useMutation({
-      mutationFn: async (shopId: string) => {
-        if (!user) throw new Error('User is not authenticated');
-        return await shopService.addShopToFavorites(user.id, shopId);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favoriteShops'] });
-        toast({
-          title: 'Boutique ajoutée aux favoris',
-          description: 'La boutique a été ajoutée à vos favoris',
-        });
-      },
-      onError: (error) => {
-        console.error('Error adding shop to favorites:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible d\'ajouter la boutique aux favoris',
-        });
-      }
-    });
-  };
-
-  // Remove shop from favorites
-  const useRemoveFromFavorites = () => {
-    return useMutation({
-      mutationFn: async (shopId: string) => {
-        if (!user) throw new Error('User is not authenticated');
-        return await shopService.removeShopFromFavorites(user.id, shopId);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favoriteShops'] });
-        toast({
-          title: 'Boutique retirée des favoris',
-          description: 'La boutique a été retirée de vos favoris',
-        });
-      },
-      onError: (error) => {
-        console.error('Error removing shop from favorites:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: 'Impossible de retirer la boutique des favoris',
-        });
-      }
-    });
-  };
-
-  // Check if shop is favorited
-  const useIsFavorited = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['isFavorited', shopId, user?.id],
-      queryFn: async () => {
-        if (!user || !shopId) return false;
-        return await shopService.isShopFavorited(user.id, shopId);
-      },
-      enabled: !!user && !!shopId
-    });
-  };
-
+  // Return all the hooks
   return {
     useShopById,
     useUserShop,
     useCreateShop,
     useUpdateShop,
     useShopItems,
-    useCreateShopItem,
+    useAddShopItem,
     useUpdateShopItem,
+    useDeleteShopItem,
     useShopOrders,
     useUserOrders,
     useUpdateOrderStatus,
     useShopReviews,
-    useCreateShopReview,
-    useFavoriteShops,
-    useAddToFavorites,
-    useRemoveFromFavorites,
+    useAddShopReview,
     useIsFavorited,
+    useToggleFavorite,
+    useFavoriteShops
   };
 };

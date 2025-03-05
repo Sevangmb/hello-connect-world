@@ -1,106 +1,93 @@
-import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { useShop } from "@/hooks/useShop";
-import { Card, CardContent } from "@/components/ui/card";
-import ShopItems from "@/components/shop/ShopItems";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { MapPin, Star, Store } from 'lucide-react';
+
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { useShop } from '@/hooks/useShop';
+import { ShopItems } from '@/components/shop/ShopItems';
 
 export default function ShopDetail() {
-  const { shopId } = useParams<{ shopId: string }>();
-  const { shop, isShopLoading } = useShop();
-  
-  // Mock implementation for the shop hooks
-  const getShopById = async (id: string) => {
-    // Mock implementation
-    return null;
-  };
-  
-  const favoriteShop = async (id: string) => {
-    // Mock implementation
-    return true;
-  };
-  
-  const isFavorited = false;
-  
-  const checkIfFavorited = async (id: string) => {
-    // Mock implementation
-    return false;
-  };
-  
-  useEffect(() => {
-    if (shopId) {
-      getShopById(shopId);
-      checkIfFavorited(shopId);
-    }
-  }, [shopId]);
-
-  const handleFavorite = async () => {
-    if (shopId) {
-      favoriteShop(shopId);
-    }
-  };
+  const { id } = useParams<{ id: string }>();
+  const { useShopById } = useShop();
+  const { data: shop, isLoading: isShopLoading, error } = useShopById(id);
 
   if (isShopLoading) {
-    return <div className="p-6">Loading shop details...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  if (!shop) {
-    return <div className="p-6">Shop not found</div>;
+  if (error || !shop) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold text-red-500">Error loading shop</h2>
+        <p className="text-gray-500">{error?.message || 'Shop not found'}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {/* Shop Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
-        <Avatar className="h-24 w-24 md:h-32 md:w-32">
-          {shop.image_url ? (
-            <AvatarImage src={shop.image_url} alt={shop.name} />
-          ) : (
-            <AvatarFallback>
-              <Store className="h-12 w-12" />
-            </AvatarFallback>
-          )}
-        </Avatar>
-
-        <div className="flex-1">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <h1 className="text-3xl font-bold">{shop.name}</h1>
-            <Button
-              variant={isFavorited ? "default" : "outline"}
-              size="sm"
-              onClick={handleFavorite}
-            >
-              {isFavorited ? "Favorited" : "Add to Favorites"}
-            </Button>
-          </div>
-
-          <div className="flex items-center mt-2 text-sm text-gray-500">
-            <div className="flex items-center mr-4">
-              <Star className="h-4 w-4 mr-1 text-yellow-400" />
-              <span>
-                {shop.average_rating.toFixed(1)} ({shop.rating_count || 0}{" "}
-                reviews)
-              </span>
-            </div>
-            {shop.address && (
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{shop.address}</span>
+    <div className="container mx-auto p-4 space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-3xl">{shop.name}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-6">
+            {shop.image_url && (
+              <div className="md:w-1/3">
+                <img 
+                  src={shop.image_url} 
+                  alt={shop.name} 
+                  className="w-full h-auto rounded-lg object-cover" 
+                />
               </div>
             )}
+            <div className="md:w-2/3 space-y-4">
+              <p className="text-lg">{shop.description}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                {shop.address && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Address</h3>
+                    <p>{shop.address}</p>
+                  </div>
+                )}
+                
+                {shop.phone && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Phone</h3>
+                    <p>{shop.phone}</p>
+                  </div>
+                )}
+                
+                {shop.website && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Website</h3>
+                    <a 
+                      href={shop.website.startsWith('http') ? shop.website : `https://${shop.website}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {shop.website}
+                    </a>
+                  </div>
+                )}
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Rating</h3>
+                  <p>{shop.average_rating.toFixed(1)} / 5 ({shop.rating_count || 0} reviews)</p>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <p className="mt-4 text-gray-600">{shop.description}</p>
-        </div>
-      </div>
-
-      {/* Shop Items */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Shop Items</h2>
-        <ShopItems shopId={shop.id} />
-      </div>
+        </CardContent>
+      </Card>
+      
+      <ShopItems />
     </div>
   );
 }

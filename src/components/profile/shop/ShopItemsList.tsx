@@ -1,96 +1,58 @@
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, PlusCircle } from 'lucide-react';
-import { useState } from 'react';
-import { AddItemForm } from './AddItemForm';
+import React from 'react';
 import { useShop } from '@/hooks/useShop';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShopItem } from '@/core/shop/domain/types';
+import { Badge } from '@/components/ui/badge';
 
-interface ShopItemsListProps {
-  shopId: string;
-}
-
-export const ShopItemsList = ({ shopId }: ShopItemsListProps) => {
+export const ShopItemsList: React.FC = () => {
   const { useShopItems } = useShop();
-  const { data: shopItems, isLoading, error } = useShopItems(shopId);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const { data: items, isLoading, error } = useShopItems();
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <div>Loading shop items...</div>;
   }
 
   if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-red-500">Une erreur est survenue lors du chargement des articles.</p>
-        </CardContent>
-      </Card>
-    );
+    return <div>Error loading shop items: {error.message}</div>;
+  }
+
+  if (!items || items.length === 0) {
+    return <div>No items in your shop yet.</div>;
   }
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle>Articles de la boutique</CardTitle>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          variant={showAddForm ? "outline" : "default"}
-        >
-          {showAddForm ? "Annuler" : (
-            <>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Ajouter un article
-            </>
-          )}
-        </Button>
-      </CardHeader>
-      
-      <CardContent>
-        {showAddForm && (
-          <div className="mb-6">
-            <AddItemForm 
-              shopId={shopId} 
-              onSuccess={() => setShowAddForm(false)}
-            />
-          </div>
-        )}
-
-        {shopItems && shopItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {shopItems.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  {item.image_url && (
-                    <img 
-                      src={item.image_url} 
-                      alt={item.name} 
-                      className="w-full h-48 object-cover rounded-md mb-2"
-                    />
-                  )}
-                  <h3 className="font-bold">{item.name}</h3>
-                  <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="font-bold">${item.price}</span>
-                    <span className="text-sm text-gray-500">Stock: {item.stock}</span>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" className="w-full">
-                      Modifier
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500">Aucun article n'est disponible pour le moment.</p>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Your Shop Items</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((item: ShopItem) => (
+          <Card key={item.id} className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">{item.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {item.image_url && (
+                <img 
+                  src={item.image_url} 
+                  alt={item.name} 
+                  className="h-48 w-full object-cover rounded-md mb-4" 
+                />
+              )}
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                {item.description || "No description available"}
+              </p>
+              <div className="flex items-center justify-between mt-2">
+                <Badge variant="outline" className="px-2 py-1">
+                  {item.price}€
+                </Badge>
+                <Badge variant={item.status === 'available' ? 'success' : 'secondary'} className="px-2 py-1">
+                  {item.status}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 };

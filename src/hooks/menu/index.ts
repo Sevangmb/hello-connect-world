@@ -1,9 +1,10 @@
 
-import { useMemo } from 'react';
-import { useAdminStatus } from './useAdminStatus';
-import { useMenuItems } from './useMenuItems';
+import { useEffect, useState } from 'react';
+import { useAllMenuItems, useMenuItemsByCategory, useMenuItemsByModule } from './useMenuItems';
 import { useMenuCategories } from './useMenuCategories';
-import { MenuItemCategory } from '@/services/menu/types';
+import { useAdminStatus } from './useAdminStatus';
+import { MenuItem, MenuItemCategory } from '@/services/menu/types';
+import { eventBus } from '@/core/event-bus/EventBus';
 
 interface UseMenuOptions {
   category?: MenuItemCategory;
@@ -11,64 +12,98 @@ interface UseMenuOptions {
   hierarchical?: boolean;
 }
 
-/**
- * Hook principal pour la gestion des menus
- * Combine les hooks spécifiques avec optimisations de stabilité
- */
-export const useMenu = (options?: UseMenuOptions) => {
-  const { isUserAdmin, loading: adminLoading } = useAdminStatus();
-  const { 
-    menuItems, 
-    loading: menuLoading, 
-    error, 
-    refreshMenu 
-  } = useMenuItems(options);
-  
-  // Utiliser useMemo pour éviter les recalculs inutiles
-  const menuCategories = useMenuCategories(menuItems);
-  
-  // Décomposer pour plus de clarté et meilleure performance
-  const {
-    getMenusByCategory,
-    mainMenu,
-    adminMenu,
-    socialMenu,
-    marketplaceMenu,
-    utilityMenu,
-    systemMenu
-  } = menuCategories;
-  
-  // Calculer une seule fois l'état de chargement combiné
-  const loading = useMemo(() => 
-    adminLoading || menuLoading, 
-    [adminLoading, menuLoading]
-  );
-  
+// Main hook for using menu functionality
+export const useMenu = (options: UseMenuOptions = {}) => {
+  const { category, moduleCode, hierarchical = false } = options;
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get admin status
+  const { isAdmin: isUserAdmin } = useAdminStatus();
+
+  // Query for menu items based on provided options
+  const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory, isUserAdmin);
+  const moduleQuery = useMenuItemsByModule(moduleCode as string, isUserAdmin);
+  const allItemsQuery = useAllMenuItems();
+
+  // Categories 
+  const { data: categories = [] } = useMenuCategories();
+
+  // Effect to set menu items based on query results
+  useEffect(() => {
+    try {
+      setLoading(true);
+      let items: MenuItem[] = [];
+
+      // Get items based on options
+      if (category) {
+        items = categoryQuery.data || [];
+      } else if (moduleCode) {
+        items = moduleQuery.data || [];
+      } else {
+        items = allItemsQuery.data || [];
+      }
+
+      // Filter based on user permissions
+      const filteredItems = items.filter(item => {
+        if (item.requires_admin && !isUserAdmin) {
+          return false;
+        }
+        return true;
+      });
+
+      // Handle hierarchical structure if needed
+      if (hierarchical) {
+        // Build tree structure (future enhancement)
+        setMenuItems(filteredItems);
+      } else {
+        setMenuItems(filteredItems);
+      }
+
+      setError(null);
+    } catch (err) {
+      console.error("Error processing menu items:", err);
+      setError("Failed to load menu items");
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    category, 
+    moduleCode, 
+    hierarchical, 
+    isUserAdmin,
+    categoryQuery.data,
+    moduleQuery.data,
+    allItemsQuery.data
+  ]);
+
+  // Function to refresh menu data
+  const refreshMenu = () => {
+    if (category) {
+      categoryQuery.refetch();
+    } else if (moduleCode) {
+      moduleQuery.refetch();
+    } else {
+      allItemsQuery.refetch();
+    }
+  };
+
   return {
     menuItems,
-    loading,
+    loading: loading || categoryQuery.isLoading || moduleQuery.isLoading || allItemsQuery.isLoading,
     error,
     isUserAdmin,
-    getMenusByCategory,
-    refreshMenu,
-    mainMenu,
-    adminMenu,
-    socialMenu,
-    marketplaceMenu,
-    utilityMenu,
-    systemMenu
+    categories,
+    refreshMenu
   };
 };
 
-// Hooks spécialisés pour des catégories spécifiques avec mémoisation
-export const useMainMenu = () => useMenu({ category: 'main' });
-export const useAdminMenu = () => useMenu({ category: 'admin' });
-export const useSocialMenu = () => useMenu({ category: 'social' });
-export const useMarketplaceMenu = () => useMenu({ category: 'marketplace' });
-export const useUtilityMenu = () => useMenu({ category: 'utility' });
-export const useSystemMenu = () => useMenu({ category: 'system' });
-
-// Réexporter les hooks individuels pour un accès direct si nécessaire
-export { useAdminStatus } from './useAdminStatus';
-export { useMenuItems } from './useMenuItems';
-export { useMenuCategories } from './useMenuCategories';
+// Export sub-hooks for direct access if needed
+export { 
+  useAllMenuItems,
+  useMenuItemsByCategory,
+  useMenuItemsByModule,
+  useMenuCategories, 
+  useAdminStatus 
+};

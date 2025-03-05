@@ -1,167 +1,152 @@
 
-import { ShopService } from '@/core/shop/application/ShopService';
-import { ShopRepository } from '@/core/shop/infrastructure/ShopRepository';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { supabase } from '@/integrations/supabase/client';
+import { BaseApiGateway } from './BaseApiGateway';
+import { 
+  Shop, 
+  ShopItem, 
+  ShopReview, 
+  ShopStatus, 
+  ShopItemStatus, 
+  OrderStatus, 
+  Order 
+} from '@/core/shop/domain/types';
 
-export class ShopApiGateway {
-  private shopService: ShopService;
-
-  constructor() {
-    this.shopService = getShopService();
-  }
+/**
+ * Shop API Gateway for accessing shop-related functionality
+ */
+export class ShopApiGateway extends BaseApiGateway {
+  private shopService = getShopService();
 
   /**
    * Get shop by ID
    */
-  async getShopById(id: string) {
+  async getShopById(id: string): Promise<Shop | null> {
     return this.shopService.getShopById(id);
   }
 
   /**
    * Get shop by user ID
    */
-  async getShopByUserId(userId: string) {
+  async getShopByUserId(userId: string): Promise<Shop | null> {
     return this.shopService.getShopByUserId(userId);
   }
 
   /**
    * Get all shops
    */
-  async getShops() {
+  async getShops(): Promise<Shop[]> {
     return this.shopService.getShops();
   }
 
   /**
-   * Create a new shop
+   * Get shops by status
    */
-  async createShop(shopData: any) {
+  async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
+    return this.shopService.getShopsByStatus(status);
+  }
+
+  /**
+   * Create a shop
+   */
+  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> {
     return this.shopService.createShop(shopData);
   }
 
   /**
    * Update a shop
    */
-  async updateShop(id: string, shopData: any) {
+  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop> {
     return this.shopService.updateShop(id, shopData);
   }
 
   /**
-   * Get shop items
+   * Update shop item status
    */
-  async getShopItems(shopId: string) {
-    return this.shopService.getShopItems(shopId);
-  }
-
-  /**
-   * Create shop item
-   */
-  async createShopItem(itemData: any) {
-    return this.shopService.createShopItem(itemData);
-  }
-
-  /**
-   * Update shop item
-   */
-  async updateShopItem(id: string, itemData: any) {
-    return this.shopService.updateShopItem(id, itemData);
-  }
-
-  /**
-   * Update shop item status - use updateShopItem instead
-   */
-  async updateShopItemStatus(id: string, status: string) {
-    return this.shopService.updateShopItem(id, { status });
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem> {
+    return this.shopService.updateShopItemStatus(id, status);
   }
 
   /**
    * Get shop reviews
    */
-  async getShopReviews(shopId: string) {
+  async getShopReviews(shopId: string): Promise<ShopReview[]> {
     return this.shopService.getShopReviews(shopId);
   }
 
   /**
-   * Add a shop review (using createShopReview method)
+   * Add shop review
    */
-  async addShopReview(reviewData: any) {
-    return this.shopService.createShopReview(reviewData);
+  async addShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview> {
+    return this.shopService.createShopReview(review);
   }
 
   /**
-   * Get shop orders - use getOrders method
+   * Get shop orders
    */
-  async getShopOrders(shopId: string) {
+  async getShopOrders(shopId: string): Promise<Order[]> {
     return this.shopService.getOrders(shopId);
   }
 
   /**
-   * Get user orders - use getOrders with user parameter
+   * Get user orders
    */
-  async getUserOrders(userId: string) {
-    // Get the shop owned by this user first
-    const shop = await this.shopService.getShopByUserId(userId);
-    if (shop) {
-      return this.shopService.getOrders(shop.id);
-    }
-    return [];
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return this.shopService.getOrdersByCustomer(userId);
   }
 
   /**
-   * Create an order
+   * Get order by ID
    */
-  async createOrder(orderData: any) {
-    return this.shopService.createOrder(orderData);
+  async getOrderById(id: string): Promise<Order | null> {
+    return this.shopService.getOrderById(id);
   }
 
   /**
-   * Update order status - use updateOrder instead
+   * Update order status
    */
-  async updateOrderStatus(orderId: string, status: string) {
-    return this.shopService.updateOrder(orderId, { status });
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
+    return this.shopService.updateOrderStatus(id, status);
   }
 
   /**
-   * Get shop settings - use getShopById instead
+   * Get shop settings
    */
-  async getShopSettings(shopId: string) {
-    // Assuming settings might be part of the shop entity
-    const shop = await this.shopService.getShopById(shopId);
-    return shop?.settings || null;
+  async getShopSettings(shopId: string): Promise<any> {
+    return this.shopService.getShopSettings(shopId);
   }
 
   /**
-   * Update shop settings - use updateShop instead
+   * Update shop settings
    */
-  async updateShopSettings(shopId: string, settings: any) {
-    return this.shopService.updateShop(shopId, { settings });
+  async updateShopSettings(shopId: string, settingsData: any): Promise<any> {
+    return this.shopService.updateShopSettings(shopId, settingsData);
   }
 
   /**
-   * Get user favorite shops - use getUserFavoriteShops method
+   * Get favorite shops
    */
-  async getFavoriteShops(userId: string) {
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
     return this.shopService.getUserFavoriteShops(userId);
   }
 
   /**
-   * Check if shop is favorited - use isShopFavorited method
+   * Check if shop is favorited
    */
-  async checkIfFavorited(userId: string, shopId: string) {
+  async checkIfFavorited(userId: string, shopId: string): Promise<boolean> {
     return this.shopService.isShopFavorited(userId, shopId);
   }
 
   /**
-   * Add shop to favorites - use addShopToFavorites method
+   * Add favorite shop
    */
-  async addFavoriteShop(userId: string, shopId: string) {
+  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
     return this.shopService.addShopToFavorites(userId, shopId);
   }
 
   /**
-   * Remove shop from favorites - use removeShopFromFavorites method
+   * Remove favorite shop
    */
-  async removeFavoriteShop(userId: string, shopId: string) {
+  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
     return this.shopService.removeShopFromFavorites(userId, shopId);
   }
 }

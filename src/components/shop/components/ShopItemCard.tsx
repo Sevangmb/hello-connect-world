@@ -18,7 +18,7 @@ export const ShopItemCard = ({ item }: ShopItemCardProps) => {
   // Fix: Use mutate method for mutations
   const handleAddToCart = () => {
     addToCart.mutate({ 
-      itemId: item.id,
+      item_id: item.id,
       quantity: 1
     });
   };
@@ -53,3 +53,5 @@ export const ShopItemCard = ({ item }: ShopItemCardProps) => {
     </Card>
   );
 };
+
+export default ShopItemCard;

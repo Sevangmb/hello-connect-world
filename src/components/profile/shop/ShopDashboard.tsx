@@ -1,105 +1,62 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import ShopItemsList from './ShopItemsList';
-import ShopOrdersList from './ShopOrdersList';
-import ShopReviewsList from './ShopReviewsList';
-import AddItemForm from './AddItemForm';
+import { useShop } from '@/hooks/useShop';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { ShopItemsList } from './ShopItemsList';
+import { ShopOrdersList } from './ShopOrdersList';
+import { AddItemForm } from './AddItemForm';
 
-const ShopDashboard: React.FC = () => {
-  const { user } = useAuth();
-  
-  const { data: shop, isLoading: isShopLoading, error: shopError } = useQuery({
-    queryKey: ['userShop', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not logged in');
-      const shopService = getShopService();
-      return shopService.getShopByUserId(user.id);
-    },
-    enabled: !!user?.id
-  });
+export const ShopDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { useUserShop } = useShop();
+  const { data: shop, isLoading, error } = useUserShop();
 
-  if (isShopLoading) {
-    return <div>Chargement de votre boutique...</div>;
+  if (isLoading) {
+    return <div>Loading shop information...</div>;
   }
 
-  if (shopError) {
-    return <div>Erreur: {(shopError as Error).message}</div>;
+  if (error) {
+    return <div>Error loading shop: {error.message}</div>;
   }
 
   if (!shop) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <h1 className="text-2xl font-bold mb-4">Vous n'avez pas encore de boutique</h1>
-        <p className="text-gray-500 mb-6">
-          Créez votre boutique pour commencer à vendre vos articles.
-        </p>
-        <a
-          href="/create-shop"
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-        >
-          Créer une boutique
-        </a>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold">You don't have a shop yet</h2>
+            <p className="text-muted-foreground">Create your shop to start selling items</p>
+            <Button onClick={() => navigate('/create-shop')}>Create Shop</Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Ma Boutique</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <h1 className="text-2xl font-bold">{shop.name}</h1>
-          <p className="text-gray-500">{shop.description}</p>
-          <div className="mt-2">
-            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-              {shop.status}
-            </span>
-            <span className="text-sm ml-2">
-              Note: {shop.average_rating} ({shop.rating_count || 0} avis)
-            </span>
-          </div>
-          <div className="mt-4">
-            <a
-              href={`/shops/${shop.id}`}
-              className="text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Voir ma boutique
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">{shop.name}</h1>
+        <p className="text-muted-foreground">{shop.description}</p>
+      </div>
 
       <Tabs defaultValue="items">
-        <TabsList className="mb-4">
-          <TabsTrigger value="items">Articles</TabsTrigger>
-          <TabsTrigger value="orders">Commandes</TabsTrigger>
-          <TabsTrigger value="reviews">Avis</TabsTrigger>
-          <TabsTrigger value="add-item">Ajouter un article</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="add">Add Item</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="items">
-          <ShopItemsList shopId={shop.id} />
+        <TabsContent value="items" className="mt-4">
+          <ShopItemsList />
         </TabsContent>
-
-        <TabsContent value="orders">
-          <ShopOrdersList shopId={shop.id} />
+        <TabsContent value="orders" className="mt-4">
+          <ShopOrdersList />
         </TabsContent>
-
-        <TabsContent value="reviews">
-          <ShopReviewsList shopId={shop.id} />
-        </TabsContent>
-
-        <TabsContent value="add-item">
-          <AddItemForm shopId={shop.id} />
+        <TabsContent value="add" className="mt-4">
+          <AddItemForm />
         </TabsContent>
       </Tabs>
     </div>

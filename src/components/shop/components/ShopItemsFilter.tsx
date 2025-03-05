@@ -1,124 +1,107 @@
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-
-export interface FilterOptions {
-  sort: string;
-  minPrice?: number;
-  maxPrice?: number;
-  category?: string;
-}
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 export interface ShopItemsFilterProps {
-  onFilterChange: (filters: FilterOptions) => void;
+  filter: {
+    search: string;
+    minPrice: number;
+    maxPrice: number;
+    category: string;
+    sort: string;
+  };
+  setFilter: (filter: any) => void;
 }
 
-export const ShopItemsFilter = ({ onFilterChange }: ShopItemsFilterProps) => {
-  const [filters, setFilters] = useState<FilterOptions>({
-    sort: 'price-asc',
-    minPrice: undefined,
-    maxPrice: undefined,
-    category: undefined
-  });
-
-  // Update parent component when filters change
-  useEffect(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
-
-  const handleSortChange = (value: string) => {
-    setFilters(prev => ({ ...prev, sort: value }));
+export const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({ filter, setFilter }) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilter({ ...filter, search: e.target.value });
   };
 
-  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value ? parseInt(e.target.value) : undefined;
-    setFilters(prev => ({ ...prev, minPrice: value }));
-  };
-
-  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value ? parseInt(e.target.value) : undefined;
-    setFilters(prev => ({ ...prev, maxPrice: value }));
+  const handlePriceChange = (value: number[]) => {
+    setFilter({ ...filter, minPrice: value[0], maxPrice: value[1] });
   };
 
   const handleCategoryChange = (value: string) => {
-    setFilters(prev => ({ ...prev, category: value || undefined }));
+    setFilter({ ...filter, category: value });
   };
 
-  const handleResetFilters = () => {
-    setFilters({
-      sort: 'price-asc',
-      minPrice: undefined,
-      maxPrice: undefined,
-      category: undefined
-    });
+  const handleSortChange = (value: string) => {
+    setFilter({ ...filter, sort: value });
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow mb-4">
-      <h3 className="text-lg font-semibold mb-3">Filtres</h3>
-      
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="sort">Trier par</Label>
-          <Select value={filters.sort} onValueChange={handleSortChange}>
-            <SelectTrigger id="sort">
-              <SelectValue placeholder="Trier par..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="price-asc">Prix croissant</SelectItem>
-              <SelectItem value="price-desc">Prix décroissant</SelectItem>
-              <SelectItem value="name-asc">Nom (A-Z)</SelectItem>
-              <SelectItem value="name-desc">Nom (Z-A)</SelectItem>
-              <SelectItem value="newest">Plus récent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label htmlFor="category">Catégorie</Label>
-          <Select value={filters.category || ''} onValueChange={handleCategoryChange}>
-            <SelectTrigger id="category">
-              <SelectValue placeholder="Toutes les catégories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Toutes les catégories</SelectItem>
-              <SelectItem value="vêtements">Vêtements</SelectItem>
-              <SelectItem value="accessoires">Accessoires</SelectItem>
-              <SelectItem value="chaussures">Chaussures</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div>
-          <Label>Prix</Label>
-          <div className="flex space-x-2">
-            <div className="w-1/2">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={filters.minPrice || ''}
-                onChange={handleMinPriceChange}
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              placeholder="Search items..."
+              value={filter.search}
+              onChange={handleSearchChange}
+            />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Price Range</Label>
+            <div className="px-2">
+              <Slider
+                defaultValue={[filter.minPrice, filter.maxPrice]}
+                max={1000}
+                step={10}
+                onValueChange={handlePriceChange}
               />
+              <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                <span>{filter.minPrice}€</span>
+                <span>{filter.maxPrice}€</span>
+              </div>
             </div>
-            <div className="w-1/2">
-              <Input
-                type="number"
-                placeholder="Max"
-                value={filters.maxPrice || ''}
-                onChange={handleMaxPriceChange}
-              />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={filter.category} onValueChange={handleCategoryChange}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All categories</SelectItem>
+                  <SelectItem value="clothing">Clothing</SelectItem>
+                  <SelectItem value="accessories">Accessories</SelectItem>
+                  <SelectItem value="shoes">Shoes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="sort">Sort by</Label>
+              <Select value={filter.sort} onValueChange={handleSortChange}>
+                <SelectTrigger id="sort">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="priceAsc">Price: Low to High</SelectItem>
+                  <SelectItem value="priceDesc">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
-        
-        <Button variant="outline" onClick={handleResetFilters} className="w-full">
-          Réinitialiser les filtres
-        </Button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

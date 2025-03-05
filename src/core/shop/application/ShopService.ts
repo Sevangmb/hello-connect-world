@@ -1,9 +1,23 @@
 
-import { IShopRepository } from '../domain/repository/IShopRepository';
-import { Shop, ShopItem, ShopReview, Order, ShopStatus } from '../domain/types';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
+import { 
+  Shop, 
+  ShopItem, 
+  ShopReview, 
+  Order, 
+  ShopStatus, 
+  ShopItemStatus,
+  OrderStatus, 
+  ShopSettings,
+  PaymentStatus
+} from '../domain/types';
 
 export class ShopService {
-  constructor(private repository: IShopRepository) {}
+  private repository: IShopRepository;
+
+  constructor(repository: IShopRepository) {
+    this.repository = repository;
+  }
 
   // Shop operations
   async getShopById(id: string): Promise<Shop | null> {
@@ -30,7 +44,11 @@ export class ShopService {
     return this.repository.updateShop(id, shopData);
   }
 
-  // Shop items operations
+  async deleteShop(id: string): Promise<boolean> {
+    return this.repository.deleteShop(id);
+  }
+
+  // Shop item operations
   async getShopItems(shopId: string): Promise<ShopItem[]> {
     return this.repository.getShopItems(shopId);
   }
@@ -51,8 +69,39 @@ export class ShopService {
     return this.repository.updateShopItem(id, itemData);
   }
 
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem> {
+    return this.repository.updateShopItemStatus(id, status);
+  }
+
   async deleteShopItem(id: string): Promise<boolean> {
     return this.repository.deleteShopItem(id);
+  }
+
+  // Order operations
+  async getOrders(shopId: string): Promise<Order[]> {
+    return this.repository.getOrders(shopId);
+  }
+
+  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
+    // Implement this in the repository
+    const orders = await this.repository.getOrders("");
+    return orders.filter(order => order.customer_id === customerId);
+  }
+
+  async getOrderById(id: string): Promise<Order | null> {
+    return this.repository.getOrderById(id);
+  }
+
+  async createOrder(orderData: any): Promise<Order> {
+    return this.repository.createOrder(orderData);
+  }
+
+  async updateOrder(id: string, orderData: any): Promise<Order> {
+    return this.repository.updateOrder(id, orderData);
+  }
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
+    return this.repository.updateOrderStatus(id, status);
   }
 
   // Shop review operations
@@ -72,21 +121,13 @@ export class ShopService {
     return this.repository.deleteShopReview(id);
   }
 
-  // Order operations
-  async getOrders(shopId: string): Promise<Order[]> {
-    return this.repository.getOrders(shopId);
+  // Shop settings operations
+  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
+    return this.repository.getShopSettings(shopId);
   }
 
-  async getOrderById(id: string): Promise<Order | null> {
-    return this.repository.getOrderById(id);
-  }
-
-  async createOrder(orderData: any): Promise<Order> {
-    return this.repository.createOrder(orderData);
-  }
-
-  async updateOrder(id: string, orderData: any): Promise<Order> {
-    return this.repository.updateOrder(id, orderData);
+  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
+    return this.repository.updateShopSettings(shopId, settings);
   }
 
   // Favorites operations
