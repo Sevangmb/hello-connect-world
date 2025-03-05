@@ -1,16 +1,13 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { AppModule, ModuleStatus } from './modules/types';
 
 // Types
-type ModuleStatus = 'active' | 'inactive' | 'degraded';
-interface AppModule {
-  id: string;
-  name: string;
-  code: string;
-  status: ModuleStatus;
-  description?: string;
-  is_core: boolean;
+interface ModuleCache {
+  [moduleCode: string]: { 
+    status: ModuleStatus;
+    timestamp: number;
+  };
 }
 
 export const useModules = () => {
@@ -19,14 +16,17 @@ export const useModules = () => {
   const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
   const [error, setError] = useState<any>(null);
   const [dependencies, setDependencies] = useState<any[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
   // Cache en mémoire pour les vérifications répétées
-  const moduleStatusCache: Record<string, { status: ModuleStatus, timestamp: number }> = {};
+  const moduleStatusCache: ModuleCache = {};
   
   // Récupérer tous les modules
   const fetchModules = useCallback(async () => {
     try {
       setLoading(true);
+      setConnectionStatus('checking');
+      
       const { data, error } = await supabase
         .from('app_modules')
         .select('*')
@@ -34,25 +34,33 @@ export const useModules = () => {
       
       if (error) throw error;
       
+      setConnectionStatus('connected');
+      
       // Mettre à jour le cache pour chaque module
-      data.forEach(module => {
+      const typedData = data.map(module => ({
+        ...module,
+        status: module.status as ModuleStatus
+      }));
+      
+      typedData.forEach(module => {
         moduleStatusCache[module.code] = {
           status: module.status,
           timestamp: Date.now()
         };
       });
       
-      setModules(data);
-      return data;
+      setModules(typedData);
+      return typedData;
     } catch (err) {
       console.error('Erreur lors du chargement des modules:', err);
       setError(err.message);
+      setConnectionStatus('disconnected');
       return [];
     } finally {
       setLoading(false);
     }
   }, []);
-  
+
   // Récupérer toutes les fonctionnalités
   const fetchFeatures = useCallback(async () => {
     try {
@@ -213,6 +221,7 @@ export const useModules = () => {
     updateModuleStatus,
     updateFeatureStatus,
     fetchModules,
-    refreshModules
+    refreshModules,
+    connectionStatus
   };
 };

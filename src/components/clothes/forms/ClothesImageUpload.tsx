@@ -25,13 +25,10 @@ export default function ClothesImageUpload({ formData, onFormChange }: ClothesIm
           <ImageUpload
             onChange={handleImageChange}
             onUploading={setIsUploading}
-            defaultValue={formData.image_url || ''}
+            currentImageUrl={formData.image_url || ''}
           />
         </div>
       </div>
     </div>
   );
 }
-
-// Fix for correct imports in parent files
-export { default as ClothesImageUpload } from './ClothesImageUpload';

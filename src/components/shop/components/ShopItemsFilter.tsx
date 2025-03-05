@@ -1,33 +1,33 @@
-
 import React from 'react';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface ShopItemsFilterProps {
   filterValue: string;
-  onFilterChange: (value: string) => void;
+  setFilterValue: React.Dispatch<React.SetStateAction<string>>;
   sortValue: string;
-  onSortChange: (value: string) => void;
+  setSortValue: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const ShopItemsFilter = ({ 
+export function ShopItemsFilter({ 
   filterValue, 
-  onFilterChange, 
+  setFilterValue, 
   sortValue, 
-  onSortChange 
-}: ShopItemsFilterProps) => {
+  setSortValue 
+}: ShopItemsFilterProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="flex-1">
         <Input
           placeholder="Search items..."
           value={filterValue}
-          onChange={(e) => onFilterChange(e.target.value)}
+          onChange={(e) => setFilterValue(e.target.value)}
           className="w-full"
         />
       </div>
       <div className="w-full md:w-48">
-        <Select value={sortValue} onValueChange={onSortChange}>
+        <Select value={sortValue} onValueChange={setSortValue}>
           <SelectTrigger>
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>

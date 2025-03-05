@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useMutation } from 'react-query';
-import { shopApiGateway } from '@/services/api-gateway/ShopApiGateway';
-import { toast } from '@/components/ui/use-toast';
-import ImageUpload from '@/components/ui/image-upload';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { useToast } from "@/hooks/use-toast";
+import { useShop } from "@/hooks/useShop";
+import { Shop } from "@/core/shop/domain/types";
 
 const CreateShopForm = () => {
   const [name, setName] = useState('');
@@ -34,7 +37,6 @@ const CreateShopForm = () => {
     }
   );
   
-  // Fix the mutation usage
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -53,7 +55,6 @@ const CreateShopForm = () => {
     });
   };
   
-  // Fix ImageUpload props
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>

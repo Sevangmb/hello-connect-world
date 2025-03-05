@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShopItem } from '@/core/shop/domain/types';
+import { useParams } from 'react-router-dom';
 import { useShop } from '@/hooks/useShop';
-import ShopItemCard from "./components/ShopItemCard";
-import ShopItemsFilter from './components/ShopItemsFilter';
+import { Button } from '@/components/ui/button';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import ShopItemCard from './components/ShopItemCard';
+import { ShopItemsFilter } from './components/ShopItemsFilter';
+import { Shop, ShopItem } from '@/core/shop/domain/types';
 
 const ShopItems = ({ shopId }: { shopId: string }) => {
   const { shop, isShopLoading, getShopItems } = useShop();
@@ -112,7 +115,6 @@ const ShopItems = ({ shopId }: { shopId: string }) => {
     setSortValue(value);
   };
 
-  // Fixed the ShopItemsFilter props
   return (
     <div className="container mx-auto py-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

@@ -1,37 +1,65 @@
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useMutation } from 'react-query';
-import { ModuleRepository } from '@/services/modules/repositories/ModuleRepository';
 
-export const useModuleUsage = () => {
-  const moduleRepository = new ModuleRepository();
+import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-  const recordModuleUsageMutation = useMutation(
-    async () => {
-      // You might want to pass some data here, e.g., module code, user ID, etc.
-      // For now, let's assume it's just recording a generic module usage.
-      // const data = { moduleCode: 'your_module_code', userId: 'your_user_id' };
-      // await moduleRepository.recordModuleUsage(data);
-      
-      // Since recordModuleUsage doesn't exist, we'll just resolve the promise
-      return Promise.resolve();
-    },
-    {
-      onSuccess: () => {
-        console.log('Module usage recorded successfully');
-      },
-      onError: (error) => {
-        console.error('Error recording module usage:', error);
-      },
+export const useModuleUsage = (moduleCode: string) => {
+  const [usageCount, setUsageCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const fetchUsageData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('module_usage_stats')
+        .select('usage_count')
+        .eq('module_code', moduleCode)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No usage data found
+          setUsageCount(0);
+        } else {
+          console.error(`Error fetching usage data for module ${moduleCode}:`, error);
+        }
+      } else if (data) {
+        setUsageCount(data.usage_count);
+      }
+    } catch (err) {
+      console.error(`Exception when fetching usage data for module ${moduleCode}:`, err);
+    } finally {
+      setLoading(false);
     }
-  );
+  }, [moduleCode]);
 
-  const recordModuleUsage = useCallback(async () => {
-    await recordModuleUsageMutation.mutateAsync();
-  }, [recordModuleUsageMutation]);
+  useEffect(() => {
+    fetchUsageData();
+  }, [fetchUsageData]);
+
+  const trackUsage = useCallback(async () => {
+    try {
+      const { error } = await supabase.rpc('increment_module_usage', {
+        p_module_code: moduleCode
+      });
+
+      if (error) {
+        console.error(`Error tracking usage for module ${moduleCode}:`, error);
+      } else {
+        setUsageCount(prev => prev + 1);
+        // Invalidate queries related to this module
+        queryClient.invalidateQueries(['modules', moduleCode]);
+      }
+    } catch (err) {
+      console.error(`Exception when tracking usage for module ${moduleCode}:`, err);
+    }
+  }, [moduleCode, queryClient]);
 
   return {
-    recordModuleUsage,
-    isLoading: recordModuleUsageMutation.isLoading,
+    usageCount,
+    loading,
+    trackUsage,
+    refreshUsageData: fetchUsageData
   };
 };

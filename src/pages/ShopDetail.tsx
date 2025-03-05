@@ -1,10 +1,10 @@
-
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { useShop } from '@/hooks/useShop';
-import { ShopItems } from '@/components/shop/ShopItems';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import React, { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useShop } from "@/hooks/useShop";
+import { Card, CardContent } from "@/components/ui/card";
+import ShopItems from "@/components/shop/ShopItems";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { MapPin, Star, Store } from 'lucide-react';
 
 export default function ShopDetail() {
@@ -29,7 +29,7 @@ export default function ShopDetail() {
     return false;
   };
   
-  React.useEffect(() => {
+  useEffect(() => {
     if (shopId) {
       getShopById(shopId);
       checkIfFavorited(shopId);

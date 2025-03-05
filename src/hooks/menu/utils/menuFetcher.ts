@@ -1,5 +1,6 @@
+
 import { IMenuRepository } from "@/services/menu/domain/interfaces/IMenuRepository";
-import { MenuRepository } from "@/services/menu/infrastructure/MenuRepository";
+import { MenuRepository } from "@/services/menu/infrastructure/SupabaseMenuRepository";
 import { Module } from "@/hooks/modules/types";
 
 const menuRepository: IMenuRepository = new MenuRepository();

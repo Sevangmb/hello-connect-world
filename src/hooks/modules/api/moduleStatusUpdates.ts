@@ -3,9 +3,6 @@ import { ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { isAdminModule } from './moduleStatusCore';
 
-/**
- * Met à jour le statut d'un module dans Supabase
- */
 export const updateModuleStatusInDb = async (
   moduleId: string, 
   status: ModuleStatus, 
@@ -38,9 +35,6 @@ export const updateModuleStatusInDb = async (
   }
 };
 
-/**
- * Met à jour le statut d'une fonctionnalité dans Supabase
- */
 export const updateFeatureStatusInDb = async (
   moduleCode: string, 
   featureCode: string, 
