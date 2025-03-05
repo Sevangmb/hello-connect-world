@@ -1,7 +1,6 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Admin() {
@@ -9,7 +8,7 @@ export default function Admin() {
 
   useEffect(() => {
     // Rediriger automatiquement vers le dashboard admin
-    navigate("/admin/dashboard");
+    navigate("/admin/dashboard", { replace: true });
   }, [navigate]);
 
   // Afficher un écran de chargement pendant la redirection
