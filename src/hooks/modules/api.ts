@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AppModule, ModuleStatus } from "./types";
 
@@ -62,3 +61,20 @@ export const updateFeatureStatus = async (moduleCode: string, featureCode: strin
 
   if (error) throw error;
 };
+
+import { 
+  checkModuleActiveAsync, 
+  checkModuleDegradedAsync, 
+  checkFeatureEnabledAsync 
+} from './api/moduleStatusAsync';
+
+import { 
+  updateModuleStatusInDb, 
+  updateFeatureStatusInDb 
+} from './api/moduleStatusUpdates';
+
+import {
+  getModuleCache,
+  updateModuleCache,
+  isAdminModule
+} from './api/moduleStatusCore';
