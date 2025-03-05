@@ -61,6 +61,13 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isUserAdmin, isLoading, location.pathname]);
 
+  // Reset le state quand on est authentifié admin
+  React.useEffect(() => {
+    if (isAuthenticated && isUserAdmin) {
+      setHasShownToast(false);
+    }
+  }, [isAuthenticated, isUserAdmin]);
+
   // Afficher l'état de chargement
   if (isLoading) {
     return (
@@ -100,13 +107,6 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     }
     return <Navigate to="/app" replace />;
   }
-
-  // Reset le state quand on est authentifié admin
-  React.useEffect(() => {
-    if (isAuthenticated && isUserAdmin) {
-      setHasShownToast(false);
-    }
-  }, [isAuthenticated, isUserAdmin]);
 
   console.log("AdminRoute - Admin authentifié - accès autorisé à", location.pathname);
   return <>{children}</>;

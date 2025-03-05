@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export function AdminLayout() {
   const { adminRole, isLoading, handleLogout } = useAdminAuth();
-  const { metrics } = useAdminMetrics();
+  const { metrics, loading } = useAdminMetrics();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { toast } = useToast();
 
@@ -28,7 +28,7 @@ export function AdminLayout() {
         description: "Vous avez accès à toutes les fonctionnalités d'administration",
       });
     }
-  }, [adminRole, isLoading]);
+  }, [adminRole, isLoading, toast]);
 
   if (isLoading) {
     return (

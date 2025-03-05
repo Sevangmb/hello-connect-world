@@ -1,4 +1,3 @@
-
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -14,7 +13,7 @@ const Admin = lazy(() => import('@/pages/Admin'));
 const RootLayout = lazy(() => import('@/components/RootLayout').then(m => ({ default: m.RootLayout })));
 const AdminLayout = lazy(() => import('@/components/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
 const PrivateRoute = lazy(() => import('@/components/auth/PrivateRoute').then(m => ({ default: m.PrivateRoute })));
-const AdminRoute = lazy(() => import('@/components/auth/AdminRoute').then(m => ({ default: m.AdminRoute })));
+const AdminRoute = lazy(() => import('@/modules/auth/components/AdminRoute').then(m => ({ default: m.AdminRoute })));
 const PrelaunchRedirect = lazy(() => import('@/components/home/PrelaunchRedirect').then(m => ({ default: m.PrelaunchRedirect })));
 
 // Pages admin avec lazy loading
@@ -75,9 +74,13 @@ export default function MainRoutes() {
             <Route path="/app/*" element={<PrivateRoute><Home /></PrivateRoute>} />
           </Route>
           
-          {/* Correction des routes admin pour qu'elles soient correctement imbriquées */}
-          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<AdminDashboard />} />
+          {/* Routes admin avec AdminRoute pour la protection */}
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/*" element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="waitlist" element={<AdminWaitlist />} />
