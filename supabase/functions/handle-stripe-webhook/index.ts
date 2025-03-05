@@ -62,6 +62,63 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Créer un enregistrement de paiement
+        const { data: orderData } = await supabaseClient
+          .from('orders')
+          .select('total_amount, buyer_id, seller_id')
+          .eq('id', orderId)
+          .single();
+
+        if (orderData) {
+          const { data: paymentData, error: paymentError } = await supabaseClient
+            .from('payments')
+            .insert({
+              order_id: orderId,
+              buyer_id: orderData.buyer_id,
+              seller_id: orderData.seller_id,
+              amount: orderData.total_amount,
+              stripe_payment_intent_id: session.payment_intent,
+              status: 'completed'
+            })
+            .select('id')
+            .single();
+
+          if (paymentError) {
+            console.error(`Error creating payment record for order ${orderId}:`, paymentError);
+          } else if (paymentData) {
+            // Mettre à jour l'order avec l'id du paiement
+            await supabaseClient
+              .from('orders')
+              .update({ payment_id: paymentData.id })
+              .eq('id', orderId);
+          }
+        }
+
+        // Générer automatiquement la facture
+        try {
+          // Appeler la fonction de génération de facture
+          const invoiceResponse = await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-invoice`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify({ orderId })
+            }
+          );
+
+          if (!invoiceResponse.ok) {
+            const errorData = await invoiceResponse.json();
+            console.error(`Error generating invoice for order ${orderId}:`, errorData);
+          } else {
+            console.log(`Invoice generated for order ${orderId}`);
+          }
+        } catch (invoiceError) {
+          console.error(`Exception when generating invoice for order ${orderId}:`, invoiceError);
+        }
+
         // Update shipment status
         const { error: shipmentError } = await supabaseClient
           .from('order_shipments')
@@ -72,15 +129,30 @@ Deno.serve(async (req) => {
           console.error(`Error updating shipment for order ${orderId}:`, shipmentError);
         }
 
-        // Clear cart items for the user
-        const { error: cartError } = await supabaseClient
-          .from('cart_items')
-          .delete()
-          .eq('user_id', userId);
+        // Créer une notification de transaction
+        const { error: notificationError } = await supabaseClient
+          .from('transaction_notifications')
+          .insert({
+            user_id: userId,
+            order_id: orderId,
+            type: 'payment_received',
+            message: 'Votre paiement a été reçu et confirmé.',
+            metadata: { payment_intent: session.payment_intent }
+          });
 
-        if (cartError) {
-          console.error('Error clearing cart:', cartError);
+        if (notificationError) {
+          console.error('Error creating transaction notification:', notificationError);
         }
+      }
+
+      // Clear cart items for the user
+      const { error: cartError } = await supabaseClient
+        .from('cart_items')
+        .delete()
+        .eq('user_id', userId);
+
+      if (cartError) {
+        console.error('Error clearing cart:', cartError);
       }
     }
 

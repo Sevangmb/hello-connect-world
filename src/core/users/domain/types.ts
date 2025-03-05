@@ -14,6 +14,17 @@ export interface UserProfile {
   preferred_language: string;
   email_notifications: boolean;
   is_admin?: boolean;
+  billing_address?: BillingAddress;
+  stripe_customer_id?: string;
+  default_payment_method_id?: string;
+}
+
+export interface BillingAddress {
+  street?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  state?: string;
 }
 
 export type UserUpdateData = Partial<Omit<UserProfile, 'id'>>;

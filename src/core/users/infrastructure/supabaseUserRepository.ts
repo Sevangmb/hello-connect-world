@@ -22,7 +22,7 @@ export class SupabaseUserRepository implements IUserRepository {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications, is_admin")
+        .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications, is_admin, billing_address, stripe_customer_id, default_payment_method_id")
         .eq("id", userId)
         .maybeSingle();
 
@@ -40,12 +40,15 @@ export class SupabaseUserRepository implements IUserRepository {
         username: data.username || "",
         full_name: data.full_name || "",
         avatar_url: data.avatar_url,
-        visibility: (data.visibility || "public") as "public" | "private",
+        visibility: (data.visibility || "public") as "public" | "private" | "friends",
         phone: data.phone || null,
         address: data.address || null,
         preferred_language: data.preferred_language || "fr",
         email_notifications: data.email_notifications ?? true,
-        is_admin: data.is_admin || false
+        is_admin: data.is_admin || false,
+        billing_address: data.billing_address || undefined,
+        stripe_customer_id: data.stripe_customer_id || undefined,
+        default_payment_method_id: data.default_payment_method_id || undefined
       };
       
       eventBus.publish(USER_EVENTS.PROFILE_FETCHED, { userId, profile });

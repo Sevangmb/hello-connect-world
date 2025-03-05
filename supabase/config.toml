@@ -24,3 +24,6 @@ verify_jwt = true
 
 [functions.get-suitcase-suggestions-mistral]
 verify_jwt = true
+
+[functions.generate-invoice]
+verify_jwt = true
