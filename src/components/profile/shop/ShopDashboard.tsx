@@ -11,7 +11,7 @@ import { ShopOrdersList } from "./ShopOrdersList";
 import { ShopReviewsList } from "./ShopReviewsList";
 import { AddItemForm } from "./AddItemForm";
 import { CreateShopForm } from "./CreateShopForm";
-import { ShopSettings } from "./ShopSettings";
+import { ShopSettings } from "@/components/profile/shop/ShopSettings";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, CheckCircle, Clock, ShoppingBag, Star, Settings, Package, Ban } from 'lucide-react';
 

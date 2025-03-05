@@ -1,4 +1,3 @@
-
 import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_EVENTS } from './ModuleEvents';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
@@ -10,7 +9,7 @@ import { featureRepository } from './repositories/FeatureRepository';
 
 // Importation des cas d'utilisation
 import { moduleStatusUseCase } from './usecases/ModuleStatusUseCase';
-import { featureStatusUseCase } from './usecases/FeatureStatusUseCase';
+import { FeatureStatusUseCase, featureStatusUseCase } from "./usecases/FeatureStatusUseCase";
 
 // Importation des services utilitaires
 import { moduleCacheService } from './cache/ModuleCacheService';
@@ -302,3 +301,6 @@ class ModuleService {
 
 // Exporter une instance unique pour toute l'application
 export const moduleService = new ModuleService();
+
+// Export the featureStatusUseCase instance
+export { featureStatusUseCase };

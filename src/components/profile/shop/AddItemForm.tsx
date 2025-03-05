@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ImageUpload } from '@/components/ui/image-upload';
+import ImageUpload from "@/components/ui/image-upload";
 import { useShop } from '@/hooks/useShop';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
