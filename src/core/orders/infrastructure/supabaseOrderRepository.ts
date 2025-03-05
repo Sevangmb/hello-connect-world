@@ -1,247 +1,241 @@
 
-/**
- * Implémentation Supabase du repository des commandes
- * Utilise Supabase pour stocker et récupérer les commandes
- */
 import { supabase } from '@/integrations/supabase/client';
 import { IOrderRepository } from '../domain/interfaces/IOrderRepository';
-import { Order, OrderItem, CreateOrderParams, OrderFilter, ShippingAddress } from '../domain/types';
+import { Order, OrderItem, OrderStatus, PaymentStatus, ShippingStatus, CreateOrderParams, ShippingAddress, OrderFilter } from '../domain/types';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { ORDER_EVENTS } from '../domain/events';
-import { Database } from '@/integrations/supabase/types';
 
+/**
+ * Implémentation du repository des commandes utilisant Supabase
+ */
 export class SupabaseOrderRepository implements IOrderRepository {
   /**
-   * Crée une nouvelle commande
+   * Créer une nouvelle commande
    */
-  async createOrder(params: CreateOrderParams): Promise<Order | null> {
+  async createOrder(params: CreateOrderParams): Promise<{ success: boolean; orderId?: string; error?: string; }> {
     try {
-      // Sérialiser l'adresse de livraison si présente
+      // Calculer le montant total
+      const totalAmount = params.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      // Préparer les données pour l'insertion
       const orderData = {
-        ...params,
-        status: 'pending',
-        payment_status: 'pending',
-        shipping_status: params.shipping_required ? 'pending' : null,
-        // S'assurer que l'adresse de livraison est un objet JSON valide
-        shipping_address: params.shipping_address ? params.shipping_address : null,
+        status: params.status || 'pending',
+        payment_status: params.paymentStatus || 'pending',
+        shipping_status: params.shippingStatus || null,
+        shipping_required: params.shippingRequired || false,
+        shipping_address: params.shippingAddress ? params.shippingAddress : null,
+        buyer_id: params.buyerId,
+        seller_id: params.sellerId,
+        total_amount: totalAmount,
+        commission_amount: params.commissionAmount || 0,
+        shipping_cost: params.shippingCost || 0,
+        transaction_type: params.transactionType || 'p2p',
+        payment_method: params.paymentMethod || 'stripe'
       };
 
-      // Insérer la commande dans la base de données
+      // Insérer la commande
       const { data: order, error } = await supabase
         .from('orders')
         .insert(orderData)
-        .select()
+        .select('id')
         .single();
 
       if (error) {
-        console.error('Erreur lors de la création de la commande:', error);
-        return null;
+        console.error('Erreur lors de la création de commande:', error);
+        return { success: false, error: error.message };
       }
 
-      // Si nous avons des articles à ajouter à la commande
-      if (params.items && params.items.length > 0) {
-        const orderItems = params.items.map(item => ({
-          order_id: order.id,
-          shop_item_id: item.shop_item_id,
-          quantity: item.quantity,
-          price_at_time: item.price
-        }));
+      // Insérer les articles de la commande
+      const orderItems = params.items.map(item => ({
+        order_id: order.id,
+        shop_item_id: item.shopItemId,
+        quantity: item.quantity,
+        price_at_time: item.price
+      }));
 
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems);
 
-        if (itemsError) {
-          console.error('Erreur lors de l\'ajout des articles à la commande:', itemsError);
-          // Supprimer la commande si l'ajout des articles échoue
-          await supabase.from('orders').delete().eq('id', order.id);
-          return null;
-        }
+      if (itemsError) {
+        console.error('Erreur lors de l\'ajout des articles:', itemsError);
+        
+        // Tentative de suppression de la commande incomplète
+        await supabase.from('orders').delete().eq('id', order.id);
+        
+        return { success: false, error: itemsError.message };
       }
 
-      // Récupérer la commande complète avec ses articles
-      const createdOrder = await this.getOrderById(order.id);
-      
-      // Publier l'événement de création de commande
-      if (createdOrder) {
-        eventBus.publish(ORDER_EVENTS.ORDER_CREATED, {
-          order: createdOrder,
-          timestamp: Date.now()
-        });
-      }
+      // Événement de création de commande
+      eventBus.publish(ORDER_EVENTS.ORDER_CREATED, {
+        orderId: order.id,
+        buyerId: params.buyerId,
+        sellerId: params.sellerId,
+        totalAmount
+      });
 
-      return createdOrder;
-    } catch (error) {
-      console.error('Exception lors de la création de la commande:', error);
-      return null;
+      return {
+        success: true,
+        orderId: order.id
+      };
+    } catch (error: any) {
+      console.error('Exception lors de la création de commande:', error);
+      return { success: false, error: error.message || 'Erreur de création de commande' };
     }
   }
 
   /**
-   * Obtient une commande par son ID
+   * Récupérer une commande par son ID
    */
   async getOrderById(orderId: string): Promise<Order | null> {
     try {
-      // Récupérer la commande
-      const { data: order, error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .select()
+        .select(`
+          id, buyer_id, seller_id, total_amount, status, payment_status, 
+          shipping_status, shipping_required, shipping_address, 
+          commission_amount, shipping_cost, created_at, confirmed_at, 
+          cancelled_at, transaction_type, payment_method
+        `)
         .eq('id', orderId)
-        .maybeSingle();
+        .single();
 
-      if (error || !order) {
-        console.error('Erreur lors de la récupération de la commande:', error);
+      if (error) {
+        console.error('Erreur lors de la récupération de commande:', error);
         return null;
       }
 
-      // Convertir les données de la base de données en objet Order
-      const formattedOrder: Order = {
-        id: order.id,
-        buyer_id: order.buyer_id,
-        seller_id: order.seller_id,
-        status: order.status,
-        payment_status: order.payment_status,
-        payment_method: order.payment_method,
-        payment_type: order.payment_type,
-        total_amount: Number(order.total_amount),
-        commission_amount: order.commission_amount ? Number(order.commission_amount) : 0,
-        shipping_required: order.shipping_required || false,
-        shipping_method: order.shipping_method || null,
-        shipping_status: order.shipping_status || null,
-        // Utiliser un cast pour convertir l'adresse de livraison
-        shipping_address: order.shipping_address ? (order.shipping_address as unknown as ShippingAddress) : null,
-        shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : 0,
-        delivery_type: order.delivery_type || 'in_person',
-        meeting_location: order.meeting_location || null,
-        meeting_time: order.meeting_time ? new Date(order.meeting_time) : null,
-        buyer_confirmed: order.buyer_confirmed || false,
-        seller_confirmed: order.seller_confirmed || false,
-        confirmed_at: order.confirmed_at ? new Date(order.confirmed_at) : null,
-        cancelled_at: order.cancelled_at ? new Date(order.cancelled_at) : null,
-        cancellation_reason: order.cancellation_reason || null,
-        stripe_payment_intent_id: order.stripe_payment_intent_id || null,
-        stripe_session_id: order.stripe_session_id || null,
-        created_at: new Date(order.created_at),
-        items: [],  // Sera rempli après
+      // Mapper les données de la commande au domaine
+      const order: Order = {
+        id: data.id,
+        buyerId: data.buyer_id,
+        sellerId: data.seller_id,
+        totalAmount: data.total_amount,
+        status: data.status as OrderStatus,
+        paymentStatus: data.payment_status as PaymentStatus,
+        shippingStatus: data.shipping_status as ShippingStatus,
+        shippingRequired: data.shipping_required,
+        commissionAmount: data.commission_amount,
+        shippingCost: data.shipping_cost,
+        createdAt: data.created_at,
+        confirmedAt: data.confirmed_at,
+        cancelledAt: data.cancelled_at,
+        transactionType: data.transaction_type,
+        paymentMethod: data.payment_method,
+        items: []
       };
+      
+      // Ajouter l'adresse de livraison si présente
+      if (data.shipping_address) {
+        order.shippingAddress = data.shipping_address as unknown as ShippingAddress;
+      }
 
       // Récupérer les articles de la commande
       const { data: orderItemsData, error: itemsError } = await supabase
         .from('order_items')
         .select(`
-          id, 
-          quantity, 
-          price_at_time,
-          shop_item_id,
-          shop_items (
-            id, 
-            price, 
-            original_price,
-            clothes_id,
-            clothes (
-              id, 
-              name, 
-              image_url, 
-              brand,
-              category, 
-              size
-            )
+          id, shop_item_id, quantity, price_at_time,
+          shop_items:shop_item_id(
+            id, price, shop_id, 
+            clothes:clothes_id(name, image_url, brand, category, size)
           )
         `)
         .eq('order_id', orderId);
 
       if (itemsError) {
-        console.error('Erreur lors de la récupération des articles de la commande:', itemsError);
-        return formattedOrder;  // Retourner la commande sans les articles
+        console.error('Erreur lors de la récupération des articles de commande:', itemsError);
+      } else if (orderItemsData) {
+        // Mapper les articles
+        order.items = orderItemsData.map(item => {
+          const orderItem: OrderItem = {
+            id: item.id,
+            shopItemId: item.shop_item_id,
+            quantity: item.quantity,
+            price: item.price_at_time,
+            productName: item.shop_items?.clothes?.name || 'Article sans nom',
+            imageUrl: item.shop_items?.clothes?.image_url || null,
+            brand: item.shop_items?.clothes?.brand || null,
+            category: item.shop_items?.clothes?.category || null,
+            size: item.shop_items?.clothes?.size || null
+          };
+          return orderItem;
+        });
       }
 
-      // Transformer les données en objets OrderItem
-      formattedOrder.items = (orderItemsData || []).map(item => {
-        const shopItem = item.shop_items;
-        const clothes = shopItem?.clothes;
-
-        const orderItem: OrderItem = {
-          id: item.id,
-          shop_item_id: item.shop_item_id,
-          quantity: item.quantity,
-          price: Number(item.price_at_time),
-          item_name: clothes?.name || 'Article inconnu',  // Utiliser le nom du vêtement s'il existe
-          image_url: clothes?.image_url || null,
-          // Ajouter d'autres propriétés si nécessaire
-          brand: clothes?.brand || null,
-          category: clothes?.category || null,
-          size: clothes?.size || null,
-        };
-
-        return orderItem;
-      });
-
-      return formattedOrder;
-    } catch (error) {
-      console.error('Exception lors de la récupération de la commande:', error);
+      eventBus.publish(ORDER_EVENTS.ORDER_FETCHED, { orderId });
+      
+      return order;
+    } catch (error: any) {
+      console.error('Exception lors de la récupération de commande:', error);
       return null;
     }
   }
 
   /**
-   * Met à jour une commande
+   * Mise à jour du statut d'une commande
    */
-  async updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean> {
+  async updateOrderStatus(
+    orderId: string, 
+    status: OrderStatus, 
+    paymentStatus?: PaymentStatus, 
+    shippingStatus?: ShippingStatus
+  ): Promise<{ success: boolean; error?: string; }> {
     try {
-      // Préparer les données à mettre à jour
-      const updateData: any = { ...updates };
+      const updateData: any = { status };
       
-      // Supprimer les champs qui ne doivent pas être mis à jour directement
-      delete updateData.id;
-      delete updateData.items;
-      delete updateData.created_at;
-      
-      // Convertir les dates en format ISO si nécessaire
-      if (updateData.meeting_time instanceof Date) {
-        updateData.meeting_time = updateData.meeting_time.toISOString();
+      if (paymentStatus) {
+        updateData.payment_status = paymentStatus;
       }
       
-      if (updateData.confirmed_at instanceof Date) {
-        updateData.confirmed_at = updateData.confirmed_at.toISOString();
+      if (shippingStatus) {
+        updateData.shipping_status = shippingStatus;
       }
       
-      if (updateData.cancelled_at instanceof Date) {
-        updateData.cancelled_at = updateData.cancelled_at.toISOString();
+      // Mettre à jour la date selon le statut
+      if (status === 'completed' || status === 'shipped') {
+        updateData.confirmed_at = new Date().toISOString();
+      } else if (status === 'cancelled') {
+        updateData.cancelled_at = new Date().toISOString();
       }
       
-      // Mettre à jour la commande
       const { error } = await supabase
         .from('orders')
         .update(updateData)
         .eq('id', orderId);
       
       if (error) {
-        console.error('Erreur lors de la mise à jour de la commande:', error);
-        return false;
+        console.error('Erreur lors de la mise à jour du statut de commande:', error);
+        return { success: false, error: error.message };
       }
       
-      // Publier l'événement de mise à jour de commande
-      eventBus.publish(ORDER_EVENTS.ORDER_UPDATED, {
-        orderId,
-        updates,
+      eventBus.publish(ORDER_EVENTS.ORDER_STATUS_UPDATED, { 
+        orderId, 
+        status,
+        paymentStatus,
+        shippingStatus,
         timestamp: Date.now()
       });
       
-      return true;
-    } catch (error) {
-      console.error('Exception lors de la mise à jour de la commande:', error);
-      return false;
+      return { success: true };
+    } catch (error: any) {
+      console.error('Exception lors de la mise à jour du statut de commande:', error);
+      return { success: false, error: error.message || 'Erreur de mise à jour de statut' };
     }
   }
 
   /**
-   * Récupère les commandes d'un acheteur
+   * Récupérer les commandes d'un acheteur
    */
   async getBuyerOrders(buyerId: string, filter?: OrderFilter): Promise<Order[]> {
     try {
       let query = supabase
         .from('orders')
-        .select()
+        .select(`
+          id, buyer_id, seller_id, total_amount, status, payment_status, 
+          shipping_status, shipping_required, shipping_address, 
+          commission_amount, shipping_cost, created_at, confirmed_at, 
+          cancelled_at, transaction_type, payment_method
+        `)
         .eq('buyer_id', buyerId);
       
       // Appliquer les filtres si présents
@@ -250,80 +244,124 @@ export class SupabaseOrderRepository implements IOrderRepository {
           query = query.eq('status', filter.status);
         }
         
-        if (filter.startDate) {
-          query = query.gte('created_at', filter.startDate.toISOString());
+        if (filter.paymentStatus) {
+          query = query.eq('payment_status', filter.paymentStatus);
         }
         
-        if (filter.endDate) {
-          query = query.lte('created_at', filter.endDate.toISOString());
+        if (filter.shippingStatus) {
+          query = query.eq('shipping_status', filter.shippingStatus);
+        }
+        
+        // Date de début
+        if (filter.createdAfter) {
+          query = query.gte('created_at', filter.createdAfter.toISOString());
+        }
+        
+        // Date de fin
+        if (filter.createdBefore) {
+          query = query.lte('created_at', filter.createdBefore.toISOString());
+        }
+        
+        // Limite et offset pour la pagination
+        if (filter.limit) {
+          query = query.limit(filter.limit);
+        }
+        
+        if (filter.offset) {
+          query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
         }
       }
       
-      // Trier par date de création (plus récent en premier)
+      // Ordonner par date de création décroissante par défaut
       query = query.order('created_at', { ascending: false });
       
-      const { data: orders, error } = await query;
+      const { data, error } = await query;
       
       if (error) {
-        console.error('Erreur lors de la récupération des commandes de l\'acheteur:', error);
+        console.error('Erreur lors de la récupération des commandes acheteur:', error);
         return [];
       }
       
-      // Convertir les données en objets Order
-      const formattedOrders: Order[] = await Promise.all(
-        (orders || []).map(async (order) => {
-          // Construction de l'objet Order à partir des données brutes
-          const formattedOrder: Order = {
-            id: order.id,
-            buyer_id: order.buyer_id,
-            seller_id: order.seller_id,
-            status: order.status,
-            payment_status: order.payment_status,
-            payment_method: order.payment_method,
-            payment_type: order.payment_type,
-            total_amount: Number(order.total_amount),
-            commission_amount: order.commission_amount ? Number(order.commission_amount) : 0,
-            shipping_required: order.shipping_required || false,
-            shipping_method: order.shipping_method || null,
-            shipping_status: order.shipping_status || null,
-            shipping_address: order.shipping_address ? (order.shipping_address as unknown as ShippingAddress) : null,
-            shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : 0,
-            delivery_type: order.delivery_type || 'in_person',
-            meeting_location: order.meeting_location || null,
-            meeting_time: order.meeting_time ? new Date(order.meeting_time) : null,
-            buyer_confirmed: order.buyer_confirmed || false,
-            seller_confirmed: order.seller_confirmed || false,
-            confirmed_at: order.confirmed_at ? new Date(order.confirmed_at) : null,
-            cancelled_at: order.cancelled_at ? new Date(order.cancelled_at) : null,
-            cancellation_reason: order.cancellation_reason || null,
-            stripe_payment_intent_id: order.stripe_payment_intent_id || null,
-            stripe_session_id: order.stripe_session_id || null,
-            created_at: new Date(order.created_at),
-            items: [], // Sera rempli par getOrderItems
-          };
-          
-          // Récupérer les articles de la commande
-          formattedOrder.items = await this.getOrderItems(order.id);
-          
-          return formattedOrder;
-        })
-      );
+      // Mapper les commandes
+      const orders = data.map(item => {
+        const order: Order = {
+          id: item.id,
+          buyerId: item.buyer_id,
+          sellerId: item.seller_id,
+          totalAmount: item.total_amount,
+          status: item.status as OrderStatus,
+          paymentStatus: item.payment_status as PaymentStatus,
+          shippingStatus: item.shipping_status as ShippingStatus,
+          shippingRequired: item.shipping_required,
+          commissionAmount: item.commission_amount,
+          shippingCost: item.shipping_cost,
+          createdAt: item.created_at,
+          confirmedAt: item.confirmed_at,
+          cancelledAt: item.cancelled_at,
+          transactionType: item.transaction_type,
+          paymentMethod: item.payment_method,
+          items: []
+        };
+        
+        // Ajouter l'adresse de livraison si présente
+        if (item.shipping_address) {
+          order.shippingAddress = item.shipping_address as unknown as ShippingAddress;
+        }
+        
+        return order;
+      });
       
-      return formattedOrders;
-    } catch (error) {
-      console.error('Exception lors de la récupération des commandes de l\'acheteur:', error);
+      // Récupérer les articles pour chaque commande
+      for (const order of orders) {
+        const { data: orderItemsData, error: itemsError } = await supabase
+          .from('order_items')
+          .select(`
+            id, shop_item_id, quantity, price_at_time,
+            shop_items:shop_item_id(
+              id, price, shop_id, 
+              clothes:clothes_id(name, image_url, brand, category, size)
+            )
+          `)
+          .eq('order_id', order.id);
+        
+        if (!itemsError && orderItemsData) {
+          order.items = orderItemsData.map(item => {
+            const orderItem: OrderItem = {
+              id: item.id,
+              shopItemId: item.shop_item_id,
+              quantity: item.quantity,
+              price: item.price_at_time,
+              productName: item.shop_items?.clothes?.name || 'Article sans nom',
+              imageUrl: item.shop_items?.clothes?.image_url || null,
+              brand: item.shop_items?.clothes?.brand || null,
+              category: item.shop_items?.clothes?.category || null,
+              size: item.shop_items?.clothes?.size || null
+            };
+            return orderItem;
+          });
+        }
+      }
+      
+      return orders;
+    } catch (error: any) {
+      console.error('Exception lors de la récupération des commandes acheteur:', error);
       return [];
     }
   }
 
   /**
-   * Récupère les commandes d'un vendeur
+   * Récupérer les commandes d'un vendeur
    */
   async getSellerOrders(sellerId: string, filter?: OrderFilter): Promise<Order[]> {
     try {
       let query = supabase
         .from('orders')
-        .select()
+        .select(`
+          id, buyer_id, seller_id, total_amount, status, payment_status, 
+          shipping_status, shipping_required, shipping_address, 
+          commission_amount, shipping_cost, created_at, confirmed_at, 
+          cancelled_at, transaction_type, payment_method
+        `)
         .eq('seller_id', sellerId);
       
       // Appliquer les filtres si présents
@@ -332,180 +370,108 @@ export class SupabaseOrderRepository implements IOrderRepository {
           query = query.eq('status', filter.status);
         }
         
-        if (filter.startDate) {
-          query = query.gte('created_at', filter.startDate.toISOString());
+        if (filter.paymentStatus) {
+          query = query.eq('payment_status', filter.paymentStatus);
         }
         
-        if (filter.endDate) {
-          query = query.lte('created_at', filter.endDate.toISOString());
+        if (filter.shippingStatus) {
+          query = query.eq('shipping_status', filter.shippingStatus);
+        }
+        
+        // Date de début
+        if (filter.createdAfter) {
+          query = query.gte('created_at', filter.createdAfter.toISOString());
+        }
+        
+        // Date de fin
+        if (filter.createdBefore) {
+          query = query.lte('created_at', filter.createdBefore.toISOString());
+        }
+        
+        // Limite et offset pour la pagination
+        if (filter.limit) {
+          query = query.limit(filter.limit);
+        }
+        
+        if (filter.offset) {
+          query = query.range(filter.offset, filter.offset + (filter.limit || 10) - 1);
         }
       }
       
-      // Trier par date de création (plus récent en premier)
+      // Ordonner par date de création décroissante par défaut
       query = query.order('created_at', { ascending: false });
       
-      const { data: orders, error } = await query;
+      const { data, error } = await query;
       
       if (error) {
-        console.error('Erreur lors de la récupération des commandes du vendeur:', error);
+        console.error('Erreur lors de la récupération des commandes vendeur:', error);
         return [];
       }
       
-      // Convertir les données en objets Order
-      const formattedOrders: Order[] = await Promise.all(
-        (orders || []).map(async (order) => {
-          // Construction de l'objet Order à partir des données brutes
-          const formattedOrder: Order = {
-            id: order.id,
-            buyer_id: order.buyer_id,
-            seller_id: order.seller_id,
-            status: order.status,
-            payment_status: order.payment_status,
-            payment_method: order.payment_method,
-            payment_type: order.payment_type,
-            total_amount: Number(order.total_amount),
-            commission_amount: order.commission_amount ? Number(order.commission_amount) : 0,
-            shipping_required: order.shipping_required || false,
-            shipping_method: order.shipping_method || null,
-            shipping_status: order.shipping_status || null,
-            shipping_address: order.shipping_address ? (order.shipping_address as unknown as ShippingAddress) : null,
-            shipping_cost: order.shipping_cost ? Number(order.shipping_cost) : 0,
-            delivery_type: order.delivery_type || 'in_person',
-            meeting_location: order.meeting_location || null,
-            meeting_time: order.meeting_time ? new Date(order.meeting_time) : null,
-            buyer_confirmed: order.buyer_confirmed || false,
-            seller_confirmed: order.seller_confirmed || false,
-            confirmed_at: order.confirmed_at ? new Date(order.confirmed_at) : null,
-            cancelled_at: order.cancelled_at ? new Date(order.cancelled_at) : null,
-            cancellation_reason: order.cancellation_reason || null,
-            stripe_payment_intent_id: order.stripe_payment_intent_id || null,
-            stripe_session_id: order.stripe_session_id || null,
-            created_at: new Date(order.created_at),
-            items: [], // Sera rempli par getOrderItems
-          };
-          
-          // Récupérer les articles de la commande
-          formattedOrder.items = await this.getOrderItems(order.id);
-          
-          return formattedOrder;
-        })
-      );
-      
-      return formattedOrders;
-    } catch (error) {
-      console.error('Exception lors de la récupération des commandes du vendeur:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Récupère les articles d'une commande
-   */
-  async getOrderItems(orderId: string): Promise<OrderItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('order_items')
-        .select(`
-          id, 
-          quantity, 
-          price_at_time,
-          shop_item_id,
-          shop_items (
-            id, 
-            price, 
-            original_price,
-            clothes_id,
-            clothes (
-              id, 
-              name, 
-              image_url, 
-              brand,
-              category, 
-              size
-            )
-          )
-        `)
-        .eq('order_id', orderId);
-      
-      if (error) {
-        console.error('Erreur lors de la récupération des articles de la commande:', error);
-        return [];
-      }
-      
-      // Transformer les données en objets OrderItem
-      const orderItems: OrderItem[] = (data || []).map(item => {
-        const shopItem = item.shop_items;
-        const clothes = shopItem?.clothes;
-        
-        const orderItem: OrderItem = {
+      // Mapper les commandes
+      const orders = data.map(item => {
+        const order: Order = {
           id: item.id,
-          shop_item_id: item.shop_item_id,
-          quantity: item.quantity,
-          price: Number(item.price_at_time),
-          item_name: clothes?.name || 'Article inconnu',
-          image_url: clothes?.image_url || null,
-          brand: clothes?.brand || null,
-          category: clothes?.category || null,
-          size: clothes?.size || null,
+          buyerId: item.buyer_id,
+          sellerId: item.seller_id,
+          totalAmount: item.total_amount,
+          status: item.status as OrderStatus,
+          paymentStatus: item.payment_status as PaymentStatus,
+          shippingStatus: item.shipping_status as ShippingStatus,
+          shippingRequired: item.shipping_required,
+          commissionAmount: item.commission_amount,
+          shippingCost: item.shipping_cost,
+          createdAt: item.created_at,
+          confirmedAt: item.confirmed_at,
+          cancelledAt: item.cancelled_at,
+          transactionType: item.transaction_type,
+          paymentMethod: item.payment_method,
+          items: []
         };
         
-        return orderItem;
+        // Ajouter l'adresse de livraison si présente
+        if (item.shipping_address) {
+          order.shippingAddress = item.shipping_address as unknown as ShippingAddress;
+        }
+        
+        return order;
       });
       
-      return orderItems;
-    } catch (error) {
-      console.error('Exception lors de la récupération des articles de la commande:', error);
+      // Récupérer les articles pour chaque commande
+      for (const order of orders) {
+        const { data: orderItemsData, error: itemsError } = await supabase
+          .from('order_items')
+          .select(`
+            id, shop_item_id, quantity, price_at_time,
+            shop_items:shop_item_id(
+              id, price, shop_id, 
+              clothes:clothes_id(name, image_url, brand, category, size)
+            )
+          `)
+          .eq('order_id', order.id);
+        
+        if (!itemsError && orderItemsData) {
+          order.items = orderItemsData.map(item => {
+            const orderItem: OrderItem = {
+              id: item.id,
+              shopItemId: item.shop_item_id,
+              quantity: item.quantity,
+              price: item.price_at_time,
+              productName: item.shop_items?.clothes?.name || 'Article sans nom',
+              imageUrl: item.shop_items?.clothes?.image_url || null,
+              brand: item.shop_items?.clothes?.brand || null,
+              category: item.shop_items?.clothes?.category || null,
+              size: item.shop_items?.clothes?.size || null
+            };
+            return orderItem;
+          });
+        }
+      }
+      
+      return orders;
+    } catch (error: any) {
+      console.error('Exception lors de la récupération des commandes vendeur:', error);
       return [];
-    }
-  }
-
-  /**
-   * Traite le paiement d'une commande
-   */
-  async processPayment(orderId: string, paymentMethodId: string): Promise<boolean> {
-    try {
-      // Vérifier d'abord si la commande existe et est dans un état permettant le paiement
-      const order = await this.getOrderById(orderId);
-      
-      if (!order) {
-        console.error('Commande non trouvée pour le traitement du paiement');
-        return false;
-      }
-      
-      if (order.status !== 'pending' || order.payment_status !== 'pending') {
-        console.error('La commande n\'est pas dans un état permettant le paiement');
-        return false;
-      }
-      
-      // Appeler la fonction RPC de Supabase pour traiter le paiement
-      // Cette fonction est définie dans la base de données
-      const { data, error } = await supabase.rpc('process_order_payment', {
-        order_id: orderId,
-        payment_method_id: paymentMethodId
-      });
-      
-      if (error) {
-        console.error('Erreur lors du traitement du paiement:', error);
-        return false;
-      }
-      
-      // Publier l'événement de paiement traité
-      eventBus.publish(ORDER_EVENTS.PAYMENT_PROCESSED, {
-        orderId,
-        timestamp: Date.now()
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Exception lors du traitement du paiement:', error);
-      // Publier l'événement d'échec de paiement
-      eventBus.publish(ORDER_EVENTS.PAYMENT_FAILED, {
-        orderId,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-        timestamp: Date.now()
-      });
-      
-      return false;
     }
   }
 }
