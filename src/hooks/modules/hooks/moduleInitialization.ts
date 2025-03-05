@@ -9,7 +9,39 @@ export const moduleInitialization = {
   }
 };
 
-export const initializeModuleApi = async () => {
-  console.log('Initializing module API...');
-  return await moduleInitialization.initializeModules();
+export const initializeModuleApi = async (
+  isInitialized: boolean,
+  setIsInitialized: (value: boolean) => void,
+  setInternalModules: any,
+  setFeatures: any,
+  setLoading: (value: boolean) => void,
+  refreshModules: () => Promise<any>,
+  refreshFeatures: () => Promise<any>
+) => {
+  if (!isInitialized) {
+    setLoading(true);
+    try {
+      // Initialize modules
+      await moduleInitialization.initializeModules();
+      
+      // Load modules and features
+      await Promise.all([
+        refreshModules(),
+        refreshFeatures()
+      ]);
+      
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error initializing module API:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+  
+  // Setup cleanup function
+  const cleanupFunction = () => {
+    console.log('Cleaning up module API...');
+  };
+  
+  return { cleanupFunction };
 };

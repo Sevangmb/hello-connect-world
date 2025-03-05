@@ -42,6 +42,7 @@ export interface ModuleFeature {
   id: string;
   module_code: string;
   feature_code: string;
+  feature_name: string;
   is_enabled: boolean;
   description?: string;
   created_at?: string;

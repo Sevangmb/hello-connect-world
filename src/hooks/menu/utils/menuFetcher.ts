@@ -9,7 +9,8 @@ import { MenuRepository } from '@/services/menu/infrastructure/SupabaseMenuRepos
 export const fetchMenuItems = async (menuType: MenuType) => {
   try {
     const menuService = getMenuService();
-    return await menuService.getMenuItems(menuType);
+    // Use getAllMenuItems since getMenuItems doesn't exist
+    return await menuService.getMenuItemsByCategory(menuType);
   } catch (error) {
     console.error('Error fetching menu items:', error);
     return [];
@@ -21,8 +22,9 @@ export const fetchMenuItems = async (menuType: MenuType) => {
  */
 export const fetchMenuItemsByParent = async (parentId: string | null) => {
   try {
-    const menuService = getMenuService();
-    return await menuService.getMenuItemsByParent(parentId);
+    // Fetch from repository directly since the method doesn't exist in useCase
+    const menuRepository = new MenuRepository();
+    return await menuRepository.getMenuItemsByParent(parentId);
   } catch (error) {
     console.error('Error fetching menu items by parent:', error);
     return [];

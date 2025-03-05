@@ -1,3 +1,4 @@
+
 import { ModuleStatus } from '../../types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -53,4 +54,55 @@ export const updateFeatureStatusAsync = async (
     console.error('Error in updateFeatureStatusAsync:', err);
     return false;
   }
+};
+
+// Add the missing functions that are expected in index.ts
+export const updateModuleStatusData = async (
+  moduleId: string, 
+  status: ModuleStatus,
+  modules: any[],
+  setModules: any,
+  refreshModules: any
+): Promise<boolean> => {
+  const result = await updateModuleStatusAsync(moduleId, status);
+  if (result && modules?.length > 0) {
+    const updatedModules = [...modules];
+    const moduleIndex = updatedModules.findIndex(m => m.id === moduleId);
+    if (moduleIndex !== -1) {
+      updatedModules[moduleIndex] = { ...updatedModules[moduleIndex], status };
+      setModules(updatedModules);
+    }
+  }
+  
+  // Refresh modules anyway to ensure we have the latest data
+  if (refreshModules) await refreshModules(true);
+  
+  return result;
+};
+
+export const updateFeatureStatusData = async (
+  moduleCode: string,
+  featureCode: string,
+  isEnabled: boolean,
+  features: any,
+  setFeatures: any,
+  refreshFeatures: any
+): Promise<boolean> => {
+  const result = await updateFeatureStatusAsync(moduleCode, featureCode, isEnabled);
+  
+  if (result && features) {
+    const updatedFeatures = { ...features };
+    if (updatedFeatures[moduleCode]) {
+      updatedFeatures[moduleCode] = {
+        ...updatedFeatures[moduleCode],
+        [featureCode]: isEnabled
+      };
+      setFeatures(updatedFeatures);
+    }
+  }
+  
+  // Refresh features anyway to ensure we have the latest data
+  if (refreshFeatures) await refreshFeatures(true);
+  
+  return result;
 };

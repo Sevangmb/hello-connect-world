@@ -3,6 +3,9 @@
  * Types pour le module de menu
  */
 
+// Type de menu
+export type MenuType = 'main' | 'admin' | 'user' | 'settings';
+
 // Catégorie de menu
 export type MenuItemCategory = 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
 

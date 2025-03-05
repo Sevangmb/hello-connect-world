@@ -1,3 +1,5 @@
+
+// Update the useModuleApiCore hook to fix the errors
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { AppModule, ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,8 +57,9 @@ export const useModuleApiCore = () => {
    * Vérifie si une fonctionnalité est activée de manière asynchrone
    */
   const isFeatureEnabled = useCallback(async (moduleCode: string, featureCode: string): Promise<boolean> => {
-    return isFeatureEnabledAsync(moduleCode, featureCode, isModuleActive);
-  }, [isModuleActive]);
+    // Fix argument count by removing the third argument
+    return isFeatureEnabledAsync(moduleCode, featureCode);
+  }, []);
 
   /**
    * Fonction synchrone pour vérifier rapidement le statut d'un module
@@ -143,21 +146,32 @@ export const useModuleApiCore = () => {
   useEffect(() => {
     if (isInitialized) return;
 
-    const { cleanupFunction } = initializeModuleApi(
-      isInitialized,
-      setIsInitialized,
-      setInternalModules,
-      setFeatures,
-      setLoading,
-      refreshModules,
-      refreshFeatures
-    );
-
-    // Précharger les statuts
-    preloadModuleStatuses();
-
+    const init = async () => {
+      const { cleanupFunction } = await initializeModuleApi(
+        isInitialized,
+        setIsInitialized,
+        setInternalModules,
+        setFeatures,
+        setLoading,
+        refreshModules,
+        refreshFeatures
+      );
+      
+      // Précharger les statuts
+      preloadModuleStatuses();
+      
+      // Return cleanup function
+      return cleanupFunction;
+    };
+    
+    const cleanup = init();
+    
     // Nettoyage
-    return cleanupFunction;
+    return () => {
+      cleanup.then(fn => {
+        if (typeof fn === 'function') fn();
+      });
+    };
   }, [isInitialized, refreshModules, refreshFeatures]);
 
   // Memoize les modules pour de meilleures performances

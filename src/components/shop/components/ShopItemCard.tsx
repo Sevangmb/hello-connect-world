@@ -7,28 +7,28 @@ import { ShopItem } from "@/core/shop/domain/types";
 
 export interface ShopItemCardProps {
   item: ShopItem;
-  userId?: string;
 }
 
-export const ShopItemCard = ({ item, userId }: ShopItemCardProps) => {
+export const ShopItemCard = ({ item }: ShopItemCardProps) => {
   const { addToCart, cartItems, removeFromCart } = useCart();
 
-  // Correction pour isAddingToCart
-  const isAddingToCart = false; // Utiliser addToCart.isPending si disponible
+  // Fix: Use isPending from the mutation result
+  const isAddingToCart = addToCart.isPending || removeFromCart.isPending;
 
-  // Correction pour addToCart, ajouter le paramètre requis
+  // Fix: Use mutate method for mutations
   const handleAddToCart = () => {
-    addToCart({ 
+    addToCart.mutate({ 
       itemId: item.id,
       quantity: 1
     });
   };
 
   const handleRemoveFromCart = () => {
-    removeFromCart(item.id);
+    removeFromCart.mutate(item.id);
   };
 
-  const isInCart = cartItems.some((cartItem) => cartItem.shop_item_id === item.id);
+  // Fix: Access the correct property name
+  const isInCart = cartItems.some((cartItem) => cartItem.shop_items?.id === item.id);
 
   return (
     <Card>
