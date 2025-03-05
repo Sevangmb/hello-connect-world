@@ -1,57 +1,34 @@
 
-import { ModuleService } from './ModuleService';
-import { ModuleInitializationService } from './ModuleInitializationService';
+import { ModuleService } from "./ModuleService";
 
-export class ModuleInitializer {
-  private moduleService: ModuleService;
-  private initService: ModuleInitializationService;
+// Create a singleton instance
+let moduleServiceInstance: ModuleService | null = null;
 
-  constructor() {
-    this.moduleService = new ModuleService();
-    this.initService = new ModuleInitializationService();
+export const initializeModuleSystem = async (): Promise<void> => {
+  if (!moduleServiceInstance) {
+    moduleServiceInstance = new ModuleService();
   }
 
-  /**
-   * Initialize the application modules
-   */
-  async initialize(): Promise<void> {
-    try {
-      console.log('Starting module initialization...');
-      
-      // Initialize core modules
-      await this.initService.initializeCoreModules();
-      
-      // Validate module dependencies
-      await this.initService.validateModuleDependencies();
-      
-      // Preload active modules
-      const activeModules = await this.moduleService.getActiveModules();
-      console.log(`Preloaded ${activeModules.length} active modules`);
-      
-      console.log('Module initialization complete');
-    } catch (error) {
-      console.error('Error in module initialization:', error);
+  try {
+    // Initialize core modules first
+    const coreModules = await moduleServiceInstance.getCoreModules();
+    
+    for (const module of coreModules) {
+      await moduleServiceInstance.initializeModule(module.code);
     }
-  }
-
-  /**
-   * Check module health
-   */
-  async checkHealth(): Promise<boolean> {
-    try {
-      const coreModules = await this.moduleService.getCoreModules();
-      const inactiveCore = coreModules.filter(m => m.status !== 'active');
-      
-      if (inactiveCore.length > 0) {
-        console.error('Some core modules are not active:', 
-          inactiveCore.map(m => m.name).join(', '));
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error checking module health:', error);
-      return false;
+    
+    console.log("Core modules initialized successfully");
+    
+    // Then initialize non-core modules
+    const nonCoreModules = await moduleServiceInstance.getAllModules();
+    const modules = nonCoreModules.filter(m => !m.is_core && m.status === 'active');
+    
+    for (const module of modules) {
+      await moduleServiceInstance.initializeModule(module.code);
     }
+    
+    console.log("All modules initialized successfully");
+  } catch (error) {
+    console.error("Error initializing modules:", error);
   }
-}
+};

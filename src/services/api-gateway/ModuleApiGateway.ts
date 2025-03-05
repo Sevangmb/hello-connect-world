@@ -3,16 +3,16 @@ import { ModuleStatus } from '@/hooks/modules/types';
 import { ModuleService } from '@/services/modules/ModuleService';
 
 // Create a singleton instance
-let moduleService: ModuleService | null = null;
+let moduleServiceInstance: ModuleService | null = null;
 
 export class ModuleApiGateway {
   private moduleService: ModuleService;
 
   constructor() {
-    if (!moduleService) {
-      moduleService = new ModuleService();
+    if (!moduleServiceInstance) {
+      moduleServiceInstance = new ModuleService();
     }
-    this.moduleService = moduleService;
+    this.moduleService = moduleServiceInstance;
   }
 
   async isModuleActive(moduleCode: string): Promise<boolean> {
@@ -39,3 +39,6 @@ export class ModuleApiGateway {
     return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
   }
 }
+
+// Export a singleton instance for easier usage
+export const moduleApiGateway = new ModuleApiGateway();

@@ -60,3 +60,6 @@ export class ModuleEventPublisher {
     eventBus.publish(MODULE_EVENTS.HEALTH_CHECK_ERROR, { error });
   }
 }
+
+// Export a singleton instance for easier usage
+export const moduleEventPublisher = new ModuleEventPublisher();

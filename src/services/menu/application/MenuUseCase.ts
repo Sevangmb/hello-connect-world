@@ -37,14 +37,14 @@ export class MenuUseCase {
    * Get admin menu items
    */
   async getAdminMenuItems() {
-    return await this.menuRepository.getAllMenuItems();
+    return await this.menuRepository.getMenuItemsByCategory('admin');
   }
 
   /**
    * Set menu item visibility
    */
   async setMenuItemVisibility(itemId: string, isVisible: boolean) {
-    return await this.menuRepository.setMenuItemVisibility(itemId, isVisible);
+    return await this.menuRepository.updateMenuItem(itemId, { is_visible: isVisible });
   }
 
   /**
