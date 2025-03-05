@@ -1,8 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ModuleStatus } from '../types';
-import { updateModuleCache } from './moduleStatusCore';
-import { isAdminModule } from './moduleStatusCore';
+import { updateModuleCache, isAdminModule } from './moduleStatusCore';
 
 /**
  * Update a module's status in the database

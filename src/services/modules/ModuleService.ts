@@ -1,109 +1,103 @@
 
-import { AppModule, ModuleStatus } from "@/hooks/modules/types";
-import { ModuleEventPublisher } from "./services/ModuleEventPublisher";
-import { FeatureStatusUseCase } from "./usecases/FeatureStatusUseCase";
-import { ModuleStatusUseCase } from "./usecases/ModuleStatusUseCase";
+import { AppModule, ModuleStatus } from '@/hooks/modules/types';
+import { FeatureStatusUseCase } from './usecases/FeatureStatusUseCase';
+import { moduleStatusUseCase } from './usecases/ModuleStatusUseCase';
+import { ModuleRepository } from './repositories/ModuleRepository';
+import { FeatureRepository } from './repositories/FeatureRepository';
+import { DependencyRepository } from './repositories/DependencyRepository';
 
 /**
- * Service for managing modules and their features
+ * Core service for module management
  */
 export class ModuleService {
-  private eventPublisher: ModuleEventPublisher;
-  private moduleStatusUseCase: ModuleStatusUseCase;
+  private moduleRepo: ModuleRepository;
+  private featureRepo: FeatureRepository;
+  private dependencyRepo: DependencyRepository;
+  private moduleStatusUseCase: typeof moduleStatusUseCase;
   private featureStatusUseCase: FeatureStatusUseCase;
 
-  constructor(
-    eventPublisher: ModuleEventPublisher,
-    moduleStatusUseCase: ModuleStatusUseCase,
-    featureStatusUseCase: FeatureStatusUseCase
-  ) {
-    this.eventPublisher = eventPublisher;
+  constructor() {
+    this.moduleRepo = new ModuleRepository();
+    this.featureRepo = new FeatureRepository();
+    this.dependencyRepo = new DependencyRepository();
     this.moduleStatusUseCase = moduleStatusUseCase;
-    this.featureStatusUseCase = featureStatusUseCase;
+    this.featureStatusUseCase = new FeatureStatusUseCase(this.moduleRepo, this.featureRepo);
   }
 
   /**
-   * Initialize the module service with event subscriptions
-   */
-  init(): void {
-    console.log("Initializing ModuleService");
-    // Subscribe to module status change events
-    this.eventPublisher.subscribe("moduleStatusChanged", (moduleId: string, status: string) => {
-      console.log(`Module ${moduleId} status changed to ${status}`);
-    });
-
-    // Subscribe to feature status change events
-    this.eventPublisher.subscribe(
-      "featureStatusChanged",
-      (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-        console.log(
-          `Feature ${featureCode} of module ${moduleCode} ${isEnabled ? "enabled" : "disabled"}`
-        );
-      }
-    );
-  }
-
-  /**
-   * Get a list of all modules
+   * Get all modules
    */
   async getAllModules(): Promise<AppModule[]> {
-    console.log("Getting all modules");
-    return this.moduleStatusUseCase.getAllModules();
+    return await this.moduleRepo.getAllModules();
   }
 
   /**
-   * Get a specific module by id
+   * Get active modules
    */
-  async getModuleById(id: string): Promise<AppModule | null> {
-    console.log(`Getting module with id: ${id}`);
-    return this.moduleStatusUseCase.getModuleById(id);
+  async getActiveModules(): Promise<AppModule[]> {
+    return await this.moduleRepo.getModulesByStatus('active');
   }
 
   /**
-   * Get a specific module by code
+   * Get core modules
+   */
+  async getCoreModules(): Promise<AppModule[]> {
+    return await this.moduleRepo.getCoreModules();
+  }
+
+  /**
+   * Get a module by code
    */
   async getModuleByCode(code: string): Promise<AppModule | null> {
-    console.log(`Getting module with code: ${code}`);
-    return this.moduleStatusUseCase.getModuleByCode(code);
+    return await this.moduleRepo.getModuleByCode(code);
   }
 
   /**
-   * Update a module's status
+   * Check if a module is active
    */
-  async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
-    console.log(`Updating module ${id} status to ${status}`);
-    const result = await this.moduleStatusUseCase.updateModuleStatus(id, status);
-    
-    if (result) {
-      this.eventPublisher.publishModuleStatusChanged(id, status);
-    }
-    
-    return result;
+  async isModuleActive(moduleCode: string): Promise<boolean> {
+    return await this.moduleStatusUseCase.isModuleActive(moduleCode);
   }
 
   /**
-   * Get a list of features for a module
+   * Get module status
    */
-  async getFeaturesByModule(moduleCode: string): Promise<any[]> {
-    console.log(`Getting features for module: ${moduleCode}`);
-    return this.featureStatusUseCase.getFeaturesByModule(moduleCode);
+  async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
+    return await this.moduleStatusUseCase.getModuleStatus(moduleCode);
   }
 
   /**
-   * Update a feature's status
+   * Update module status
    */
-  async updateFeatureStatus(
-    moduleCode: string,
-    featureCode: string,
-    isEnabled: boolean
-  ): Promise<boolean> {
-    console.log(`Updating feature ${featureCode} status to ${isEnabled ? "enabled" : "disabled"}`);
-    const result = await this.featureStatusUseCase.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-    
-    if (result) {
-      this.eventPublisher.publishFeatureStatusChanged(moduleCode, featureCode, isEnabled);
-    }
-    
-    return result;
+  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+    return await this.moduleStatusUseCase.updateModuleStatus(moduleId, status);
+  }
+
+  /**
+   * Get module dependencies
+   */
+  async getModuleDependencies(moduleId: string): Promise<any[]> {
+    return await this.dependencyRepo.getModuleDependencies(moduleId);
+  }
+
+  /**
+   * Check if a feature is enabled
+   */
+  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
+    return await this.featureStatusUseCase.isFeatureEnabled(moduleCode, featureCode);
+  }
+
+  /**
+   * Get all features for a module
+   */
+  async getModuleFeatures(moduleCode: string): Promise<any[]> {
+    return await this.featureRepo.getFeaturesByModule(moduleCode);
+  }
+
+  /**
+   * Update feature status
+   */
+  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
+    return await this.featureStatusUseCase.updateFeatureStatus(moduleCode, featureCode, isEnabled);
   }
 }

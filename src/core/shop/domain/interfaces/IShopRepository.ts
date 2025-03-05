@@ -8,6 +8,7 @@ export interface IShopRepository {
   // Shop operations
   getShopById(id: string): Promise<Shop | null>;
   getShopByUserId(userId: string): Promise<Shop | null>;
+  getShops(): Promise<Shop[]>;
   getShopsByStatus(status: ShopStatus): Promise<Shop[]>;
   createShop(shopData: Omit<Shop, "id" | "created_at" | "updated_at" | "average_rating">): Promise<Shop>;
   updateShop(id: string, shopData: Partial<Shop>): Promise<Shop>;
@@ -33,8 +34,10 @@ export interface IShopRepository {
   
   // Orders operations
   getShopOrders(shopId: string): Promise<any[]>; // Using any for now
+  getUserOrders(userId: string): Promise<any[]>; // Using any for now
   getOrderById(orderId: string): Promise<any | null>; // Using any for now
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
+  createOrder(orderData: any): Promise<any>; // Using any for now
   
   // Favorite shops operations
   getFavoriteShops(userId: string): Promise<Shop[]>;

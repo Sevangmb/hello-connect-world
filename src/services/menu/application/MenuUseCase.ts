@@ -1,5 +1,6 @@
 
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
+import { MenuItem } from '../types';
 
 /**
  * MenuUseCase class for handling menu-related logic
@@ -36,7 +37,7 @@ export class MenuUseCase {
    * Get admin menu items
    */
   async getAdminMenuItems() {
-    return await this.menuRepository.getAdminMenuItems();
+    return await this.menuRepository.getAllMenuItems();
   }
 
   /**

@@ -1,106 +1,85 @@
 
-import React, { useState } from "react";
-import { useShopItems } from "@/hooks/shop/hooks/useShopItems";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import ShopItemCard from "./components/ShopItemCard";
-import ShopItemsFilter from "./components/ShopItemsFilter";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useShopItems, UseShopItemsProps } from './hooks/useShopItems';
+import { ShopItemCard } from './components/ShopItemCard';
+import { ShopItemsFilter } from './components/ShopItemsFilter';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ShopItemsProps {
-  shopId: string;
+  shopId?: string;
+  title?: string;
+  showFilters?: boolean;
+  limit?: number;
 }
 
-export const ShopItems: React.FC<ShopItemsProps> = ({ shopId }) => {
-  const [filterValue, setFilterValue] = useState("");
-  const [sortValue, setSortValue] = useState("newest");
-  const { data: shopItems, isLoading, error } = useShopItems({ shopId });
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="overflow-hidden">
-            <div className="aspect-square w-full">
-              <Skeleton className="h-full w-full" />
-            </div>
-            <CardContent className="p-4">
-              <Skeleton className="h-6 w-3/4 mb-2" />
-              <Skeleton className="h-4 w-1/4 mb-2" />
-              <Skeleton className="h-10 w-full mt-4" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <p className="text-center text-muted-foreground">
-            Une erreur est survenue lors du chargement des articles.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!shopItems || shopItems.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <p className="text-center text-muted-foreground">
-            Cette boutique n'a pas encore d'articles à vendre.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Filter and sort items
-  const filteredItems = shopItems
-    .filter((item) => {
-      if (!filterValue) return true;
-      return (
-        item.name.toLowerCase().includes(filterValue.toLowerCase()) ||
-        (item.description &&
-          item.description.toLowerCase().includes(filterValue.toLowerCase()))
-      );
-    })
-    .sort((a, b) => {
-      switch (sortValue) {
-        case "price-asc":
-          return a.price - b.price;
-        case "price-desc":
-          return b.price - a.price;
-        case "name":
-          return a.name.localeCompare(b.name);
-        default: // newest
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
-    });
-
+export const ShopItems: React.FC<ShopItemsProps> = ({
+  shopId,
+  title = "Produits",
+  showFilters = true,
+  limit
+}) => {
+  const [filters, setFilters] = useState({});
+  
+  const shopItemsProps: UseShopItemsProps = {
+    shopId,
+    limit,
+    filters
+  };
+  
+  const { items, isLoading, error } = useShopItems(shopItemsProps);
+  
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+  
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        <ShopItemsFilter 
-          filterValue={filterValue} 
-          onFilterChange={setFilterValue} 
-          sortValue={sortValue} 
-          onSortChange={setSortValue}
-        />
-        <p className="text-sm text-muted-foreground">
-          {filteredItems.length} article{filteredItems.length !== 1 && "s"}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredItems.map((item) => (
-          <ShopItemCard key={item.id} item={item} />
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {showFilters && (
+            <div className="md:col-span-1">
+              <ShopItemsFilter onFilterChange={handleFilterChange} />
+            </div>
+          )}
+          
+          <div className={showFilters ? "md:col-span-3" : "md:col-span-4"}>
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i}>
+                    <Skeleton className="h-48 w-full" />
+                    <CardContent className="p-4">
+                      <Skeleton className="h-6 w-2/3 mb-2" />
+                      <Skeleton className="h-4 w-1/3 mb-2" />
+                      <Skeleton className="h-4 w-full mb-4" />
+                      <Skeleton className="h-9 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center text-red-500 p-4">
+                Une erreur s'est produite lors du chargement des produits
+              </div>
+            ) : items.length === 0 ? (
+              <div className="text-center text-gray-500 p-8">
+                Aucun produit disponible
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((item) => (
+                  <ShopItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

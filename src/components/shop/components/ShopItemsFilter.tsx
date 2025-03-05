@@ -1,47 +1,65 @@
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 
 export interface ShopItemsFilterProps {
-  filterValue: string;
-  onFilterChange: (value: string) => void;
-  sortValue: string;
-  onSortChange: (value: string) => void;
+  onFilterChange: (filters: {
+    sort?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    category?: string;
+  }) => void;
+  maxPrice?: number;
 }
 
-const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({
-  filterValue,
+export const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({ 
   onFilterChange,
-  sortValue,
-  onSortChange
+  maxPrice = 500
 }) => {
+  const [priceRange, setPriceRange] = React.useState([0, maxPrice]);
+  
+  const handlePriceChange = (value: number[]) => {
+    setPriceRange(value);
+    onFilterChange({ minPrice: value[0], maxPrice: value[1] });
+  };
+  
+  const handleSortChange = (value: string) => {
+    onFilterChange({ sort: value });
+  };
+  
   return (
-    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-      <Input
-        placeholder="Rechercher des articles..."
-        value={filterValue}
-        onChange={(e) => onFilterChange(e.target.value)}
-        className="w-full sm:w-[250px]"
-      />
+    <div className="space-y-4">
+      <div>
+        <Label>Trier par</Label>
+        <Select onValueChange={handleSortChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Trier par..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="price_asc">Prix: croissant</SelectItem>
+            <SelectItem value="price_desc">Prix: décroissant</SelectItem>
+            <SelectItem value="newest">Plus récent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
-      <Select value={sortValue} onValueChange={onSortChange}>
-        <SelectTrigger className="w-full sm:w-[180px]">
-          <SelectValue placeholder="Trier par" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="newest">Plus récents</SelectItem>
-          <SelectItem value="price-asc">Prix croissant</SelectItem>
-          <SelectItem value="price-desc">Prix décroissant</SelectItem>
-          <SelectItem value="name">Nom</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <Label>Prix</Label>
+          <div className="text-sm">
+            {priceRange[0]}€ - {priceRange[1]}€
+          </div>
+        </div>
+        <Slider
+          defaultValue={[0, maxPrice]}
+          max={maxPrice}
+          step={10}
+          value={priceRange}
+          onValueChange={handlePriceChange}
+        />
+      </div>
     </div>
   );
 };
