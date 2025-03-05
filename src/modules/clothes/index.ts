@@ -1,13 +1,7 @@
 
-// Remove reference to non-existent file
-import { ClothesList } from '@/components/clothes/ClothesList'; 
-// Comment out references to files that don't exist
-// import { ClothesFilters } from '@/components/clothes/ClothesFilters';
-// import ClothesGrid from '@/components/clothes/ClothesGrid';
+import ClothesFilters from "@/components/clothes/ClothesFilters";
 
-// Export only the components that exist
+// Export components that are available
 export {
-  ClothesList,
-  // ClothesFilters,
-  // ClothesGrid
+  ClothesFilters
 };

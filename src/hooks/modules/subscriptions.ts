@@ -1,165 +1,87 @@
-import { supabase } from "@/integrations/supabase/client";
-import { AppModule, ModuleDependency, ModuleStatus } from "./types";
-import { eventBus } from "@/core/event-bus/EventBus";
-import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
+
+import { useEffect } from 'react';
+import { AppModule, ModuleDependency, ModuleStatus } from './types';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
 
 /**
- * Gère les abonnements aux changements de modules via Supabase Realtime
+ * Process incoming module data for consistency
  */
-export const setupModuleSubscriptions = (
-  onModulesUpdate: (modules: AppModule[]) => void,
-  onDependenciesUpdate: (dependencies: ModuleDependency[]) => void,
-  onFeaturesUpdate: (features: Record<string, Record<string, boolean>>) => void
-) => {
-  // Supprimer les canaux existants pour éviter les duplications
-  const existingChannels = supabase.getChannels();
-  existingChannels.forEach(ch => {
-    if (ch.topic.includes('module-changes')) {
-      supabase.removeChannel(ch);
-    }
-  });
+const processModuleData = (module: any): AppModule => {
+  const status = module.status as ModuleStatus;
+  
+  // Ensure we have a valid status
+  const validStatus = status === 'active' || 
+                      status === 'inactive' || 
+                      status === 'degraded' || 
+                      status === 'maintenance' ? 
+                      status : 'inactive';
+  
+  // Return a fully-formed module with defaults for missing properties
+  return {
+    id: module.id,
+    code: module.code,
+    name: module.name,
+    description: module.description || '',
+    status: validStatus,
+    is_core: !!module.is_core,
+    version: module.version || '1.0.0',
+    created_at: module.created_at || new Date().toISOString(),
+    updated_at: module.updated_at || new Date().toISOString(),
+    is_admin: module.is_admin || false,
+    priority: module.priority || 0,
+    features: module.features || {}
+  };
+};
 
-  // Créer un nouveau canal pour les modules
-  const channel = supabase.channel('module-changes')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'app_modules'
-    }, async (payload) => {
-      console.log('Module change detected:', payload);
-      
-      // Récupérer tous les modules mis à jour
-      try {
-        const { data, error } = await supabase
-          .from('app_modules')
-          .select('*')
-          .order('name');
-          
-        if (error) throw error;
-        
-        // Traiter les données pour s'assurer que tous les champs requis sont présents
-        const processedModules = data.map(module => {
-          // Vérifier que le statut est valide
-          let status = module.status as ModuleStatus;
-          if (status !== 'active' && status !== 'inactive' && status !== 'degraded' && status !== 'maintenance') {
-            status = 'inactive';
-          }
-          
-          // Ajouter les champs manquants avec des valeurs par défaut
-          return {
-            ...module,
-            status,
-            version: module.version || "1.0.0",
-            is_admin: module.is_admin || false,
-            priority: module.priority || 0
-          } as AppModule;
-        });
-        
-        // Mettre à jour l'état
-        onModulesUpdate(processedModules);
-        
-        // Publier un événement
-        eventBus.publish(MODULE_EVENTS.MODULES_UPDATED, {
-          count: processedModules.length,
-          timestamp: Date.now()
-        });
-      } catch (err) {
-        console.error('Error refreshing modules after change:', err);
-      }
-    })
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'module_dependencies'
-    }, async () => {
-      // Récupérer toutes les dépendances mises à jour
-      try {
-        const { data, error } = await supabase
-          .from('module_dependencies_view')
-          .select('*');
-          
-        if (error) throw error;
-        
-        // Traiter les données pour s'assurer que tous les champs requis sont présents
-        const processedDependencies = data.map(dep => ({
-          id: dep.module_id + '_' + dep.dependency_id,
-          module_id: dep.module_id,
-          module_code: dep.module_code,
-          module_name: dep.module_name,
-          module_status: dep.module_status,
-          dependency_id: dep.dependency_id,
-          dependency_code: dep.dependency_code,
-          dependency_name: dep.dependency_name,
-          dependency_status: dep.dependency_status,
-          depends_on: dep.dependency_code || "",
-          is_required: dep.is_required,
-          created_at: dep.created_at || new Date().toISOString(),
-          updated_at: dep.updated_at || new Date().toISOString()
-        }));
-        
-        // Mettre à jour l'état
-        onDependenciesUpdate(processedDependencies);
-      } catch (err) {
-        console.error('Error refreshing dependencies after change:', err);
-      }
-    })
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'module_features'
-    }, async () => {
-      // Récupérer toutes les fonctionnalités mises à jour
-      try {
-        const { data, error } = await supabase
-          .from('module_features')
-          .select('*');
-          
-        if (error) throw error;
-        
-        // Organiser les fonctionnalités par module
-        const featuresData: Record<string, Record<string, boolean>> = {};
-        data.forEach(feature => {
-          if (!featuresData[feature.module_code]) {
-            featuresData[feature.module_code] = {};
-          }
-          featuresData[feature.module_code][feature.feature_code] = feature.is_enabled;
-        });
-        
-        // Mettre à jour l'état
-        onFeaturesUpdate(featuresData);
-      } catch (err) {
-        console.error('Error refreshing features after change:', err);
-      }
-    })
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('Subscribed to module changes');
-      } else if (err) {
-        console.error('Error subscribing to module changes:', err);
+/**
+ * Process incoming dependency data for consistency
+ */
+const processDependencyData = (dependency: any): ModuleDependency => {
+  return {
+    id: dependency.id || `${dependency.module_id}_${dependency.dependency_id}`,
+    module_id: dependency.module_id,
+    module_code: dependency.module_code,
+    module_name: dependency.module_name,
+    module_status: dependency.module_status || 'inactive',
+    dependency_id: dependency.dependency_id,
+    dependency_code: dependency.dependency_code,
+    dependency_name: dependency.dependency_name,
+    dependency_status: dependency.dependency_status || 'inactive',
+    depends_on: dependency.depends_on || dependency.dependency_code || '',
+    is_required: !!dependency.is_required,
+    created_at: dependency.created_at || new Date().toISOString(),
+    updated_at: dependency.updated_at || new Date().toISOString()
+  };
+};
+
+/**
+ * Subscribe to module events via event bus
+ */
+export const useModuleSubscriptions = (
+  setModules: React.Dispatch<React.SetStateAction<AppModule[]>>,
+  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>,
+) => {
+  useEffect(() => {
+    // Subscribe to module updates
+    const subscription = eventBus.subscribe(MODULE_EVENTS.MODULES_REFRESHED, (event) => {
+      if (event.modules) {
+        const processedModules = event.modules.map(processModuleData);
+        setModules(processedModules);
       }
     });
 
-  // Retourner une fonction pour se désabonner
-  return () => {
-    supabase.removeChannel(channel);
-  };
-};
+    // Subscribe to dependency updates
+    const depSubscription = eventBus.subscribe(MODULE_EVENTS.DEPENDENCIES_UPDATED, (event) => {
+      if (event.dependencies) {
+        const processedDependencies = event.dependencies.map(processDependencyData);
+        setDependencies(processedDependencies);
+      }
+    });
 
-// Fonctions utilitaires pour traiter les données de modules
-export const processModuleData = (moduleData: any) => {
-  return {
-    ...moduleData,
-    version: moduleData.version || "1.0.0",
-    is_admin: moduleData.is_admin || false,
-    priority: moduleData.priority || 0
-  };
-};
-
-export const processDependencyData = (dependencyData: any) => {
-  return {
-    ...dependencyData,
-    depends_on: dependencyData.dependency_code || "",
-    created_at: dependencyData.created_at || new Date().toISOString(),
-    updated_at: dependencyData.updated_at || new Date().toISOString()
-  };
+    return () => {
+      subscription.unsubscribe();
+      depSubscription.unsubscribe();
+    };
+  }, [setModules, setDependencies]);
 };

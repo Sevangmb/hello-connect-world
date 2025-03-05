@@ -27,18 +27,12 @@ export class ModuleRepository {
       // Assurer que les statuts sont valides et que tous les champs requis sont présents
       return (data || []).map(module => {
         const status = module.status as ModuleStatus;
-        if (status !== 'active' && status !== 'inactive' && status !== 'degraded' && status !== 'maintenance') {
-          console.warn(`Invalid module status "${module.status}" for module ${module.code}, defaulting to "inactive"`);
-          return {
-            ...module,
-            status: 'inactive' as ModuleStatus,
-            version: module.version || "1.0.0",
-            is_admin: module.is_admin || false,
-            priority: module.priority || 0
-          };
-        }
+        const validStatus = ['active', 'inactive', 'degraded', 'maintenance'].includes(status) ? 
+                           status : 'inactive';
+                           
         return {
           ...module,
+          status: validStatus,
           version: module.version || "1.0.0",
           is_admin: module.is_admin || false,
           priority: module.priority || 0
