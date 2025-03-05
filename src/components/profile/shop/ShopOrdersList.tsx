@@ -1,122 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Order } from '@/core/shop/domain/types';
-import { getShopServiceInstance } from '@/core/shop/infrastructure/ShopServiceProvider';
 
-// Get ShopService instance
-const shopService = getShopServiceInstance();
+import React, { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { useQuery } from '@tanstack/react-query';
+import { Order, OrderStatus } from '@/core/shop/domain/types';
 
-export default function ShopOrdersList() {
-  const { shopId } = useParams<{ shopId: string }>();
+interface ShopOrdersListProps {
+  shopId: string;
+}
+
+const ShopOrdersList: React.FC<ShopOrdersListProps> = ({ shopId }) => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const shopService = getShopService();
+  
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['shop-orders', shopId],
+    queryFn: () => shopService.getShopOrders(shopId)
+  });
+  
+  useEffect(() => {
+    if (data) {
+      setOrders(data);
+    }
+  }, [data]);
 
-  // Use mutation for updating order status
-  const updateOrderStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      if (!shopId) throw new Error("Shop ID is required");
-      return shopService.updateOrderStatus(id, status);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Statut mis à jour",
-        description: "Le statut de la commande a été mis à jour avec succès.",
-      });
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["shopOrders", shopId] });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut de la commande.",
-      });
+  const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
+    try {
+      await shopService.updateOrderStatus(orderId, status);
+      // Refresh orders
+      const updatedOrders = await shopService.getShopOrders(shopId);
+      setOrders(updatedOrders);
+    } catch (error) {
       console.error("Error updating order status:", error);
     }
-  });
+  };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      if (!shopId) return;
-      
-      try {
-        setLoading(true);
-        const shopOrders = await shopService.getShopOrders(shopId);
-        setOrders(shopOrders || []);
-      } catch (error) {
-        console.error("Error fetching shop orders:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger les commandes.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (isLoading) {
+    return <div>Chargement des commandes...</div>;
+  }
 
-    fetchOrders();
-  }, [shopId, toast]);
+  if (error) {
+    return <div>Erreur lors du chargement des commandes</div>;
+  }
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    updateOrderStatusMutation.mutate({ id: orderId, status: newStatus });
+  if (orders.length === 0) {
+    return <div className="text-center py-10">Aucune commande pour l'instant</div>;
+  }
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Commandes de la boutique</h2>
-      {loading ? (
-        <p>Chargement des commandes...</p>
-      ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>{order.customer_id}</TableCell>
-                  <TableCell>{order.total_amount}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{order.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Select onValueChange={(value) => handleStatusChange(order.id, value)}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder={order.status} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">En attente</SelectItem>
-                        <SelectItem value="confirmed">Confirmée</SelectItem>
-                        <SelectItem value="shipped">Expédiée</SelectItem>
-                        <SelectItem value="delivered">Livrée</SelectItem>
-                        <SelectItem value="cancelled">Annulée</SelectItem>
-                        <SelectItem value="returned">Retournée</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Commandes</h2>
+      
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Commande</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Montant</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => (
+            <TableRow key={order.id}>
+              <TableCell className="font-medium">{order.id.substring(0, 8)}</TableCell>
+              <TableCell>{order.customer_id.substring(0, 8)}</TableCell>
+              <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>{order.total_amount}€</TableCell>
+              <TableCell>
+                <Badge className={getStatusBadgeVariant(order.status)}>
+                  {order.status}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex space-x-2">
+                  {order.status === 'pending' && (
+                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(order.id, 'confirmed' as OrderStatus)}>
+                      Confirmer
+                    </Button>
+                  )}
+                  {order.status === 'confirmed' && (
+                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(order.id, 'shipped' as OrderStatus)}>
+                      Expédier
+                    </Button>
+                  )}
+                  {order.status === 'shipped' && (
+                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(order.id, 'delivered' as OrderStatus)}>
+                      Livré
+                    </Button>
+                  )}
+                  {(order.status === 'pending' || order.status === 'confirmed') && (
+                    <Button size="sm" variant="destructive" onClick={() => handleUpdateStatus(order.id, 'cancelled' as OrderStatus)}>
+                      Annuler
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
-}
+};
+
+export default ShopOrdersList;

@@ -6,6 +6,7 @@ import ClothesImageUpload from "./forms/ClothesImageUpload";
 import { ClothesDetectionButtons } from "./components/ClothesDetectionButtons";
 import { ClothesFormData } from "./types";
 import { CATEGORIES, STYLES, WEATHER_CATEGORIES } from "./constants/categories";
+import { useState } from "react";
 
 interface EditClothesFormProps {
   clothesId: string;
@@ -20,6 +21,8 @@ export const EditClothesForm = ({
   onFormChange,
   onSubmit
 }: EditClothesFormProps) => {
+  const [uploading, setUploading] = useState(false);
+
   return (
     <div className="space-y-6 p-4 bg-white rounded-lg shadow-sm">
       <div className="space-y-2">
@@ -32,8 +35,9 @@ export const EditClothesForm = ({
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-4">
           <ClothesImageUpload
-            formData={formData}
-            onFormChange={onFormChange}
+            onChange={(url) => onFormChange('image_url', url)}
+            onUploading={setUploading}
+            currentImageUrl={formData.image_url || ''}
           />
 
           {formData.image_url && (

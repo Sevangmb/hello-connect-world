@@ -23,7 +23,7 @@ export default function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
   const [originalPrice, setOriginalPrice] = useState('');
   const [stock, setStock] = useState('1');
   const [imageUrl, setImageUrl] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   const addShopItem = async (shopId: string, itemData: any) => {
@@ -94,7 +94,7 @@ export default function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
             <Label htmlFor="image">Image</Label>
             <ImageUpload
               onChange={setImageUrl}
-              onUploading={setIsUploading}
+              onUploading={setUploading}
               currentImageUrl={imageUrl}
             />
           </div>

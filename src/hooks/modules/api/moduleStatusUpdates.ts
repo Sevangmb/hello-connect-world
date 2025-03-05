@@ -8,10 +8,11 @@ import { isAdminModule } from './moduleStatusCore';
  */
 export const updateModuleStatusInDb = async (
   moduleId: string, 
-  status: ModuleStatus
+  status: ModuleStatus,
+  isAdminModuleCheck: boolean = false
 ): Promise<boolean> => {
   // Prevent disabling the Admin module
-  if (isAdminModule(moduleId) && status !== 'active') {
+  if (isAdminModuleCheck && status !== 'active') {
     console.error("The Admin module cannot be disabled");
     return false;
   }
@@ -43,10 +44,11 @@ export const updateModuleStatusInDb = async (
 export const updateFeatureStatusInDb = async (
   moduleCode: string, 
   featureCode: string, 
-  isEnabled: boolean
+  isEnabled: boolean,
+  isAdminModuleCheck: boolean = false
 ): Promise<boolean> => {
   // Prevent disabling Admin module features
-  if (isAdminModule(moduleCode) && !isEnabled) {
+  if (isAdminModuleCheck && !isEnabled) {
     console.error("Admin module features cannot be disabled");
     return false;
   }

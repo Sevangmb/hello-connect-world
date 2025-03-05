@@ -1,97 +1,113 @@
+
 import React, { useState } from 'react';
+import { Button } from './button';
+import { Upload, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ImageUploadProps {
-  value: string;
   onChange: (url: string) => void;
-  onUploading: (isUploading: boolean) => void;
+  onUploading: React.Dispatch<React.SetStateAction<boolean>>;
+  currentImageUrl?: string; // Making this prop optional
 }
 
-export function ImageUpload({
-  value,
+export const ImageUpload: React.FC<ImageUploadProps> = ({
   onChange,
   onUploading,
-}: ImageUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(value);
+  currentImageUrl = '',
+}) => {
+  const [previewUrl, setPreviewUrl] = useState<string>(currentImageUrl);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic validation
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed.');
+      return;
+    }
+
+    setError(null);
+    onUploading(true);
 
     try {
-      setUploading(true);
-      if (onUploading) onUploading(true);
+      // Create a preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewUrl(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
 
-      // Upload logic would go here
-      const file = files[0];
-      // Mock upload for example
-      setTimeout(() => {
-        const mockUrl = URL.createObjectURL(file);
-        setPreview(mockUrl);
-        onChange(mockUrl);
-        setUploading(false);
-        if (onUploading) onUploading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      setUploading(false);
-      if (onUploading) onUploading(false);
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      onChange(publicUrl);
+    } catch (err: any) {
+      console.error('Error uploading file:', err);
+      setError(err.message || 'An error occurred during upload.');
+    } finally {
+      onUploading(false);
     }
   };
 
+  const handleRemoveImage = () => {
+    setPreviewUrl('');
+    onChange('');
+  };
+
   return (
-    <div className={`relative`}>
-      {preview ? (
-        <div className="relative w-full h-40 rounded-md overflow-hidden">
-          <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-          <button
+    <div className="space-y-2">
+      {previewUrl ? (
+        <div className="relative">
+          <img 
+            src={previewUrl} 
+            alt="Preview" 
+            className="max-h-64 rounded-md object-cover"
+          />
+          <Button
             type="button"
-            className="absolute top-2 right-2 bg-red-500 p-1 rounded-full"
-            onClick={() => {
-              setPreview('');
-              onChange('');
-            }}
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2"
+            onClick={handleRemoveImage}
           >
-            ✕
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <svg
-              className="w-8 h-8 mb-3 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              ></path>
-            </svg>
-            <p className="mb-2 text-sm text-gray-500">
-              <span className="font-semibold">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-xs text-gray-500">PNG, JPG or WEBP (MAX. 2MB)</p>
-          </div>
+        <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center">
+          <Upload className="h-10 w-10 text-gray-400 mb-2" />
+          <p className="text-sm text-gray-500">Click to upload an image</p>
           <input
-            id="dropzone-file"
             type="file"
-            className="hidden"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            onChange={handleFileChange}
             accept="image/*"
-            onChange={handleUpload}
-            disabled={uploading}
           />
-        </label>
-      )}
-      {uploading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
         </div>
       )}
+      {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   );
-}
+};

@@ -51,8 +51,18 @@ export async function checkModuleDegradedAsync(moduleCode: string): Promise<bool
 /**
  * Check if a feature is enabled by querying the database
  */
-export async function checkFeatureEnabledAsync(moduleCode: string, featureCode: string): Promise<boolean> {
+export async function checkFeatureEnabledAsync(
+  moduleCode: string, 
+  featureCode: string,
+  isModuleActive: (moduleCode: string) => Promise<boolean>
+): Promise<boolean> {
   try {
+    // First, check if the module is active
+    const moduleIsActive = await isModuleActive(moduleCode);
+    if (!moduleIsActive) {
+      return false;
+    }
+
     const { data, error } = await supabase
       .from('module_features')
       .select('is_enabled')

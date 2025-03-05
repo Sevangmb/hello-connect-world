@@ -1,35 +1,40 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useShop } from "@/hooks/useShop";
-import { CreateShopForm } from "./CreateShopForm";
+import CreateShopForm from "./CreateShopForm";
 import { ShopSettings } from "./ShopSettings";
-import { ShopItemsList } from "./ShopItemsList";
+import ShopItemsList from "./ShopItemsList";
 import { AddItemForm } from "./AddItemForm";
-import { useParams, useRouter } from 'next/navigation';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from 'lucide-react';
-import { ShopOrdersList } from './ShopOrdersList';
+import ShopOrdersList from './ShopOrdersList';
 
-const ShopDashboard = () => {
+interface ShopDashboardProps {
+  userId?: string;
+}
+
+const ShopDashboard: React.FC<ShopDashboardProps> = ({ userId }) => {
   const [tab, setTab] = useState<"items" | "orders" | "settings">("items");
   const { user } = useAuth();
-  const { shop, loading, refreshShop } = useShop(user?.id);
-  const { push } = useRouter();
-  const { shopId } = useParams();
+  const { shop, isShopLoading, refetchShop } = useShop(user?.id);
+  const navigate = useNavigate();
+  const { shopId } = useParams<{ shopId: string }>();
 
   useEffect(() => {
     if (shopId === 'new' && shop) {
-      push(`/profile/shop/${shop.id}`);
+      navigate(`/profile/shop/${shop.id}`);
     }
-  }, [shop, push, shopId]);
+  }, [shop, navigate, shopId]);
 
-  if (loading) {
+  if (isShopLoading) {
     return (
       <div className="container py-10">
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => push('/profile')}>
+          <Button variant="ghost" onClick={() => navigate('/profile')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour au profil
           </Button>
@@ -52,7 +57,7 @@ const ShopDashboard = () => {
     return (
       <div className="container py-10">
         <div className="mb-4">
-          <Button variant="ghost" onClick={() => push('/profile')}>
+          <Button variant="ghost" onClick={() => navigate('/profile')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour au profil
           </Button>
@@ -65,7 +70,7 @@ const ShopDashboard = () => {
   return (
     <div className="container py-10">
       <div className="mb-4">
-        <Button variant="ghost" onClick={() => push('/profile')}>
+        <Button variant="ghost" onClick={() => navigate('/profile')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour au profil
         </Button>
@@ -78,7 +83,7 @@ const ShopDashboard = () => {
         </TabsList>
         <TabsContent value="items">
           <div className="grid gap-4">
-            <AddItemForm />
+            <AddItemForm shopId={shop.id} />
             <ShopItemsList shopId={shop.id} />
           </div>
         </TabsContent>
@@ -86,8 +91,8 @@ const ShopDashboard = () => {
           <ShopOrdersList shopId={shop.id} />
         </TabsContent>
         <TabsContent value="settings">
-          {tab === 'settings' && shop && (
-            <ShopSettings shop={shop} />
+          {tab === 'settings' && (
+            <ShopSettings shopId={shop.id} />
           )}
         </TabsContent>
       </Tabs>

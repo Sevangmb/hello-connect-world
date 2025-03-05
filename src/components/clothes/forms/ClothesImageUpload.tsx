@@ -1,18 +1,18 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Dispatch, SetStateAction } from 'react';
 
-interface ClothesImageUploadProps {
+export interface ClothesImageUploadProps {
   onChange: (url: string) => void;
   onUploading: Dispatch<SetStateAction<boolean>>;
-  defaultValue?: string;
+  currentImageUrl?: string;
 }
 
 const ClothesImageUpload: React.FC<ClothesImageUploadProps> = ({
   onChange,
   onUploading,
-  defaultValue = ''
+  currentImageUrl = ''
 }) => {
   return (
     <div className="space-y-2">
@@ -23,7 +23,7 @@ const ClothesImageUpload: React.FC<ClothesImageUploadProps> = ({
         <ImageUpload
           onChange={onChange}
           onUploading={onUploading}
-          currentImageUrl={defaultValue}
+          currentImageUrl={currentImageUrl}
         />
       </div>
       <p className="text-xs text-gray-500">
