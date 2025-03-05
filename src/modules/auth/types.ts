@@ -1,87 +1,83 @@
 
 /**
- * Types pour le module d'authentification
+ * Types et interfaces pour le module d'authentification
+ * Architecture en couches suivant les principes Clean Architecture
  */
-import { User as SupabaseUser, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
-// Réutiliser les types de Supabase pour la compatibilité
-export type User = SupabaseUser;
-export type AuthError = SupabaseAuthError;
-
-export type SignUpMetadata = {
-  username?: string;
-  full_name?: string;
-  [key: string]: any;
+// Événements d'authentification
+export const AUTH_EVENTS = {
+  SIGNED_IN: 'auth:signed-in',
+  SIGNED_UP: 'auth:signed-up',
+  SIGNED_OUT: 'auth:signed-out',
+  PASSWORD_RECOVERY: 'auth:password-recovery',
+  USER_UPDATED: 'auth:user-updated',
+  USER_DELETED: 'auth:user-deleted',
+  ERROR: 'auth:error'
 };
 
+// Type utilisateur
+export type User = SupabaseUser;
+
+// Type erreur d'authentification
+export type AuthError = {
+  message: string;
+  stack?: string;
+};
+
+// Interface pour les métadonnées d'inscription
+export interface SignUpMetadata {
+  full_name?: string;
+  username?: string;
+  [key: string]: any;
+}
+
+// Interface pour le résultat d'authentification
 export interface AuthResult {
   user: User | null;
   error: string | null;
 }
 
-export interface IAuthRepository {
-  /**
-   * Récupère l'utilisateur actuellement connecté
-   */
-  getCurrentUser(): Promise<User | null>;
-  
-  /**
-   * Connecte un utilisateur avec email et mot de passe
-   */
-  signIn(email: string, password: string): Promise<AuthResult>;
-  
-  /**
-   * Inscrit un nouvel utilisateur
-   */
-  signUp(email: string, password: string, metadata?: SignUpMetadata): Promise<AuthResult>;
-  
-  /**
-   * Déconnecte l'utilisateur actuel
-   */
-  signOut(): Promise<{ error: string | null }>;
-  
-  /**
-   * S'abonne aux changements d'état d'authentification
-   */
-  subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
+// Interface pour le profil utilisateur
+export interface Profile {
+  id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  is_admin?: boolean;
+  email_notifications?: boolean;
+  preferred_language?: string;
+  preferences?: Record<string, any>;
+  visibility?: 'public' | 'private' | 'friends';
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: any;
 }
 
+// Interface pour la mise à jour des données utilisateur
 export interface UserUpdateData {
   username?: string;
   full_name?: string;
-  avatar_url?: string | null;
-  visibility?: "public" | "private";
-  phone?: string | null;
-  address?: string | null;
-  preferred_language?: string;
+  avatar_url?: string;
   email_notifications?: boolean;
+  preferred_language?: string;
+  visibility?: 'public' | 'private' | 'friends';
+  preferences?: Record<string, any>;
+  [key: string]: any;
 }
 
-export interface Profile {
-  id: string;  
-  username: string;
-  full_name: string;
-  avatar_url: string | null;
-  visibility: "public" | "private";
-  phone: string | null;
-  address: string | null;
-  preferred_language: string;
-  email_notifications: boolean;
+// Interface pour le repository d'authentification (couche Infrastructure)
+export interface IAuthRepository {
+  getCurrentUser(): Promise<User | null>;
+  signIn(email: string, password: string): Promise<AuthResult>;
+  signUp(email: string, password: string, metadata?: SignUpMetadata): Promise<AuthResult>;
+  signOut(): Promise<{ error: string | null }>;
+  subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
 }
 
+// Interface pour le repository utilisateur (couche Infrastructure)
 export interface IUserRepository {
-  getUserProfile(userId: string): Promise<{ profile: Profile | null; error: string | null }>;
-  updateUserProfile(userId: string, data: UserUpdateData): Promise<{ success: boolean; error: string | null }>;
+  getUserProfile(userId: string): Promise<{ profile: Profile | null, error: string | null }>;
+  updateUserProfile(userId: string, data: UserUpdateData): Promise<{ success: boolean, error: string | null }>;
   isUserAdmin(userId: string): Promise<boolean>;
 }
-
-// Constantes pour les événements d'authentification
-export const AUTH_EVENTS = {
-  SIGNED_IN: 'auth:signed_in',
-  SIGNED_UP: 'auth:signed_up',
-  SIGNED_OUT: 'auth:signed_out',
-  SESSION_EXPIRED: 'auth:session_expired',
-  USER_UPDATED: 'auth:user_updated',
-  PASSWORD_RECOVERY: 'auth:password_recovery',
-  PASSWORD_RESET: 'auth:password_reset',
-};

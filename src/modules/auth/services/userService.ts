@@ -1,9 +1,16 @@
 
 /**
  * Service utilisateur - Couche Application
- * Implémente les cas d'utilisation liés aux profils utilisateurs
+ * Implémente les cas d'utilisation liés aux utilisateurs
  */
-import { IUserRepository, UserUpdateData } from "../types";
+import { IUserRepository, Profile, UserUpdateData } from "../types";
+import { eventBus } from '@/core/event-bus/EventBus';
+
+// Événements utilisateur
+export const USER_EVENTS = {
+  PROFILE_UPDATED: 'user:profile-updated',
+  PROFILE_ERROR: 'user:profile-error'
+};
 
 export class UserService {
   private userRepository: IUserRepository;
@@ -20,7 +27,13 @@ export class UserService {
       return { profile: null, error: "ID utilisateur requis" };
     }
     
-    return await this.userRepository.getUserProfile(userId);
+    try {
+      return await this.userRepository.getUserProfile(userId);
+    } catch (error: any) {
+      const errorMessage = error.message || "Erreur lors de la récupération du profil";
+      eventBus.publish(USER_EVENTS.PROFILE_ERROR, { userId, error: errorMessage });
+      return { profile: null, error: errorMessage };
+    }
   }
   
   /**
@@ -31,7 +44,19 @@ export class UserService {
       return { success: false, error: "ID utilisateur requis" };
     }
     
-    return await this.userRepository.updateUserProfile(userId, data);
+    try {
+      const result = await this.userRepository.updateUserProfile(userId, data);
+      
+      if (result.success) {
+        eventBus.publish(USER_EVENTS.PROFILE_UPDATED, { userId, data });
+      }
+      
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || "Erreur lors de la mise à jour du profil";
+      eventBus.publish(USER_EVENTS.PROFILE_ERROR, { userId, error: errorMessage });
+      return { success: false, error: errorMessage };
+    }
   }
   
   /**
@@ -42,6 +67,11 @@ export class UserService {
       return false;
     }
     
-    return await this.userRepository.isUserAdmin(userId);
+    try {
+      return await this.userRepository.isUserAdmin(userId);
+    } catch (error) {
+      console.error("Erreur lors de la vérification du statut administrateur:", error);
+      return false;
+    }
   }
 }

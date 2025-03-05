@@ -1,17 +1,34 @@
 
 /**
- * Fournisseur de dépendances pour l'authentification
- * Point d'entrée unique pour les services d'authentification
+ * Fournisseur de dépendances pour les services d'authentification
+ * Suit le principe d'inversion de dépendance (SOLID)
  */
-import { AuthService } from './authService';
 import { SupabaseAuthRepository } from './supabaseAuthRepository';
+import { AuthService } from './authService';
 
-// Singleton pour le repository d'authentification
-const authRepository = new SupabaseAuthRepository();
+// Instance unique du repository d'authentification
+let authRepository: SupabaseAuthRepository | null = null;
 
-// Singleton pour le service d'authentification
-const authService = new AuthService(authRepository);
+// Instance unique du service d'authentification
+let authService: AuthService | null = null;
 
+/**
+ * Obtient une instance du repository d'authentification
+ */
+export const getAuthRepository = (): SupabaseAuthRepository => {
+  if (!authRepository) {
+    authRepository = new SupabaseAuthRepository();
+  }
+  return authRepository;
+};
+
+/**
+ * Obtient une instance du service d'authentification
+ */
 export const getAuthService = (): AuthService => {
+  if (!authService) {
+    const repo = getAuthRepository();
+    authService = new AuthService(repo);
+  }
   return authService;
 };

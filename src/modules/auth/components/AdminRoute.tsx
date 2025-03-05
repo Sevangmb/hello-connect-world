@@ -9,6 +9,10 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useAdminStatus } from "../hooks/useAdminStatus";
 import { useToast } from "@/hooks/use-toast";
+import { eventBus } from '@/core/event-bus/EventBus';
+
+// Événement émis lorsqu'un accès admin est refusé
+const ADMIN_ACCESS_DENIED = 'admin:access-denied';
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -16,15 +20,23 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { toast } = useToast();
   const [hasShownToast, setHasShownToast] = React.useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = React.useState<boolean>(true);
 
   // Rafraîchir le statut admin uniquement au montage et changement de chemin
   React.useEffect(() => {
     console.log("AdminRoute - Vérification des droits admin");
-    refreshAdminStatus();
+    
+    const verifyAdmin = async () => {
+      setIsVerifying(true);
+      await refreshAdminStatus();
+      setIsVerifying(false);
+    };
+    
+    verifyAdmin();
   }, [refreshAdminStatus, location.pathname]);
 
   // Éviter les rendus inutiles en regroupant les états
-  const isLoading = authLoading || adminLoading;
+  const isLoading = authLoading || adminLoading || isVerifying;
   
   // Afficher le statut pour le débogage (une seule fois)
   React.useEffect(() => {
@@ -37,11 +49,24 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isUserAdmin, isLoading, location.pathname]);
 
+  // Publier un événement lorsque l'accès admin est refusé
+  React.useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !isUserAdmin)) {
+      eventBus.publish(ADMIN_ACCESS_DENIED, {
+        isAuthenticated,
+        isUserAdmin,
+        path: location.pathname,
+        timestamp: Date.now()
+      });
+    }
+  }, [isAuthenticated, isUserAdmin, isLoading, location.pathname]);
+
   // Afficher l'état de chargement
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <div className="text-sm text-muted-foreground">Vérification des droits d'accès...</div>
       </div>
     );
   }

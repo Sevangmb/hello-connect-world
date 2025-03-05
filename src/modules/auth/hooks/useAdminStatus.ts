@@ -1,24 +1,32 @@
 
 /**
  * Hook pour déterminer le statut administrateur de l'utilisateur
+ * Utilise la fonction RPC is_admin pour une meilleure performance
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getUserService } from '../services/userDependencyProvider';
-import { getAuthService } from '../services/authDependencyProvider';
-import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 import { supabase } from '@/integrations/supabase/client';
+import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
+import { eventBus } from '@/core/event-bus/EventBus';
+
+// Événement émis lorsque le statut admin est mis à jour
+export const ADMIN_STATUS_UPDATED = 'auth:admin-status-updated';
+
+// Interface pour la gestion du cache
+interface CachedResult {
+  isAdmin: boolean;
+  timestamp: number;
+}
 
 export const useAdminStatus = () => {
   const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const userService = getUserService();
-  const authService = getAuthService();
   const checkInProgress = useRef(false);
-  const cachedResult = useRef<{isAdmin: boolean, timestamp: number} | null>(null);
+  const cachedResult = useRef<CachedResult | null>(null);
   
-  // Cache TTL: 60 seconds
+  // Cache TTL: 60 secondes
   const CACHE_TTL = 60 * 1000;
   
+  // Vérifier le statut admin
   const checkAdminStatus = useCallback(async () => {
     // Éviter les vérifications simultanées
     if (checkInProgress.current) {
@@ -39,9 +47,19 @@ export const useAdminStatus = () => {
       setLoading(true);
       console.log("Vérification du statut administrateur...");
       
-      const user = await authService.getCurrentUser();
+      // Obtenir l'utilisateur actuel via la session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.log("Aucune session active trouvée");
+        setIsUserAdmin(false);
+        cachedResult.current = { isAdmin: false, timestamp: Date.now() };
+        return;
+      }
+      
+      const user = session.user;
       if (!user) {
-        console.log("Aucun utilisateur connecté");
+        console.log("Aucun utilisateur dans la session");
         setIsUserAdmin(false);
         cachedResult.current = { isAdmin: false, timestamp: Date.now() };
         return;
@@ -55,61 +73,87 @@ export const useAdminStatus = () => {
           setIsUserAdmin(true);
           moduleMenuCoordinator.enableAdminAccess();
           cachedResult.current = { isAdmin: true, timestamp: Date.now() };
+          // Publier l'événement de mise à jour
+          eventBus.publish(ADMIN_STATUS_UPDATED, { isAdmin: true });
           return;
         }
       }
       
-      // Essayer d'abord avec la RPC - plus rapide
-      try {
-        const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
-          user_id: user.id
-        });
+      // Utiliser la fonction RPC is_admin pour vérifier le statut admin
+      const { data: isAdmin, error: rpcError } = await supabase.rpc('is_admin', {
+        user_id: user.id
+      });
+      
+      if (!rpcError) {
+        console.log("Résultat RPC is_admin:", isAdmin);
+        setIsUserAdmin(!!isAdmin);
         
-        if (!rpcError) {
-          console.log("Résultat RPC is_admin:", isAdmin);
-          setIsUserAdmin(!!isAdmin);
+        // Mettre à jour le coordinateur de menu
+        if (isAdmin) {
+          moduleMenuCoordinator.enableAdminAccess();
+        } else {
+          moduleMenuCoordinator.disableAdminAccess();
+        }
+        
+        // Mettre à jour le cache
+        cachedResult.current = { isAdmin: !!isAdmin, timestamp: Date.now() };
+        
+        // Publier l'événement de mise à jour
+        eventBus.publish(ADMIN_STATUS_UPDATED, { isAdmin: !!isAdmin });
+        return;
+      } else {
+        console.warn("RPC non disponible, vérification via la table profiles:", rpcError);
+        
+        // Fallback: vérifier dans la table profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Erreur lors de la vérification du statut admin via profiles:", profileError);
+          setIsUserAdmin(false);
+          cachedResult.current = { isAdmin: false, timestamp: Date.now() };
+        } else {
+          const isAdmin = !!profileData?.is_admin;
+          console.log("Résultat profiles isUserAdmin:", isAdmin);
+          setIsUserAdmin(isAdmin);
           
+          // Mettre à jour le coordinateur de menu
           if (isAdmin) {
             moduleMenuCoordinator.enableAdminAccess();
           } else {
             moduleMenuCoordinator.disableAdminAccess();
           }
           
-          cachedResult.current = { isAdmin: !!isAdmin, timestamp: Date.now() };
-          return;
+          cachedResult.current = { isAdmin, timestamp: Date.now() };
+          
+          // Publier l'événement de mise à jour
+          eventBus.publish(ADMIN_STATUS_UPDATED, { isAdmin });
         }
-      } catch (err) {
-        console.warn("RPC non disponible, utilisation de la méthode repository");
       }
-      
-      // Fallback sur la méthode repository
-      const isAdmin = await userService.isUserAdmin(user.id);
-      console.log("Résultat repository isUserAdmin:", isAdmin);
-      setIsUserAdmin(isAdmin);
-      
-      if (isAdmin) {
-        moduleMenuCoordinator.enableAdminAccess();
-      } else {
-        moduleMenuCoordinator.disableAdminAccess();
-      }
-      
-      cachedResult.current = { isAdmin, timestamp: Date.now() };
     } catch (err) {
       console.error("Erreur lors de la vérification du statut admin:", err);
       setIsUserAdmin(false);
       moduleMenuCoordinator.disableAdminAccess();
       cachedResult.current = { isAdmin: false, timestamp: Date.now() };
+      
+      // Publier l'événement d'erreur
+      eventBus.publish(ADMIN_STATUS_UPDATED, { isAdmin: false, error: err });
     } finally {
       setLoading(false);
       checkInProgress.current = false;
     }
-  }, [authService, userService]);
+  }, []);
   
+  // Écouter les changements d'authentification Supabase
   useEffect(() => {
     checkAdminStatus();
     
-    // Ajouter un écouteur pour les changements d'authentification
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    // S'abonner aux changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log("Événement d'authentification Supabase:", event);
       // Invalider le cache lors d'un changement d'authentification
       cachedResult.current = null;
       checkAdminStatus();
