@@ -1,23 +1,17 @@
 
 /**
- * Constantes utilisées dans le système de modules
+ * Constants pour les modules
  */
 
-// Constante pour identifier le module Admin
-export const ADMIN_MODULE_CODE = "admin";
+// Code du module Admin
+export const ADMIN_MODULE_CODE = 'admin';
 
-// Constante pour identifier le module Menu (core)
-export const MENU_MODULE_CODE = "menu";
+// Code du module Boutique
+export const SHOP_MODULE_CODE = 'shop';
 
-// Durée de validité du cache (30 secondes)
-export const CACHE_VALIDITY_MS = 30000;
-
-// Constantes pour les catégories de menu
-export const MENU_CATEGORIES = {
-  MAIN: 'main',
-  ADMIN: 'admin',
-  SYSTEM: 'system',
-  MARKETPLACE: 'marketplace',
-  SOCIAL: 'social',
-  UTILITY: 'utility'
-};
+// Autres codes de modules
+export const SOCIAL_MODULE_CODE = 'social';
+export const CHALLENGES_MODULE_CODE = 'challenges';
+export const OUTFITS_MODULE_CODE = 'outfits';
+export const MESSAGING_MODULE_CODE = 'messaging';
+export const SUITCASE_MODULE_CODE = 'suitcase';
