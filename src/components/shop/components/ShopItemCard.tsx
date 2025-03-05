@@ -1,66 +1,72 @@
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { formatPrice } from "@/lib/utils";
-import { ShoppingCart, Heart } from "lucide-react";
-import { ShopItem } from "../types/shop-items";
+import React from 'react';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
 
-interface ShopItemCardProps {
-  item: ShopItem;
-  onAddToCart: (item: ShopItem) => void;
-  isAddingToCart?: boolean;
+export interface ShopItemCardProps {
+  item: any;
+  onAddToCart: (itemId: string) => void;
 }
 
-export function ShopItemCard({ item, onAddToCart, isAddingToCart }: ShopItemCardProps) {
+const ShopItemCard: React.FC<ShopItemCardProps> = ({ item, onAddToCart }) => {
   return (
-    <Card className="group overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
-      {item.image && (
-        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
-          <img
-            src={item.image}
-            alt={item.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+    <Card className="overflow-hidden h-full flex flex-col">
+      <div className="relative h-48 bg-muted">
+        {item.image_url ? (
+          <img 
+            src={item.image_url} 
+            alt={item.name} 
+            className="w-full h-full object-cover"
           />
-          <button className="absolute top-3 right-3 p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors">
-            <Heart className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-      )}
-      <div className="p-4">
-        <div className="mb-3">
-          <h3 className="font-medium text-sm mb-1 line-clamp-1">{item.name}</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold">{formatPrice(item.price)}</span>
-            {item.original_price && item.original_price > item.price && (
-              <span className="text-sm text-gray-500 line-through">
-                {formatPrice(item.original_price)}
-              </span>
-            )}
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-muted-foreground">Pas d'image</span>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-1 mb-4">
-          {item.size && (
-            <Badge variant="secondary" className="text-xs font-normal">
-              {item.size}
-            </Badge>
+        )}
+        {item.original_price && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-sm text-xs font-medium">
+            -{Math.round((1 - item.price / item.original_price) * 100)}%
+          </div>
+        )}
+      </div>
+      <CardContent className="p-4 flex-1">
+        <h3 className="font-medium text-lg truncate">{item.name}</h3>
+        <p className="text-muted-foreground text-sm line-clamp-2 h-10">
+          {item.description || "Aucune description"}
+        </p>
+        
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="font-bold text-lg">{item.price}€</span>
+          {item.original_price && (
+            <span className="text-muted-foreground line-through text-sm">
+              {item.original_price}€
+            </span>
           )}
-          {item.brand && (
-            <Badge variant="outline" className="text-xs font-normal">
-              {item.brand}
-            </Badge>
-          )}
         </div>
+        
+        {item.stock > 0 ? (
+          <div className="text-xs text-green-600 mt-1">
+            En stock ({item.stock})
+          </div>
+        ) : (
+          <div className="text-xs text-red-500 mt-1">
+            Épuisé
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="p-4 pt-0">
         <Button 
-          className="w-full bg-black hover:bg-gray-900 text-white"
-          size="sm"
-          onClick={() => onAddToCart(item)}
-          disabled={isAddingToCart}
+          onClick={() => onAddToCart(item.id)}
+          className="w-full"
+          disabled={item.stock <= 0}
         >
-          <ShoppingCart className="w-4 h-4 mr-2" />
+          <ShoppingCart className="h-4 w-4 mr-2" />
           Ajouter au panier
         </Button>
-      </div>
+      </CardFooter>
     </Card>
   );
-}
+};
+
+export default ShopItemCard;

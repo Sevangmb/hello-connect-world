@@ -1,112 +1,109 @@
 
-import React, { useState, useRef, ChangeEvent } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef, Dispatch, SetStateAction } from 'react';
+import { Button } from './button';
 import { Upload, Image as ImageIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface ImageUploadProps {
-  bucket?: string;
-  folder?: string;
-  currentImageUrl?: string;
   onChange: (url: string) => void;
-  onUploading?: (isUploading: boolean) => void;
-  onImageUploaded?: (url: string) => void;
   value?: string;
-  defaultValue?: string;
+  onUploading: Dispatch<SetStateAction<boolean>>;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({
-  bucket = 'images',
-  folder = 'uploads',
-  currentImageUrl = '',
-  onChange,
-  onUploading,
-  onImageUploaded,
-  value,
-  defaultValue,
-}) => {
-  const [uploading, setUploading] = useState(false);
-  const [imageUrl, setImageUrl] = useState(currentImageUrl || value || defaultValue || '');
+const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value = '', onUploading }) => {
+  const [previewUrl, setPreviewUrl] = useState<string>(value);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Update local state first
+    setIsUploading(true);
+    onUploading(true);
+
+    // Create a local preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
     try {
-      setUploading(true);
-      if (onUploading) onUploading(true);
-      
-      const file = event.target.files?.[0];
-      if (!file) return;
+      // Define the FormData for uploading
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${folder}/${fileName}`;
+      // Upload to the server
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
       }
 
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-      
-      const publicUrl = urlData.publicUrl;
-      setImageUrl(publicUrl);
-      onChange(publicUrl);
-      if (onImageUploaded) onImageUploaded(publicUrl);
-
+      const data = await response.json();
+      onChange(data.url);
     } catch (error) {
       console.error('Error uploading image:', error);
     } finally {
-      setUploading(false);
-      if (onUploading) onUploading(false);
+      setIsUploading(false);
+      onUploading(false);
     }
   };
 
-  const handleButtonClick = () => {
+  const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div 
-        className="relative w-full h-48 border-2 border-dashed rounded-md flex items-center justify-center bg-gray-50 overflow-hidden"
-      >
-        {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt="Uploaded" 
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <div className="flex flex-col items-center text-gray-500">
-            <ImageIcon size={48} />
-            <span className="mt-2">Aucune image</span>
-          </div>
-        )}
-      </div>
-      
+    <div className="w-full">
       <input
-        ref={fileInputRef}
         type="file"
-        accept="image/*"
-        onChange={handleUpload}
+        ref={fileInputRef}
+        onChange={handleFileChange}
         className="hidden"
+        accept="image/*"
       />
       
-      <Button 
-        type="button" 
-        variant="outline" 
-        onClick={handleButtonClick}
-        disabled={uploading}
-        className="w-full"
-      >
-        {uploading ? 'Téléchargement...' : (imageUrl ? 'Changer l\'image' : 'Télécharger une image')}
-        {!uploading && <Upload className="ml-2 h-4 w-4" />}
-      </Button>
+      {previewUrl ? (
+        <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden">
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="w-full h-full object-cover"
+          />
+          <Button
+            type="button"
+            onClick={triggerFileInput}
+            className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm"
+            size="sm"
+          >
+            Changer
+          </Button>
+        </div>
+      ) : (
+        <div
+          onClick={triggerFileInput}
+          className="w-full h-48 border-2 border-dashed border-border rounded-md flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary transition-colors"
+        >
+          {isUploading ? (
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <p className="text-sm text-muted-foreground">Téléchargement...</p>
+            </div>
+          ) : (
+            <>
+              <div className="p-2 bg-muted rounded-full">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">Cliquez pour télécharger</p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

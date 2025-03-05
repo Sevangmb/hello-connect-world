@@ -2775,7 +2775,7 @@ export type Database = {
         | "marketplace"
         | "social"
         | "utility"
-      module_status: "active" | "inactive" | "degraded"
+      module_status: "active" | "inactive" | "degraded" | "maintenance"
       shipping_carrier_type: "integrated" | "manual"
       suitcase_status: "active" | "archived"
       transaction_notification_type:

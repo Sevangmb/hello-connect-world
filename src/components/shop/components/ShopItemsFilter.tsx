@@ -1,64 +1,41 @@
 
-import React from "react";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import React from 'react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface ShopItemsFilterProps {
-  currentFilter: string;
-  setFilter: React.Dispatch<React.SetStateAction<string>>;
-  currentSort: string;
-  setSort: React.Dispatch<React.SetStateAction<string>>;
+  onFilterChange: (value: string) => void;
+  onSortChange: (value: string) => void;
+  filterValue: string;
+  sortValue: string;
 }
 
 const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({ 
-  currentFilter, 
-  setFilter, 
-  currentSort, 
-  setSort 
+  onFilterChange, 
+  onSortChange,
+  filterValue,
+  sortValue
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div className="w-full sm:w-auto">
-        <Label htmlFor="filter-select" className="text-sm font-medium mb-1 block">
-          Filter by
-        </Label>
-        <Select
-          value={currentFilter}
-          onValueChange={setFilter}
-        >
-          <SelectTrigger id="filter-select" className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter items" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Items</SelectItem>
-            <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="soldOut">Sold Out</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex-1">
+        <Input
+          placeholder="Rechercher des articles..."
+          value={filterValue}
+          onChange={(e) => onFilterChange(e.target.value)}
+          className="w-full"
+        />
       </div>
-
-      <div className="w-full sm:w-auto">
-        <Label htmlFor="sort-select" className="text-sm font-medium mb-1 block">
-          Sort by
-        </Label>
-        <Select
-          value={currentSort}
-          onValueChange={setSort}
-        >
-          <SelectTrigger id="sort-select" className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Sort items" />
+      <div className="w-full md:w-64">
+        <Select value={sortValue} onValueChange={onSortChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Trier par" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="oldest">Oldest First</SelectItem>
-            <SelectItem value="priceLow">Price: Low to High</SelectItem>
-            <SelectItem value="priceHigh">Price: High to Low</SelectItem>
+            <SelectItem value="priceLow">Prix croissant</SelectItem>
+            <SelectItem value="priceHigh">Prix décroissant</SelectItem>
+            <SelectItem value="newest">Plus récent</SelectItem>
+            <SelectItem value="popular">Popularité</SelectItem>
           </SelectContent>
         </Select>
       </div>

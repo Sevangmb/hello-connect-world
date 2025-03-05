@@ -1,123 +1,78 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
 import ImageUpload from '@/components/ui/image-upload';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useShop } from '@/hooks/useShop';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useClothes } from '@/hooks/useClothes';
 
-const AddItemForm = ({ shop }) => {
-  const { toast } = useToast();
+interface AddItemFormProps {
+  shopId: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+const AddItemForm: React.FC<AddItemFormProps> = ({ shopId, onSuccess, onCancel }) => {
   const { addShopItem } = useShop();
-  const { clothes: userClothes, isLoading: isLoadingClothes } = useClothes();
-  const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
   const [stock, setStock] = useState('1');
-  const [selectedClothing, setSelectedClothing] = useState('');
-  const [isNewItem, setIsNewItem] = useState(true);
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Set item details from selected clothing
-  useEffect(() => {
-    if (selectedClothing && !isNewItem) {
-      const clothing = userClothes.find(c => c.id === selectedClothing);
-      if (clothing) {
-        setName(clothing.name || '');
-        setDescription(clothing.description || '');
-        setImageUrl(clothing.image_url || '');
-        // Set a default price if no price is set
-        if (clothing.price) {
-          setPrice(clothing.price.toString());
-          // Set original price slightly higher for demonstration
-          setOriginalPrice((clothing.price * 1.2).toFixed(2));
-        }
-      }
-    }
-  }, [selectedClothing, userClothes, isNewItem]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) {
+    if (!name || !price || isNaN(Number(price)) || Number(price) <= 0) {
       toast({
-        title: "Erreur",
-        description: "Le nom de l'article est requis",
-        variant: "destructive",
+        title: 'Erreur',
+        description: 'Veuillez remplir tous les champs requis correctement',
+        variant: 'destructive',
       });
       return;
     }
-
-    if (!price.trim() || isNaN(Number(price)) || Number(price) <= 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez spécifier un prix valide",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isUploading) {
-      toast({
-        title: "Attention",
-        description: "Veuillez attendre la fin du téléchargement de l'image",
-      });
-      return;
-    }
-
-    if (!shop || !shop.id) {
-      toast({
-        title: "Erreur",
-        description: "Information de boutique manquante",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    
+    setIsSubmitting(true);
+    
     try {
-      setIsSubmitting(true);
-      const itemData = {
+      await addShopItem({
+        shop_id: shopId,
         name,
         description,
         price: Number(price),
-        original_price: originalPrice ? Number(originalPrice) : undefined,
         stock: Number(stock),
-        shop_id: shop.id,
-        clothes_id: isNewItem ? null : selectedClothing,
-        image_url: imageUrl
-      };
-      
-      await addShopItem(itemData);
-      
-      toast({
-        title: "Succès",
-        description: "L'article a été ajouté à votre boutique",
+        image_url: imageUrl,
+        status: 'available'
       });
       
-      // Redirect to shop dashboard
-      navigate(`/profile/shop`);
-    } catch (error) {
-      console.error("Error adding shop item:", error);
       toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter l'article",
-        variant: "destructive",
+        title: 'Succès',
+        description: 'Article ajouté à votre boutique',
+      });
+      
+      // Reset form
+      setName('');
+      setDescription('');
+      setPrice('');
+      setStock('1');
+      setImageUrl('');
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('Error adding shop item:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible d\'ajouter l\'article. Veuillez réessayer.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -125,65 +80,14 @@ const AddItemForm = ({ shop }) => {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-center">Ajouter un article</CardTitle>
+        <CardTitle>Ajouter un nouvel article</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="mb-6 space-x-4 flex">
-          <Button 
-            type="button" 
-            variant={isNewItem ? "default" : "outline"}
-            onClick={() => setIsNewItem(true)}
-            className="flex-1"
-          >
-            Nouvel article
-          </Button>
-          <Button 
-            type="button" 
-            variant={!isNewItem ? "default" : "outline"}
-            onClick={() => setIsNewItem(false)}
-            className="flex-1"
-          >
-            À partir de ma garde-robe
-          </Button>
-        </div>
-
-        {!isNewItem && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Sélectionner un vêtement
-            </label>
-            <Select 
-              value={selectedClothing} 
-              onValueChange={setSelectedClothing}
-              disabled={isLoadingClothes}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un vêtement" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingClothes ? (
-                  <SelectItem value="loading" disabled>Chargement...</SelectItem>
-                ) : userClothes && userClothes.length > 0 ? (
-                  userClothes.map((clothing) => (
-                    <SelectItem key={clothing.id} value={clothing.id}>
-                      {clothing.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="empty" disabled>Aucun vêtement disponible</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium">
-              Nom de l'article
-            </label>
+            <Label htmlFor="name">Nom de l'article *</Label>
             <Input
               id="name"
               value={name}
@@ -194,88 +98,74 @@ const AddItemForm = ({ shop }) => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="description" className="block text-sm font-medium">
-              Description
-            </label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez l'article"
-              rows={4}
+              placeholder="Description de l'article"
+              rows={3}
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="price" className="block text-sm font-medium">
-                Prix (€)
-              </label>
+              <Label htmlFor="price">Prix (€) *</Label>
               <Input
                 id="price"
                 type="number"
+                step="0.01"
+                min="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="39.99"
-                min="0.01"
-                step="0.01"
+                placeholder="0.00"
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="originalPrice" className="block text-sm font-medium">
-                Prix original (optionnel)
-              </label>
+              <Label htmlFor="stock">Quantité disponible *</Label>
               <Input
-                id="originalPrice"
+                id="stock"
                 type="number"
-                value={originalPrice}
-                onChange={(e) => setOriginalPrice(e.target.value)}
-                placeholder="49.99"
-                min="0.01"
-                step="0.01"
+                min="0"
+                step="1"
+                value={stock}
+                onChange={(e) => setStock(e.target.value)}
+                required
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="stock" className="block text-sm font-medium">
-              Quantité en stock
-            </label>
-            <Input
-              id="stock"
-              type="number"
-              value={stock}
-              onChange={(e) => setStock(e.target.value)}
-              placeholder="1"
-              min="1"
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Image de l'article
-            </label>
+            <Label>Image de l'article</Label>
             <ImageUpload
+              value={imageUrl}
               onChange={(url) => setImageUrl(url)}
               onUploading={setIsUploading}
-              bucket="shop_items"
-              folder="images"
-              currentImageUrl={imageUrl}
             />
           </div>
-          
+        </CardContent>
+        
+        <CardFooter className="flex justify-between gap-2">
+          {onCancel && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+            >
+              Annuler
+            </Button>
+          )}
           <Button 
             type="submit" 
-            className="w-full"
             disabled={isSubmitting || isUploading}
+            className="ml-auto"
           >
             {isSubmitting ? 'Ajout en cours...' : 'Ajouter l\'article'}
           </Button>
-        </form>
-      </CardContent>
+        </CardFooter>
+      </form>
     </Card>
   );
 };

@@ -1,110 +1,87 @@
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useShop } from "@/hooks/useShop";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { CheckCircle, Truck, Clock, Ban, Package, ExternalLink } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useShop } from '@/hooks/useShop';
 
-export const ShopOrdersList = ({ shop }) => {
-  const { 
-    getShopOrders, 
-    updateOrderStatus 
-  } = useShop();
-  
-  const [orders, setOrders] = useState([]);
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'secondary';
+    case 'confirmed':
+      return 'default';
+    case 'shipped':
+      return 'outline';
+    case 'delivered':
+      return 'default'; // Use default instead of success
+    case 'cancelled':
+      return 'destructive';
+    default:
+      return 'secondary';
+  }
+};
+
+const ShopOrdersList = ({ shopId }: { shopId: string }) => {
+  const { getShopOrders, updateOrderStatus } = useShop();
+  const { toast } = useToast();
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (shop?.id) {
-      fetchOrders();
-    }
-  }, [shop]);
+    const fetchOrders = async () => {
+      try {
+        const ordersData = await getShopOrders(shopId);
+        setOrders(ordersData || []);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de charger les commandes',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchOrders = async () => {
+    fetchOrders();
+  }, [shopId, getShopOrders, toast]);
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      setLoading(true);
-      const shopOrders = await getShopOrders(shop.id);
-      setOrders(shopOrders);
+      const success = await updateOrderStatus({
+        id: orderId,
+        status: newStatus
+      });
+
+      if (success) {
+        setOrders(prev => 
+          prev.map(order => 
+            order.id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+
+        toast({
+          title: 'Statut mis à jour',
+          description: `La commande a été mise à jour avec le statut : ${newStatus}`,
+        });
+      }
     } catch (error) {
-      console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    try {
-      await updateOrderStatus(orderId, newStatus);
-      await fetchOrders();
-    } catch (error) {
-      console.error("Error updating order status:", error);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" /> En attente</Badge>;
-      case "confirmed":
-        return <Badge><CheckCircle className="mr-1 h-3 w-3" /> Confirmé</Badge>;
-      case "shipped":
-        return <Badge variant="default"><Truck className="mr-1 h-3 w-3" /> Expédié</Badge>;
-      case "delivered":
-        return <Badge variant="outline"><Package className="mr-1 h-3 w-3" /> Livré</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" /> Annulé</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-  const renderOrderActions = (order) => {
-    switch (order.status) {
-      case "pending":
-        return (
-          <>
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={() => handleUpdateStatus(order.id, "confirmed")}
-              className="mr-2"
-            >
-              <CheckCircle className="mr-1 h-3 w-3" /> Confirmer
-            </Button>
-            <Button 
-              variant="destructive" 
-              size="sm" 
-              onClick={() => handleUpdateStatus(order.id, "cancelled")}
-            >
-              <Ban className="mr-1 h-3 w-3" /> Annuler
-            </Button>
-          </>
-        );
-      case "confirmed":
-        return (
-          <Button 
-            variant="default" 
-            size="sm" 
-            onClick={() => handleUpdateStatus(order.id, "shipped")}
-          >
-            <Truck className="mr-1 h-3 w-3" /> Marquer comme expédié
-          </Button>
-        );
-      case "shipped":
-        return (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleUpdateStatus(order.id, "delivered")}
-          >
-            <Package className="mr-1 h-3 w-3" /> Marquer comme livré
-          </Button>
-        );
-      default:
-        return null;
+      console.error('Error updating order status:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour le statut de la commande',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -112,52 +89,74 @@ export const ShopOrdersList = ({ shop }) => {
     return <div>Chargement des commandes...</div>;
   }
 
+  if (!orders.length) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Commandes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Aucune commande pour le moment.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Commandes</CardTitle>
+        <CardTitle>Commandes ({orders.length})</CardTitle>
       </CardHeader>
       <CardContent>
-        {orders.length === 0 ? (
-          <p>Aucune commande pour le moment.</p>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="font-medium">Commande #{order.id.slice(0, 8)}</p>
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(order.created_at), 'PPp', { locale: fr })}
-                    </p>
-                  </div>
-                  {getStatusBadge(order.status)}
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <div key={order.id} className="border rounded-md p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-medium">Commande #{order.id.substring(0, 8)}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(order.created_at).toLocaleDateString()} - {order.total_amount}€
+                  </p>
                 </div>
-                
-                <div className="mb-3">
-                  <p className="text-sm font-medium">Articles:</p>
-                  <ul className="text-sm">
-                    {order.items.map((item) => (
-                      <li key={item.id} className="flex justify-between">
-                        <span>{item.name} x{item.quantity}</span>
-                        <span>{(item.price * item.quantity).toFixed(2)} €</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="flex justify-between text-sm font-medium mb-3">
-                  <span>Total:</span>
-                  <span>{order.total_amount.toFixed(2)} €</span>
-                </div>
-                
-                <div className="flex justify-end space-x-2 mt-4">
-                  {renderOrderActions(order)}
-                </div>
+                <Badge variant={getStatusColor(order.status)}>
+                  {order.status}
+                </Badge>
               </div>
-            ))}
-          </div>
-        )}
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-1">Articles</h4>
+                <ul className="text-sm">
+                  {order.items?.map((item: any) => (
+                    <li key={item.id} className="flex justify-between">
+                      <span>{item.name || 'Article'}</span>
+                      <span>{item.quantity} x {item.price}€</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <Select
+                  defaultValue={order.status}
+                  onValueChange={(value) => handleStatusChange(order.id, value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Mettre à jour le statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">En attente</SelectItem>
+                    <SelectItem value="confirmed">Confirmée</SelectItem>
+                    <SelectItem value="shipped">Expédiée</SelectItem>
+                    <SelectItem value="delivered">Livrée</SelectItem>
+                    <SelectItem value="cancelled">Annulée</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button variant="outline" size="sm">Détails</Button>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
