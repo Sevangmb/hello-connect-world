@@ -1,94 +1,88 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ShopItemCard } from "./components/ShopItemCard";
+import { ShopItemsFilter } from "./components/ShopItemsFilter";
+import { useShop } from "@/hooks/useShop";
+import { Loader2, ShoppingBag } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
-import { useToast } from "@/hooks/use-toast";
-import { useShopItems } from "./hooks/useShopItems";
-import { ShopItemsFilter } from "./components/ShopItemsFilter";
-import { ShopItemCard } from "./components/ShopItemCard";
-import { RawShopItem, ShopItem } from "./types/shop-items";
 
-export function ShopItems({ shopId }: { shopId: string }) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+interface ShopItemsProps {
+  shopId: string;
+}
+
+export function ShopItems({ shopId }: ShopItemsProps) {
+  const { useShopItems } = useShop(null);
+  const { data: shopItems, isLoading } = useShopItems(shopId);
+  const [filter, setFilter] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
   const { addToCart } = useCart(user?.id || null);
-  const [sortBy, setSortBy] = useState<string>("recent");
-  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const { data: items, isLoading } = useShopItems({
-    shopId,
-    sortBy,
-    searchQuery,
-  });
+  // Filtrer les articles
+  const filteredItems = shopItems?.filter((item) =>
+    item.name.toLowerCase().includes(filter.toLowerCase())
+  );
 
-  const handleAddToCart = async (item: ShopItem) => {
+  const handleAddToCart = (itemId: string) => {
     if (!user) {
       toast({
-        title: "Connexion requise",
-        description: "Vous devez être connecté pour ajouter des articles au panier",
+        title: "Connectez-vous",
+        description: "Vous devez être connecté pour ajouter des articles au panier.",
         variant: "destructive",
       });
-      navigate("/auth");
       return;
     }
 
     addToCart.mutate({
-      itemId: item.id,
-      quantity: 1
+      user_id: user.id,
+      item_id: itemId,
+      quantity: 1,
     });
   };
 
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-gray-600">
-        Chargement des articles...
+      <div className="flex justify-center items-center h-48">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
-
-  if (!items?.length) {
-    return (
-      <div className="text-center py-8 text-gray-600">
-        Aucun article en vente dans cette boutique
-      </div>
-    );
-  }
-
-  const processedItems: ShopItem[] = items.map((item: RawShopItem) => ({
-    id: item.id,
-    name: item.clothes.name,
-    description: item.clothes.description,
-    price: item.price,
-    image: item.clothes.image_url,
-    shop_id: item.shop.id,
-    seller_id: item.shop.user_id,
-    category: item.clothes.category || undefined,
-    size: item.clothes.size || undefined,
-    brand: item.clothes.brand || undefined,
-    original_price: item.original_price || item.clothes.original_price || undefined
-  }));
 
   return (
     <div className="space-y-6">
-      <ShopItemsFilter
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
+      <ShopItemsFilter value={filter} onChange={setFilter} />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {processedItems.map((item) => (
-          <ShopItemCard
-            key={item.id}
-            item={item}
-            onAddToCart={handleAddToCart}
-            isAddingToCart={addToCart.isPending}
-          />
-        ))}
-      </div>
+      {filteredItems && filteredItems.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item) => (
+            <ShopItemCard
+              key={item.id}
+              item={item}
+              action={
+                <Button 
+                  size="sm"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => handleAddToCart(item.id)}
+                >
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Ajouter au panier
+                </Button>
+              }
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium">Aucun article trouvé</h3>
+          <p className="text-muted-foreground">
+            Cette boutique n'a pas encore d'articles ou aucun article ne correspond à votre recherche.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

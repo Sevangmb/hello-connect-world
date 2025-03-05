@@ -1,59 +1,35 @@
 
-import { MenuItem } from "../types";
-import { CACHE_VALIDITY_MS } from "@/hooks/modules/constants";
+// Cache expiration time
+export const CACHE_VALIDITY_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Service de cache pour les éléments de menu
- * Couche Application de la Clean Architecture
- */
 export class MenuCacheService {
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private static menuCache: Record<string, { data: any, timestamp: number }> = {};
   
-  /**
-   * Récupère des données du cache
-   * @param key Clé du cache
-   * @returns Données en cache ou null si non trouvées ou expirées
-   */
-  getCache<T>(key: string): T | null {
-    const cached = this.cache.get(key);
-    
-    if (!cached) {
-      return null;
-    }
-    
-    const now = Date.now();
-    if (now - cached.timestamp > CACHE_VALIDITY_MS) {
-      this.cache.delete(key);
-      return null;
-    }
-    
-    return cached.data as T;
-  }
-  
-  /**
-   * Met en cache des données
-   * @param key Clé du cache
-   * @param data Données à mettre en cache
-   */
-  setCache<T>(key: string, data: T): void {
-    this.cache.set(key, {
+  static setMenuData(key: string, data: any): void {
+    this.menuCache[key] = {
       data,
       timestamp: Date.now()
-    });
+    };
   }
   
-  /**
-   * Invalide le cache complet
-   */
-  invalidateCache(): void {
-    this.cache.clear();
+  static getMenuData(key: string): any | null {
+    const cached = this.menuCache[key];
+    if (!cached) return null;
+    
+    // Check if cache is still valid
+    if (Date.now() - cached.timestamp > CACHE_VALIDITY_MS) {
+      delete this.menuCache[key];
+      return null;
+    }
+    
+    return cached.data;
   }
   
-  /**
-   * Efface le cache complet
-   * Alias de invalidateCache pour la compatibilité
-   */
-  clearCache(): void {
-    this.invalidateCache();
+  static clearCache(): void {
+    this.menuCache = {};
+  }
+  
+  static invalidateCache(key: string): void {
+    delete this.menuCache[key];
   }
 }

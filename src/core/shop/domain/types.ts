@@ -15,6 +15,10 @@ export interface Shop {
   average_rating?: number;
   created_at: string;
   updated_at: string;
+  profiles?: {
+    username?: string;
+    full_name?: string;
+  };
 }
 
 export interface ShopItem {
@@ -29,6 +33,7 @@ export interface ShopItem {
   status: 'available' | 'sold_out' | 'archived';
   created_at: string;
   updated_at: string;
+  clothes_id?: string;
 }
 
 export interface ShopSettings {
@@ -76,6 +81,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+  buyer_id?: string;
 }
 
 export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
@@ -107,6 +113,10 @@ export interface ShopReview {
   rating: number;
   comment?: string;
   created_at: string;
+  profiles?: {
+    username?: string;
+    full_name?: string;
+  };
 }
 
 export interface ShopStatistics {

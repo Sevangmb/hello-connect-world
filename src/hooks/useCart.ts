@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 
-type CartItem = {
+export type CartItem = {
   id: string;
   user_id: string;
   shop_id: string;
@@ -25,13 +25,13 @@ type CartItem = {
   };
 };
 
-type AddToCartParams = {
+export type AddToCartParams = {
   user_id: string;
   item_id: string;
   quantity: number;
 };
 
-type UpdateQuantityParams = {
+export type UpdateQuantityParams = {
   cartItemId: string;
   quantity: number;
 };
@@ -65,7 +65,7 @@ export const useCart = (userId: string | null) => {
         throw error;
       }
       
-      return data as CartItem[];
+      return data as unknown as CartItem[];
     },
     enabled: !!userId,
   });
@@ -78,7 +78,7 @@ export const useCart = (userId: string | null) => {
         .from('cart_items')
         .select('id, quantity')
         .eq('user_id', user_id)
-        .eq('item_id', item_id)
+        .eq('shop_item_id', item_id)
         .single();
       
       if (existingItems) {
@@ -108,7 +108,7 @@ export const useCart = (userId: string | null) => {
           .from('cart_items')
           .insert({
             user_id,
-            item_id,
+            shop_item_id: item_id,
             shop_id: shopItem.shop_id,
             quantity,
             created_at: new Date().toISOString(),

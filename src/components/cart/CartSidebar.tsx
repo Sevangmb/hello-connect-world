@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -76,7 +77,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                           className="h-8 w-8"
                           onClick={() => {
                             if (item.quantity > 1) {
-                              updateQuantity({
+                              updateQuantity.mutate({
                                 cartItemId: item.id,
                                 quantity: item.quantity - 1
                               });
@@ -91,7 +92,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => 
-                            updateQuantity({
+                            updateQuantity.mutate({
                               cartItemId: item.id,
                               quantity: item.quantity + 1
                             })
