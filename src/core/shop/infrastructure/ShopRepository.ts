@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Shop, 
@@ -11,7 +12,9 @@ import {
   PaymentStatus, 
   PaymentMethod,
   DeliveryOption,
-  ShopSettings
+  ShopSettings,
+  RawShopItem,
+  DbOrder
 } from '../domain/types';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
@@ -55,8 +58,11 @@ export class ShopRepository implements IShopRepository {
       created_at: item.created_at,
       updated_at: item.updated_at,
       clothes_id: item.clothes_id || null,
-      shop: {
-        name: item.shop?.name || 'Unknown Shop',
+      shop: item.shop ? {
+        name: item.shop.name || 'Unknown Shop',
+        id: item.shop_id
+      } : {
+        name: 'Unknown Shop',
         id: item.shop_id
       }
     };
