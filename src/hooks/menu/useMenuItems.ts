@@ -1,14 +1,14 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
-// Fix import path
 import { MenuService } from '@/services/menu/infrastructure/menuServiceProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
 import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
-import { eventBus } from '@/core/event-bus/EventBus';
-import { MODULE_MENU_EVENTS } from '@/services/coordination/ModuleMenuCoordinator';
 import { useAdminStatus } from './useAdminStatus';
+import { menuCache } from './utils/menuCache';
+import { fetchMenuItems } from './utils/menuFetcher';
+import { subscribeToMenuEvents } from './utils/menuEvents';
 
 interface UseMenuItemsOptions {
   category?: MenuItemCategory;
@@ -17,7 +17,7 @@ interface UseMenuItemsOptions {
 }
 
 /**
- * Hook pour récupérer et gérer les éléments de menu avec stabilité
+ * Hook for retrieving and managing menu items
  */
 export const useMenuItems = (options?: UseMenuItemsOptions) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -28,108 +28,71 @@ export const useMenuItems = (options?: UseMenuItemsOptions) => {
   const { isUserAdmin } = useAdminStatus();
   const fetchingRef = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Cache pour éviter des recalculs fréquents
   const cacheRef = useRef<{
-    items: MenuItem[],
-    timestamp: number,
-    key: string
+    items: MenuItem[];
+    timestamp: number;
+    key: string;
   } | null>(null);
   
-  // Fonction pour générer une clé de cache
+  // Generate a cache key based on current options
   const getCacheKey = useCallback(() => {
-    return `${options?.category || 'all'}-${options?.moduleCode || 'none'}-${isUserAdmin ? 'admin' : 'user'}-${options?.hierarchical ? 'tree' : 'flat'}`;
+    return menuCache.generateKey({
+      category: options?.category,
+      moduleCode: options?.moduleCode,
+      hierarchical: options?.hierarchical,
+      isAdmin: isUserAdmin,
+    });
   }, [options?.category, options?.moduleCode, options?.hierarchical, isUserAdmin]);
   
-  // Fonction de fetch avec débounce et cache
-  const fetchMenuItems = useCallback(async (force = false) => {
-    // Éviter les fetches multiples simultanés
+  // Fetch menu items with debounce and caching
+  const fetchAndUpdateMenuItems = useCallback(async (force = false) => {
+    // Avoid multiple concurrent fetches
     if (fetchingRef.current) {
       console.log("Fetch menu already in progress, skipping");
       return;
     }
     
     const cacheKey = getCacheKey();
-    const now = Date.now();
     
-    // Vérifier le cache (valide pendant 10 secondes sauf si force)
-    if (!force && cacheRef.current && cacheRef.current.key === cacheKey && now - cacheRef.current.timestamp < 10000) {
+    // Check cache validity
+    if (!force && menuCache.isValid(cacheRef.current, cacheKey)) {
       console.log("Using cached menu items");
-      setMenuItems(cacheRef.current.items);
+      setMenuItems(cacheRef.current!.items);
       setLoading(false);
       return;
     }
     
-    // Annuler tout timer de debounce existant
+    // Clear any existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
     
-    // Créer un nouveau timer de debounce
+    // Create a new debounce timer
     debounceTimerRef.current = setTimeout(async () => {
       try {
         setLoading(true);
         fetchingRef.current = true;
-        let items: MenuItem[] = [];
         
-        const adminEnabled = moduleMenuCoordinator.isAdminAccessEnabled();
+        const items = await fetchMenuItems({
+          category: options?.category,
+          moduleCode: options?.moduleCode,
+          hierarchical: options?.hierarchical,
+          isAdmin: isUserAdmin,
+          modules,
+        });
         
-        if (options?.category === 'admin') {
-          if (adminEnabled) {
-            items = await MenuService.getMenuItemsByCategory('admin', true);
-          }
-        } else if (options?.category) {
-          items = await MenuService.getMenuItemsByCategory(options.category, isUserAdmin);
-          
-          items = items.filter(item => 
-            !item.module_code || moduleMenuCoordinator.isModuleVisibleInMenu(item.module_code, modules)
-          );
-        } else if (options?.moduleCode) {
-          if (!moduleMenuCoordinator.isModuleVisibleInMenu(options.moduleCode, modules)) {
-            setMenuItems([]);
-            setLoading(false);
-            return;
-          }
-          
-          items = await MenuService.getMenuItemsByModule(options.moduleCode, isUserAdmin);
-        } else {
-          items = await MenuService.getVisibleMenuItems(isUserAdmin);
-          
-          items = items.filter(item => 
-            !item.module_code || moduleMenuCoordinator.isModuleVisibleInMenu(item.module_code, modules)
-          );
-          
-          if (adminEnabled && !options?.category) {
-            const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
-            const existingIds = new Set(items.map(item => item.id));
-            for (const adminItem of adminItems) {
-              if (!existingIds.has(adminItem.id)) {
-                items.push(adminItem);
-              }
-            }
-          }
-        }
-        
-        if (options?.hierarchical) {
-          items = MenuService.buildMenuTree(items);
-        }
-        
-        // Mettre à jour le cache
-        cacheRef.current = {
-          items,
-          timestamp: now,
-          key: cacheKey
-        };
+        // Update cache
+        cacheRef.current = menuCache.create(items, cacheKey);
         
         setMenuItems(items);
         setError(null);
       } catch (err) {
-        console.error("Erreur lors de la récupération des éléments de menu:", err);
-        setError("Impossible de charger le menu");
+        console.error("Error fetching menu items:", err);
+        setError("Failed to load menu");
         toast({
-          title: "Erreur",
-          description: "Impossible de charger le menu",
+          title: "Error",
+          description: "Failed to load menu",
           variant: "destructive",
         });
       } finally {
@@ -137,68 +100,44 @@ export const useMenuItems = (options?: UseMenuItemsOptions) => {
         fetchingRef.current = false;
         debounceTimerRef.current = null;
       }
-    }, 100); // Petit délai pour des fetches simultanés
+    }, 100); // Small delay to combine multiple fetches
   }, [options?.category, options?.moduleCode, options?.hierarchical, isUserAdmin, modules, toast, getCacheKey]);
   
-  // Effet initial pour charger les données
+  // Initial data loading
   useEffect(() => {
-    fetchMenuItems();
-  }, [fetchMenuItems]);
+    fetchAndUpdateMenuItems();
+  }, [fetchAndUpdateMenuItems]);
   
-  // Écouter les événements de menu
+  // Listen for menu events
   useEffect(() => {
-    const handleMenuEvent = () => {
-      fetchMenuItems(true); // Force refresh on events
-    };
-    
     // Debounced event handler to prevent too frequent updates
-    const debouncedHandler = () => {
+    const handleMenuEvent = () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
       
       debounceTimerRef.current = setTimeout(() => {
-        handleMenuEvent();
+        fetchAndUpdateMenuItems(true); // Force refresh on events
         debounceTimerRef.current = null;
       }, 300); // 300ms delay
     };
     
-    const unsubscribeMenuUpdated = eventBus.subscribe(
-      MODULE_MENU_EVENTS.MENU_UPDATED, 
-      debouncedHandler
-    );
-    
-    const unsubscribeModuleStatus = eventBus.subscribe(
-      MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, 
-      debouncedHandler
-    );
-    
-    const unsubscribeAdminAccess = eventBus.subscribe(
-      MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, 
-      debouncedHandler
-    );
-    
-    const unsubscribeAdminRevoked = eventBus.subscribe(
-      MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, 
-      debouncedHandler
-    );
+    // Subscribe to all menu-related events
+    const unsubscribe = subscribeToMenuEvents(handleMenuEvent);
     
     return () => {
-      unsubscribeMenuUpdated();
-      unsubscribeModuleStatus();
-      unsubscribeAdminAccess();
-      unsubscribeAdminRevoked();
+      unsubscribe();
       
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [fetchMenuItems]);
+  }, [fetchAndUpdateMenuItems]);
   
   return {
     menuItems,
     loading,
     error,
-    refreshMenu: () => fetchMenuItems(true) // Force refresh
+    refreshMenu: () => fetchAndUpdateMenuItems(true) // Force refresh
   };
 };
