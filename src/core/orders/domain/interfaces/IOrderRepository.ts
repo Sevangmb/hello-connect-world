@@ -1,43 +1,42 @@
 
 /**
- * Interface pour le repository des commandes
- * Définit les contrats pour les opérations liées aux commandes
+ * Interface du repository pour le service de commandes
  */
-import { Order, OrderCreateRequest, OrderResult, OrdersResult, OrderUpdateRequest } from '../types';
+import { Order, OrderItem, CreateOrderParams, OrderFilter } from '../types';
 
 export interface IOrderRepository {
   /**
    * Crée une nouvelle commande
    */
-  createOrder(orderData: OrderCreateRequest): Promise<OrderResult>;
+  createOrder(params: CreateOrderParams): Promise<Order | null>;
   
   /**
-   * Récupère une commande par son ID
+   * Obtient une commande par son ID
    */
-  getOrderById(orderId: string): Promise<OrderResult>;
+  getOrderById(orderId: string): Promise<Order | null>;
   
   /**
    * Met à jour une commande
    */
-  updateOrder(orderId: string, data: OrderUpdateRequest): Promise<OrderResult>;
+  updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean>;
   
   /**
    * Récupère les commandes d'un acheteur
    */
-  getBuyerOrders(buyerId: string, limit?: number, offset?: number): Promise<OrdersResult>;
+  getBuyerOrders(buyerId: string, filter?: OrderFilter): Promise<Order[]>;
   
   /**
    * Récupère les commandes d'un vendeur
    */
-  getSellerOrders(sellerId: string, limit?: number, offset?: number): Promise<OrdersResult>;
+  getSellerOrders(sellerId: string, filter?: OrderFilter): Promise<Order[]>;
   
   /**
-   * Récupère les éléments d'une commande
+   * Récupère les articles d'une commande
    */
-  getOrderItems(orderId: string): Promise<{ items: any[]; error?: string }>;
+  getOrderItems(orderId: string): Promise<OrderItem[]>;
   
   /**
    * Traite le paiement d'une commande
    */
-  processOrderPayment(orderId: string, paymentMethod: string): Promise<{ success: boolean; error?: string }>;
+  processPayment(orderId: string, paymentMethodId: string): Promise<boolean>;
 }

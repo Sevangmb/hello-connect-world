@@ -1,136 +1,234 @@
 
 /**
- * Service des commandes - Couche Application
- * Implémente les cas d'utilisation liés aux commandes
+ * Service d'application pour les commandes
  */
 import { IOrderRepository } from '../domain/interfaces/IOrderRepository';
-import { Order, OrderCreateRequest, OrderResult, OrdersResult, OrderUpdateRequest } from '../domain/types';
+import { 
+  Order, 
+  OrderItem, 
+  CreateOrderParams, 
+  OrderFilter,
+  OrderStats,
+  OrderStatus
+} from '../domain/types';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { ORDER_EVENTS } from '../domain/events';
 
 export class OrderService {
-  private orderRepository: IOrderRepository;
-  private cache: Map<string, { order: Order, timestamp: number }> = new Map();
-  private readonly CACHE_TTL = 60000; // 1 minute
+  // Singleton du service
+  private static instance: OrderService;
   
-  constructor(orderRepository: IOrderRepository) {
-    this.orderRepository = orderRepository;
-  }
+  constructor(private repository: IOrderRepository) {}
   
   /**
    * Crée une nouvelle commande
    */
-  async createOrder(orderData: OrderCreateRequest): Promise<OrderResult> {
-    if (!orderData.buyerId || !orderData.sellerId || !orderData.items || orderData.items.length === 0) {
-      return { order: null, error: "Données de commande incomplètes" };
+  async createOrder(params: CreateOrderParams): Promise<Order | null> {
+    try {
+      const order = await this.repository.createOrder(params);
+      
+      if (order) {
+        console.log(`Commande ${order.id} créée avec succès`);
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de la création:', error);
+      return null;
     }
-    
-    return await this.orderRepository.createOrder(orderData);
   }
   
   /**
-   * Récupère une commande par son ID avec gestion de cache
+   * Récupère une commande par son ID
    */
-  async getOrderById(orderId: string): Promise<OrderResult> {
-    if (!orderId) {
-      return { order: null, error: "ID de commande requis" };
+  async getOrderById(orderId: string): Promise<Order | null> {
+    try {
+      const order = await this.repository.getOrderById(orderId);
+      
+      if (!order) {
+        console.warn(`Commande ${orderId} non trouvée`);
+        return null;
+      }
+      
+      // Charger les articles si nécessaire
+      if (order.items.length === 0) {
+        const items = await this.repository.getOrderItems(orderId);
+        order.items = items;
+      }
+      
+      return order;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de la récupération:', error);
+      return null;
     }
-    
-    // Vérifier le cache
-    const cached = this.cache.get(orderId);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return { order: cached.order };
-    }
-    
-    // Récupérer depuis le repository
-    const result = await this.orderRepository.getOrderById(orderId);
-    
-    if (result.order) {
-      // Mettre en cache
-      this.cache.set(orderId, { order: result.order, timestamp: Date.now() });
-    }
-    
-    return result;
   }
   
   /**
-   * Met à jour une commande
+   * Met à jour le statut d'une commande
    */
-  async updateOrder(orderId: string, data: OrderUpdateRequest): Promise<OrderResult> {
-    if (!orderId) {
-      return { order: null, error: "ID de commande requis" };
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
+    try {
+      const success = await this.repository.updateOrder(orderId, { status });
+      
+      if (success) {
+        // Publier des événements spécifiques en fonction du statut
+        if (status === 'cancelled') {
+          eventBus.publish(ORDER_EVENTS.ORDER_CANCELLED, { orderId });
+        } else if (status === 'delivered') {
+          eventBus.publish(ORDER_EVENTS.ORDER_DELIVERED, { orderId });
+        }
+        
+        console.log(`Statut de la commande ${orderId} mis à jour: ${status}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de la mise à jour du statut:', error);
+      return false;
     }
-    
-    const result = await this.orderRepository.updateOrder(orderId, data);
-    
-    if (result.order) {
-      // Invalider le cache
-      this.cache.delete(orderId);
-    }
-    
-    return result;
   }
   
   /**
    * Récupère les commandes d'un acheteur
    */
-  async getBuyerOrders(buyerId: string, limit?: number, offset?: number): Promise<OrdersResult> {
-    if (!buyerId) {
-      return { orders: [], count: 0, error: "ID d'acheteur requis" };
+  async getBuyerOrders(buyerId: string, filter?: OrderFilter): Promise<Order[]> {
+    try {
+      return await this.repository.getBuyerOrders(buyerId, filter);
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de la récupération des commandes acheteur:', error);
+      return [];
     }
-    
-    return await this.orderRepository.getBuyerOrders(buyerId, limit, offset);
   }
   
   /**
    * Récupère les commandes d'un vendeur
    */
-  async getSellerOrders(sellerId: string, limit?: number, offset?: number): Promise<OrdersResult> {
-    if (!sellerId) {
-      return { orders: [], count: 0, error: "ID de vendeur requis" };
+  async getSellerOrders(sellerId: string, filter?: OrderFilter): Promise<Order[]> {
+    try {
+      return await this.repository.getSellerOrders(sellerId, filter);
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de la récupération des commandes vendeur:', error);
+      return [];
     }
-    
-    return await this.orderRepository.getSellerOrders(sellerId, limit, offset);
-  }
-  
-  /**
-   * Récupère les éléments d'une commande
-   */
-  async getOrderItems(orderId: string): Promise<{ items: any[]; error?: string }> {
-    if (!orderId) {
-      return { items: [], error: "ID de commande requis" };
-    }
-    
-    return await this.orderRepository.getOrderItems(orderId);
   }
   
   /**
    * Traite le paiement d'une commande
    */
-  async processOrderPayment(orderId: string, paymentMethod: string): Promise<{ success: boolean; error?: string }> {
-    if (!orderId) {
-      return { success: false, error: "ID de commande requis" };
+  async processPayment(orderId: string, paymentMethodId: string): Promise<boolean> {
+    try {
+      const success = await this.repository.processPayment(orderId, paymentMethodId);
+      
+      if (success) {
+        console.log(`Paiement de la commande ${orderId} traité avec succès`);
+      } else {
+        console.error(`Échec du traitement du paiement pour la commande ${orderId}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors du traitement du paiement:', error);
+      return false;
     }
-    
-    const result = await this.orderRepository.processOrderPayment(orderId, paymentMethod);
-    
-    if (result.success) {
-      // Invalider le cache
-      this.cache.delete(orderId);
-    }
-    
-    return result;
   }
   
   /**
-   * Invalide le cache pour une commande
+   * Annule une commande
    */
-  invalidateCache(orderId: string): void {
-    this.cache.delete(orderId);
+  async cancelOrder(orderId: string, reason?: string): Promise<boolean> {
+    try {
+      const updates: any = {
+        status: 'cancelled' as OrderStatus
+      };
+      
+      if (reason) {
+        updates.cancellationReason = reason;
+      }
+      
+      const success = await this.repository.updateOrder(orderId, updates);
+      
+      if (success) {
+        eventBus.publish(ORDER_EVENTS.ORDER_CANCELLED, { 
+          orderId,
+          reason,
+          timestamp: Date.now()
+        });
+        
+        console.log(`Commande ${orderId} annulée: ${reason || 'Sans raison spécifiée'}`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors de l\'annulation:', error);
+      return false;
+    }
   }
   
   /**
-   * Efface tout le cache
+   * Calcule des statistiques sur les commandes
    */
-  clearCache(): void {
-    this.cache.clear();
+  async getOrderStats(sellerId?: string): Promise<OrderStats> {
+    try {
+      // Cette méthode pourrait être implémentée avec des requêtes SQL directes
+      // pour de meilleures performances, mais pour l'exemple, utilisons les données
+      // que nous avons déjà
+      
+      const orders = sellerId 
+        ? await this.repository.getSellerOrders(sellerId)
+        : await this.repository.getBuyerOrders('all'); // Hypothétique
+      
+      // Initialiser les stats
+      const stats: OrderStats = {
+        totalOrders: orders.length,
+        totalAmount: 0,
+        bySeller: {},
+        byStatus: []
+      };
+      
+      // Calculer les totaux
+      const byStatus: Record<string, number> = {};
+      
+      orders.forEach(order => {
+        stats.totalAmount += order.totalAmount;
+        
+        // Compter par vendeur
+        if (!stats.bySeller[order.sellerId]) {
+          stats.bySeller[order.sellerId] = 0;
+        }
+        stats.bySeller[order.sellerId]++;
+        
+        // Compter par statut
+        if (!byStatus[order.status]) {
+          byStatus[order.status] = 0;
+        }
+        byStatus[order.status]++;
+      });
+      
+      // Convertir le comptage par statut en tableau
+      stats.byStatus = Object.entries(byStatus).map(([status, count]) => ({
+        status: status as OrderStatus,
+        count
+      }));
+      
+      return stats;
+    } catch (error) {
+      console.error('Erreur dans le service de commande lors du calcul des statistiques:', error);
+      return {
+        totalOrders: 0,
+        totalAmount: 0,
+        bySeller: {},
+        byStatus: []
+      };
+    }
+  }
+  
+  /**
+   * Obtenir l'instance singleton du service
+   */
+  public static getInstance(repository: IOrderRepository): OrderService {
+    if (!OrderService.instance) {
+      OrderService.instance = new OrderService(repository);
+    }
+    return OrderService.instance;
   }
 }

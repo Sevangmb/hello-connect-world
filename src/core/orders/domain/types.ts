@@ -1,20 +1,46 @@
 
 /**
- * Types pour le domaine des commandes
+ * Types du domaine pour le service de commandes
  */
 
+// Status des commandes
 export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+
+// Status des paiements
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+
+// Type de livraison
 export type DeliveryType = 'in_person' | 'shipping' | 'pickup';
 
+// Interface pour l'adresse de livraison
+export interface ShippingAddress {
+  fullName: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  state?: string;
+  phoneNumber?: string;
+  additionalInfo?: string;
+}
+
+// Interface pour un article de commande
 export interface OrderItem {
   id: string;
   orderId: string;
   shopItemId: string;
   quantity: number;
-  priceAtTime: number;
+  price: number;
+  shopItem: {
+    id: string;
+    name: string;
+    price: number;
+    category?: string;
+    imageUrl?: string | null;
+  };
 }
 
+// Interface pour une commande
 export interface Order {
   id: string;
   buyerId: string;
@@ -22,53 +48,57 @@ export interface Order {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   totalAmount: number;
-  commissionAmount?: number;
+  commissionAmount: number;
   createdAt: string;
-  updatedAt?: string;
-  stripePaymentIntentId?: string;
-  stripeSessionId?: string;
+  updatedAt: string | null;
+  stripePaymentIntentId?: string | null;
+  stripeSessionId?: string | null;
   deliveryType: DeliveryType;
-  shippingAddress?: ShippingAddress;
-  shippingRequired?: boolean;
-  shippingCost?: number;
-  paymentMethod?: string;
-  items?: OrderItem[];
+  shippingAddress?: ShippingAddress | null;
+  shippingRequired: boolean;
+  shippingCost: number;
+  paymentMethod: string;
+  items: OrderItem[];
 }
 
-export interface ShippingAddress {
-  street?: string;
-  city?: string;
-  postalCode?: string;
-  country?: string;
-  state?: string;
-}
-
-export interface OrderCreateRequest {
+// Interface pour les paramètres de création d'une commande
+export interface CreateOrderParams {
   buyerId: string;
   sellerId: string;
   items: {
     shopItemId: string;
     quantity: number;
+    price: number;
   }[];
-  deliveryType: DeliveryType;
+  commissionAmount?: number;
+  deliveryType?: DeliveryType;
+  shippingRequired?: boolean;
+  shippingCost?: number;
   shippingAddress?: ShippingAddress;
   paymentMethod?: string;
 }
 
-export interface OrderUpdateRequest {
+// Interface pour les filtres de recherche des commandes
+export interface OrderFilter {
   status?: OrderStatus;
-  paymentStatus?: PaymentStatus;
-  stripePaymentIntentId?: string;
-  stripeSessionId?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  orderBy?: string;
+  orderDirection?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
 }
 
-export interface OrderResult {
-  order: Order | null;
-  error?: string;
-}
-
-export interface OrdersResult {
-  orders: Order[];
+// Interface pour les récapitulatifs par statut
+export interface OrderStatusSummary {
+  status: OrderStatus;
   count: number;
-  error?: string;
+}
+
+// Interface pour les statistiques des commandes
+export interface OrderStats {
+  totalOrders: number;
+  totalAmount: number;
+  bySeller: Record<string, number>;
+  byStatus: OrderStatusSummary[];
 }

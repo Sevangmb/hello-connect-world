@@ -1,175 +1,300 @@
 
 /**
- * Hook pour la gestion des commandes
+ * Hook pour utiliser le service de commandes
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { getOrderService } from "@/core/orders/infrastructure/orderDependencyProvider";
-import { useAuth } from "@/hooks/useAuth";
-import { OrderCreateRequest, OrderUpdateRequest } from "@/core/orders/domain/types";
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
+import { getOrderService } from '@/core/orders/infrastructure/orderDependencyProvider';
+import { 
+  Order, 
+  OrderItem, 
+  CreateOrderParams, 
+  OrderFilter 
+} from '@/core/orders/domain/types';
+import { useToast } from './use-toast';
 
 export const useOrders = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const orderService = getOrderService();
+  const [buyerOrders, setBuyerOrders] = useState<Order[]>([]);
+  const [sellerOrders, setSellerOrders] = useState<Order[]>([]);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const { user } = useAuth();
-
-  // Récupérer les commandes de l'utilisateur en tant qu'acheteur
-  const { data: buyerOrders, isLoading: isLoadingBuyerOrders } = useQuery({
-    queryKey: ['orders', 'buyer', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return { orders: [], count: 0 };
-      return await orderService.getBuyerOrders(user.id);
-    },
-    enabled: !!user?.id,
-  });
-
-  // Récupérer les commandes de l'utilisateur en tant que vendeur
-  const { data: sellerOrders, isLoading: isLoadingSellerOrders } = useQuery({
-    queryKey: ['orders', 'seller', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return { orders: [], count: 0 };
-      return await orderService.getSellerOrders(user.id);
-    },
-    enabled: !!user?.id,
-  });
-
-  // Récupérer une commande par son ID
-  const useOrderDetails = (orderId?: string) => {
-    return useQuery({
-      queryKey: ['order', orderId],
-      queryFn: async () => {
-        if (!orderId) throw new Error("ID de commande requis");
-        return await orderService.getOrderById(orderId);
-      },
-      enabled: !!orderId,
-    });
-  };
-
-  // Création d'une commande
-  const createOrderMutation = useMutation({
-    mutationFn: async (orderData: OrderCreateRequest) => {
-      if (!user?.id) throw new Error("Utilisateur non connecté");
+  const { toast } = useToast();
+  const orderService = getOrderService();
+  
+  // Charger les commandes de l'acheteur
+  const loadBuyerOrders = useCallback(async (filter?: OrderFilter) => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const orders = await orderService.getBuyerOrders(user.id, filter);
+      setBuyerOrders(orders);
+    } catch (err) {
+      setError('Erreur lors du chargement de vos commandes');
+      console.error('Erreur dans loadBuyerOrders:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, orderService]);
+  
+  // Charger les commandes du vendeur
+  const loadSellerOrders = useCallback(async (filter?: OrderFilter) => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const orders = await orderService.getSellerOrders(user.id, filter);
+      setSellerOrders(orders);
+    } catch (err) {
+      setError('Erreur lors du chargement des commandes de vente');
+      console.error('Erreur dans loadSellerOrders:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, orderService]);
+  
+  // Charger une commande spécifique
+  const loadOrder = useCallback(async (orderId: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const order = await orderService.getOrderById(orderId);
+      setCurrentOrder(order);
       
-      // S'assurer que l'ID de l'acheteur est celui de l'utilisateur connecté
-      const orderDataWithBuyer = {
-        ...orderData,
-        buyerId: user.id,
+      if (!order) {
+        setError('Commande non trouvée');
+      }
+      
+      return order;
+    } catch (err) {
+      setError('Erreur lors du chargement de la commande');
+      console.error('Erreur dans loadOrder:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [orderService]);
+  
+  // Créer une nouvelle commande
+  const createOrder = useCallback(async (params: Omit<CreateOrderParams, 'buyerId'>) => {
+    if (!user?.id) {
+      setError('Vous devez être connecté pour passer une commande');
+      return null;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const orderParams: CreateOrderParams = {
+        ...params,
+        buyerId: user.id
       };
       
-      const result = await orderService.createOrder(orderDataWithBuyer);
+      const order = await orderService.createOrder(orderParams);
       
-      if (result.error) {
-        throw new Error(result.error);
+      if (order) {
+        toast({
+          title: 'Commande créée',
+          description: `Votre commande #${order.id.substring(0, 8)} a été créée avec succès.`,
+        });
+        
+        // Rafraîchir la liste des commandes
+        loadBuyerOrders();
+      } else {
+        setError('Erreur lors de la création de la commande');
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'La commande n\'a pas pu être créée.',
+        });
       }
       
-      return result.order;
-    },
-    meta: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['orders'] });
-        toast({
-          title: "Commande créée",
-          description: "Votre commande a été créée avec succès",
-        });
-      },
-      onError: (error: Error) => {
-        console.error("Erreur lors de la création de la commande:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: `Impossible de créer la commande: ${error.message}`,
-        });
-      },
-    },
-  });
-
-  // Mise à jour d'une commande
-  const updateOrderMutation = useMutation({
-    mutationFn: async ({ orderId, data }: { orderId: string; data: OrderUpdateRequest }) => {
-      if (!orderId) throw new Error("ID de commande requis");
+      return order;
+    } catch (err) {
+      setError('Erreur lors de la création de la commande');
+      console.error('Erreur dans createOrder:', err);
       
-      const result = await orderService.updateOrder(orderId, data);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de la création de la commande.',
+      });
       
-      if (result.error) {
-        throw new Error(result.error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, orderService, loadBuyerOrders, toast]);
+  
+  // Traiter un paiement
+  const processPayment = useCallback(async (orderId: string, paymentMethodId: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const success = await orderService.processPayment(orderId, paymentMethodId);
+      
+      if (success) {
+        toast({
+          title: 'Paiement traité',
+          description: 'Votre paiement a été traité avec succès.',
+        });
+        
+        // Rafraîchir la commande actuelle
+        loadOrder(orderId);
+        
+        // Rafraîchir les listes de commandes
+        loadBuyerOrders();
+      } else {
+        setError('Erreur lors du traitement du paiement');
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de paiement',
+          description: 'Le paiement n\'a pas pu être traité.',
+        });
       }
       
-      return result.order;
-    },
-    meta: {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['orders'] });
-        queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
-        toast({
-          title: "Commande mise à jour",
-          description: "La commande a été mise à jour avec succès",
-        });
-      },
-      onError: (error: Error) => {
-        console.error("Erreur lors de la mise à jour de la commande:", error);
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: `Impossible de mettre à jour la commande: ${error.message}`,
-        });
-      },
-    },
-  });
-
-  // Traitement du paiement d'une commande
-  const processPaymentMutation = useMutation({
-    mutationFn: async ({ orderId, paymentMethod }: { orderId: string; paymentMethod: string }) => {
-      if (!orderId) throw new Error("ID de commande requis");
+      return success;
+    } catch (err) {
+      setError('Erreur lors du traitement du paiement');
+      console.error('Erreur dans processPayment:', err);
       
-      const result = await orderService.processOrderPayment(orderId, paymentMethod);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur de paiement',
+        description: 'Une erreur est survenue lors du traitement du paiement.',
+      });
       
-      if (!result.success) {
-        throw new Error(result.error || "Échec du traitement du paiement");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [orderService, loadOrder, loadBuyerOrders, toast]);
+  
+  // Annuler une commande
+  const cancelOrder = useCallback(async (orderId: string, reason?: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const success = await orderService.cancelOrder(orderId, reason);
+      
+      if (success) {
+        toast({
+          title: 'Commande annulée',
+          description: 'Votre commande a été annulée avec succès.',
+        });
+        
+        // Rafraîchir la commande actuelle
+        loadOrder(orderId);
+        
+        // Rafraîchir les listes de commandes
+        loadBuyerOrders();
+        loadSellerOrders();
+      } else {
+        setError('Erreur lors de l\'annulation de la commande');
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'La commande n\'a pas pu être annulée.',
+        });
       }
       
-      return true;
-    },
-    meta: {
-      onSuccess: (_data, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['orders'] });
-        queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
+      return success;
+    } catch (err) {
+      setError('Erreur lors de l\'annulation de la commande');
+      console.error('Erreur dans cancelOrder:', err);
+      
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de l\'annulation de la commande.',
+      });
+      
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [orderService, loadOrder, loadBuyerOrders, loadSellerOrders, toast]);
+  
+  // Mettre à jour le statut d'une commande
+  const updateOrderStatus = useCallback(async (orderId: string, status: Order['status']) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const success = await orderService.updateOrderStatus(orderId, status);
+      
+      if (success) {
         toast({
-          title: "Paiement traité",
-          description: "Le paiement a été traité avec succès",
+          title: 'Statut mis à jour',
+          description: `Le statut de la commande a été mis à jour: ${status}`,
         });
-      },
-      onError: (error: Error) => {
-        console.error("Erreur lors du traitement du paiement:", error);
+        
+        // Rafraîchir la commande actuelle
+        loadOrder(orderId);
+        
+        // Rafraîchir les listes de commandes
+        loadBuyerOrders();
+        loadSellerOrders();
+      } else {
+        setError('Erreur lors de la mise à jour du statut');
         toast({
-          variant: "destructive",
-          title: "Erreur de paiement",
-          description: `Impossible de traiter le paiement: ${error.message}`,
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Le statut n\'a pas pu être mis à jour.',
         });
-      },
-    },
-  });
-
+      }
+      
+      return success;
+    } catch (err) {
+      setError('Erreur lors de la mise à jour du statut');
+      console.error('Erreur dans updateOrderStatus:', err);
+      
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de la mise à jour du statut.',
+      });
+      
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [orderService, loadOrder, loadBuyerOrders, loadSellerOrders, toast]);
+  
+  // Charger les commandes au chargement si l'utilisateur est connecté
+  useEffect(() => {
+    if (user?.id) {
+      loadBuyerOrders();
+      loadSellerOrders();
+    }
+  }, [user, loadBuyerOrders, loadSellerOrders]);
+  
   return {
-    // Queries
-    buyerOrders: buyerOrders?.orders || [],
-    sellerOrders: sellerOrders?.orders || [],
-    isLoadingBuyerOrders,
-    isLoadingSellerOrders,
-    buyerOrdersCount: buyerOrders?.count || 0,
-    sellerOrdersCount: sellerOrders?.count || 0,
+    // États
+    buyerOrders,
+    sellerOrders,
+    currentOrder,
+    loading,
+    error,
     
-    // Mutations
-    createOrder: createOrderMutation.mutate,
-    updateOrder: updateOrderMutation.mutate,
-    processPayment: processPaymentMutation.mutate,
-    
-    // États des mutations
-    isCreating: createOrderMutation.isPending,
-    isUpdating: updateOrderMutation.isPending,
-    isProcessingPayment: processPaymentMutation.isPending,
-    
-    // Hooks
-    useOrderDetails,
+    // Actions
+    loadBuyerOrders,
+    loadSellerOrders,
+    loadOrder,
+    createOrder,
+    processPayment,
+    cancelOrder,
+    updateOrderStatus
   };
 };
