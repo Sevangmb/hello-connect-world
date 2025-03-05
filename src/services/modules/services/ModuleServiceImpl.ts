@@ -1,4 +1,3 @@
-
 /**
  * Service pour gérer les modules - Implémentation concrète
  * Couche Application de la Clean Architecture
@@ -24,7 +23,7 @@ export class ModuleServiceImpl implements IModuleService {
   async getAllModules(): Promise<AppModule[]> {
     try {
       const modules = await this.repository.fetchAllModules();
-      eventBus.publish(MODULE_EVENTS.MODULE_LOADED, { 
+      eventBus.publish(MODULE_EVENTS.MODULES_LOADED, { 
         count: modules.length,
         timestamp: Date.now()
       });
@@ -120,7 +119,7 @@ export class ModuleServiceImpl implements IModuleService {
       
       return !!data;
     } catch (error) {
-      console.error(`Erreur lors de la vérification du statut du module ${moduleCode}:`, error);
+      console.error(`Erreur lors de la v��rification du statut du module ${moduleCode}:`, error);
       
       // Fallback: vérifier directement dans la table
       try {

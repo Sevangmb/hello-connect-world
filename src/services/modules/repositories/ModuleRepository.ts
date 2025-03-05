@@ -24,13 +24,25 @@ export class ModuleRepository {
         throw error;
       }
       
-      // Assurer que les statuts sont valides
+      // Assurer que les statuts sont valides et que tous les champs requis sont présents
       return (data || []).map(module => {
-        if (module.status !== 'active' && module.status !== 'inactive' && module.status !== 'degraded') {
+        const status = module.status as ModuleStatus;
+        if (status !== 'active' && status !== 'inactive' && status !== 'degraded' && status !== 'maintenance') {
           console.warn(`Invalid module status "${module.status}" for module ${module.code}, defaulting to "inactive"`);
-          return { ...module, status: 'inactive' as ModuleStatus };
+          return {
+            ...module,
+            status: 'inactive' as ModuleStatus,
+            version: module.version || "1.0.0",
+            is_admin: module.is_admin || false,
+            priority: module.priority || 0
+          };
         }
-        return module as AppModule;
+        return {
+          ...module,
+          version: module.version || "1.0.0",
+          is_admin: module.is_admin || false,
+          priority: module.priority || 0
+        } as AppModule;
       });
     } catch (error) {
       console.error("Erreur lors du chargement des modules:", error);

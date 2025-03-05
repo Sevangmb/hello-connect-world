@@ -1,4 +1,3 @@
-
 /**
  * Cas d'utilisation pour la gestion des statuts de fonctionnalités
  * Centralise la logique métier liée aux fonctionnalités
@@ -45,13 +44,13 @@ export class FeatureStatusUseCase {
         
         // Publier un événement spécifique selon le nouveau statut
         if (isEnabled) {
-          eventBus.publish(MODULE_EVENTS.FEATURE_ACTIVATED, {
+          eventBus.publish(MODULE_EVENTS.FEATURE_ENABLED, {
             moduleCode,
             featureCode,
             timestamp: Date.now()
           });
         } else {
-          eventBus.publish(MODULE_EVENTS.FEATURE_DEACTIVATED, {
+          eventBus.publish(MODULE_EVENTS.FEATURE_DISABLED, {
             moduleCode,
             featureCode,
             timestamp: Date.now()

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useModuleRegistry } from "@/hooks/modules/useModuleRegistry";
 import { ModuleUnavailable } from "./ModuleUnavailable";
@@ -109,11 +108,10 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
           
           // Publier un événement d'erreur
           eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
-            error: `Erreur lors de la vérification du module ${moduleCode}`,
-            context: 'module_guard',
-            moduleCode,
-            timestamp: Date.now(),
-            details: error
+            error: error?.message || 'Erreur inconnue lors de la vérification du module',
+            context: "module_access",
+            level: "error",
+            timestamp: Date.now()
           });
         } finally {
           setIsChecked(true);
@@ -174,8 +172,8 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
         // Publier un événement d'avertissement
         eventBus.publish(MODULE_EVENTS.MODULE_WARNING, {
           warning: `Timeout lors de la vérification du module ${moduleCode}`,
-          context: 'module_guard',
-          moduleCode,
+          context: "module_access",
+          level: "warning",
           timestamp: Date.now()
         });
       }

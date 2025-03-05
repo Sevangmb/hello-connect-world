@@ -1,4 +1,3 @@
-
 /**
  * Module utilisateurs - Point d'entrée unique
  * Exporte tous les composants, hooks et utilitaires liés aux utilisateurs
@@ -10,8 +9,7 @@ export { UserButton } from '@/components/UserButton';
 
 // Services et repositories
 export { UserService } from '@/core/users/application/UserService';
-export { userDependencyProvider } from '@/core/users/infrastructure/userDependencyProvider';
-export { supabaseUserRepository } from '@/core/users/infrastructure/supabaseUserRepository';
+export { SupabaseUserRepository } from '@/core/users/infrastructure/supabaseUserRepository';
 
 // Types et événements
 export * from '@/core/users/domain/types';

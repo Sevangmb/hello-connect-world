@@ -1,4 +1,3 @@
-
 /**
  * Service de circuit breaker pour éviter les appels répétés en cas d'erreur
  * Permet de court-circuiter temporairement les appels après plusieurs échecs
@@ -91,8 +90,9 @@ export class CircuitBreakerService {
         circuit.halfOpenAttempts++;
         
         // Publier un événement de circuit semi-ouvert
-        eventBus.publish(MODULE_EVENTS.CIRCUIT_HALF_OPEN, {
-          service: operationKey,
+        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
+          status: 'half_open',
+          service: this.name,
           timestamp: Date.now(),
           attempts: circuit.halfOpenAttempts
         });
@@ -147,8 +147,9 @@ export class CircuitBreakerService {
           this.resetCircuit(operationKey);
           
           // Publier un événement de circuit fermé
-          eventBus.publish(MODULE_EVENTS.CIRCUIT_CLOSED, {
-            service: operationKey,
+          eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
+            status: 'closed',
+            service: this.name,
             timestamp: Date.now()
           });
         }
@@ -175,10 +176,11 @@ export class CircuitBreakerService {
         console.warn(`Circuit ${operationKey} ouvert après ${circuit.failures} échecs`);
         
         // Publier un événement de circuit ouvert
-        eventBus.publish(MODULE_EVENTS.CIRCUIT_OPENED, {
-          service: operationKey,
-          failures: circuit.failures,
+        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
+          status: 'opened',
+          service: this.name,
           timestamp: Date.now(),
+          failures: circuit.failures,
           reason: error?.message || 'Trop d\'échecs consécutifs'
         });
       }

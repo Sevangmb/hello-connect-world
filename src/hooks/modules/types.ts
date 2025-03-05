@@ -27,7 +27,14 @@ export type Module = AppModule;
 // Dépendance entre modules
 export interface ModuleDependency {
   id: string;
+  module_id?: string;
   module_code: string;
+  module_name?: string;
+  module_status?: ModuleStatus;
+  dependency_id?: string;
+  dependency_code?: string;
+  dependency_name?: string;
+  dependency_status?: ModuleStatus;
   depends_on: string;
   is_required: boolean;
   created_at: string;

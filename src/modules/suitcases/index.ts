@@ -1,4 +1,3 @@
-
 /**
  * Module de valises - Point d'entrée unique
  * Exporte tous les composants, hooks et utilitaires liés aux valises
@@ -35,7 +34,7 @@ export * from '@/components/suitcases/items';
 
 // Hooks
 export * from '@/components/suitcases/hooks';
-export { useSuitcaseCalendarItems } from '@/hooks/useSuitcaseCalendarItems';
+export { useSuitcaseCalendar } from '@/hooks/useSuitcaseCalendarItems';
 export { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 
 // Constants

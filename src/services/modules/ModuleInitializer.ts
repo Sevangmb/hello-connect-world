@@ -1,4 +1,3 @@
-
 /**
  * Initialise le système de modules au démarrage de l'application
  * Utilise le nouveau ModuleService
@@ -39,10 +38,9 @@ export const initializeModuleSystem = async (): Promise<boolean> => {
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     console.log("Connexion réseau rétablie, synchronisation des modules...");
-    eventBus.publish(MODULE_EVENTS.MODULE_CONNECTION_RESTORED, {
-      isConnected: true,
-      lastAttempt: Date.now(),
-      retryCount: 0
+    eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
+      status: 'connected',
+      timestamp: Date.now()
     });
     
     moduleService.refreshModules(true).catch(console.error);
@@ -50,10 +48,10 @@ if (typeof window !== 'undefined') {
   
   window.addEventListener('offline', () => {
     console.log("Connexion réseau perdue");
-    eventBus.publish(MODULE_EVENTS.MODULE_CONNECTION_ERROR, {
-      isConnected: false,
-      lastAttempt: Date.now(),
-      retryCount: 0
+    eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
+      error: "Connection error",
+      context: "initialization",
+      timestamp: Date.now()
     });
   });
 }

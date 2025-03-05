@@ -1,4 +1,3 @@
-
 /**
  * Module core - Point d'entrée unique
  * Exporte tous les services, hooks et utilitaires de base
@@ -36,7 +35,7 @@ export * from '@/core/event-bus/middleware';
 // Hooks de base
 export * from '@/core/hooks/useStableInit';
 export { useToast } from '@/hooks/use-toast';
-export { useMobile } from '@/hooks/use-mobile';
+export { useIsMobile } from '@/hooks/use-mobile';
 export { useEventBus } from '@/hooks/useEventBus';
 export { useImageUpload } from '@/hooks/useImageUpload';
 export { useInvoiceGenerator } from '@/hooks/useInvoiceGenerator';

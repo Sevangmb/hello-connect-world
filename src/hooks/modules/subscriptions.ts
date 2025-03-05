@@ -47,7 +47,20 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
     }
   }
 
-  return data || [];
+  // Transformer les données pour assurer qu'elles contiennent tous les champs requis par AppModule
+  return (data || []).map(item => ({
+    id: item.id,
+    code: item.code,
+    name: item.name,
+    description: item.description || "",
+    version: item.version || "1.0.0",
+    status: item.status as any,
+    is_core: item.is_core || false,
+    is_admin: item.is_admin || item.code === ADMIN_MODULE_CODE || false,
+    priority: item.priority || 0,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  }));
 };
 
 /**
@@ -64,7 +77,6 @@ export const fetchDependenciesRealtime = async (): Promise<ModuleDependency[]> =
   }
 
   // Map the returned data to match the ModuleDependency interface
-  // Adding the id property using the module_id as a base 
   return (data || []).map(item => ({
     id: item.module_id + '_' + item.dependency_id, // Creating a synthetic id from module_id and dependency_id
     module_id: item.module_id,
@@ -75,7 +87,10 @@ export const fetchDependenciesRealtime = async (): Promise<ModuleDependency[]> =
     dependency_code: item.dependency_code,
     dependency_name: item.dependency_name,
     dependency_status: item.dependency_status,
-    is_required: item.is_required
+    depends_on: item.dependency_code || "", // depends_on is required
+    is_required: item.is_required,
+    created_at: item.created_at || new Date().toISOString(),
+    updated_at: item.updated_at || new Date().toISOString()
   }));
 };
 
