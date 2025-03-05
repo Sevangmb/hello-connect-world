@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Minus, Plus, ShoppingCart, X } from "lucide-react";
-import { useCart } from "@/hooks/useCart";
+import { useCart, UpdateQuantityParams } from "@/hooks/cart";
 import { formatPrice } from "@/lib/utils";
 import { CheckoutButton } from "@/components/shop/CheckoutButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,11 +14,13 @@ interface CartSidebarProps {
 
 export function CartSidebar({ onClose }: CartSidebarProps) {
   const { user } = useAuth();
-  const { cartItems, isCartLoading, updateQuantity, removeFromCart } = useCart(user?.id || null);
-
-  const total = cartItems?.reduce((sum, item) => 
-    sum + (item.shop_items.price * item.quantity), 0
-  ) ?? 0;
+  const { 
+    cartItems, 
+    isCartLoading, 
+    updateQuantity, 
+    removeFromCart,
+    subtotal
+  } = useCart(user?.id || null);
 
   if (isCartLoading) {
     return (
@@ -117,7 +119,7 @@ export function CartSidebar({ onClose }: CartSidebarProps) {
             <div className="border-t p-4">
               <div className="flex items-center justify-between text-sm font-medium mb-4">
                 <span>Total</span>
-                <span>{formatPrice(total)}</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
               <CheckoutButton 
                 cartItems={cartItems.map(item => ({ 

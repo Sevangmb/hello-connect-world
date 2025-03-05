@@ -1,40 +1,45 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchCartItems } from "./queries";
+import { useCartQuery } from "./queries";
 import { useCartMutations } from "./mutations";
-import { CartItem, UpdateCartItemParams } from "./types";
+import { UseCartResult } from "./types";
+import { useCallback } from "react";
+import { UpdateQuantityParams } from "./types";
 
-export type { CartItem } from "./types";
-
-export function useCart(userId: string | null) {
-  // Fetch cart items
-  const { data: cartItems = [], isLoading: isCartLoading } = useQuery({
-    queryKey: ["cart", userId],
-    queryFn: () => fetchCartItems(userId),
-    enabled: !!userId,
-    staleTime: 1000 * 60, // 1 minute
-  });
-
-  // Get cart mutations
+export const useCart = (userId: string | null): UseCartResult => {
   const { 
-    addToCart, 
-    updateCartItem, 
-    removeFromCart, 
-    clearCart 
+    data: cartItems, 
+    isLoading: isCartLoading, 
+    error: cartError,
+    refetch: refreshCart
+  } = useCartQuery(userId);
+
+  const { 
+    addToCart: addToCartMutation,
+    updateQuantity: updateQuantityMutation,
+    removeFromCart: removeFromCartMutation,
+    clearCart: clearCartMutation
   } = useCartMutations(userId);
 
-  // Utility function to maintain compatibility with existing code
-  const updateQuantity = (params: UpdateCartItemParams) => {
-    updateCartItem.mutate(params);
-  };
+  // Calculer le nombre total d'articles dans le panier
+  const totalItems = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+  // Calculer le sous-total du panier
+  const subtotal = cartItems?.reduce((sum, item) => 
+    sum + (item.shop_items.price * item.quantity), 0
+  ) || 0;
 
   return {
     cartItems,
     isCartLoading,
-    updateQuantity,
-    addToCart,
-    updateCartItem,
-    removeFromCart,
-    clearCart,
+    cartError,
+    addToCart: addToCartMutation,
+    updateQuantity: updateQuantityMutation,
+    removeFromCart: removeFromCartMutation,
+    clearCart: clearCartMutation,
+    refreshCart,
+    totalItems,
+    subtotal
   };
-}
+};
+
+export * from "./types";

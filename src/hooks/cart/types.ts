@@ -1,26 +1,5 @@
 
-import { ShopItem } from "@/core/shop/domain/types";
-
-export type CartItem = {
-  id: string;
-  user_id: string;
-  shop_id: string;
-  item_id: string;
-  quantity: number;
-  created_at: string;
-  updated_at: string;
-  shop_items: {
-    id: string;
-    name: string;
-    price: number;
-    image_url?: string;
-    shop_id: string;
-  };
-  shop: {
-    id: string;
-    name: string;
-  };
-};
+import { CartItem } from "@/core/shop/domain/types";
 
 export type AddToCartParams = {
   user_id: string;
@@ -33,8 +12,15 @@ export type UpdateQuantityParams = {
   quantity: number;
 };
 
-export type CartSummary = {
+export interface UseCartResult {
+  cartItems: CartItem[] | undefined;
+  isCartLoading: boolean;
+  cartError: unknown;
+  addToCart: any;
+  updateQuantity: any;
+  removeFromCart: any;
+  clearCart: any;
+  refreshCart: () => void;
   totalItems: number;
-  totalPrice: number;
-  shops: number;
-};
+  subtotal: number;
+}
