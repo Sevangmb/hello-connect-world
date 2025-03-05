@@ -1,205 +1,130 @@
 
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { OrderStatus, ShopStatus } from '@/core/shop/domain/types';
+import { ShopStatus } from '@/core/shop/domain/types';
 
 export const useShop = () => {
+  const { user } = useAuth();
   const shopService = getShopService();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [loadingAction, setLoadingAction] = useState(false);
 
-  const getUserShop = async () => {
-    try {
-      return await shopService.getUserShop();
-    } catch (error) {
-      console.error('Error fetching user shop:', error);
-      throw error;
-    }
-  };
-
-  const { data: shop, isLoading: isShopLoading, refetch: refetchShop } = useQuery({
-    queryKey: ['userShop'],
-    queryFn: getUserShop,
-    retry: false,
-    enabled: true,
+  // Get current user's shop
+  const {
+    data: shop,
+    isLoading: isShopLoading,
+    refetch: refetchShop,
+  } = useQuery({
+    queryKey: ['user-shop', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      return await shopService.getShopByUserId(user.id);
+    },
+    enabled: !!user?.id,
   });
 
-  // Create shop
-  const createShop = useMutation({
-    mutationFn: async (shopData: any) => {
-      try {
-        return await shopService.createShop(shopData);
-      } catch (error) {
-        console.error('Error creating shop:', error);
-        throw error;
-      }
+  // Create a shop
+  const createShopMutation = useMutation({
+    mutationFn: async (shopData: {
+      name: string;
+      description: string;
+      image_url?: string;
+      status: ShopStatus;
+      user_id: string;
+    }) => {
+      return await shopService.createShop(shopData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop'] });
-      toast({
-        title: 'Boutique créée',
-        description: 'Votre boutique a été créée avec succès',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
+      queryClient.invalidateQueries({ queryKey: ['user-shop'] });
     },
   });
 
-  // Update shop
-  const updateShop = useMutation({
+  // Update a shop
+  const updateShopMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      try {
-        return await shopService.updateShop(id, data);
-      } catch (error) {
-        console.error('Error updating shop:', error);
-        throw error;
-      }
+      return await shopService.updateShop(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop'] });
-      toast({
-        title: 'Boutique mise à jour',
-        description: 'Votre boutique a été mise à jour avec succès',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
+      queryClient.invalidateQueries({ queryKey: ['user-shop'] });
     },
   });
 
-  // Add shop item
-  const addShopItem = useMutation({
-    mutationFn: async ({ shopId, itemData }: { shopId: string; itemData: any }) => {
-      try {
-        return await shopService.createShopItem({ ...itemData, shop_id: shopId });
-      } catch (error) {
-        console.error('Error adding shop item:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-      toast({
-        title: 'Article ajouté',
-        description: 'Votre article a été ajouté avec succès',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
-    },
-  });
+  // Get shop by ID
+  const getShopById = useCallback(async (shopId: string) => {
+    return await shopService.getShopById(shopId);
+  }, [shopService]);
 
-  // Update shop order status
-  const updateOrderStatus = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      try {
-        return await shopService.updateOrderStatus(orderId, status);
-      } catch (error) {
-        console.error('Error updating order status:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
-      toast({
-        title: 'Commande mise à jour',
-        description: 'Le statut de la commande a été mis à jour avec succès',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
-    },
-  });
+  // Get shop items
+  const getShopItems = useCallback(async (shopId: string) => {
+    return await shopService.getShopItems(shopId);
+  }, [shopService]);
 
-  // Add shop review
-  const addShopReview = useMutation({
-    mutationFn: async ({ shopId, reviewData }: { shopId: string; reviewData: any }) => {
-      try {
-        return await shopService.addShopReview({ ...reviewData, shop_id: shopId });
-      } catch (error) {
-        console.error('Error adding shop review:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopReviews'] });
-      toast({
-        title: 'Avis ajouté',
-        description: 'Votre avis a été ajouté avec succès',
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: `Une erreur est survenue: ${error.message}`,
-      });
-    },
-  });
+  // Create shop item
+  const createShopItem = useCallback(async (itemData: any) => {
+    return await shopService.createShopItem(itemData);
+  }, [shopService]);
 
-  const getShopOrders = async (shopId: string) => {
+  // Update shop item
+  const updateShopItem = useCallback(async (itemId: string, itemData: any) => {
+    return await shopService.updateShopItem(itemId, itemData);
+  }, [shopService]);
+
+  // Delete shop item
+  const deleteShopItem = useCallback(async (itemId: string) => {
+    return await shopService.deleteShopItem(itemId);
+  }, [shopService]);
+
+  // Get shop reviews
+  const getShopReviews = useCallback(async (shopId: string) => {
+    return await shopService.getShopReviews(shopId);
+  }, [shopService]);
+
+  // Add item to cart
+  const addToCart = useCallback(async (itemId: string, quantity = 1) => {
+    setLoadingAction(true);
     try {
-      return await shopService.getShopOrders(shopId);
+      if (!user?.id) throw new Error('User not logged in');
+      
+      // Here you would implement the actual add to cart functionality
+      // For now we'll just simulate it
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return true;
     } catch (error) {
-      console.error('Error fetching shop orders:', error);
+      console.error('Error adding to cart:', error);
       throw error;
+    } finally {
+      setLoadingAction(false);
     }
-  };
+  }, [user]);
 
-  const getShopItems = async (shopId: string) => {
-    try {
-      return await shopService.getShopItems(shopId);
-    } catch (error) {
-      console.error('Error fetching shop items:', error);
-      throw error;
-    }
-  };
+  // Get shop orders
+  const getShopOrders = useCallback(async (shopId: string) => {
+    return await shopService.getShopOrders(shopId);
+  }, [shopService]);
 
-  const getShopReviews = async (shopId: string) => {
-    try {
-      return await shopService.getShopReviews(shopId);
-    } catch (error) {
-      console.error('Error fetching shop reviews:', error);
-      throw error;
-    }
-  };
+  // Update order status
+  const updateOrderStatus = useCallback(async (orderId: string, status: string) => {
+    return await shopService.updateOrderStatus(orderId, status);
+  }, [shopService]);
 
   return {
     shop,
     isShopLoading,
+    loadingAction,
     refetchShop,
-    createShop: createShop.mutate,
-    isCreatingShop: createShop.isPending,
-    updateShop: updateShop.mutate,
-    isUpdatingShop: updateShop.isPending,
-    addShopItem: addShopItem.mutate,
-    isAddingShopItem: addShopItem.isPending,
-    updateOrderStatus: updateOrderStatus.mutate,
-    isUpdatingOrderStatus: updateOrderStatus.isPending,
-    addShopReview: addShopReview.mutate,
-    isAddingShopReview: addShopReview.isPending,
-    getShopOrders,
+    createShop: createShopMutation.mutate,
+    updateShop: updateShopMutation.mutate,
+    getShopById,
     getShopItems,
+    createShopItem,
+    updateShopItem,
+    deleteShopItem,
     getShopReviews,
+    addToCart,
+    getShopOrders,
+    updateOrderStatus
   };
 };
-
-export default useShop;

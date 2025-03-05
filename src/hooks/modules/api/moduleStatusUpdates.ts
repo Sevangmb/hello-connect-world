@@ -2,14 +2,22 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ModuleStatus } from '../types';
 import { updateModuleCache } from './moduleStatusCore';
+import { isAdminModule } from './moduleStatusCore';
 
 /**
  * Update a module's status in the database
  */
 export const updateModuleStatusInDb = async (
   moduleId: string, 
-  status: ModuleStatus
+  status: ModuleStatus,
+  isAdminModuleCheck = false
 ): Promise<boolean> => {
+  // Admin module special handling
+  if (isAdminModuleCheck) {
+    console.log('Admin module cannot be disabled');
+    return false;
+  }
+
   try {
     const { error, data } = await supabase
       .from('app_modules')
@@ -44,8 +52,15 @@ export const updateModuleStatusInDb = async (
 export const updateFeatureStatusInDb = async (
   moduleCode: string, 
   featureCode: string, 
-  isEnabled: boolean
+  isEnabled: boolean,
+  isAdminModuleCheck = false
 ): Promise<boolean> => {
+  // Admin module special handling
+  if (isAdminModuleCheck) {
+    console.log('Admin module features cannot be disabled');
+    return false;
+  }
+
   try {
     const { error } = await supabase
       .from('module_features')

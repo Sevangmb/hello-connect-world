@@ -1,103 +1,116 @@
 
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useShop } from "@/hooks/useShop";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CreateShopForm from "./CreateShopForm";
-import { ShopSettings } from "./ShopSettings";
+import AddItemForm from "./AddItemForm";
 import ShopItemsList from "./ShopItemsList";
-import { AddItemForm } from "./AddItemForm";
-import { useNavigate, useParams } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft } from 'lucide-react';
-import ShopOrdersList from './ShopOrdersList';
+import ShopOrdersList from "./ShopOrdersList";
+import ShopSettings from "./ShopSettings";
 
-interface ShopDashboardProps {
-  userId?: string;
-}
-
-const ShopDashboard: React.FC<ShopDashboardProps> = ({ userId }) => {
-  const [tab, setTab] = useState<"items" | "orders" | "settings">("items");
+export default function ShopDashboard() {
   const { user } = useAuth();
-  const { shop, isShopLoading, refetchShop } = useShop(user?.id);
+  const { shop, isShopLoading, refetchShop } = useShop();
   const navigate = useNavigate();
-  const { shopId } = useParams<{ shopId: string }>();
-
-  useEffect(() => {
-    if (shopId === 'new' && shop) {
-      navigate(`/profile/shop/${shop.id}`);
-    }
-  }, [shop, navigate, shopId]);
+  const [activeTab, setActiveTab] = useState("overview");
 
   if (isShopLoading) {
     return (
-      <div className="container py-10">
-        <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate('/profile')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour au profil
-          </Button>
-        </div>
-        <div className="grid gap-4">
-          <Skeleton className="h-10 w-[160px]" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-10 w-[240px]" />
-          <div className="grid grid-cols-3 gap-4">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </div>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   if (!shop) {
-    return (
-      <div className="container py-10">
-        <div className="mb-4">
-          <Button variant="ghost" onClick={() => navigate('/profile')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour au profil
-          </Button>
-        </div>
-        <CreateShopForm />
-      </div>
-    );
+    return <CreateShopForm onSuccess={() => refetchShop()} />;
   }
 
   return (
-    <div className="container py-10">
-      <div className="mb-4">
-        <Button variant="ghost" onClick={() => navigate('/profile')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour au profil
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{shop.name}</h1>
+          <p className="text-muted-foreground">{shop.description}</p>
+        </div>
+        <Button
+          onClick={() => navigate(`/shop/${shop.id}`)}
+          variant="outline"
+        >
+          Voir ma boutique
         </Button>
       </div>
-      <Tabs defaultValue="items" className="w-full">
-        <TabsList>
-          <TabsTrigger value="items" onClick={() => setTab("items")}>Articles</TabsTrigger>
-          <TabsTrigger value="orders" onClick={() => setTab("orders")}>Commandes</TabsTrigger>
-          <TabsTrigger value="settings" onClick={() => setTab("settings")}>Paramètres</TabsTrigger>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4 w-full md:w-auto">
+          <TabsTrigger value="overview">Aperçu</TabsTrigger>
+          <TabsTrigger value="products">Produits</TabsTrigger>
+          <TabsTrigger value="orders">Commandes</TabsTrigger>
+          <TabsTrigger value="settings">Paramètres</TabsTrigger>
         </TabsList>
-        <TabsContent value="items">
-          <div className="grid gap-4">
-            <AddItemForm shopId={shop.id} />
-            <ShopItemsList shopId={shop.id} />
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total des ventes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0 €</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Produits
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Commandes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
-        <TabsContent value="orders">
+
+        <TabsContent value="products" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ajouter un produit</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AddItemForm shopId={shop.id} />
+            </CardContent>
+          </Card>
+
+          <ShopItemsList shopId={shop.id} />
+        </TabsContent>
+
+        <TabsContent value="orders" className="space-y-4">
           <ShopOrdersList shopId={shop.id} />
         </TabsContent>
-        <TabsContent value="settings">
-          {tab === 'settings' && (
-            <ShopSettings shopId={shop.id} />
-          )}
+
+        <TabsContent value="settings" className="space-y-4">
+          <ShopSettings shop={shop} onUpdate={() => refetchShop()} />
         </TabsContent>
       </Tabs>
     </div>
   );
-};
-
-export default ShopDashboard;
+}

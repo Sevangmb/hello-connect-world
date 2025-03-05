@@ -70,8 +70,20 @@ export const checkModuleDegradedAsync = async (moduleCode: string): Promise<bool
 /**
  * Check if a feature is enabled (asynchronous)
  */
-export const checkFeatureEnabledAsync = async (moduleCode: string, featureCode: string): Promise<boolean> => {
+export const checkFeatureEnabledAsync = async (
+  moduleCode: string, 
+  featureCode: string,
+  isModuleActiveFunc?: (moduleCode: string) => Promise<boolean>
+): Promise<boolean> => {
   try {
+    // Check if module is active first if provided
+    if (isModuleActiveFunc) {
+      const isActive = await isModuleActiveFunc(moduleCode);
+      if (!isActive) {
+        return false;
+      }
+    }
+
     const { data, error } = await supabase
       .from('module_features')
       .select('is_enabled')

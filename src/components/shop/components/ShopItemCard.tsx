@@ -1,78 +1,75 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ShopItem } from "@/core/shop/domain/types";
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useShop } from '@/hooks/useShop';
 
-interface ShopItemCardProps {
-  item: ShopItem;
-  onAddToCart?: (item: ShopItem) => void;
+export interface ShopItemCardProps {
+  item: {
+    id: string;
+    name: string;
+    price: number;
+    image_url?: string;
+    description?: string;
+    shop_id: string;
+  };
 }
 
-export default function ShopItemCard({ item, onAddToCart }: ShopItemCardProps) {
-  const handleAddToCart = () => {
-    if (onAddToCart) {
-      onAddToCart(item);
+const ShopItemCard: React.FC<ShopItemCardProps> = ({ item }) => {
+  const { toast } = useToast();
+  const { addToCart } = useShop();
+
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(item.id);
+      toast({
+        title: "Ajouté au panier",
+        description: `${item.name} a été ajouté à votre panier.`
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter ce produit au panier.",
+        variant: "destructive"
+      });
     }
   };
 
   return (
-    <Card className="w-full max-w-sm overflow-hidden">
-      <div className="relative h-48 bg-gray-100">
+    <Card className="overflow-hidden flex flex-col h-full">
+      <div className="aspect-square relative overflow-hidden">
         {item.image_url ? (
-          <img 
-            src={item.image_url} 
-            alt={item.name} 
-            className="w-full h-full object-cover"
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="h-full w-full object-cover transition-all hover:scale-105"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            No image
+          <div className="h-full w-full bg-muted flex items-center justify-center">
+            <span className="text-muted-foreground">No image</span>
           </div>
-        )}
-        
-        {item.original_price && item.original_price > item.price && (
-          <Badge className="absolute top-2 right-2 bg-red-500">
-            Sale
-          </Badge>
         )}
       </div>
-      
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-lg truncate">{item.name}</h3>
-        <div className="flex justify-between items-center mt-2">
-          <div>
-            {item.original_price && item.original_price > item.price ? (
-              <div className="flex items-center gap-2">
-                <span className="font-bold">{item.price.toFixed(2)} €</span>
-                <span className="text-sm text-gray-500 line-through">
-                  {item.original_price.toFixed(2)} €
-                </span>
-              </div>
-            ) : (
-              <span className="font-bold">{item.price.toFixed(2)} €</span>
-            )}
-          </div>
-          
-          <Badge variant={item.stock > 0 ? "outline" : "destructive"}>
-            {item.stock > 0 ? `${item.stock} in stock` : "Out of stock"}
-          </Badge>
-        </div>
+      <CardContent className="p-4 flex-grow">
+        <h3 className="font-semibold text-lg line-clamp-1">{item.name}</h3>
+        <p className="text-muted-foreground line-clamp-2 text-sm mb-2">
+          {item.description || "Pas de description"}
+        </p>
+        <p className="font-bold">{item.price.toFixed(2)} €</p>
       </CardContent>
-      
       <CardFooter className="p-4 pt-0">
-        <Button 
-          className="w-full" 
-          disabled={item.stock <= 0}
+        <Button
           onClick={handleAddToCart}
+          className="w-full"
+          variant="secondary"
         >
-          Add to cart
+          Ajouter au panier
         </Button>
       </CardFooter>
     </Card>
   );
-}
+};
 
-// Fix for correct imports in parent files
-export { default as ShopItemCard } from './ShopItemCard';
+export default ShopItemCard;

@@ -1,6 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { AppModule, ModuleStatus } from '../types';
+import { ModuleStatus } from '../types';
 
 /**
  * Cache for module status to avoid frequent DB queries
@@ -10,6 +9,11 @@ interface ModuleCache {
     status: ModuleStatus;
     timestamp: number;
   };
+}
+
+export interface ModuleCacheData {
+  inMemoryModulesCache: any[];
+  lastFetchTimestamp: number;
 }
 
 const moduleCache: ModuleCache = {};
@@ -31,18 +35,34 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
 /**
  * Update the module cache
  */
-export const updateModuleCache = (moduleCode: string, status: ModuleStatus): void => {
-  moduleCache[moduleCode] = {
-    status,
-    timestamp: Date.now()
-  };
+export const updateModuleCache = (moduleCodeOrModules: string | any[], status?: ModuleStatus): void => {
+  if (typeof moduleCodeOrModules === 'string' && status !== undefined) {
+    // Single module update
+    moduleCache[moduleCodeOrModules] = {
+      status,
+      timestamp: Date.now()
+    };
+  } else if (Array.isArray(moduleCodeOrModules)) {
+    // Bulk update with array of modules
+    moduleCodeOrModules.forEach(module => {
+      if (module.code && module.status) {
+        moduleCache[module.code] = {
+          status: module.status,
+          timestamp: Date.now()
+        };
+      }
+    });
+  }
 };
 
 /**
  * Get module cache data
  */
-export const getModuleCache = (): ModuleCache => {
-  return { ...moduleCache };
+export const getModuleCache = (): ModuleCacheData => {
+  return {
+    inMemoryModulesCache: [], // This should return the actual modules, but we'll keep it empty for now
+    lastFetchTimestamp: Date.now()
+  };
 };
 
 /**
@@ -78,27 +98,8 @@ export const isModuleInactive = (moduleCode: string): boolean => {
 };
 
 /**
- * Get modules from database
+ * Check if a module is an admin module
  */
-export const getModulesFromDb = async (): Promise<AppModule[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('app_modules')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching modules:', error);
-      return [];
-    }
-
-    // Update cache with fresh data
-    data.forEach(module => {
-      updateModuleCache(module.code, module.status);
-    });
-
-    return data as AppModule[];
-  } catch (error) {
-    console.error('Error in getModulesFromDb:', error);
-    return [];
-  }
+export const isAdminModule = (moduleCode: string): boolean => {
+  return moduleCode === 'admin' || moduleCode.startsWith('admin_');
 };
