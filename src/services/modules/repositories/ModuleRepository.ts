@@ -108,7 +108,12 @@ export class ModuleRepository {
         throw error;
       }
       
-      return data as AppModule;
+      return {
+        ...data,
+        version: data.version || "1.0.0",
+        is_admin: data.is_admin || false,
+        priority: data.priority || 0
+      } as AppModule;
     } catch (error) {
       console.error(`Erreur lors de la récupération du module ${moduleCode}:`, error);
       throw error;

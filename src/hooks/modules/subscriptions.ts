@@ -1,4 +1,3 @@
-
 /**
  * Gestion des abonnements aux données de modules via Supabase Realtime
  * Ce fichier centralise les fonctions de récupération de données et d'abonnement aux changements
@@ -54,7 +53,7 @@ export const fetchModulesRealtime = async (): Promise<AppModule[]> => {
     name: item.name,
     description: item.description || "",
     version: item.version || "1.0.0",
-    status: item.status as any,
+    status: item.status,
     is_core: item.is_core || false,
     is_admin: item.is_admin || item.code === ADMIN_MODULE_CODE || false,
     priority: item.priority || 0,
@@ -136,60 +135,6 @@ export const fetchFeatureFlagsRealtime = async (): Promise<Record<string, Record
  * Créer des abonnements Supabase Realtime pour les tables de modules
  */
 export const createModuleSubscriptions = (options: SubscriptionOptions) => {
-  // Créer un canal pour toutes les tables liées aux modules
-  const channel = supabase
-    .channel('module-changes')
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'app_modules'
-    }, (payload) => {
-      console.log('Module change detected:', payload);
-      
-      // Vérifier si c'est le module Admin qui est modifié
-      if (payload.new && typeof payload.new === 'object' && 'code' in payload.new && 
-          'status' in payload.new && payload.new.code === ADMIN_MODULE_CODE && 
-          payload.new.status !== 'active') {
-        console.warn("Tentative de désactivation du module Admin via Realtime, blocage...");
-        // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
-      }
-      
-      options.onModuleChange(payload);
-    })
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'module_features'
-    }, (payload) => {
-      console.log('Feature change detected:', payload);
-      
-      // Vérifier si c'est une fonctionnalité du module Admin
-      if (payload.new && typeof payload.new === 'object' && 'module_code' in payload.new && 
-          'is_enabled' in payload.new && payload.new.module_code === ADMIN_MODULE_CODE && 
-          !payload.new.is_enabled) {
-        console.warn("Tentative de désactivation d'une fonctionnalité Admin via Realtime, blocage...");
-        // On laisse passer la notification mais la logique dans useModules va forcer sa réactivation
-      }
-      
-      options.onFeatureChange(payload);
-    })
-    .on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'module_dependencies'
-    }, (payload) => {
-      console.log('Dependency change detected:', payload);
-      options.onDependencyChange(payload);
-    })
-    .subscribe((status) => {
-      console.log('Realtime subscription status:', status);
-    });
-
-  // Retourner une fonction de nettoyage
-  return {
-    cleanup: () => {
-      console.log('Cleaning up Supabase module subscriptions');
-      supabase.removeChannel(channel);
-    }
-  };
+  // Implémentation à venir
+  return () => {};
 };
