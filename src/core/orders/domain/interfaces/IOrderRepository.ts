@@ -8,7 +8,7 @@ export interface IOrderRepository {
   /**
    * Crée une nouvelle commande
    */
-  createOrder(params: CreateOrderParams): Promise<{ success: boolean; orderId?: string; error?: string; }>;
+  createOrder(params: CreateOrderParams): Promise<Order>;
   
   /**
    * Obtient une commande par son ID

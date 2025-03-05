@@ -25,6 +25,7 @@ export class OrderService {
    */
   async createOrder(params: CreateOrderParams): Promise<Order | null> {
     try {
+      // Appeler le repository pour créer la commande
       const order = await this.repository.createOrder(params);
       
       if (order) {
@@ -48,12 +49,6 @@ export class OrderService {
       if (!order) {
         console.warn(`Commande ${orderId} non trouvée`);
         return null;
-      }
-      
-      // Charger les articles si nécessaire
-      if (order.items.length === 0) {
-        const items = await this.repository.getOrderItems(orderId);
-        order.items = items;
       }
       
       return order;

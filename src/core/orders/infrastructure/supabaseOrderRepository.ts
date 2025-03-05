@@ -1,18 +1,18 @@
 
+/**
+ * Implémentation du repository des commandes utilisant Supabase
+ */
 import { supabase } from '@/integrations/supabase/client';
 import { IOrderRepository } from '../domain/interfaces/IOrderRepository';
 import { Order, OrderItem, OrderStatus, PaymentStatus, ShippingStatus, CreateOrderParams, ShippingAddress, OrderFilter } from '../domain/types';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { ORDER_EVENTS } from '../domain/events';
 
-/**
- * Implémentation du repository des commandes utilisant Supabase
- */
 export class SupabaseOrderRepository implements IOrderRepository {
   /**
    * Créer une nouvelle commande
    */
-  async createOrder(params: CreateOrderParams): Promise<{ success: boolean; orderId?: string; error?: string; }> {
+  async createOrder(params: CreateOrderParams): Promise<Order> {
     try {
       // Calculer le montant total
       const totalAmount = params.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -29,7 +29,8 @@ export class SupabaseOrderRepository implements IOrderRepository {
         commission_amount: params.commissionAmount || 0,
         shipping_cost: params.shippingCost || 0,
         transaction_type: params.transactionType || 'p2p',
-        payment_method: params.paymentMethod || 'stripe'
+        payment_method: params.paymentMethod || 'stripe',
+        delivery_type: params.deliveryType || 'shipping'
       };
       
       // Ajouter l'adresse de livraison si présente
@@ -41,12 +42,12 @@ export class SupabaseOrderRepository implements IOrderRepository {
       const { data: order, error } = await supabase
         .from('orders')
         .insert(orderData)
-        .select('id')
+        .select('*')
         .single();
 
       if (error) {
         console.error('Erreur lors de la création de commande:', error);
-        return { success: false, error: error.message };
+        throw new Error(error.message);
       }
 
       // Insérer les articles de la commande
@@ -67,7 +68,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
         // Tentative de suppression de la commande incomplète
         await supabase.from('orders').delete().eq('id', order.id);
         
-        return { success: false, error: itemsError.message };
+        throw new Error(itemsError.message);
       }
 
       // Événement de création de commande
@@ -78,13 +79,39 @@ export class SupabaseOrderRepository implements IOrderRepository {
         totalAmount
       });
 
-      return {
-        success: true,
-        orderId: order.id
+      // Construire et retourner l'objet Order complet
+      const createdOrder: Order = {
+        id: order.id,
+        buyerId: order.buyer_id,
+        sellerId: order.seller_id,
+        status: order.status as OrderStatus,
+        paymentStatus: order.payment_status as PaymentStatus,
+        shippingStatus: order.shipping_status as ShippingStatus,
+        totalAmount: order.total_amount,
+        commissionAmount: order.commission_amount,
+        shippingCost: order.shipping_cost,
+        createdAt: order.created_at,
+        confirmedAt: order.confirmed_at,
+        cancelledAt: order.cancelled_at,
+        transactionType: order.transaction_type,
+        paymentMethod: order.payment_method,
+        deliveryType: order.delivery_type || 'shipping',
+        shippingRequired: order.shipping_required,
+        items: []
       };
+      
+      if (order.shipping_address) {
+        createdOrder.shippingAddress = order.shipping_address as unknown as ShippingAddress;
+      }
+
+      // Récupérer les articles nouvellement insérés
+      const items = await this.getOrderItems(order.id);
+      createdOrder.items = items;
+      
+      return createdOrder;
     } catch (error: any) {
       console.error('Exception lors de la création de commande:', error);
-      return { success: false, error: error.message || 'Erreur de création de commande' };
+      throw new Error(error.message || 'Erreur de création de commande');
     }
   }
 
@@ -99,7 +126,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           id, buyer_id, seller_id, total_amount, status, payment_status, 
           shipping_status, shipping_required, shipping_address, 
           commission_amount, shipping_cost, created_at, confirmed_at, 
-          cancelled_at, transaction_type, payment_method
+          cancelled_at, transaction_type, payment_method, delivery_type
         `)
         .eq('id', orderId)
         .single();
@@ -126,7 +153,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
         cancelledAt: data.cancelled_at,
         transactionType: data.transaction_type,
         paymentMethod: data.payment_method,
-        deliveryType: 'shipping', // Valeur par défaut
+        deliveryType: data.delivery_type || 'shipping',
         items: []
       };
       
@@ -136,36 +163,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
       }
 
       // Récupérer les articles de la commande
-      const { data: orderItemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          id, shop_item_id, quantity, price_at_time,
-          shop_items:shop_items(
-            id, price, shop_id,
-            clothes:clothes(name, image_url, brand, category, size)
-          )
-        `)
-        .eq('order_id', orderId);
-
-      if (itemsError) {
-        console.error('Erreur lors de la récupération des articles de commande:', itemsError);
-      } else if (orderItemsData) {
-        // Mapper les articles
-        order.items = orderItemsData.map(item => {
-          const orderItem: OrderItem = {
-            id: item.id,
-            shopItemId: item.shop_item_id,
-            quantity: item.quantity,
-            price: item.price_at_time,
-            productName: item.shop_items?.clothes?.name || 'Article sans nom',
-            imageUrl: item.shop_items?.clothes?.image_url || null,
-            brand: item.shop_items?.clothes?.brand || null,
-            category: item.shop_items?.clothes?.category || null,
-            size: item.shop_items?.clothes?.size || null
-          };
-          return orderItem;
-        });
-      }
+      order.items = await this.getOrderItems(orderId);
 
       eventBus.publish(ORDER_EVENTS.ORDER_FETCHED, { orderId });
       
@@ -173,6 +171,52 @@ export class SupabaseOrderRepository implements IOrderRepository {
     } catch (error: any) {
       console.error('Exception lors de la récupération de commande:', error);
       return null;
+    }
+  }
+
+  /**
+   * Récupère les articles d'une commande
+   */
+  async getOrderItems(orderId: string): Promise<OrderItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('order_items')
+        .select(`
+          id, shop_item_id, quantity, price_at_time,
+          shop_items:shop_items(
+            id, price, shop_id,
+            clothes(name, image_url, brand, category, size)
+          )
+        `)
+        .eq('order_id', orderId);
+        
+      if (error) {
+        console.error('Erreur lors de la récupération des articles:', error);
+        return [];
+      }
+      
+      return data.map(item => {
+        const orderItem: OrderItem = {
+          id: item.id,
+          shopItemId: item.shop_item_id,
+          quantity: item.quantity,
+          price: item.price_at_time
+        };
+        
+        // Ajouter les propriétés supplémentaires si disponibles
+        if (item.shop_items?.clothes) {
+          orderItem.productName = item.shop_items.clothes.name || 'Article sans nom';
+          orderItem.imageUrl = item.shop_items.clothes.image_url || null;
+          orderItem.brand = item.shop_items.clothes.brand || null;
+          orderItem.category = item.shop_items.clothes.category || null;
+          orderItem.size = item.shop_items.clothes.size || null;
+        }
+        
+        return orderItem;
+      });
+    } catch (error: any) {
+      console.error('Exception lors de la récupération des articles:', error);
+      return [];
     }
   }
 
@@ -239,7 +283,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           id, buyer_id, seller_id, total_amount, status, payment_status, 
           shipping_status, shipping_required, shipping_address, 
           commission_amount, shipping_cost, created_at, confirmed_at, 
-          cancelled_at, transaction_type, payment_method
+          cancelled_at, transaction_type, payment_method, delivery_type
         `)
         .eq('buyer_id', buyerId);
       
@@ -288,7 +332,9 @@ export class SupabaseOrderRepository implements IOrderRepository {
       }
       
       // Mapper les commandes
-      const orders = data.map(item => {
+      const orders: Order[] = [];
+      
+      for (const item of data) {
         const order: Order = {
           id: item.id,
           buyerId: item.buyer_id,
@@ -305,7 +351,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
-          deliveryType: 'shipping', // Valeur par défaut
+          deliveryType: item.delivery_type || 'shipping',
           items: []
         };
         
@@ -314,81 +360,15 @@ export class SupabaseOrderRepository implements IOrderRepository {
           order.shippingAddress = item.shipping_address as unknown as ShippingAddress;
         }
         
-        return order;
-      });
-      
-      // Récupérer les articles pour chaque commande
-      for (const order of orders) {
-        const { data: orderItemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            id, shop_item_id, quantity, price_at_time,
-            shop_items:shop_items(
-              id, price, shop_id,
-              clothes:clothes(name, image_url, brand, category, size)
-            )
-          `)
-          .eq('order_id', order.id);
+        // Récupérer les articles pour cette commande
+        order.items = await this.getOrderItems(item.id);
         
-        if (!itemsError && orderItemsData) {
-          order.items = orderItemsData.map(item => {
-            const orderItem: OrderItem = {
-              id: item.id,
-              shopItemId: item.shop_item_id,
-              quantity: item.quantity,
-              price: item.price_at_time,
-              productName: item.shop_items?.clothes?.name || 'Article sans nom',
-              imageUrl: item.shop_items?.clothes?.image_url || null,
-              brand: item.shop_items?.clothes?.brand || null,
-              category: item.shop_items?.clothes?.category || null,
-              size: item.shop_items?.clothes?.size || null
-            };
-            return orderItem;
-          });
-        }
+        orders.push(order);
       }
       
       return orders;
     } catch (error: any) {
       console.error('Exception lors de la récupération des commandes acheteur:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Récupère les articles d'une commande
-   */
-  async getOrderItems(orderId: string): Promise<OrderItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('order_items')
-        .select(`
-          id, shop_item_id, quantity, price_at_time,
-          shop_items:shop_items(
-            id, price, shop_id,
-            clothes:clothes(name, image_url, brand, category, size)
-          )
-        `)
-        .eq('order_id', orderId);
-        
-      if (error) {
-        console.error('Erreur lors de la récupération des articles:', error);
-        return [];
-      }
-      
-      return data.map(item => ({
-        id: item.id,
-        shopItemId: item.shop_item_id,
-        quantity: item.quantity,
-        price: item.price_at_time,
-        productName: item.shop_items?.clothes?.name || 'Article sans nom',
-        imageUrl: item.shop_items?.clothes?.image_url || null,
-        brand: item.shop_items?.clothes?.brand || null,
-        category: item.shop_items?.clothes?.category || null,
-        size: item.shop_items?.clothes?.size || null
-      }));
-    } catch (error: any) {
-      console.error('Exception lors de la récupération des articles:', error);
       return [];
     }
   }
@@ -404,7 +384,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           id, buyer_id, seller_id, total_amount, status, payment_status, 
           shipping_status, shipping_required, shipping_address, 
           commission_amount, shipping_cost, created_at, confirmed_at, 
-          cancelled_at, transaction_type, payment_method
+          cancelled_at, transaction_type, payment_method, delivery_type
         `)
         .eq('seller_id', sellerId);
       
@@ -453,7 +433,9 @@ export class SupabaseOrderRepository implements IOrderRepository {
       }
       
       // Mapper les commandes
-      const orders = data.map(item => {
+      const orders: Order[] = [];
+      
+      for (const item of data) {
         const order: Order = {
           id: item.id,
           buyerId: item.buyer_id,
@@ -470,7 +452,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
-          deliveryType: 'shipping', // Valeur par défaut
+          deliveryType: item.delivery_type || 'shipping',
           items: []
         };
         
@@ -479,38 +461,10 @@ export class SupabaseOrderRepository implements IOrderRepository {
           order.shippingAddress = item.shipping_address as unknown as ShippingAddress;
         }
         
-        return order;
-      });
-      
-      // Récupérer les articles pour chaque commande
-      for (const order of orders) {
-        const { data: orderItemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            id, shop_item_id, quantity, price_at_time,
-            shop_items:shop_items(
-              id, price, shop_id,
-              clothes:clothes(name, image_url, brand, category, size)
-            )
-          `)
-          .eq('order_id', order.id);
+        // Récupérer les articles pour cette commande
+        order.items = await this.getOrderItems(item.id);
         
-        if (!itemsError && orderItemsData) {
-          order.items = orderItemsData.map(item => {
-            const orderItem: OrderItem = {
-              id: item.id,
-              shopItemId: item.shop_item_id,
-              quantity: item.quantity,
-              price: item.price_at_time,
-              productName: item.shop_items?.clothes?.name || 'Article sans nom',
-              imageUrl: item.shop_items?.clothes?.image_url || null,
-              brand: item.shop_items?.clothes?.brand || null,
-              category: item.shop_items?.clothes?.category || null,
-              size: item.shop_items?.clothes?.size || null
-            };
-            return orderItem;
-          });
-        }
+        orders.push(order);
       }
       
       return orders;
@@ -537,6 +491,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
       if (updates.shippingAddress) dbUpdates.shipping_address = updates.shippingAddress;
       if (updates.shippingRequired !== undefined) dbUpdates.shipping_required = updates.shippingRequired;
       if (updates.paymentMethod) dbUpdates.payment_method = updates.paymentMethod;
+      if (updates.deliveryType) dbUpdates.delivery_type = updates.deliveryType;
       if (updates.stripePaymentIntentId) dbUpdates.stripe_payment_intent_id = updates.stripePaymentIntentId;
       if (updates.stripeSessionId) dbUpdates.stripe_session_id = updates.stripeSessionId;
       
