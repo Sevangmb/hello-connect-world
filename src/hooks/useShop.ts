@@ -1,132 +1,324 @@
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getShopService } from "@/core/shop/infrastructure/ShopServiceProvider";
-import { Shop, ShopItem, ShopStatus } from "@/core/shop/domain/types";
-import { useToast } from "./use-toast";
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+import { toast } from '@/hooks/use-toast';
+import { Shop, ShopItem, ShopStatus, Order, ShopSettings, ShopReview } from '@/core/shop/domain/types';
 
-/**
- * Hook pour la gestion des boutiques
- */
-export const useShop = (shopId?: string, userId?: string | null) => {
-  const shopService = getShopService();
+export const useShop = (shopId?: string) => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  // Récupérer une boutique par son ID
-  const { 
+  const [isShopOwner, setIsShopOwner] = useState(false);
+
+  // Get shop by ID
+  const {
     data: shop,
     isLoading: isShopLoading,
-    refetch: refetchShop
+    refetch: refetchShop,
+    error: shopError
   } = useQuery({
     queryKey: ['shop', shopId],
-    queryFn: () => shopService.getShopById(shopId!),
-    enabled: !!shopId,
+    queryFn: async () => {
+      if (!shopId) return null;
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*, profiles:user_id(username, full_name)')
+        .eq('id', shopId)
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
+    },
+    enabled: !!shopId
   });
-  
-  // Récupérer la boutique de l'utilisateur connecté
-  const { 
+
+  // Check if current user is the shop owner
+  const isCurrentUserShopOwner = user?.id === shop?.user_id;
+
+  // Get user's shop
+  const {
     data: userShop,
     isLoading: isUserShopLoading,
     refetch: refetchUserShop
   } = useQuery({
-    queryKey: ['userShop', userId],
-    queryFn: () => shopService.getUserShop(userId!),
-    enabled: !!userId,
+    queryKey: ['userShop', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // No shop found
+        throw error;
+      }
+      return data as Shop;
+    },
+    enabled: !!user?.id
   });
-  
-  // Récupérer tous les articles d'une boutique
-  const { 
-    data: shopItems,
-    isLoading: areShopItemsLoading,
-    refetch: refetchShopItems
-  } = useQuery({
-    queryKey: ['shopItems', shopId],
-    queryFn: () => shopService.getShopItems(shopId!),
-    enabled: !!shopId,
-  });
-  
-  // Créer une boutique
+
+  // Create shop mutation
   const createShop = useMutation({
-    mutationFn: (shopData: { user_id: string; name: string; description: string; image_url?: string }) => {
-      return shopService.createShop({
-        ...shopData,
-        status: 'pending'
-      });
+    mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>) => {
+      const { data, error } = await supabase
+        .from('shops')
+        .insert(shopData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop'] });
+      queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
       toast({
-        title: "Boutique créée",
-        description: "Votre boutique a été créée et est en attente d'approbation"
+        title: 'Boutique créée',
+        description: 'Votre boutique a été créée avec succès',
+        variant: 'default',
       });
     },
     onError: (error) => {
       toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de créer la boutique"
+        title: 'Erreur',
+        description: `Impossible de créer la boutique: ${error.message}`,
+        variant: 'destructive',
       });
-      console.error("Erreur lors de la création de la boutique:", error);
     }
   });
-  
-  // Ajouter un article à la boutique
-  const addShopItem = useMutation({
-    mutationFn: (itemData: Omit<ShopItem, "id" | "created_at" | "updated_at">) => {
-      return shopService.createShopItem(itemData);
+
+  // Update shop info
+  const updateShopInfo = useMutation({
+    mutationFn: async ({ id, ...shopData }: Partial<Shop> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('shops')
+        .update(shopData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shop', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
+      toast({
+        title: 'Boutique mise à jour',
+        description: 'Les informations de votre boutique ont été mises à jour',
+        variant: 'default',
+      });
+    }
+  });
+
+  // Update shop status
+  const updateShopStatus = useMutation({
+    mutationFn: async ({ shopId, status }: { shopId: string; status: ShopStatus }) => {
+      const { data, error } = await supabase
+        .from('shops')
+        .update({ status })
+        .eq('id', shopId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shop', data.id] });
+      queryClient.invalidateQueries({ queryKey: ['shops'] });
+      toast({
+        title: 'Statut mis à jour',
+        description: `Le statut de la boutique a été changé à ${data.status}`,
+        variant: 'default',
+      });
+    }
+  });
+
+  // Get shop items
+  const getShopItems = useCallback(async (shopId: string) => {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select('*, clothes(name, description, image_url)')
+      .eq('shop_id', shopId);
+
+    if (error) throw error;
+    return data as ShopItem[];
+  }, []);
+
+  // Create shop item
+  const createShopItem = useMutation({
+    mutationFn: async (itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>) => {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .insert(itemData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ShopItem;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
+      toast({
+        title: 'Article ajouté',
+        description: 'L\'article a été ajouté à votre boutique',
+        variant: 'default',
+      });
+    }
+  });
+
+  // Update shop item status
+  const updateShopItemStatus = useMutation({
+    mutationFn: async ({ itemId, status }: { itemId: string; status: ShopItem['status'] }) => {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .update({ status })
+        .eq('id', itemId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ShopItem;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
+    }
+  });
+
+  // Remove shop item
+  const removeShopItem = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from('shop_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shopItems'] });
       toast({
-        title: "Article ajouté",
-        description: "L'article a été ajouté à votre boutique"
+        title: 'Article supprimé',
+        description: 'L\'article a été supprimé de votre boutique',
+        variant: 'default',
       });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'ajouter l'article"
-      });
-      console.error("Erreur lors de l'ajout de l'article:", error);
     }
   });
-  
-  // Mettre à jour le statut d'une boutique (admin)
-  const updateShopStatus = useMutation({
-    mutationFn: ({ shopId, status }: { shopId: string; status: ShopStatus }) => {
-      return shopService.updateShopStatus(shopId, status);
+
+  // Get shop reviews
+  const getShopReviews = useCallback(async (shopId: string) => {
+    const { data, error } = await supabase
+      .from('shop_reviews')
+      .select('*, profiles:user_id(username, full_name)')
+      .eq('shop_id', shopId);
+
+    if (error) throw error;
+    return data as ShopReview[];
+  }, []);
+
+  // Get shop orders
+  const getShopOrders = useCallback(async (shopId: string) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*)')
+      .eq('seller_id', shopId);
+
+    if (error) throw error;
+    return data as Order[];
+  }, []);
+
+  // Update order status
+  const updateOrderStatus = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: string; status: Order['status'] }) => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Order;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shop'] });
-      queryClient.invalidateQueries({ queryKey: ['shops'] });
+      queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
       toast({
-        title: "Statut mis à jour",
-        description: "Le statut de la boutique a été mis à jour"
+        title: 'Commande mise à jour',
+        description: 'Le statut de la commande a été mis à jour',
+        variant: 'default',
       });
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut"
-      });
-      console.error("Erreur lors de la mise à jour du statut:", error);
     }
   });
-  
+
+  // Get shop settings
+  const getShopSettings = useCallback(async (shopId: string) => {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .eq('shop_id', shopId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // No settings found
+      throw error;
+    }
+    return data as ShopSettings;
+  }, []);
+
+  // Update shop settings
+  const updateShopSettings = useMutation({
+    mutationFn: async (settings: Partial<ShopSettings> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('shop_settings')
+        .update(settings)
+        .eq('id', settings.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ShopSettings;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopSettings'] });
+      toast({
+        title: 'Paramètres mis à jour',
+        description: 'Les paramètres de votre boutique ont été mis à jour',
+        variant: 'default',
+      });
+    }
+  });
+
+  // Update shop owner status when shop data changes
+  useEffect(() => {
+    if (shop && user) {
+      setIsShopOwner(shop.user_id === user.id);
+    }
+  }, [shop, user]);
+
   return {
     shop,
     isShopLoading,
     refetchShop,
+    shopError,
+    isCurrentUserShopOwner,
     userShop,
     isUserShopLoading,
     refetchUserShop,
-    shopItems,
-    areShopItemsLoading,
-    refetchShopItems,
     createShop,
-    addShopItem,
-    updateShopStatus
+    updateShopInfo,
+    updateShopStatus,
+    getShopItems,
+    createShopItem,
+    updateShopItemStatus,
+    removeShopItem,
+    getShopReviews,
+    getShopOrders,
+    updateOrderStatus,
+    getShopSettings,
+    updateShopSettings
   };
 };

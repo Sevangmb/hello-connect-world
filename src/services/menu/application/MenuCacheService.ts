@@ -8,15 +8,15 @@ interface CacheItem {
 }
 
 class MenuCacheService {
-  private static cache: Record<string, CacheItem> = {};
+  private cache: Record<string, CacheItem> = {};
 
   getCache(key: string): MenuItem[] | null {
-    const cacheItem = MenuCacheService.cache[key];
+    const cacheItem = this.cache[key];
     if (!cacheItem) return null;
     
     const now = Date.now();
     if (now - cacheItem.timestamp > CACHE_VALIDITY_MS) {
-      delete MenuCacheService.cache[key];
+      delete this.cache[key];
       return null;
     }
     
@@ -24,18 +24,18 @@ class MenuCacheService {
   }
 
   setCache(key: string, items: MenuItem[]): void {
-    MenuCacheService.cache[key] = {
+    this.cache[key] = {
       items,
       timestamp: Date.now()
     };
   }
 
-  static clearCache(): void {
-    MenuCacheService.cache = {};
+  clearCache(): void {
+    this.cache = {};
   }
 
-  static invalidateCache(): void {
-    MenuCacheService.cache = {};
+  invalidateCache(): void {
+    this.cache = {};
   }
 }
 

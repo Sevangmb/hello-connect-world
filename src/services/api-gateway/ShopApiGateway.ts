@@ -1,72 +1,78 @@
 
 import { ShopService } from '@/core/shop/application/ShopService';
-import { ShopRepository } from '@/core/shop/infrastructure/ShopRepository';
-import { BaseApiGateway } from './BaseApiGateway';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order } from '@/core/shop/domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus } from '@/core/shop/domain/types';
 
-export class ShopApiGateway extends BaseApiGateway {
+class ShopApiGateway {
   private shopService: ShopService;
 
   constructor() {
-    super();
-    const shopRepository = new ShopRepository();
-    this.shopService = new ShopService(shopRepository);
+    this.shopService = new ShopService();
+  }
+
+  async initialize(): Promise<boolean> {
+    return await this.shopService.initialize();
   }
 
   // Shop operations
-  async createShop(shopData: any): Promise<Shop> {
-    return this.shopService.createShop(shopData);
+  async getShopById(id: string): Promise<Shop | null> {
+    return await this.shopService.getShopById(id);
   }
 
-  async getShopByUserId(userId: string): Promise<Shop | null> {
-    return this.shopService.getShopByUserId(userId);
+  async getUserShop(userId: string): Promise<Shop | null> {
+    return await this.shopService.getShopByUserId(userId);
   }
 
-  async updateShop(shopData: Partial<Shop> & { id: string }): Promise<Shop> {
-    return this.shopService.updateShop(shopData);
+  async createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop> {
+    return await this.shopService.createShop(shop);
   }
 
-  async getAllShops(): Promise<Shop[]> {
-    return this.shopService.getAllShops();
+  async updateShop(id: string, shop: Partial<Shop>): Promise<Shop> {
+    return await this.shopService.updateShop(id, shop);
+  }
+
+  async updateShopStatus(id: string, status: Shop['status']): Promise<boolean> {
+    return await this.shopService.updateShopStatus(id, status);
   }
 
   // Shop items operations
   async getShopItems(shopId: string): Promise<ShopItem[]> {
-    return this.shopService.getShopItems(shopId);
+    return await this.shopService.getShopItems(shopId);
   }
 
-  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
-    return this.shopService.createShopItem(itemData);
+  async createShopItem(item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
+    return await this.shopService.createShopItem(item);
   }
 
-  async updateShopItem(itemData: Partial<ShopItem> & { id: string }): Promise<ShopItem> {
-    return this.shopService.updateShopItem(itemData);
+  async updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem> {
+    return await this.shopService.updateShopItem(id, item);
   }
 
-  async deleteShopItem(itemId: string): Promise<void> {
-    return this.shopService.deleteShopItem(itemId);
+  async updateShopItemStatus(id: string, status: ShopItem['status']): Promise<boolean> {
+    return await this.shopService.updateShopItemStatus(id, status);
   }
 
-  // Shop settings operations
+  async deleteShopItem(id: string): Promise<boolean> {
+    return await this.shopService.deleteShopItem(id);
+  }
+
+  // Shop settings
   async getShopSettings(shopId: string): Promise<ShopSettings | null> {
-    return this.shopService.getShopSettings(shopId);
+    return await this.shopService.getShopSettings(shopId);
   }
 
-  async updateShopSettings(settings: Partial<ShopSettings> & { shop_id: string }): Promise<ShopSettings> {
-    return this.shopService.updateShopSettings(settings);
+  async updateShopSettings(id: string, settings: Partial<ShopSettings>): Promise<boolean> {
+    return await this.shopService.updateShopSettings(id, settings);
   }
 
-  // Shop orders
+  // Orders
   async getShopOrders(shopId: string): Promise<Order[]> {
-    return this.shopService.getShopOrders(shopId);
+    return await this.shopService.getShopOrders(shopId);
   }
 
-  async updateOrderStatus(orderId: string, status: string): Promise<Order> {
-    return this.shopService.updateOrderStatus(orderId, status);
-  }
-
-  // Shop reviews
-  async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    return this.shopService.getShopReviews(shopId);
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
+    return await this.shopService.updateOrderStatus(id, status);
   }
 }
+
+// Export a singleton instance
+export const shopApiGateway = new ShopApiGateway();

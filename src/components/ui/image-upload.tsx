@@ -1,106 +1,110 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Camera, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
-interface ImageUploadProps {
-  currentImageUrl: string | null;
-  onImageUploaded: (url: string) => void;
-  bucket: string;
+import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Upload, X } from 'lucide-react';
+
+export interface ImageUploadProps {
+  onUploading: (isUploading: boolean) => void;
+  onChange: (url: string) => void;
+  value?: string; // Add value prop
 }
 
-export const ImageUpload = ({ currentImageUrl, onImageUploaded, bucket }: ImageUploadProps) => {
-  const [uploading, setUploading] = useState(false);
-  const { toast } = useToast();
+export function ImageUpload({ onUploading, onChange, value }: ImageUploadProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show preview immediately 
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+    
+    // Set uploading state
+    setIsUploading(true);
+    onUploading(true);
+
     try {
-      setUploading(true);
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error("Vous devez sélectionner une image");
+      // Upload to Supabase Storage
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
       }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not found");
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      onImageUploaded(publicUrl);
       
-      toast({
-        title: "Image téléchargée",
-        description: "L'image a été téléchargée avec succès",
-      });
-    } catch (error: any) {
-      console.error("Error uploading image:", error.message);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de télécharger l'image",
-      });
+      const data = await response.json();
+      onChange(data.url);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      // Reset preview on error
+      setPreviewUrl(value || null);
     } finally {
-      setUploading(false);
+      setIsUploading(false);
+      onUploading(false);
+    }
+  };
+
+  const clearImage = () => {
+    setPreviewUrl(null);
+    onChange('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   return (
-    <div className="space-y-2">
-      <Label>Image</Label>
-      <div className="flex items-center gap-4">
-        {currentImageUrl && (
-          <img
-            src={currentImageUrl}
-            alt="Preview"
-            className="w-20 h-20 object-cover rounded-md"
-          />
-        )}
-        <div>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={uploadImage}
-            disabled={uploading}
-            className="hidden"
-            id="image-upload"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            asChild
-            disabled={uploading}
+    <div className="w-full">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+        ref={fileInputRef}
+      />
+      
+      <div className="flex flex-col items-center gap-4">
+        {previewUrl ? (
+          <div className="relative w-full">
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="w-full h-auto rounded-md object-cover max-h-[200px]"
+            />
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 h-8 w-8"
+              onClick={clearImage}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full h-[200px] border-dashed"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
           >
-            <label htmlFor="image-upload" className="cursor-pointer">
-              {uploading ? (
-                <>
-                  <Loader2 className="animate-spin mr-2" />
-                  Chargement...
-                </>
-              ) : (
-                <>
-                  <Camera className="w-4 h-4 mr-2" />
-                  {currentImageUrl ? "Changer l'image" : "Ajouter une image"}
-                </>
-              )}
-            </label>
+            <div className="flex flex-col items-center gap-2">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {isUploading ? 'Uploading...' : 'Click to upload image'}
+              </span>
+            </div>
           </Button>
-        </div>
+        )}
       </div>
     </div>
   );
-};
+}

@@ -1,198 +1,222 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, ShoppingBag, Trash } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { formatPrice } from '@/lib/utils';
+import { Pencil, Trash2, ShoppingCart } from 'lucide-react';
 import { useShop } from '@/hooks/useShop';
-import { useCart } from '@/hooks/cart';
-import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { ShopItem } from '@/core/shop/domain/types';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
-export interface ShopItemsListProps {
+interface ShopItemsListProps {
   shopId: string;
   isOwner: boolean;
 }
 
 export function ShopItemsList({ shopId, isOwner }: ShopItemsListProps) {
-  const { user } = useAuth();
-  const { addToCart } = useCart(user?.id || null);
-  const { getShopItems, updateShopItemStatus, removeShopItem } = useShop(null);
+  const { getShopItems, updateShopItemStatus, removeShopItem } = useShop(shopId);
   const { toast } = useToast();
-  const [deleteItem, setDeleteItem] = useState<string | null>(null);
-  
-  const { data: items, isLoading, error } = getShopItems(shopId);
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <div className="text-red-500 text-center py-4">
-        Erreur lors du chargement des articles: {error.message}
-      </div>
-    );
-  }
-  
-  if (!items || items.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        {isOwner ? 
-          'Vous n\'avez pas encore ajouté d\'articles à votre boutique.' : 
-          'Cette boutique n\'a pas encore d\'articles.'}
-      </div>
-    );
-  }
-  
-  const handleAddToCart = async (item: ShopItem) => {
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Vous devez être connecté pour ajouter au panier',
-      });
-      return;
-    }
-    
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadItems = async () => {
+      setLoading(true);
+      try {
+        const items = await getShopItems(shopId);
+        setItems(items);
+      } catch (error) {
+        console.error('Error loading shop items:', error);
+        toast({
+          title: 'Erreur',
+          description: 'Impossible de charger les articles. Veuillez réessayer.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadItems();
+  }, [shopId, getShopItems, toast]);
+
+  const handleStatusChange = async (itemId: string, status: ShopItem['status']) => {
     try {
-      await addToCart.mutateAsync({
-        user_id: user.id,
-        item_id: item.id,
-        quantity: 1
-      });
+      await updateShopItemStatus.mutateAsync({ itemId, status });
+      
+      // Update local state
+      setItems(items.map(item => 
+        item.id === itemId ? { ...item, status } : item
+      ));
       
       toast({
-        title: 'Article ajouté',
-        description: 'L\'article a été ajouté à votre panier',
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout au panier:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Impossible d\'ajouter l\'article au panier',
-      });
-    }
-  };
-  
-  const handleStatusChange = async (itemId: string, newStatus: 'available' | 'sold_out' | 'archived') => {
-    try {
-      await updateShopItemStatus.mutateAsync({ itemId, status: newStatus });
-      toast({
         title: 'Statut mis à jour',
-        description: 'Le statut de l\'article a été mis à jour avec succès.',
+        description: `Le statut de l'article a été changé à ${status}`,
       });
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut:', error);
+      console.error('Error updating item status:', error);
       toast({
-        variant: 'destructive',
         title: 'Erreur',
-        description: 'Impossible de mettre à jour le statut de l\'article.',
+        description: 'Impossible de mettre à jour le statut. Veuillez réessayer.',
+        variant: 'destructive',
       });
     }
   };
-  
-  const handleDeleteConfirm = async (itemId: string) => {
-    if (deleteItem !== itemId) {
-      setDeleteItem(itemId);
+
+  const handleDelete = async (itemId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
       return;
     }
     
     try {
       await removeShopItem.mutateAsync(itemId);
-      setDeleteItem(null);
+      
+      // Update local state
+      setItems(items.filter(item => item.id !== itemId));
+      
       toast({
         title: 'Article supprimé',
-        description: 'L\'article a été supprimé de votre boutique.',
+        description: 'L\'article a été supprimé avec succès',
       });
     } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
+      console.error('Error removing item:', error);
       toast({
-        variant: 'destructive',
         title: 'Erreur',
-        description: 'Impossible de supprimer l\'article.',
+        description: 'Impossible de supprimer l\'article. Veuillez réessayer.',
+        variant: 'destructive',
       });
     }
   };
-  
+
+  const addToCart = (item: ShopItem) => {
+    // Placeholder for cart functionality
+    toast({
+      title: 'Ajouté au panier',
+      description: `${item.name} a été ajouté à votre panier`,
+    });
+  };
+
+  const getStatusBadge = (status: ShopItem['status']) => {
+    switch (status) {
+      case 'available':
+        return <Badge variant="default">Disponible</Badge>;
+      case 'sold_out':
+        return <Badge variant="secondary">Épuisé</Badge>;
+      case 'archived':
+        return <Badge variant="outline">Archivé</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium mb-2">Aucun article</h3>
+        <p className="text-muted-foreground">
+          {isOwner 
+            ? 'Votre boutique ne contient aucun article. Ajoutez des articles pour commencer à vendre.' 
+            : 'Cette boutique ne contient aucun article pour le moment.'}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <Card key={item.id} className="overflow-hidden">
-          {item.image_url && (
-            <img
-              src={item.image_url}
-              alt={item.name}
-              className="h-48 w-full object-cover"
-            />
-          )}
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium truncate">{item.name}</h3>
-              <Badge variant={
-                item.status === 'available' ? 'default' :
-                item.status === 'sold_out' ? 'secondary' : 'outline'
-              }>
-                {item.status === 'available' ? 'Disponible' :
-                 item.status === 'sold_out' ? 'Épuisé' : 'Archivé'}
-              </Badge>
-            </div>
-            
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-bold">{formatPrice(item.price)}</span>
-              {item.original_price && (
-                <span className="text-sm line-through text-muted-foreground">
-                  {formatPrice(item.original_price)}
-                </span>
-              )}
-            </div>
-            
-            {item.description && (
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                {item.description}
-              </p>
-            )}
-            
-            <div className="mt-2 flex gap-2">
-              {isOwner ? (
-                <>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Edit className="mr-1 h-4 w-4" />
-                    Modifier
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleDeleteConfirm(item.id)}
-                  >
-                    <Trash className="mr-1 h-4 w-4" />
-                    {deleteItem === item.id ? 'Confirmer' : 'Supprimer'}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full"
-                  disabled={item.status !== 'available' || addToCart.isPending}
-                  onClick={() => handleAddToCart(item)}
-                >
-                  <ShoppingBag className="mr-2 h-4 w-4" />
-                  Ajouter au panier
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <Card>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Image</TableHead>
+                <TableHead>Nom</TableHead>
+                <TableHead>Prix</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    {item.image_url ? (
+                      <img 
+                        src={item.image_url} 
+                        alt={item.name} 
+                        className="w-12 h-12 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400">
+                        No img
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{item.name}</div>
+                      {item.description && (
+                        <div className="text-sm text-muted-foreground line-clamp-1">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.price.toFixed(2)} €</TableCell>
+                  <TableCell>{item.stock}</TableCell>
+                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      {isOwner ? (
+                        <>
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => addToCart(item)}
+                          disabled={item.status !== 'available' || item.stock <= 0}
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Ajouter
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

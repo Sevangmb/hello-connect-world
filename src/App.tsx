@@ -1,4 +1,3 @@
-
 import { Suspense, lazy, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -22,6 +21,8 @@ const preloadCriticalResources = () => {
   // Logo et images principales
   preloadImage('/lovable-uploads/9a2d6f53-d074-4690-bd16-a9c6c1e5f3c5.png');
 };
+
+export type ModuleStatus = 'active' | 'inactive' | 'degraded' | 'maintenance';
 
 export default function App() {
   useEffect(() => {
