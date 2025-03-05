@@ -2,94 +2,88 @@
 import { BaseApiGateway } from './BaseApiGateway';
 import { ShopService } from '@/core/shop/application/ShopService';
 import { ShopRepository } from '@/core/shop/infrastructure/ShopRepository';
+import { Shop, ShopItem, Order, ShopStatus, OrderStatus } from '@/core/shop/domain/types';
+import { IShopRepository } from '@/core/shop/domain/interfaces/IShopRepository';
 
-/**
- * API Gateway for shop-related operations
- */
 export class ShopApiGateway extends BaseApiGateway {
   private shopService: ShopService;
-
+  
   constructor() {
     super();
-    // Initialize ShopService with a repository
-    const shopRepository = new ShopRepository();
+    // Create a proper implementation of IShopRepository
+    const shopRepository: IShopRepository = new ShopRepository();
     this.shopService = new ShopService(shopRepository);
   }
-
+  
   /**
-   * Gets a shop by id
+   * Get shop by id
    */
-  async getShopById(id: string) {
+  getShopById(id: string) {
     return this.shopService.getShopById(id);
   }
-
+  
   /**
-   * Gets a shop by user id
+   * Get shop by user id
    */
-  async getShopByUserId(userId: string) {
-    return this.shopService.getUserShop(userId);
+  getShopByUserId(userId: string) {
+    return this.shopService.getShopByUserId(userId);
   }
-
+  
   /**
-   * Creates a new shop
+   * Create a new shop
    */
-  async createShop(shopData: any) {
+  createShop(shopData: Partial<Shop>) {
     return this.shopService.createShop(shopData);
   }
-
+  
   /**
-   * Updates shop information
+   * Update shop details
    */
-  async updateShop(shopData: any) {
-    return this.shopService.updateShop(shopData);
+  updateShop(id: string, shopData: Partial<Shop>) {
+    return this.shopService.updateShop(id, shopData);
   }
-
+  
   /**
-   * Updates shop status
+   * Update shop item
    */
-  async updateShopStatus(data: { id: string; status: string }) {
-    return this.shopService.updateShopStatus(data.id, data.status);
+  updateShopItem(id: string, itemData: Partial<ShopItem>) {
+    return this.shopService.updateShopItem(id, itemData);
   }
-
+  
   /**
-   * Gets shop items
+   * Delete shop item
    */
-  async getShopItems(shopId: string) {
-    return this.shopService.getShopItems(shopId);
+  deleteShopItem(itemId: string) {
+    return this.shopService.deleteShopItem(itemId);
   }
-
+  
   /**
-   * Gets shop orders
+   * Get shop settings
    */
-  async getShopOrders(shopId: string) {
-    return this.shopService.getShopOrders(shopId);
-  }
-
-  /**
-   * Updates an order status
-   */
-  async updateOrderStatus(orderId: string, status: string) {
-    return this.shopService.updateOrderStatus(orderId, status);
-  }
-
-  /**
-   * Gets shop reviews
-   */
-  async getShopReviews(shopId: string) {
-    return this.shopService.getShopReviews(shopId);
-  }
-
-  /**
-   * Gets shop settings
-   */
-  async getShopSettings(shopId: string) {
+  getShopSettings(shopId: string) {
     return this.shopService.getShopSettings(shopId);
   }
-
+  
   /**
-   * Updates shop settings
+   * Update shop settings
    */
-  async updateShopSettings(shopId: string, settings: any) {
+  updateShopSettings(shopId: string, settings: any) {
     return this.shopService.updateShopSettings(shopId, settings);
   }
+  
+  /**
+   * Update shop status
+   */
+  updateShopStatus(shopId: string, status: ShopStatus) {
+    return this.shopService.updateShopStatus(shopId, status);
+  }
+  
+  /**
+   * Update order status
+   */
+  updateOrderStatus(orderId: string, status: OrderStatus) {
+    return this.shopService.updateOrderStatus(orderId, status);
+  }
 }
+
+export const shopApiGateway = new ShopApiGateway();

@@ -1,21 +1,18 @@
-
 import React, { useState } from 'react';
 
 export interface ImageUploadProps {
+  value: string;
   onChange: (url: string) => void;
-  onUploading?: (isUploading: boolean) => void;
-  defaultValue?: string;
-  className?: string;
+  onUploading: (isUploading: boolean) => void;
 }
 
 export function ImageUpload({
+  value,
   onChange,
   onUploading,
-  defaultValue = '',
-  className = '',
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState(defaultValue);
+  const [preview, setPreview] = useState(value);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -43,7 +40,7 @@ export function ImageUpload({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative`}>
       {preview ? (
         <div className="relative w-full h-40 rounded-md overflow-hidden">
           <img src={preview} alt="Preview" className="w-full h-full object-cover" />

@@ -1,142 +1,84 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/hooks/useShop';
 import { ShopItem } from '@/core/shop/domain/types';
+import ShopItemCard from '@/components/shop/components/ShopItemCard';
+import ShopItemsFilter from '@/components/shop/components/ShopItemsFilter';
 
-export interface ShopItemsListProps {
-  shopId: string;
-}
+const ShopItemsList = ({ shopId }: { shopId: string }) => {
+  const { shop, isShopLoading, getShopItems } = useShop();
+  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [filterValue, setFilterValue] = useState('');
+  const [sortValue, setSortValue] = useState('newest');
 
-export default function ShopItemsList({ shopId }: ShopItemsListProps) {
-  const [items, setItems] = React.useState<ShopItem[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Mock implementation for the shop hooks
-  const getShopItems = async (shopId: string) => {
-    // Mock implementation
-    return [] as ShopItem[];
-  };
-  
-  const updateShopItemStatus = async (itemId: string, status: string) => {
-    // Mock implementation
-    return true;
-  };
-  
-  const removeShopItem = async (itemId: string) => {
-    // Mock implementation
-    return true;
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchItems = async () => {
+      setIsLoading(true);
       try {
-        setLoading(true);
-        const data = await getShopItems(shopId);
-        setItems(data);
-      } catch (err) {
-        setError('Failed to load shop items');
-        console.error(err);
+        const shopItems = await getShopItems(shopId);
+        setItems(shopItems);
+      } catch (error) {
+        console.error("Failed to fetch shop items:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchItems();
-  }, [shopId]);
+  }, [shopId, getShopItems]);
 
-  const handleStatusChange = async (itemId: string, status: string) => {
-    try {
-      await updateShopItemStatus(itemId, status);
-      // Refresh items after status change
-      const data = await getShopItems(shopId);
-      setItems(data);
-    } catch (err) {
-      setError('Failed to update item status');
-      console.error(err);
+  useEffect(() => {
+    if (!items) return;
+
+    let filteredItems = [...items];
+
+    // Apply filtering
+    if (filterValue) {
+      filteredItems = filteredItems.filter(item =>
+        item.name.toLowerCase().includes(filterValue.toLowerCase())
+      );
     }
-  };
 
-  const handleRemoveItem = async (itemId: string) => {
-    try {
-      await removeShopItem(itemId);
-      // Refresh items after removal
-      const data = await getShopItems(shopId);
-      setItems(data);
-    } catch (err) {
-      setError('Failed to remove item');
-      console.error(err);
+    // Apply sorting
+    switch (sortValue) {
+      case 'price-asc':
+        filteredItems.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        filteredItems.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        filteredItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'name-asc':
+        filteredItems.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        break;
     }
-  };
 
-  if (loading) {
-    return <div>Loading shop items...</div>;
-  }
+    setItems(filteredItems);
+  }, [filterValue, sortValue, items]);
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  if (items.length === 0) {
-    return <div>No items found in this shop.</div>;
+  if (isLoading) {
+    return <div>Loading items...</div>;
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Shop Items</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((item) => (
-          <div key={item.id} className="border rounded-md p-4">
-            <div className="aspect-w-16 aspect-h-9 mb-2">
-              {item.image_url ? (
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  className="object-cover h-48 w-full"
-                />
-              ) : (
-                <div className="bg-gray-100 flex items-center justify-center h-48">
-                  No image
-                </div>
-              )}
-            </div>
-            <h4 className="font-medium">{item.name}</h4>
-            <p className="text-sm text-gray-500">{item.description}</p>
-            <div className="flex justify-between mt-2">
-              <span className="font-semibold">${item.price.toFixed(2)}</span>
-              <span
-                className={
-                  item.stock > 0 ? "text-green-500" : "text-red-500"
-                }
-              >
-                {item.stock > 0 ? `${item.stock} in stock` : "Out of stock"}
-              </span>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                onClick={() =>
-                  handleStatusChange(
-                    item.id,
-                    item.status === "available" ? "sold_out" : "available"
-                  )
-                }
-                className="px-3 py-1 bg-blue-500 text-white rounded text-sm"
-              >
-                {item.status === "available" ? "Mark as Sold Out" : "Mark as Available"}
-              </button>
-              <button
-                onClick={() => handleRemoveItem(item.id)}
-                className="px-3 py-1 bg-red-500 text-white rounded text-sm"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
+    <div className="container mx-auto py-6">
+      <ShopItemsFilter 
+        filterValue={filterValue} 
+        onFilterChange={setFilterValue}
+        sortValue={sortValue} 
+        onSortChange={setSortValue}
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {items && items.map(item => (
+          <ShopItemCard key={item.id} item={item} />
         ))}
       </div>
     </div>
   );
-}
+};
 
-// Fix for correct imports in parent files
-export { default as ShopItemsList } from './ShopItemsList';
+export default ShopItemsList;

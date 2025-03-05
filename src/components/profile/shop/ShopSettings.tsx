@@ -15,7 +15,7 @@ export default function ShopSettings({ shopId }: ShopSettingsProps) {
   const { toast } = useToast();
   const [shopName, setShopName] = React.useState('');
   const [shopDescription, setShopDescription] = React.useState('');
-  const [shopImage, setShopImage] = React.useState('');
+  const [imageUrl, setImageUrl] = React.useState('');
   const [isUploading, setIsUploading] = React.useState(false);
   const [isGeneralInfoSaving, setIsGeneralInfoSaving] = React.useState(false);
   const [isPreferencesSaving, setIsPreferencesSaving] = React.useState(false);
@@ -74,7 +74,7 @@ export default function ShopSettings({ shopId }: ShopSettingsProps) {
     if (shop) {
       setShopName(shop.name);
       setShopDescription(shop.description);
-      setShopImage(shop.image_url || '');
+      setImageUrl(shop.image_url || '');
     }
   }, [shop]);
 
@@ -121,7 +121,7 @@ export default function ShopSettings({ shopId }: ShopSettingsProps) {
       const result = await updateShopInfo(shopId, {
         name: shopName,
         description: shopDescription,
-        image_url: shopImage,
+        image_url: imageUrl,
       });
 
       if (result) {
@@ -201,10 +201,10 @@ export default function ShopSettings({ shopId }: ShopSettingsProps) {
         <form onSubmit={handleSaveGeneralInfo} className="space-y-4">
           <div className="space-y-2">
             <label className="block text-sm font-medium">Shop Image</label>
-            <ImageUpload
-              onChange={setShopImage}
+            <ImageUpload 
+              value={imageUrl}
+              onChange={(value) => setImageUrl(value)}
               onUploading={setIsUploading}
-              defaultValue={shopImage}
             />
           </div>
 

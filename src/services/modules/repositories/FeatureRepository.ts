@@ -1,4 +1,3 @@
-
 /**
  * Repository pour l'accès aux données des fonctionnalités
  */
@@ -105,7 +104,45 @@ export class FeatureRepository {
       throw error;
     }
   }
+
+  /**
+   * Get a feature by module code and feature code
+   */
+  async getFeatureByModuleAndCode(moduleCode: string, featureCode: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*')
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching feature:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all features for a specific module code
+   */
+  async getFeaturesByModuleCode(moduleCode: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*')
+        .eq('module_code', moduleCode);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching features by module code:', error);
+      return [];
+    }
+  }
 }
 
-// Exporter une instance unique pour toute l'application
+// Export a singleton instance
 export const featureRepository = new FeatureRepository();

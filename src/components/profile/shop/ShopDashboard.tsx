@@ -1,210 +1,182 @@
 
-import React from 'react';
-import { useShop } from '@/hooks/useShop';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import ShopItemsList from './ShopItemsList';
-import ShopOrdersList from './ShopOrdersList';
-import ShopReviewsList from './ShopReviewsList';
-import AddItemForm from './AddItemForm';
-import CreateShopForm from './CreateShopForm';
-import ShopSettings from './ShopSettings';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/use-toast';
+
+import ShopItemsList from "./ShopItemsList";
+import ShopOrdersList from "./ShopOrdersList";
+import ShopReviewsList from "./ShopReviewsList";
+import AddItemForm from "./AddItemForm";
+import CreateShopForm from "./CreateShopForm";
+import ShopSettings from "@/components/profile/shop/ShopSettings";
+
+import { useShop } from '@/hooks/useShop';
 import { Shop, ShopStatus } from '@/core/shop/domain/types';
-import { useToast } from '@/hooks/use-toast';
 
-export default function ShopDashboard() {
+const ShopDashboard = () => {
   const { shopId } = useParams<{ shopId: string }>();
-  const { shop, isShopLoading, updateShopStatus } = useShop();
-  const [activeTab, setActiveTab] = React.useState('items');
+  const { shop, isShopLoading, refetchShop, updateShopStatus } = useShop();
+  const [activeTab, setActiveTab] = useState('items');
+  const [isOwner, setIsOwner] = useState(false);
   const { toast } = useToast();
-  const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 
-  // Check if current user is the shop owner
-  const isCurrentUserShopOwner = true; // Mock value, in reality would check user ID
-
-  const handleStatusUpdate = async (newStatus: ShopStatus) => {
+  // Handle shop status change
+  const handleStatusChange = (status: ShopStatus) => {
     if (!shop) return;
     
-    setIsUpdatingStatus(true);
-    try {
-      // Use mutation with object directly
-      const success = await updateShopStatus?.mutateAsync({
-        id: shop.id,
-        status: newStatus
-      });
-      
-      if (success) {
-        toast({
-          title: 'Status updated',
-          description: `Shop status is now ${newStatus}`,
-        });
+    updateShopStatus.mutate(
+      { id: shop.id, status },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Shop status updated",
+            description: `Your shop is now ${status}`,
+          });
+          refetchShop();
+        },
+        onError: (error) => {
+          toast({
+            title: "Failed to update shop status",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       }
-    } catch (error) {
-      console.error('Error updating shop status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update shop status',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUpdatingStatus(false);
-    }
+    );
   };
 
-  // Case: Loading state
+  // Check ownership
+  useEffect(() => {
+    if (shop) {
+      setIsOwner(true); // Simplified for now
+    }
+  }, [shop]);
+
   if (isShopLoading) {
-    return <div className="p-6">Loading shop dashboard...</div>;
+    return <div className="container py-8">Loading shop details...</div>;
   }
 
-  // Case: No shop found for current user, show creation form
-  if (!shop && shopId === undefined) {
+  if (!shop) {
     return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">Create Your Shop</h2>
-        <p className="text-gray-600 mb-6">
-          You don't have a shop yet. Create one to start selling!
-        </p>
-        <CreateShopForm />
-      </div>
-    );
-  }
-
-  // Case: No shop found for the requested ID
-  if (!shop && shopId) {
-    return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">Shop Not Found</h2>
-        <p className="text-gray-600">
+      <Alert variant="destructive">
+        <AlertTitle>Shop Not Found</AlertTitle>
+        <AlertDescription>
           The shop you're looking for doesn't exist or you don't have permission to view it.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
     );
   }
 
-  // Case: Shop exists but is pending approval
-  if (shop?.status === 'pending') {
+  // Show creation form if user doesn't have a shop
+  if (!shop.id) {
     return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
-        <Alert className="mb-6">
-          <AlertTitle>Shop Pending Approval</AlertTitle>
-          <AlertDescription>
-            Your shop is currently pending approval from our team. This process usually takes 1-2 business days.
-          </AlertDescription>
-        </Alert>
-        <div className="grid gap-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Shop Information</h3>
-            <p>
-              <strong>Name:</strong> {shop.name}
-            </p>
-            <p>
-              <strong>Description:</strong> {shop.description}
-            </p>
-          </div>
-        </div>
+      <div className="container py-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create Your Shop</CardTitle>
+            <CardDescription>Set up your own shop to start selling items</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CreateShopForm />
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Case: Shop exists but is rejected
-  if (shop?.status === 'rejected') {
+  // Shop exists but is pending approval
+  if (shop.status === 'pending') {
     return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
-        <Alert className="mb-6" variant="destructive">
-          <AlertTitle>Shop Application Rejected</AlertTitle>
-          <AlertDescription>
-            We're sorry, but your shop application has been rejected. This may be due to incomplete information or
-            our platform policies.
-          </AlertDescription>
-        </Alert>
-        <Button
-          onClick={() => handleStatusUpdate('pending' as ShopStatus)}
-          disabled={isUpdatingStatus}
-        >
-          Reapply
-        </Button>
-      </div>
+      <Alert>
+        <AlertTitle>Your Shop is Pending Approval</AlertTitle>
+        <AlertDescription>
+          Your shop has been created and is waiting for administrator approval.
+          You'll be notified once it's approved.
+        </AlertDescription>
+      </Alert>
     );
   }
 
-  // Case: Shop exists but is suspended
-  if (shop?.status === 'suspended') {
+  // Shop is rejected
+  if (shop.status === 'rejected') {
     return (
-      <div className="p-6">
-        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
-        <Alert className="mb-6" variant="destructive">
-          <AlertTitle>Shop Currently Suspended</AlertTitle>
-          <AlertDescription>
-            Your shop has been temporarily suspended. This may be due to policy violations or customer complaints.
-            Please contact our support team for more information.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>Your Shop Registration was Rejected</AlertTitle>
+        <AlertDescription>
+          Unfortunately, your shop registration was not approved. Please contact support for more details.
+        </AlertDescription>
+      </Alert>
     );
   }
 
-  // Main shop dashboard for approved shops
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">{shop?.name}</h2>
-        {isCurrentUserShopOwner && (
-          <div className="flex items-center mt-2 md:mt-0">
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-2 
-              ${
-                shop?.status === 'approved'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}
-            >
-              {shop?.status}
-            </span>
+    <div className="container py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">{shop.name}</h1>
+        <p className="text-muted-foreground mb-4">{shop.description}</p>
+        
+        {isOwner && (
+          <div className="flex gap-2 mt-4">
+            {shop.status === 'approved' && (
+              <Button 
+                variant="outline" 
+                onClick={() => handleStatusChange('suspended')}
+              >
+                Temporarily Close Shop
+              </Button>
+            )}
+            
+            {shop.status === 'suspended' && (
+              <Button 
+                variant="default" 
+                onClick={() => handleStatusChange('approved')}
+              >
+                Reopen Shop
+              </Button>
+            )}
           </div>
         )}
       </div>
 
-      {isCurrentUserShopOwner && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      {isOwner && (
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="items">Items</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="add-item">Add Item</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
-
+          
           <TabsContent value="items" className="space-y-4">
-            {shop && <ShopItemsList shopId={shop.id} />}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Your Items</h2>
+              <Button>Add New Item</Button>
+            </div>
+            <ShopItemsList shopId={shop.id} />
           </TabsContent>
-
-          <TabsContent value="orders" className="space-y-4">
-            {shop && <ShopOrdersList shopId={shop.id} />}
+          
+          <TabsContent value="orders">
+            <h2 className="text-xl font-bold mb-4">Your Orders</h2>
+            <ShopOrdersList shopId={shop.id} />
           </TabsContent>
-
-          <TabsContent value="reviews" className="space-y-4">
-            {shop && <ShopReviewsList shopId={shop.id} />}
+          
+          <TabsContent value="reviews">
+            <h2 className="text-xl font-bold mb-4">Customer Reviews</h2>
+            <ShopReviewsList shopId={shop.id} />
           </TabsContent>
-
-          <TabsContent value="add-item" className="space-y-4">
-            {shop && <AddItemForm shopId={shop.id} />}
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4">
-            {shop && <ShopSettings shopId={shop.id} />}
+          
+          <TabsContent value="settings">
+            <h2 className="text-xl font-bold mb-4">Shop Settings</h2>
+            <ShopSettings shopId={shop.id} />
           </TabsContent>
         </Tabs>
       )}
-
-      {!isCurrentUserShopOwner && shop && (
-        <div className="space-y-6">
-          <ShopItemsList shopId={shop.id} />
-        </div>
-      )}
     </div>
   );
-}
+};
+
+export default ShopDashboard;

@@ -1,10 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { ClothesBasicInfo } from "./forms/ClothesBasicInfo";
 import { ClothesDetails } from "./forms/ClothesDetails";
 import { ClothesOptions } from "./forms/ClothesOptions";
-import { ClothesImageUpload } from "./forms/ClothesImageUpload";
+import ClothesImageUpload from "./forms/ClothesImageUpload";
 import { ClothesDetectionButtons } from "./components/ClothesDetectionButtons";
 import { ClothesFormData } from "./types";
 import { CATEGORIES, STYLES, WEATHER_CATEGORIES } from "./constants/categories";

@@ -1,92 +1,73 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Star } from 'lucide-react';
 
-import React from 'react';
 import { useShop } from '@/hooks/useShop';
 import { ShopReview } from '@/core/shop/domain/types';
 
-export interface ShopReviewsListProps {
-  shopId: string;
-}
+const ShopReviewsList = ({ shopId }: { shopId: string }) => {
+  const { getShopReviews } = useShop();
+  const [reviews, setReviews] = useState<ShopReview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-export default function ShopReviewsList({ shopId }: ShopReviewsListProps) {
-  const [reviews, setReviews] = React.useState<ShopReview[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Mock implementation for the shop hooks
-  const getShopReviews = async (shopId: string) => {
-    // Mock implementation
-    return [] as ShopReview[];
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchReviews = async () => {
+      setIsLoading(true);
       try {
-        setLoading(true);
-        const data = await getShopReviews(shopId);
-        setReviews(data);
-      } catch (err) {
-        setError('Failed to load shop reviews');
-        console.error(err);
+        const fetchedReviews = await getShopReviews(shopId);
+        setReviews(fetchedReviews || []);
+      } catch (error) {
+        console.error("Failed to fetch shop reviews:", error);
+        setReviews([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchReviews();
-  }, [shopId]);
+  }, [shopId, getShopReviews]);
 
-  if (loading) {
-    return <div>Loading shop reviews...</div>;
+  if (isLoading) {
+    return <div className="text-center py-4">Loading reviews...</div>;
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
-
-  if (reviews.length === 0) {
-    return <div>No reviews found for this shop.</div>;
+  if (!reviews || reviews.length === 0) {
+    return <div className="text-center py-4">No reviews available for this shop.</div>;
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Shop Reviews</h3>
-      <div className="grid gap-4">
-        {reviews.map((review) => (
-          <div key={review.id} className="border rounded-md p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="mr-2">
-                  {/* Avatar placeholder */}
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    {review.profiles?.username?.[0] || "U"}
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium">
-                    {review.profiles?.username || "Anonymous"}
-                  </span>
-                  <div className="flex text-yellow-400">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i}>
-                        {i < review.rating ? "★" : "☆"}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <span className="text-sm text-gray-500">
-                {new Date(review.created_at).toLocaleDateString()}
-              </span>
+    <div>
+      {reviews.map((review) => (
+        <Card key={review.id} className="mb-4">
+          <CardHeader className="flex flex-row items-center space-x-4">
+            <Avatar>
+              {review.profiles?.username ? (
+                <AvatarImage src={`https://avatar.vercel.sh/${review.profiles.username}.png`} alt={review.profiles.username} />
+              ) : (
+                <AvatarFallback>{review.profiles?.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex-1">
+              <CardTitle className="text-sm font-medium">{review.profiles?.full_name || 'Anonymous'}</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                {review.created_at}
+              </CardDescription>
             </div>
-            {review.comment && (
-              <p className="mt-2 text-gray-700">{review.comment}</p>
-            )}
-          </div>
-        ))}
-      </div>
+            <div className="flex items-center">
+              {[...Array(review.rating)].map((_, index) => (
+                <Star key={index} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-700">{review.comment || 'No comment provided.'}</p>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
-}
+};
 
-// Fix for correct imports in parent files
-export { default as ShopReviewsList } from './ShopReviewsList';
+export default ShopReviewsList;

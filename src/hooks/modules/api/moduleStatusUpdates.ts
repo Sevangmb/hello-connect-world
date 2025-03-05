@@ -21,7 +21,7 @@ export const updateModuleStatusInDb = async (
     const { error } = await supabase
       .from('app_modules')
       .update({ 
-        status: status, // Removed type assertion since type is now properly defined
+        status: status,
         updated_at: new Date().toISOString() 
       })
       .eq('id', moduleId);

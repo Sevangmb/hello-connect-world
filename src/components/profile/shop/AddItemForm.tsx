@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useShop } from '@/hooks/useShop';
 import { ImageUpload } from '@/components/ui/image-upload';
@@ -20,9 +19,7 @@ export default function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
   const [isUploading, setIsUploading] = React.useState(false);
   const { toast } = useToast();
 
-  // Mock implementation for the shop hooks
   const addShopItem = async (shopId: string, itemData: any) => {
-    // Mock implementation
     return { id: '123' };
   };
 
@@ -58,7 +55,6 @@ export default function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
           description: 'Your item has been added to the shop',
         });
 
-        // Reset form
         setName('');
         setDescription('');
         setPrice('');
@@ -178,5 +174,4 @@ export default function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
   );
 }
 
-// Fix for correct imports in parent files
 export { default as AddItemForm } from './AddItemForm';
