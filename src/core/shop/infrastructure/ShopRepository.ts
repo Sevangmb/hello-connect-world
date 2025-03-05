@@ -1,694 +1,541 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, ShopItemStatus, ShopStatus } from '../domain/types';
+import { IShopRepository } from '../domain/repository/IShopRepository';
+import { Shop, ShopItem, ShopReview, Order, ShopStatus, DbOrder, RawShopItem } from '../domain/types';
 
 export class ShopRepository implements IShopRepository {
   // Shop operations
   async getShopById(id: string): Promise<Shop | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .eq('id', id)
-        .single();
+    const { data, error } = await supabase
+      .from('shops')
+      .select(`
+        *,
+        profiles:user_id (
+          username,
+          full_name
+        )
+      `)
+      .eq('id', id)
+      .single();
 
-      if (error) {
-        console.error('Error fetching shop:', error);
-        return null;
-      }
-
-      return data as Shop;
-    } catch (error) {
-      console.error('Exception in getShopById:', error);
+    if (error) {
+      console.error('Error fetching shop:', error);
       return null;
     }
+
+    return data as Shop;
   }
 
   async getShopByUserId(userId: string): Promise<Shop | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .eq('user_id', userId)
-        .single();
+    const { data, error } = await supabase
+      .from('shops')
+      .select(`
+        *,
+        profiles:user_id (
+          username,
+          full_name
+        )
+      `)
+      .eq('user_id', userId)
+      .single();
 
-      if (error) {
-        console.error('Error fetching shop by user id:', error);
-        return null;
-      }
-
-      return data as Shop;
-    } catch (error) {
-      console.error('Exception in getShopByUserId:', error);
+    if (error) {
+      console.error('Error fetching shop by user ID:', error);
       return null;
     }
+
+    return data as Shop;
   }
 
   async getShops(): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .eq('status', 'approved');
+    const { data, error } = await supabase
+      .from('shops')
+      .select(`
+        *,
+        profiles:user_id (
+          username,
+          full_name
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching shops:', error);
-        return [];
-      }
-
-      return data as Shop[];
-    } catch (error) {
-      console.error('Exception in getShops:', error);
+    if (error) {
+      console.error('Error fetching shops:', error);
       return [];
     }
+
+    return data as Shop[];
   }
 
-  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .insert({
-          ...shopData,
-          average_rating: 0,
-        })
-        .select()
-        .single();
+  async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
+    const { data, error } = await supabase
+      .from('shops')
+      .select(`
+        *,
+        profiles:user_id (
+          username,
+          full_name
+        )
+      `)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error creating shop:', error);
-        return null;
-      }
-
-      return data as Shop;
-    } catch (error) {
-      console.error('Exception in createShop:', error);
-      return null;
+    if (error) {
+      console.error(`Error fetching shops with status ${status}:`, error);
+      return [];
     }
+
+    return data as Shop[];
   }
 
-  async updateShop(shopData: Partial<Shop> & { id: string }): Promise<Shop> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .update({
-          ...shopData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', shopData.id)
-        .select()
-        .single();
+  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> {
+    const { data, error } = await supabase
+      .from('shops')
+      .insert(shopData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating shop:', error);
-        throw new Error(`Failed to update shop: ${error.message}`);
-      }
-
-      return data as Shop;
-    } catch (error) {
-      console.error('Exception in updateShop:', error);
-      throw new Error('Failed to update shop');
+    if (error) {
+      console.error('Error creating shop:', error);
+      throw new Error(`Failed to create shop: ${error.message}`);
     }
+
+    return data as Shop;
   }
 
-  // Method overload to match interface
   async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop> {
-    return this.updateShop({ ...shopData, id });
-  }
+    const { data, error } = await supabase
+      .from('shops')
+      .update(shopData)
+      .eq('id', id)
+      .select()
+      .single();
 
-  // Additional methods required by IShopRepository
-  async deleteShop(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shops')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting shop:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in deleteShop:', error);
-      return false;
+    if (error) {
+      console.error('Error updating shop:', error);
+      throw new Error(`Failed to update shop: ${error.message}`);
     }
-  }
 
-  async updateShopStatus(id: string, status: ShopStatus): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shops')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error updating shop status:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in updateShopStatus:', error);
-      return false;
-    }
+    return data as Shop;
   }
 
   // Shop items operations
   async getShopItems(shopId: string): Promise<ShopItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select('*, shop(name)')
-        .eq('shop_id', shopId);
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select('*, shop:shop_id(name)')
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching shop items:', error);
-        return [];
-      }
-
-      return data as ShopItem[];
-    } catch (error) {
-      console.error('Exception in getShopItems:', error);
+    if (error) {
+      console.error('Error fetching shop items:', error);
       return [];
     }
+
+    // Apply type casting to handle the database response
+    return data.map(item => ({
+      ...item,
+      status: item.status as ShopItemStatus,
+      shop: { name: item.shop?.name || 'Unknown Shop' }
+    })) as ShopItem[];
   }
 
   async getShopItemById(id: string): Promise<ShopItem | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select('*, shop(name)')
-        .eq('id', id)
-        .single();
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select('*, shop:shop_id(name)')
+      .eq('id', id)
+      .single();
 
-      if (error) {
-        console.error('Error fetching shop item:', error);
-        return null;
-      }
-
-      return data as ShopItem;
-    } catch (error) {
-      console.error('Exception in getShopItemById:', error);
+    if (error) {
+      console.error('Error fetching shop item by ID:', error);
       return null;
     }
+
+    // Apply type casting to handle the database response
+    return {
+      ...data,
+      status: data.status as ShopItemStatus,
+      shop: { name: data.shop?.name || 'Unknown Shop' }
+    } as ShopItem;
   }
 
-  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .insert(itemData)
-        .select()
-        .single();
+  async getShopItemsByIds(ids: string[]): Promise<ShopItem[]> {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select('*, shop:shop_id(name)')
+      .in('id', ids);
 
-      if (error) {
-        console.error('Error creating shop item:', error);
-        return null;
-      }
-
-      return data as ShopItem;
-    } catch (error) {
-      console.error('Exception in createShopItem:', error);
-      return null;
+    if (error) {
+      console.error('Error fetching shop items by IDs:', error);
+      return [];
     }
+
+    // Apply type casting to handle the database response
+    return data.map(item => ({
+      ...item,
+      status: item.status as ShopItemStatus,
+      shop: { name: item.shop?.name || 'Unknown Shop' }
+    })) as ShopItem[];
   }
 
-  async updateShopItem(item: Partial<ShopItem> & { id: string }): Promise<ShopItem> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .update({
-          ...item,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', item.id)
-        .select()
-        .single();
+  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
+    // Ensure clothes_id is properly handled
+    const { data, error } = await supabase
+      .from('shop_items')
+      .insert({
+        name: itemData.name,
+        description: itemData.description,
+        image_url: itemData.image_url,
+        price: itemData.price,
+        original_price: itemData.original_price,
+        shop_id: itemData.shop_id,
+        status: itemData.status,
+        stock: itemData.stock,
+        clothes_id: itemData.clothes_id || null
+      })
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating shop item:', error);
-        throw new Error(`Failed to update shop item: ${error.message}`);
-      }
-
-      return data as ShopItem;
-    } catch (error) {
-      console.error('Exception in updateShopItem:', error);
-      throw new Error('Failed to update shop item');
+    if (error) {
+      console.error('Error creating shop item:', error);
+      throw new Error(`Failed to create shop item: ${error.message}`);
     }
+
+    return {
+      ...data,
+      status: data.status as ShopItemStatus
+    } as ShopItem;
   }
 
-  // Method overload to match interface
   async updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
-    return this.updateShopItem({ ...itemData, id });
+    const { data, error } = await supabase
+      .from('shop_items')
+      .update(itemData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating shop item:', error);
+      throw new Error(`Failed to update shop item: ${error.message}`);
+    }
+
+    return {
+      ...data,
+      status: data.status as ShopItemStatus
+    } as ShopItem;
   }
 
   async deleteShopItem(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shop_items')
-        .delete()
-        .eq('id', id);
+    const { error } = await supabase
+      .from('shop_items')
+      .delete()
+      .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting shop item:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in deleteShopItem:', error);
+    if (error) {
+      console.error('Error deleting shop item:', error);
       return false;
     }
-  }
 
-  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shop_items')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error updating shop item status:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in updateShopItemStatus:', error);
-      return false;
-    }
+    return true;
   }
 
   // Shop review operations
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_reviews')
-        .select('*, profiles(username, full_name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('shop_reviews')
+      .select(`
+        *,
+        profiles:user_id (
+          username,
+          full_name
+        )
+      `)
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching shop reviews:', error);
-        return [];
-      }
-
-      return data as ShopReview[];
-    } catch (error) {
-      console.error('Exception in getShopReviews:', error);
+    if (error) {
+      console.error('Error fetching shop reviews:', error);
       return [];
     }
+
+    return data as ShopReview[];
   }
 
-  async addShopReview(reviewData: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_reviews')
-        .insert(reviewData)
-        .select('*, profiles(username, full_name)')
-        .single();
+  async createShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview> {
+    const { data, error } = await supabase
+      .from('shop_reviews')
+      .insert(review)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error adding shop review:', error);
-        return null;
-      }
-
-      // Update shop rating
-      await this.updateShopAverageRating(reviewData.shop_id);
-
-      return data as ShopReview;
-    } catch (error) {
-      console.error('Exception in addShopReview:', error);
-      return null;
+    if (error) {
+      console.error('Error creating shop review:', error);
+      throw new Error(`Failed to create shop review: ${error.message}`);
     }
+
+    return data as ShopReview;
   }
 
-  private async updateShopAverageRating(shopId: string): Promise<void> {
-    try {
-      // Calculate average rating
-      const { data, error } = await supabase
-        .from('shop_reviews')
-        .select('rating')
-        .eq('shop_id', shopId);
+  async updateShopReview(id: string, reviewData: Partial<ShopReview>): Promise<ShopReview> {
+    const { data, error } = await supabase
+      .from('shop_reviews')
+      .update(reviewData)
+      .eq('id', id)
+      .select()
+      .single();
 
-      if (error || !data || data.length === 0) {
-        console.error('Error fetching ratings:', error);
-        return;
-      }
-
-      const average = data.reduce((sum, review) => sum + review.rating, 0) / data.length;
-
-      // Update shop with new average
-      await supabase
-        .from('shops')
-        .update({ 
-          average_rating: parseFloat(average.toFixed(1)),
-          rating_count: data.length,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', shopId);
-    } catch (error) {
-      console.error('Exception in updateShopAverageRating:', error);
+    if (error) {
+      console.error('Error updating shop review:', error);
+      throw new Error(`Failed to update shop review: ${error.message}`);
     }
+
+    return data as ShopReview;
   }
 
-  // Shop settings operations
-  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_settings')
-        .select('*')
-        .eq('shop_id', shopId)
-        .single();
+  async deleteShopReview(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('shop_reviews')
+      .delete()
+      .eq('id', id);
 
-      if (error) {
-        console.error('Error fetching shop settings:', error);
-        return null;
-      }
-
-      return data as ShopSettings;
-    } catch (error) {
-      console.error('Exception in getShopSettings:', error);
-      return null;
+    if (error) {
+      console.error('Error deleting shop review:', error);
+      return false;
     }
-  }
 
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_settings')
-        .update({
-          ...settings,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('shop_id', shopId)
-        .select('*')
-        .single();
-
-      if (error) {
-        console.error('Error updating shop settings:', error);
-        throw new Error(`Failed to update shop settings: ${error.message}`);
-      }
-
-      return data as ShopSettings;
-    } catch (error) {
-      console.error('Exception in updateShopSettings:', error);
-      throw new Error('Failed to update shop settings');
-    }
+    return true;
   }
 
   // Order operations
-  async getShopOrders(shopId: string): Promise<Order[]> {
-    try {
-      // First get orders
-      const { data: orders, error: ordersError } = await supabase
-        .from('shop_orders')
-        .select('*')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+  async getOrders(shopId: string): Promise<Order[]> {
+    const { data: ordersData, error: ordersError } = await supabase
+      .from('shop_orders')
+      .select('*')
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
 
-      if (ordersError) {
-        console.error('Error fetching shop orders:', ordersError);
-        return [];
-      }
-
-      // Get order items for each order
-      const ordersWithItems = await Promise.all(
-        orders.map(async (order) => {
-          const { data: items, error: itemsError } = await supabase
-            .from('shop_order_items')
-            .select('*')
-            .eq('order_id', order.id);
-
-          if (itemsError) {
-            console.error(`Error fetching order items for order ${order.id}:`, itemsError);
-            return { ...order, items: [] };
-          }
-
-          return { ...order, items } as Order;
-        })
-      );
-
-      return ordersWithItems;
-    } catch (error) {
-      console.error('Exception in getShopOrders:', error);
+    if (ordersError) {
+      console.error('Error fetching orders:', ordersError);
       return [];
     }
-  }
 
-  async getUserOrders(userId: string): Promise<Order[]> {
-    try {
-      // First get orders
-      const { data: orders, error: ordersError } = await supabase
-        .from('shop_orders')
+    // For each order, get its items
+    const orders: Order[] = [];
+    for (const orderData of ordersData) {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('shop_order_items')
         .select('*')
-        .eq('customer_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('order_id', orderData.id);
 
-      if (ordersError) {
-        console.error('Error fetching user orders:', ordersError);
-        return [];
+      if (itemsError) {
+        console.error(`Error fetching items for order ${orderData.id}:`, itemsError);
+        continue;
       }
 
-      // Get order items for each order
-      const ordersWithItems = await Promise.all(
-        orders.map(async (order) => {
-          const { data: items, error: itemsError } = await supabase
-            .from('shop_order_items')
-            .select('*')
-            .eq('order_id', order.id);
+      // Convert DB order to domain Order
+      const order: Order = {
+        id: orderData.id,
+        shop_id: orderData.shop_id,
+        customer_id: orderData.customer_id,
+        status: orderData.status as OrderStatus,
+        total_amount: orderData.total_amount,
+        delivery_fee: orderData.delivery_fee,
+        payment_status: orderData.payment_status as PaymentStatus,
+        payment_method: orderData.payment_method || 'unknown',
+        delivery_address: orderData.delivery_address,
+        created_at: orderData.created_at,
+        updated_at: orderData.updated_at,
+        items: itemsData.map(item => ({
+          id: item.id,
+          order_id: item.order_id,
+          item_id: item.item_id,
+          name: 'Product', // This should be fetched from shop_items
+          price: item.price_at_time,
+          quantity: item.quantity,
+          created_at: item.created_at
+        }))
+      };
 
-          if (itemsError) {
-            console.error(`Error fetching order items for order ${order.id}:`, itemsError);
-            return { ...order, items: [] };
-          }
-
-          return { ...order, items } as Order;
-        })
-      );
-
-      return ordersWithItems;
-    } catch (error) {
-      console.error('Exception in getUserOrders:', error);
-      return [];
+      orders.push(order);
     }
+
+    return orders;
   }
 
   async getOrderById(id: string): Promise<Order | null> {
-    try {
-      // Get order
-      const { data: order, error: orderError } = await supabase
-        .from('shop_orders')
-        .select('*')
-        .eq('id', id)
-        .single();
+    const { data: orderData, error: orderError } = await supabase
+      .from('shop_orders')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-      if (orderError) {
-        console.error('Error fetching order:', orderError);
-        return null;
-      }
-
-      // Get order items
-      const { data: items, error: itemsError } = await supabase
-        .from('shop_order_items')
-        .select('*')
-        .eq('order_id', id);
-
-      if (itemsError) {
-        console.error(`Error fetching order items for order ${id}:`, itemsError);
-        return { ...order, items: [] } as Order;
-      }
-
-      return { ...order, items } as Order;
-    } catch (error) {
-      console.error('Exception in getOrderById:', error);
+    if (orderError) {
+      console.error(`Error fetching order ${id}:`, orderError);
       return null;
     }
-  }
 
-  async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
-    try {
-      // Extract items to insert separately
-      const { items, ...orderInfo } = orderData;
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('shop_order_items')
+      .select('*')
+      .eq('order_id', id);
 
-      // First create the order in the orders table
-      const { data: order, error: orderError } = await supabase
-        .from('shop_orders')
-        .insert({
-          shop_id: orderInfo.shop_id,
-          customer_id: orderInfo.customer_id,
-          status: orderInfo.status,
-          total_amount: orderInfo.total_amount,
-          delivery_fee: orderInfo.delivery_fee,
-          payment_status: orderInfo.payment_status,
-          payment_method: orderInfo.payment_method,
-          delivery_address: orderInfo.delivery_address,
-        })
-        .select('*')
-        .single();
-
-      if (orderError) {
-        console.error('Error creating order:', orderError);
-        return null;
-      }
-
-      // Then create the order items
-      if (items && items.length > 0) {
-        const orderItems = items.map(item => ({
-          order_id: order.id,
-          item_id: item.item_id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('shop_order_items')
-          .insert(orderItems);
-
-        if (itemsError) {
-          console.error('Error creating order items:', itemsError);
-          // Try to delete the order if items creation failed
-          await supabase.from('shop_orders').delete().eq('id', order.id);
-          return null;
-        }
-      }
-
-      // Get complete order with items
-      return this.getOrderById(order.id);
-    } catch (error) {
-      console.error('Exception in createOrder:', error);
+    if (itemsError) {
+      console.error(`Error fetching items for order ${id}:`, itemsError);
       return null;
     }
+
+    // Convert DB order to domain Order
+    const order: Order = {
+      id: orderData.id,
+      shop_id: orderData.shop_id,
+      customer_id: orderData.customer_id,
+      status: orderData.status as OrderStatus,
+      total_amount: orderData.total_amount,
+      delivery_fee: orderData.delivery_fee,
+      payment_status: orderData.payment_status as PaymentStatus,
+      payment_method: orderData.payment_method || 'unknown',
+      delivery_address: orderData.delivery_address,
+      created_at: orderData.created_at,
+      updated_at: orderData.updated_at,
+      items: itemsData.map(item => ({
+        id: item.id,
+        order_id: item.order_id,
+        item_id: item.item_id,
+        name: 'Product', // This should be fetched from shop_items
+        price: item.price_at_time,
+        quantity: item.quantity,
+        created_at: item.created_at
+      }))
+    };
+
+    return order;
   }
 
-  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shop_orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', id);
+  async createOrder(orderData: any): Promise<Order> {
+    // Extract items from the order data
+    const { items, ...orderDetails } = orderData;
 
-      if (error) {
-        console.error('Error updating order status:', error);
-        return false;
-      }
+    // Insert order
+    const { data: newOrder, error: orderError } = await supabase
+      .from('shop_orders')
+      .insert(orderDetails)
+      .select()
+      .single();
 
-      return true;
-    } catch (error) {
-      console.error('Exception in updateOrderStatus:', error);
-      return false;
+    if (orderError) {
+      console.error('Error creating order:', orderError);
+      throw new Error(`Failed to create order: ${orderError.message}`);
     }
+
+    // Prepare items for insertion with price_at_time field
+    const orderItems = items.map((item: any) => ({
+      order_id: newOrder.id,
+      item_id: item.item_id,
+      quantity: item.quantity,
+      price_at_time: item.price
+    }));
+
+    // Insert order items
+    const { error: itemsError } = await supabase
+      .from('shop_order_items')
+      .insert(orderItems);
+
+    if (itemsError) {
+      console.error('Error creating order items:', itemsError);
+      
+      // Attempt to delete the order to maintain consistency
+      await supabase.from('shop_orders').delete().eq('id', newOrder.id);
+      
+      throw new Error(`Failed to create order items: ${itemsError.message}`);
+    }
+
+    // Return the created order with its items
+    return this.getOrderById(newOrder.id) as Promise<Order>;
   }
 
-  // Favorite operations
-  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_favorite_shops')
-        .insert({ user_id: userId, shop_id: shopId });
+  async updateOrder(id: string, orderData: any): Promise<Order> {
+    const { data, error } = await supabase
+      .from('shop_orders')
+      .update(orderData)
+      .eq('id', id)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error adding favorite shop:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in addFavoriteShop:', error);
-      return false;
+    if (error) {
+      console.error('Error updating order:', error);
+      throw new Error(`Failed to update order: ${error.message}`);
     }
+
+    return this.getOrderById(id) as Promise<Order>;
   }
 
-  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_favorite_shops')
-        .delete()
-        .eq('user_id', userId)
-        .eq('shop_id', shopId);
+  // Favorites operations
+  async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('user_favorite_shops')
+      .insert({ user_id: userId, shop_id: shopId });
 
-      if (error) {
-        console.error('Error removing favorite shop:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Exception in removeFavoriteShop:', error);
+    if (error) {
+      console.error('Error adding shop to favorites:', error);
       return false;
     }
+
+    return true;
+  }
+
+  async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('user_favorite_shops')
+      .delete()
+      .eq('user_id', userId)
+      .eq('shop_id', shopId);
+
+    if (error) {
+      console.error('Error removing shop from favorites:', error);
+      return false;
+    }
+
+    return true;
+  }
+
+  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('user_favorite_shops')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('shop_id', shopId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found
+        return false;
+      }
+      console.error('Error checking if shop is favorited:', error);
+      return false;
+    }
+
+    return !!data;
   }
 
   async getUserFavoriteShops(userId: string): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('user_favorite_shops')
-        .select('shop_id')
-        .eq('user_id', userId);
+    const { data, error } = await supabase
+      .from('user_favorite_shops')
+      .select(`
+        shop_id,
+        shops:shop_id (*)
+      `)
+      .eq('user_id', userId);
 
-      if (error) {
-        console.error('Error fetching user favorite shops:', error);
-        return [];
-      }
-
-      if (data.length === 0) {
-        return [];
-      }
-
-      const shopIds = data.map(item => item.shop_id);
-      
-      const { data: shops, error: shopsError } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .in('id', shopIds);
-
-      if (shopsError) {
-        console.error('Error fetching shops from ids:', shopsError);
-        return [];
-      }
-
-      return shops as Shop[];
-    } catch (error) {
-      console.error('Exception in getUserFavoriteShops:', error);
+    if (error) {
+      console.error('Error fetching user favorite shops:', error);
       return [];
     }
-  }
 
-  async checkIfShopFavorited(userId: string, shopId: string): Promise<boolean> {
-    try {
-      const { data, error } = await supabase
-        .from('user_favorite_shops')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('shop_id', shopId)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Not found
-          return false;
-        }
-        console.error('Error checking if shop is favorited:', error);
-        return false;
-      }
-
-      return !!data;
-    } catch (error) {
-      console.error('Exception in checkIfShopFavorited:', error);
-      return false;
-    }
+    // Extract shops from the nested structure
+    const shops = data.map(item => item.shops);
+    return shops as Shop[];
   }
 }

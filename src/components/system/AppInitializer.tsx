@@ -1,77 +1,65 @@
 
-import { useEffect, useState } from "react";
-import { initializeModuleSystem } from "@/services/modules/ModuleInitializer";
-import { eventBus } from "@/core/event-bus/EventBus";
-import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
+import React, { useEffect, useState } from 'react';
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { moduleInitializer } from '@/services/modules/ModuleInitializer';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AppInitializerProps {
   children: React.ReactNode;
 }
 
-/**
- * Composant qui initialise les services de l'application au démarrage
- */
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
-  const [initialized, setInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const initialize = async () => {
+    const initializeApp = async () => {
       try {
-        // Initialiser le système de modules
-        const success = await initializeModuleSystem();
+        console.log('Initializing application...');
         
-        if (!success) {
-          setError("Erreur lors de l'initialisation des modules");
+        // Initialize module system
+        const initialized = await moduleInitializer.initializeAllModules();
+        
+        if (initialized) {
+          console.log('Application initialized successfully');
+          setIsInitialized(true);
+        } else {
+          setError('Failed to initialize the application. Please try refreshing the page.');
         }
-        
-        // S'abonner aux erreurs des modules
-        const unsubscribe = eventBus.subscribe(MODULE_EVENTS.MODULE_ERROR, (event) => {
-          console.error("Erreur du système de modules:", event.error, "Contexte:", event.context);
-          // On pourrait afficher une notification ici
-        });
-        
-        setInitialized(true);
-        
-        return () => {
-          unsubscribe();
-        };
-      } catch (err) {
-        console.error("Exception lors de l'initialisation de l'application:", err);
-        setError("Erreur lors de l'initialisation de l'application");
-        setInitialized(true); // Passer à true pour éviter le blocage
+      } catch (error) {
+        console.error('Error initializing application:', error);
+        setError('An unexpected error occurred during initialization. Please try refreshing the page.');
       }
     };
-    
-    initialize();
+
+    initializeApp();
   }, []);
 
-  if (!initialized) {
-    // Afficher un écran de chargement pendant l'initialisation
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold">Initialisation de l'application...</h2>
+      <div className="flex h-screen w-full flex-col items-center justify-center p-4 text-center">
+        <div className="max-w-md">
+          <h1 className="mb-4 text-2xl font-bold">Initialization Error</h1>
+          <p className="mb-6 text-muted-foreground">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Refresh Page
+          </button>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    // Afficher une erreur mais laisser l'application continuer
+  if (!isInitialized) {
     return (
-      <>
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-          <p className="font-bold">Erreur d'initialisation</p>
-          <p>{error}</p>
-          <p className="text-sm">Certaines fonctionnalités pourraient ne pas être disponibles.</p>
-        </div>
-        {children}
-      </>
+      <div className="flex h-screen w-full flex-col items-center justify-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Initializing application...</p>
+      </div>
     );
   }
 
-  // Tout est initialisé, afficher l'application
   return <>{children}</>;
 };

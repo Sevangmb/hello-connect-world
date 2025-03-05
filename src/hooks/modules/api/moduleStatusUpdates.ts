@@ -1,6 +1,7 @@
 
 import { ModuleStatus } from '../types';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { updateModuleCache } from './moduleStatusCore';
 
 export const updateModuleStatus = async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
   try {
@@ -28,3 +29,8 @@ export const updateFeatureStatus = async (
     return false;
   }
 };
+
+// Add aliases for backwards compatibility
+export const updateModuleStatusInDb = updateModuleStatus;
+export const updateFeatureStatusInDb = updateFeatureStatus;
+export const updateFeatureStatusSilent = updateFeatureStatus;

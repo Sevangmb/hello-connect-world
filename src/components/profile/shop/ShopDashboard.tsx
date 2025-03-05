@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useShop } from '@/hooks/useShop';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,31 @@ import ShopItemsList from './ShopItemsList';
 import AddItemForm from './AddItemForm';
 import ShopSettings from './ShopSettings';
 import ShopOrdersList from './ShopOrdersList';
+
+interface AddItemFormProps {
+  shopId: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+const AddItemForm: React.FC<AddItemFormProps> = ({ shopId, onSuccess, onCancel }) => {
+  return (
+    <div className="container mx-auto p-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Ajouter un produit</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AddItemForm 
+            shopId={shopId}
+            onCancel={onCancel}
+            onSuccess={onSuccess}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 const ShopDashboard = () => {
   const { user } = useAuth();

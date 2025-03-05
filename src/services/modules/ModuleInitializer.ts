@@ -1,34 +1,77 @@
 
-import { ModuleService } from "./ModuleService";
+import { ModuleService } from './ModuleService';
+import { moduleApiGateway } from '../api-gateway/ModuleApiGateway';
+import { eventBus } from '@/core/event-bus/EventBus';
 
-// Create a singleton instance
-let moduleServiceInstance: ModuleService | null = null;
-
-export const initializeModuleSystem = async (): Promise<void> => {
-  if (!moduleServiceInstance) {
-    moduleServiceInstance = new ModuleService();
+export class ModuleInitializer {
+  private moduleService: ModuleService;
+  
+  constructor() {
+    this.moduleService = new ModuleService();
   }
-
-  try {
-    // Initialize core modules first
-    const coreModules = await moduleServiceInstance.getCoreModules();
-    
-    for (const module of coreModules) {
-      await moduleServiceInstance.initializeModule(module.code);
+  
+  /**
+   * Initialize all modules
+   */
+  async initializeAllModules(): Promise<boolean> {
+    try {
+      console.info("Starting module system initialization");
+      
+      // Get all modules
+      const modules = await this.moduleService.getAllModules();
+      
+      // Initialize each module, starting with core modules
+      for (const module of modules) {
+        if (module.is_core) {
+          await this.initializeModule(module.code);
+        }
+      }
+      
+      // Then initialize non-core modules
+      for (const module of modules) {
+        if (!module.is_core) {
+          await this.initializeModule(module.code);
+        }
+      }
+      
+      console.info("Module system initialization completed successfully");
+      eventBus.publish('modules:initialized', {});
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize modules:", error);
+      return false;
     }
-    
-    console.log("Core modules initialized successfully");
-    
-    // Then initialize non-core modules
-    const nonCoreModules = await moduleServiceInstance.getAllModules();
-    const modules = nonCoreModules.filter(m => !m.is_core && m.status === 'active');
-    
-    for (const module of modules) {
-      await moduleServiceInstance.initializeModule(module.code);
-    }
-    
-    console.log("All modules initialized successfully");
-  } catch (error) {
-    console.error("Error initializing modules:", error);
   }
-};
+  
+  /**
+   * Initialize a specific module
+   */
+  async initializeModule(moduleCode: string): Promise<boolean> {
+    try {
+      console.info(`Initializing module: ${moduleCode}`);
+      
+      // Check if the module exists
+      const moduleStatus = await this.moduleService.getModuleStatus(moduleCode);
+      
+      if (!moduleStatus) {
+        console.warn(`Module ${moduleCode} not found`);
+        return false;
+      }
+      
+      // Check dependencies
+      await this.moduleService.checkModuleDependencies(moduleCode);
+      
+      console.info(`Module ${moduleCode} initialized successfully`);
+      eventBus.publish('module:initialized', { moduleCode });
+      
+      return true;
+    } catch (error) {
+      console.error(`Failed to initialize module ${moduleCode}:`, error);
+      return false;
+    }
+  }
+}
+
+// Export a singleton instance
+export const moduleInitializer = new ModuleInitializer();

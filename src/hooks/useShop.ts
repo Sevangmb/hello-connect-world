@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
@@ -159,3 +158,43 @@ export const useShop = () => {
     isUpdatingOrderStatus: updateOrderStatusMutation.isPending,
   };
 };
+
+export function useShopReviewMutation() {
+  const queryClient = useQueryClient();
+
+  const createReview = useMutation({
+    mutationFn: async ({ shopId, userId, rating, comment }: CreateReviewParams) => {
+      try {
+        const shopService = getShopService();
+        return await shopService.createShopReview({
+          shop_id: shopId,
+          user_id: userId,
+          rating,
+          comment
+        });
+      } catch (error) {
+        console.error('Error creating review:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shopReviews'] });
+      toast({
+        title: "Avis publié",
+        description: "Votre avis a été publié avec succès.",
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Shop review mutation error:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de publier votre avis. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  return {
+    createReview
+  };
+}

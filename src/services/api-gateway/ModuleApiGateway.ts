@@ -38,6 +38,35 @@ export class ModuleApiGateway {
   async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
     return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
   }
+
+  // Add missing methods needed by the application
+  async getModules(): Promise<any[]> {
+    return await this.moduleService.getAllModules();
+  }
+
+  async initialize(): Promise<boolean> {
+    try {
+      await this.moduleService.initialize();
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize module API gateway:", error);
+      return false;
+    }
+  }
+
+  async refreshModules(): Promise<any[]> {
+    // Implement refreshing modules logic
+    return await this.getModules();
+  }
+
+  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+    return await this.moduleService.updateModuleStatus(moduleId, status);
+  }
+
+  isModuleDegraded(moduleCode: string): boolean {
+    // This is a synchronous check, might need to be implemented differently
+    return moduleCode ? false : false; // Placeholder implementation
+  }
 }
 
 // Export a singleton instance for easier usage

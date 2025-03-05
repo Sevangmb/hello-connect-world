@@ -66,6 +66,22 @@ export interface ShopItem {
   };
 }
 
+// Raw shop item from database
+export interface RawShopItem {
+  id: string;
+  shop_id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  price: number;
+  original_price?: number;
+  stock: number;
+  status: ShopItemStatus;
+  created_at: string;
+  updated_at: string;
+  clothes_id?: string;
+}
+
 // Élément du panier
 export interface CartItem {
   id: string;
@@ -120,6 +136,22 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+}
+
+// Database Order
+export interface DbOrder {
+  id: string;
+  shop_id: string;
+  customer_id: string;
+  status: string;
+  total_amount: number;
+  delivery_fee: number;
+  payment_status: string;
+  payment_method?: string;
+  delivery_address: any;
+  created_at: string;
+  updated_at: string;
+  items?: any[];
 }
 
 // Avis sur une boutique
