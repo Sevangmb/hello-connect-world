@@ -29,23 +29,23 @@ export const fetchMenuItems = async ({
   // Fetch menu items based on options
   if (category === 'admin') {
     if (adminEnabled) {
-      items = await MenuService.getMenuItemsByCategory('admin', true);
+      items = await MenuService.getMenuItemsByCategory('admin', hierarchical);
     }
   } else if (category) {
-    items = await MenuService.getMenuItemsByCategory(category, isAdmin);
-    items = menuFilters.byModuleVisibility(items, modules);
+    items = await MenuService.getMenuItemsByCategory(category, hierarchical, isAdmin);
+    items = menuFilters.byModuleVisibility(items, modules, isAdmin);
   } else if (moduleCode) {
     if (!moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules)) {
       return [];
     }
     
-    items = await MenuService.getMenuItemsByModule(moduleCode, isAdmin);
+    items = await MenuService.getMenuItemsByModule(moduleCode, hierarchical, isAdmin);
   } else {
-    items = await MenuService.getVisibleMenuItems(isAdmin);
-    items = menuFilters.byModuleVisibility(items, modules);
+    items = await MenuService.getVisibleMenuItems(hierarchical, isAdmin);
+    items = menuFilters.byModuleVisibility(items, modules, isAdmin);
     
     if (adminEnabled && !category) {
-      const adminItems = await MenuService.getMenuItemsByCategory('admin', true);
+      const adminItems = await MenuService.getMenuItemsByCategory('admin', hierarchical, true);
       const existingIds = new Set(items.map(item => item.id));
       for (const adminItem of adminItems) {
         if (!existingIds.has(adminItem.id)) {
@@ -53,11 +53,6 @@ export const fetchMenuItems = async ({
         }
       }
     }
-  }
-  
-  // Build hierarchical tree if requested
-  if (hierarchical) {
-    items = MenuService.buildMenuTree(items);
   }
   
   return items;

@@ -1,45 +1,47 @@
 
-// Types pour les modules et les fonctionnalités
+/**
+ * Types communs pour les modules de l'application
+ */
 
-export type ModuleStatus = 'active' | 'inactive' | 'degraded';
+// Status possibles pour un module
+export type ModuleStatus = 'active' | 'inactive' | 'degraded' | 'maintenance';
 
+// Module de l'application
 export interface AppModule {
   id: string;
   code: string;
   name: string;
   description: string;
+  version: string;
   status: ModuleStatus;
   is_core: boolean;
-  features?: Record<string, boolean>;
+  is_admin: boolean;
+  priority: number;
+  created_at: string;
+  updated_at: string;
 }
 
+// Pour compatibilité avec le code existant (alias de AppModule)
+export type Module = AppModule;
+
+// Dépendance entre modules
 export interface ModuleDependency {
   id: string;
-  module_id: string;
-  module_code?: string;
-  module_name?: string;
-  module_status?: ModuleStatus;
-  dependency_id: string;
-  dependency_code?: string;
-  dependency_name?: string;
-  dependency_status?: ModuleStatus;
+  module_code: string;
+  depends_on: string;
   is_required: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-// Type pour la réponse brute de Supabase pour les dépendances
-export interface RawModuleDependency {
+// Feature de module
+export interface ModuleFeature {
   id: string;
-  module_id: string;
-  dependency_id: string;
-  is_required: boolean;
-  modules?: {
-    module_code?: string;
-    module_name?: string;
-    module_status?: ModuleStatus;
-  };
-  dependencies?: {
-    dependency_code?: string;
-    dependency_name?: string;
-    dependency_status?: ModuleStatus;
-  };
+  module_code: string;
+  feature_code: string;
+  feature_name: string;
+  description: string | null;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 }
