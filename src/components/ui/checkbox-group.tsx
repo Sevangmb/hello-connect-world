@@ -1,73 +1,29 @@
 
-import React, { createContext, useContext, useState } from 'react';
-import { Checkbox } from './checkbox';
-import { Label } from './label';
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-type CheckboxGroupContextValue = {
-  value: string[];
-  onValueChange: (value: string[]) => void;
-};
-
-const CheckboxGroupContext = createContext<CheckboxGroupContextValue | undefined>(undefined);
-
-interface CheckboxGroupProps {
-  value: string[];
-  onValueChange: (value: string[]) => void;
+export interface CheckboxGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
-  children: React.ReactNode;
+  orientation?: "horizontal" | "vertical";
 }
 
-export const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
-  value,
-  onValueChange,
-  className = '',
-  children,
-}) => {
-  return (
-    <CheckboxGroupContext.Provider value={{ value, onValueChange }}>
-      <div className={`flex flex-col gap-2 ${className}`}>{children}</div>
-    </CheckboxGroupContext.Provider>
-  );
-};
-
-interface CheckboxItemProps {
-  value: string;
-  children: React.ReactNode;
-  disabled?: boolean;
-}
-
-export const CheckboxItem: React.FC<CheckboxItemProps> = ({ value, children, disabled = false }) => {
-  const context = useContext(CheckboxGroupContext);
-  
-  if (!context) {
-    throw new Error('CheckboxItem must be used within a CheckboxGroup');
-  }
-  
-  const { value: groupValue, onValueChange } = context;
-  const checked = groupValue.includes(value);
-  
-  const handleCheckedChange = (checked: boolean) => {
-    if (checked) {
-      onValueChange([...groupValue, value]);
-    } else {
-      onValueChange(groupValue.filter(v => v !== value));
-    }
-  };
-  
-  return (
-    <div className="flex items-center space-x-2">
-      <Checkbox 
-        id={`checkbox-${value}`} 
-        checked={checked} 
-        onCheckedChange={handleCheckedChange}
-        disabled={disabled}
+const CheckboxGroup = React.forwardRef<HTMLDivElement, CheckboxGroupProps>(
+  ({ className, orientation = "vertical", ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex",
+          orientation === "vertical" ? "flex-col space-y-2" : "space-x-6",
+          className
+        )}
+        role="group"
+        {...props}
       />
-      <Label 
-        htmlFor={`checkbox-${value}`}
-        className="cursor-pointer"
-      >
-        {children}
-      </Label>
-    </div>
-  );
-};
+    );
+  }
+);
+
+CheckboxGroup.displayName = "CheckboxGroup";
+
+export { CheckboxGroup };

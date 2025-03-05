@@ -1,6 +1,6 @@
 
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
-import { MenuService } from '@/services/menu/infrastructure/menuServiceProvider';
+import { getMenuUseCase } from '@/services/menu/infrastructure/menuServiceProvider';
 import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 import { Module } from '@/hooks/modules/types';
 import { menuFilters } from './menuFilters';
@@ -25,27 +25,28 @@ export const fetchMenuItems = async ({
 }: FetchMenuOptions): Promise<MenuItem[]> => {
   const adminEnabled = moduleMenuCoordinator.isAdminAccessEnabled();
   let items: MenuItem[] = [];
+  const menuUseCase = getMenuUseCase();
   
   // Fetch menu items based on options
   if (category === 'admin') {
     if (adminEnabled) {
-      items = await MenuService.getMenuItemsByCategory('admin', modules);
+      items = await menuUseCase.getMenuItemsByCategory('admin');
     }
   } else if (category) {
-    items = await MenuService.getMenuItemsByCategory(category, modules);
+    items = await menuUseCase.getMenuItemsByCategory(category);
     items = menuFilters.byModuleVisibility(items, modules, isAdmin);
   } else if (moduleCode) {
     if (!moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules)) {
       return [];
     }
     
-    items = await MenuService.getMenuItemsByModule(moduleCode, modules);
+    items = await menuUseCase.getMenuItemsByModule(moduleCode);
   } else {
-    items = await MenuService.getVisibleMenuItems(modules);
+    items = await menuUseCase.getAllMenuItems();
     items = menuFilters.byModuleVisibility(items, modules, isAdmin);
     
     if (adminEnabled && !category) {
-      const adminItems = await MenuService.getMenuItemsByCategory('admin', modules);
+      const adminItems = await menuUseCase.getMenuItemsByCategory('admin');
       const existingIds = new Set(items.map(item => item.id));
       for (const adminItem of adminItems) {
         if (!existingIds.has(adminItem.id)) {

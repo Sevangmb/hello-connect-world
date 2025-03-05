@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-// Fix import path
-import { MenuService } from "@/services/menu/infrastructure/menuServiceProvider";
+import { getMenuUseCase } from "@/services/menu/infrastructure/menuServiceProvider";
 import { MenuItem, MenuItemCategory } from "@/services/menu/types";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,12 +37,11 @@ export default function AdminMenus() {
   const [isEditMode, setIsEditMode] = useState(false);
   const { toast } = useToast();
 
-  // Chargement initial des éléments de menu
   useEffect(() => {
     const loadMenuItems = async () => {
       try {
         setLoading(true);
-        const items = await MenuService.getAllMenuItems();
+        const items = await getMenuUseCase.getAllMenuItems();
         setMenuItems(items);
       } catch (error) {
         console.error("Erreur lors du chargement des éléments de menu:", error);
@@ -61,12 +58,10 @@ export default function AdminMenus() {
     loadMenuItems();
   }, [toast]);
 
-  // Filtrer les éléments par catégorie
   const filteredMenuItems = menuItems.filter(
     (item) => item.category === selectedCategory
   );
 
-  // Ouvrir le dialogue de création/édition
   const openDialog = (item?: MenuItem) => {
     if (item) {
       setCurrentMenuItem(item);
@@ -90,18 +85,15 @@ export default function AdminMenus() {
     setIsDialogOpen(true);
   };
 
-  // Fermer le dialogue
   const closeDialog = () => {
     setIsDialogOpen(false);
     setCurrentMenuItem(null);
   };
 
-  // Mettre à jour un élément de menu
   const handleUpdateStatus = async (id: string, field: keyof MenuItem, value: boolean) => {
     try {
-      const updatedItem = await MenuService.updateMenuItem({ id, [field]: value });
+      const updatedItem = await getMenuUseCase.updateMenuItem({ id, [field]: value });
       
-      // Mettre à jour la liste locale
       setMenuItems(menuItems.map(item => 
         item.id === id ? { ...item, [field]: value } : item
       ));
@@ -120,7 +112,6 @@ export default function AdminMenus() {
     }
   };
 
-  // Gérer la soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -128,8 +119,7 @@ export default function AdminMenus() {
     
     try {
       if (isEditMode && currentMenuItem.id) {
-        // Mettre à jour un élément existant
-        const updatedItem = await MenuService.updateMenuItem(currentMenuItem as (Partial<MenuItem> & { id: string }));
+        const updatedItem = await getMenuUseCase.updateMenuItem(currentMenuItem as (Partial<MenuItem> & { id: string }));
         setMenuItems(menuItems.map(item => 
           item.id === updatedItem.id ? updatedItem : item
         ));
@@ -139,8 +129,7 @@ export default function AdminMenus() {
           description: "Élément de menu mis à jour avec succès",
         });
       } else {
-        // Créer un nouvel élément
-        const newItem = await MenuService.createMenuItem(currentMenuItem as Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>);
+        const newItem = await getMenuUseCase.createMenuItem(currentMenuItem as Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>);
         setMenuItems([...menuItems, newItem]);
         
         toast({
@@ -160,16 +149,14 @@ export default function AdminMenus() {
     }
   };
 
-  // Supprimer un élément de menu
   const handleDelete = async (id: string) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet élément de menu ?")) {
       return;
     }
     
     try {
-      await MenuService.deleteMenuItem(id);
+      await getMenuUseCase.deleteMenuItem(id);
       
-      // Mettre à jour la liste locale
       setMenuItems(menuItems.filter(item => item.id !== id));
       
       toast({
@@ -186,7 +173,6 @@ export default function AdminMenus() {
     }
   };
 
-  // Mettre à jour les valeurs du formulaire
   const handleInputChange = (field: string, value: any) => {
     if (currentMenuItem) {
       setCurrentMenuItem({
@@ -321,7 +307,6 @@ export default function AdminMenus() {
         </CardContent>
       </Card>
 
-      {/* Dialogue de création/édition */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[475px]">
           <DialogHeader>

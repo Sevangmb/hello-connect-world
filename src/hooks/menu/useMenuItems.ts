@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
-import { MenuService } from '@/services/menu/infrastructure/menuServiceProvider';
+import { getMenuUseCase } from '@/services/menu/infrastructure/menuServiceProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useModules } from '@/hooks/modules/useModules';
 import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
