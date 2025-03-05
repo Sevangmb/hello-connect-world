@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { AppModule, ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +20,7 @@ import {
   updateFeatureStatusData
 } from './queries';
 
-import { initializeModuleApi } from './moduleInitialization';
+import { moduleInitialization, initializeModuleApi } from './moduleInitialization';
 
 // Cache pour éviter des chargements répétés
 const CACHE_EXPIRY = 60000; // 60 secondes 
@@ -114,7 +113,7 @@ export const useModuleApiCore = () => {
   /**
    * Met à jour le statut d'un module
    */
-  const updateModuleStatus = useCallback(async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
+  const updateModuleStatus = async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
     const result = await updateModuleStatusData(moduleId, status, internalModules, setInternalModules, refreshModules);
     
     // Si la mise à jour a réussi, invalider le cache
@@ -127,7 +126,7 @@ export const useModuleApiCore = () => {
     }
     
     return result;
-  }, [internalModules, refreshModules]);
+  };
 
   /**
    * Met à jour le statut d'une fonctionnalité

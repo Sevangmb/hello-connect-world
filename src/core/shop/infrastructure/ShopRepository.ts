@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, Order, ShopStatus, ShopItemStatus, OrderStatus, PaymentStatus, OrderItem } from '../domain/types';
+import { IShopRepository } from '../domain/repository/IShopRepository';
+import { Shop, ShopItem, ShopReview, Order, ShopStatus, ShopItemStatus, OrderStatus, PaymentStatus, OrderItem, ShopSettings, DeliveryOption, PaymentMethod } from '../domain/types';
 
 export class ShopRepository implements IShopRepository {
   // Shop operations
@@ -121,6 +121,20 @@ export class ShopRepository implements IShopRepository {
     }
     
     return data as Shop;
+  }
+
+  async deleteShop(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('shops')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting shop:', error);
+      return false;
+    }
+    
+    return true;
   }
   
   // Shop items operations
@@ -278,6 +292,25 @@ export class ShopRepository implements IShopRepository {
     } as ShopItem;
   }
 
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem> {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating shop item status:', error);
+      throw new Error(`Failed to update shop item status: ${error.message}`);
+    }
+    
+    return {
+      ...data,
+      shop: { name: '' }
+    } as ShopItem;
+  }
+
   async deleteShopItem(id: string): Promise<boolean> {
     const { error } = await supabase
       .from('shop_items')
@@ -329,6 +362,15 @@ export class ShopRepository implements IShopRepository {
     }
     
     return data as ShopReview;
+  }
+
+  async addShopReview(shopId: string, userId: string, rating: number, comment?: string): Promise<ShopReview> {
+    return this.createShopReview({
+      shop_id: shopId,
+      user_id: userId,
+      rating,
+      comment
+    });
   }
 
   async updateShopReview(id: string, reviewData: Partial<ShopReview>): Promise<ShopReview> {
@@ -386,12 +428,67 @@ export class ShopRepository implements IShopRepository {
       total_amount: order.total_amount,
       delivery_fee: order.delivery_fee,
       payment_status: order.payment_status as PaymentStatus,
-      payment_method: 'card', // Default value since it's not in the database
-      delivery_address: order.delivery_address as any, // Handle the JSON conversion
+      payment_method: order.payment_method || 'card', // Valeur par défaut si non présente
+      delivery_address: this.parseDeliveryAddress(order.delivery_address),
       created_at: order.created_at,
       updated_at: order.updated_at,
       items: this.mapOrderItems(order.items || [])
     }));
+  }
+
+  // Méthode pour récupérer les commandes d'un utilisateur
+  async getUserOrders(userId: string): Promise<Order[]> {
+    const { data, error } = await supabase
+      .from('shop_orders')
+      .select(`
+        *,
+        items:shop_order_items(*)
+      `)
+      .eq('customer_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching user orders:', error);
+      return [];
+    }
+    
+    return data.map(order => ({
+      id: order.id,
+      shop_id: order.shop_id,
+      customer_id: order.customer_id,
+      status: order.status as OrderStatus,
+      total_amount: order.total_amount,
+      delivery_fee: order.delivery_fee,
+      payment_status: order.payment_status as PaymentStatus,
+      payment_method: order.payment_method || 'card',
+      delivery_address: this.parseDeliveryAddress(order.delivery_address),
+      created_at: order.created_at,
+      updated_at: order.updated_at,
+      items: this.mapOrderItems(order.items || [])
+    }));
+  }
+
+  // Helper method to parse delivery address
+  private parseDeliveryAddress(addressData: any): { street: string; city: string; postal_code: string; country: string; } {
+    if (typeof addressData === 'string') {
+      try {
+        return JSON.parse(addressData);
+      } catch {
+        return {
+          street: '',
+          city: '',
+          postal_code: '',
+          country: ''
+        };
+      }
+    }
+    
+    return {
+      street: addressData?.street || '',
+      city: addressData?.city || '',
+      postal_code: addressData?.postal_code || '',
+      country: addressData?.country || ''
+    };
   }
 
   // Helper method to map order items
@@ -400,8 +497,8 @@ export class ShopRepository implements IShopRepository {
       id: item.id,
       order_id: item.order_id,
       item_id: item.item_id,
-      name: item.name || 'Product',
-      price: item.price_at_time,
+      name: item.name || 'Produit',
+      price: item.price_at_time || 0,
       quantity: item.quantity,
       created_at: item.created_at,
       shop_item_id: item.item_id,
@@ -432,8 +529,8 @@ export class ShopRepository implements IShopRepository {
       total_amount: data.total_amount,
       delivery_fee: data.delivery_fee,
       payment_status: data.payment_status as PaymentStatus,
-      payment_method: 'card', // Default value since it's not in the database
-      delivery_address: data.delivery_address as any, // Handle the JSON conversion
+      payment_method: data.payment_method || 'card',
+      delivery_address: this.parseDeliveryAddress(data.delivery_address),
       created_at: data.created_at,
       updated_at: data.updated_at,
       items: this.mapOrderItems(data.items || [])
@@ -451,6 +548,7 @@ export class ShopRepository implements IShopRepository {
         total_amount: orderData.total_amount,
         delivery_fee: orderData.delivery_fee,
         payment_status: orderData.payment_status,
+        payment_method: orderData.payment_method || 'card',
         delivery_address: orderData.delivery_address
       })
       .select()
@@ -482,7 +580,11 @@ export class ShopRepository implements IShopRepository {
     }
     
     // Return the full order with items
-    return this.getOrderById(orderResult.id) as Promise<Order>;
+    const order = await this.getOrderById(orderResult.id);
+    if (!order) {
+      throw new Error('Failed to retrieve created order');
+    }
+    return order;
   }
 
   async updateOrder(id: string, orderData: any): Promise<Order> {
@@ -500,7 +602,47 @@ export class ShopRepository implements IShopRepository {
       throw new Error(`Failed to update order: ${error.message}`);
     }
     
-    return this.getOrderById(id) as Promise<Order>;
+    const order = await this.getOrderById(id);
+    if (!order) {
+      throw new Error('Failed to retrieve updated order');
+    }
+    return order;
+  }
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+    return this.updateOrder(id, { status });
+  }
+  
+  // Shop settings operations
+  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .eq('shop_id', shopId)
+      .single();
+      
+    if (error) {
+      console.error('Error fetching shop settings:', error);
+      return null;
+    }
+    
+    return data as ShopSettings;
+  }
+  
+  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .update(settings)
+      .eq('shop_id', shopId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating shop settings:', error);
+      throw new Error(`Failed to update shop settings: ${error.message}`);
+    }
+    
+    return data as ShopSettings;
   }
   
   // Favorites
@@ -565,5 +707,22 @@ export class ShopRepository implements IShopRepository {
     }
     
     return data.map(item => item.shops) as Shop[];
+  }
+  
+  // Aliases pour la compatibilité
+  async checkIfFavorited(userId: string, shopId: string): Promise<boolean> {
+    return this.isShopFavorited(userId, shopId);
+  }
+  
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
+    return this.getUserFavoriteShops(userId);
+  }
+  
+  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.addShopToFavorites(userId, shopId);
+  }
+  
+  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.removeShopFromFavorites(userId, shopId);
   }
 }

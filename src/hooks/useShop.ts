@@ -1,244 +1,310 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from './use-toast';
-import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { Shop, ShopItem, ShopReview, Order } from '@/core/shop/domain/types';
 
-// Interface pour les paramètres de création d'une review
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { Shop, ShopItem, ShopReview, Order, OrderStatus } from '@/core/shop/domain/types';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+
+// Paramètres pour la création d'une boutique
+interface CreateShopParams {
+  name: string;
+  description: string;
+  image_url?: string;
+  categories?: string[];
+}
+
+// Paramètres pour l'ajout d'un article
+interface CreateShopItemParams {
+  shop_id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  image_url?: string;
+}
+
+// Paramètres pour la création d'un avis
 interface CreateReviewParams {
-  shopId: string;
-  userId: string;
+  shop_id: string;
   rating: number;
   comment?: string;
 }
 
 export const useShop = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const shopService = getShopService();
-  
-  // Get current user's shop
-  const {
-    data: shop,
-    isLoading: isShopLoading,
-    error: shopError,
-    refetch: refetchShop,
-  } = useQuery({
-    queryKey: ['userShop', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      return await shopService.getShopByUserId(user.id);
-    },
-    enabled: !!user?.id,
-  });
-  
-  // Get shop by ID
-  const getShopById = async (id: string) => {
-    return await shopService.getShopById(id);
+
+  // Récupérer une boutique par son ID
+  const useShopById = (shopId?: string) => {
+    return useQuery({
+      queryKey: ['shop', shopId],
+      queryFn: async () => {
+        if (!shopId) return null;
+        return shopService.getShopById(shopId);
+      },
+      enabled: !!shopId
+    });
   };
-  
-  // Create a new shop
-  const createShopMutation = useMutation({
-    mutationFn: (shopData: Omit<Shop, "id" | "created_at" | "updated_at" | "average_rating">) => {
-      return shopService.createShop(shopData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop'] });
-    },
-  });
-  
-  // Update a shop
-  const updateShopMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => {
-      return shopService.updateShop(id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop'] });
-      queryClient.invalidateQueries({ queryKey: ['shop'] });
-    },
-  });
-  
-  // Get shop items
-  const getShopItems = async (shopId: string) => {
-    return await shopService.getShopItems(shopId);
+
+  // Récupérer la boutique de l'utilisateur connecté
+  const useUserShop = () => {
+    return useQuery({
+      queryKey: ['userShop', user?.id],
+      queryFn: async () => {
+        if (!user?.id) return null;
+        return shopService.getShopByUserId(user.id);
+      },
+      enabled: !!user?.id
+    });
   };
-  
-  // Create a shop item
-  const createShopItemMutation = useMutation({
-    mutationFn: (itemData: any) => {
-      return shopService.createShopItem(itemData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-    },
-  });
-  
-  // Update a shop item
-  const updateShopItemMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => {
-      return shopService.updateShopItem(id, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-    },
-  });
-  
-  // Delete a shop item
-  const deleteShopItemMutation = useMutation({
-    mutationFn: (id: string) => {
-      return shopService.deleteShopItem(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-    },
-  });
-  
-  // Get shop reviews
-  const getShopReviews = async (shopId: string) => {
-    return await shopService.getShopReviews(shopId);
-  };
-  
-  // Create a shop review
-  const createShopReviewMutation = useMutation({
-    mutationFn: (reviewData: any) => {
-      return shopService.createShopReview(reviewData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopReviews'] });
-    },
-  });
-  
-  // Get shop orders
-  const getShopOrders = async (shopId: string) => {
-    return await shopService.getShopOrders(shopId);
-  };
-  
-  // Get user orders
-  const getUserOrders = async (userId: string) => {
-    return await shopService.getUserOrders(userId);
-  };
-  
-  // Update order status
-  const updateOrderStatusMutation = useMutation({
-    mutationFn: ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      return shopService.updateOrderStatus(orderId, status);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
-      queryClient.invalidateQueries({ queryKey: ['userOrders'] });
-    },
-  });
-  
-  // Ajouter un avis sur une boutique
-  const addShopReviewMutation = useMutation({
-    mutationFn: async ({ shopId, userId, rating, comment }: CreateReviewParams) => {
-      try {
-        const review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'> = {
-          shop_id: shopId,
-          user_id: userId,
-          rating,
-          comment
-        };
-        
-        // Utiliser directement l'interface IShopRepository plutôt que ShopService
-        return await shopService.createShopReview(review);
-      } catch (error) {
-        console.error('Error adding shop review:', error);
-        throw error;
-      }
-    },
-    meta: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop-reviews'] });
-        toast({
-          title: 'Avis ajouté',
-          description: 'Votre avis a été ajouté avec succès',
-          variant: 'default'
+
+  // Créer une boutique
+  const useCreateShop = () => {
+    return useMutation({
+      mutationFn: async (params: CreateShopParams) => {
+        if (!user?.id) throw new Error('User not logged in');
+        return shopService.createShop({
+          ...params,
+          user_id: user.id,
+          status: 'pending',
+          average_rating: 0,
+          created_at: '',
+          updated_at: '',
+          id: ''
         });
       },
-      onError: () => {
-        toast({
-          title: 'Erreur',
-          description: 'Impossible d\'ajouter votre avis',
-          variant: 'destructive'
-        });
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
       }
-    }
-  });
+    });
+  };
+
+  // Mettre à jour une boutique
+  const useUpdateShop = () => {
+    return useMutation({
+      mutationFn: async ({ shopId, data }: { shopId: string; data: Partial<Shop> }) => {
+        return shopService.updateShop(shopId, data);
+      },
+      onSuccess: (updatedShop) => {
+        queryClient.invalidateQueries({ queryKey: ['shop', updatedShop.id] });
+        queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
+      }
+    });
+  };
+
+  // Récupérer les articles d'une boutique
+  const useShopItems = (shopId?: string) => {
+    return useQuery({
+      queryKey: ['shopItems', shopId],
+      queryFn: async () => {
+        if (!shopId) return [];
+        return shopService.getShopItems(shopId);
+      },
+      enabled: !!shopId
+    });
+  };
+
+  // Ajouter un article à une boutique
+  const useCreateShopItem = () => {
+    return useMutation({
+      mutationFn: async (params: CreateShopItemParams) => {
+        return shopService.createShopItem({
+          ...params,
+          original_price: params.price,
+          status: 'available',
+          created_at: '',
+          updated_at: '',
+          id: ''
+        });
+      },
+      onSuccess: (newItem) => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems', newItem.shop_id] });
+      }
+    });
+  };
+
+  // Mettre à jour un article
+  const useUpdateShopItem = () => {
+    return useMutation({
+      mutationFn: async ({ itemId, data }: { itemId: string; data: Partial<ShopItem> }) => {
+        return shopService.updateShopItem(itemId, data);
+      },
+      onSuccess: (updatedItem) => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems', updatedItem.shop_id] });
+      }
+    });
+  };
+
+  // Supprimer un article
+  const useDeleteShopItem = () => {
+    return useMutation({
+      mutationFn: async (itemId: string) => {
+        return shopService.deleteShopItem(itemId);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['shopItems'] });
+      }
+    });
+  };
+
+  // Récupérer les commandes d'une boutique
+  const useShopOrders = (shopId?: string) => {
+    return useQuery({
+      queryKey: ['shopOrders', shopId],
+      queryFn: async () => {
+        if (!shopId) return [];
+        return shopService.getOrders(shopId);
+      },
+      enabled: !!shopId
+    });
+  };
+
+  // Récupérer les commandes d'un utilisateur
+  const useUserOrders = () => {
+    return useQuery({
+      queryKey: ['userOrders', user?.id],
+      queryFn: async () => {
+        if (!user?.id) return [];
+        return shopService.getOrders(user.id);
+      },
+      enabled: !!user?.id
+    });
+  };
+
+  // Mettre à jour le statut d'une commande
+  const useUpdateOrderStatus = () => {
+    return useMutation({
+      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+        return shopService.updateOrder(orderId, { status });
+      },
+      onSuccess: (updatedOrder) => {
+        queryClient.invalidateQueries({ queryKey: ['shopOrders', updatedOrder.shop_id] });
+        queryClient.invalidateQueries({ queryKey: ['userOrders', user?.id] });
+      }
+    });
+  };
+
+  // Récupérer les avis d'une boutique
+  const useShopReviews = (shopId?: string) => {
+    return useQuery({
+      queryKey: ['shopReviews', shopId],
+      queryFn: async () => {
+        if (!shopId) return [];
+        return shopService.getShopReviews(shopId);
+      },
+      enabled: !!shopId
+    });
+  };
+
+  // Ajouter un avis
+  const useCreateReview = () => {
+    return useMutation({
+      mutationFn: async ({ shop_id, rating, comment }: CreateReviewParams) => {
+        if (!user?.id) throw new Error('User not logged in');
+        return shopService.createShopReview({
+          shop_id,
+          user_id: user.id,
+          rating,
+          comment,
+          id: '',
+          created_at: '',
+          updated_at: ''
+        });
+      },
+      onSuccess: (newReview) => {
+        queryClient.invalidateQueries({ queryKey: ['shopReviews', newReview.shop_id] });
+        queryClient.invalidateQueries({ queryKey: ['shop', newReview.shop_id] });
+        toast.success('Votre avis a été ajouté avec succès !');
+      },
+      onError: (error) => {
+        toast.error(`Erreur lors de l'ajout de l'avis: ${(error as Error).message}`);
+      }
+    });
+  };
+
+  // Vérifier si une boutique est dans les favoris
+  const useIsFavorited = (shopId?: string) => {
+    return useQuery({
+      queryKey: ['isFavorited', shopId, user?.id],
+      queryFn: async () => {
+        if (!user?.id || !shopId) return false;
+        return shopService.isShopFavorited(user.id, shopId);
+      },
+      enabled: !!shopId && !!user?.id
+    });
+  };
+
+  // Ajouter une boutique aux favoris
+  const useAddToFavorites = () => {
+    return useMutation({
+      mutationFn: async (shopId: string) => {
+        if (!user?.id) throw new Error('User not logged in');
+        return shopService.addShopToFavorites(user.id, shopId);
+      },
+      onSuccess: (_, shopId) => {
+        queryClient.invalidateQueries({ queryKey: ['isFavorited', shopId, user?.id] });
+        queryClient.invalidateQueries({ queryKey: ['favoriteShops', user?.id] });
+        toast.success('Boutique ajoutée aux favoris !');
+      },
+      onError: (error) => {
+        toast.error(`Erreur: ${(error as Error).message}`);
+      }
+    });
+  };
+
+  // Retirer une boutique des favoris
+  const useRemoveFromFavorites = () => {
+    return useMutation({
+      mutationFn: async (shopId: string) => {
+        if (!user?.id) throw new Error('User not logged in');
+        return shopService.removeShopFromFavorites(user.id, shopId);
+      },
+      onSuccess: (_, shopId) => {
+        queryClient.invalidateQueries({ queryKey: ['isFavorited', shopId, user?.id] });
+        queryClient.invalidateQueries({ queryKey: ['favoriteShops', user?.id] });
+      }
+    });
+  };
+
+  // Récupérer les boutiques favorites
+  const useFavoriteShops = () => {
+    return useQuery({
+      queryKey: ['favoriteShops', user?.id],
+      queryFn: async () => {
+        if (!user?.id) return [];
+        return shopService.getUserFavoriteShops(user.id);
+      },
+      enabled: !!user?.id
+    });
+  };
 
   return {
-    // Shop data
-    shop,
-    isShopLoading,
-    shopError,
-    refetchShop,
+    // Boutiques
+    useShopById,
+    useUserShop,
+    useCreateShop,
+    useUpdateShop,
     
-    // Shop CRUD
-    getShopById,
-    createShop: createShopMutation.mutate,
-    isCreatingShop: createShopMutation.isPending,
-    updateShop: updateShopMutation.mutate,
-    isUpdatingShop: updateShopMutation.isPending,
+    // Articles
+    useShopItems,
+    useCreateShopItem,
+    useUpdateShopItem,
+    useDeleteShopItem,
     
-    // Shop items
-    getShopItems,
-    createShopItem: createShopItemMutation.mutate,
-    isCreatingShopItem: createShopItemMutation.isPending,
-    updateShopItem: updateShopItemMutation.mutate,
-    isUpdatingShopItem: updateShopItemMutation.isPending,
-    deleteShopItem: deleteShopItemMutation.mutate,
-    isDeletingShopItem: deleteShopItemMutation.isPending,
+    // Commandes
+    useShopOrders,
+    useUserOrders,
+    useUpdateOrderStatus,
     
-    // Shop reviews
-    getShopReviews,
-    createShopReview: createShopReviewMutation.mutate,
-    isCreatingShopReview: createShopReviewMutation.isPending,
-    addShopReview: addShopReviewMutation.mutate,
+    // Avis
+    useShopReviews,
+    useCreateReview,
     
-    // Shop orders
-    getShopOrders,
-    getUserOrders,
-    updateOrderStatus: updateOrderStatusMutation.mutate,
-    isUpdatingOrderStatus: updateOrderStatusMutation.isPending,
+    // Favoris
+    useIsFavorited,
+    useAddToFavorites,
+    useRemoveFromFavorites,
+    useFavoriteShops
   };
 };
-
-export function useShopReviewMutation() {
-  const queryClient = useQueryClient();
-
-  const createReview = useMutation({
-    mutationFn: async ({ shopId, userId, rating, comment }: CreateReviewParams) => {
-      try {
-        const shopService = getShopService();
-        return await shopService.createShopReview({
-          shop_id: shopId,
-          user_id: userId,
-          rating,
-          comment
-        });
-      } catch (error) {
-        console.error('Error creating review:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopReviews'] });
-      toast({
-        title: "Avis publié",
-        description: "Votre avis a été publié avec succès.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Shop review mutation error:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de publier votre avis. Veuillez réessayer.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  return {
-    createReview
-  };
-}

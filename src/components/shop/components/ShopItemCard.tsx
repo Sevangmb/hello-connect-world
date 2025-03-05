@@ -1,33 +1,34 @@
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/useCart";
+import { ShopItem } from "@/core/shop/domain/types";
 
-interface ShopItemCardProps {
-  item: any;
+export interface ShopItemCardProps {
+  item: ShopItem;
+  userId?: string;
 }
 
-export const ShopItemCard = ({ item }: ShopItemCardProps) => {
-  const { addItemToCart, cart, removeItemFromCart } = useCart();
-
-  // Correction des paramètres d'appel des hooks
+export const ShopItemCard = ({ item, userId }: ShopItemCardProps) => {
+  const { addToCart, cartItems, removeFromCart } = useCart();
 
   // Correction pour isAddingToCart
   const isAddingToCart = false; // Utiliser addToCart.isPending si disponible
 
   // Correction pour addToCart, ajouter le paramètre requis
   const handleAddToCart = () => {
-    addItemToCart({ 
+    addToCart({ 
       itemId: item.id,
       quantity: 1
     });
   };
 
   const handleRemoveFromCart = () => {
-    removeItemFromCart(item.id);
+    removeFromCart(item.id);
   };
 
-  const isInCart = cart.items.find((cartItem) => cartItem.itemId === item.id);
+  const isInCart = cartItems.some((cartItem) => cartItem.shop_item_id === item.id);
 
   return (
     <Card>

@@ -1,131 +1,105 @@
 
-import { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
 import { useAuth } from '@/hooks/useAuth';
-import { useShop } from '@/hooks/useShop';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShopItemsList } from './ShopItemsList';
-import { ShopOrdersList } from './ShopOrdersList';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
+import ShopItemsList from './ShopItemsList';
+import ShopOrdersList from './ShopOrdersList';
 import ShopReviewsList from './ShopReviewsList';
 import AddItemForm from './AddItemForm';
 
-export const ShopDashboard = () => {
+const ShopDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { 
-    shop, isShopLoading, shopError, refetchShop,
-    isCreatingShop, isUpdatingShop 
-  } = useShop();
   
-  const [isAddingItem, setIsAddingItem] = useState(false);
-  const [activeTab, setActiveTab] = useState('items');
+  const { data: shop, isLoading: isShopLoading, error: shopError } = useQuery({
+    queryKey: ['userShop', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not logged in');
+      const shopService = getShopService();
+      return shopService.getShopByUserId(user.id);
+    },
+    enabled: !!user?.id
+  });
 
   if (isShopLoading) {
-    return <div className="flex justify-center p-6">Chargement de votre boutique...</div>;
+    return <div>Chargement de votre boutique...</div>;
   }
 
   if (shopError) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Erreur</AlertTitle>
-        <AlertDescription>
-          Impossible de charger les données de votre boutique. Veuillez réessayer plus tard.
-        </AlertDescription>
-      </Alert>
-    );
+    return <div>Erreur: {(shopError as Error).message}</div>;
   }
 
   if (!shop) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Boutique non trouvée</CardTitle>
-          <CardDescription>
-            Vous n'avez pas encore de boutique. Créez-en une pour commencer à vendre vos articles.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button disabled={isCreatingShop}>
-            {isCreatingShop ? 'Création en cours...' : 'Créer une boutique'}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <h1 className="text-2xl font-bold mb-4">Vous n'avez pas encore de boutique</h1>
+        <p className="text-gray-500 mb-6">
+          Créez votre boutique pour commencer à vendre vos articles.
+        </p>
+        <a
+          href="/create-shop"
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+        >
+          Créer une boutique
+        </a>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="container mx-auto py-8">
+      <Card className="mb-8">
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>{shop.name}</CardTitle>
-              <CardDescription>{shop.description}</CardDescription>
-            </div>
-            <Button 
-              variant="outline" 
-              disabled={isUpdatingShop}
-              onClick={() => console.log('Éditer boutique')}
-            >
-              Modifier
-            </Button>
-          </div>
+          <CardTitle>Ma Boutique</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="border rounded p-3 text-center">
-              <div className="text-2xl font-bold">{shop.total_ratings || 0}</div>
-              <div className="text-sm text-gray-500">Avis</div>
-            </div>
-            <div className="border rounded p-3 text-center">
-              <div className="text-2xl font-bold">{shop.average_rating || 0}/5</div>
-              <div className="text-sm text-gray-500">Note moyenne</div>
-            </div>
-            <div className="border rounded p-3 text-center">
-              <div className="text-2xl font-bold">0</div>
-              <div className="text-sm text-gray-500">Ventes</div>
-            </div>
+          <h1 className="text-2xl font-bold">{shop.name}</h1>
+          <p className="text-gray-500">{shop.description}</p>
+          <div className="mt-2">
+            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
+              {shop.status}
+            </span>
+            <span className="text-sm ml-2">
+              Note: {shop.average_rating} ({shop.rating_count || 0} avis)
+            </span>
+          </div>
+          <div className="mt-4">
+            <a
+              href={`/shops/${shop.id}`}
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Voir ma boutique
+            </a>
           </div>
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3">
+      <Tabs defaultValue="items">
+        <TabsList className="mb-4">
           <TabsTrigger value="items">Articles</TabsTrigger>
           <TabsTrigger value="orders">Commandes</TabsTrigger>
           <TabsTrigger value="reviews">Avis</TabsTrigger>
+          <TabsTrigger value="add-item">Ajouter un article</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="items" className="space-y-4">
-          {!isAddingItem ? (
-            <>
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Vos articles</h3>
-                <Button onClick={() => setIsAddingItem(true)}>Ajouter un article</Button>
-              </div>
-              <Separator />
-              <ShopItemsList shopId={shop.id} />
-            </>
-          ) : (
-            <AddItemForm 
-              shopId={shop.id} 
-              onSuccess={() => {
-                setIsAddingItem(false);
-                refetchShop();
-              }}
-              onCancel={() => setIsAddingItem(false)}
-            />
-          )}
+
+        <TabsContent value="items">
+          <ShopItemsList shopId={shop.id} />
         </TabsContent>
-        
+
         <TabsContent value="orders">
           <ShopOrdersList shopId={shop.id} />
         </TabsContent>
-        
+
         <TabsContent value="reviews">
           <ShopReviewsList shopId={shop.id} />
+        </TabsContent>
+
+        <TabsContent value="add-item">
+          <AddItemForm shopId={shop.id} />
         </TabsContent>
       </Tabs>
     </div>

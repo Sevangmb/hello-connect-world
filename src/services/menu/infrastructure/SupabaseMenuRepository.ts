@@ -1,9 +1,38 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
-import { MenuItem } from '../types';
+import { MenuItem, MenuType } from '../types';
 
 export class MenuRepository implements IMenuRepository {
+  async getMenuItems(menuType: MenuType): Promise<MenuItem[]> {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .eq('menu_type', menuType)
+      .order('order');
+      
+    if (error) {
+      console.error('Error fetching menu items:', error);
+      throw error;
+    }
+    
+    return data || [];
+  }
+
+  async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .eq('parent_id', parentId)
+      .order('order');
+      
+    if (error) {
+      console.error('Error fetching child menu items:', error);
+      throw error;
+    }
+    
+    return data || [];
+  }
+
   async getAllMenuItems(): Promise<MenuItem[]> {
     const { data, error } = await supabase
       .from('menu_items')
@@ -19,7 +48,6 @@ export class MenuRepository implements IMenuRepository {
   }
 
   async getMenuItemsByCategory(category: string, isAdmin: boolean = false): Promise<MenuItem[]> {
-    // Need to handle the types correctly here
     let query = supabase
       .from('menu_items')
       .select('*')
@@ -53,21 +81,6 @@ export class MenuRepository implements IMenuRepository {
 
     if (error) {
       console.error('Error fetching menu items by module:', error);
-      return [];
-    }
-
-    return data as MenuItem[];
-  }
-
-  async getMenuItemsByParent(parentId: string): Promise<MenuItem[]> {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('parent_id', parentId)
-      .order('position', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching menu items by parent:', error);
       return [];
     }
 
@@ -119,3 +132,5 @@ export class MenuRepository implements IMenuRepository {
     return true;
   }
 }
+
+export const menuRepository = new MenuRepository();

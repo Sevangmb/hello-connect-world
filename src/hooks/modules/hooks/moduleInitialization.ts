@@ -8,3 +8,8 @@ export const moduleInitialization = {
     return true;
   }
 };
+
+export const initializeModuleApi = async () => {
+  console.log('Initializing module API...');
+  return await moduleInitialization.initializeModules();
+};

@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import { ShopItemCard } from './components/ShopItemCard';
 import { useShopItems } from './hooks/useShopItems';
 import { ShopItemsFilter } from './components/ShopItemsFilter';
 import { useAuth } from '@/hooks/useAuth';
 import { ShopItem } from '@/core/shop/domain/types';
+import { ShopItemCard } from './components/ShopItemCard';
 
 interface ShopItemsProps {
   shopId?: string;

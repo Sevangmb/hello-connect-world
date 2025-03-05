@@ -183,4 +183,83 @@ export class ModuleRepository {
 
     return data;
   }
+
+  async getFeaturesByModuleCode(moduleCode: string): Promise<ModuleFeature[]> {
+    const { data, error } = await supabase
+      .from('module_features')
+      .select('*')
+      .eq('module_code', moduleCode);
+    
+    if (error) {
+      console.error('Error fetching module features:', error);
+      return [];
+    }
+    
+    return data as ModuleFeature[];
+  }
+
+  async getFeaturesByModule(moduleCode: string): Promise<ModuleFeature[]> {
+    return this.getFeaturesByModuleCode(moduleCode);
+  }
+
+  async getFeature(moduleCode: string, featureCode: string): Promise<ModuleFeature | null> {
+    const { data, error } = await supabase
+      .from('module_features')
+      .select('*')
+      .eq('module_code', moduleCode)
+      .eq('feature_code', featureCode)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching module feature:', error);
+      return null;
+    }
+    
+    return data as ModuleFeature;
+  }
+
+  async createModule(moduleData: any): Promise<AppModule> {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .insert(moduleData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating module:', error);
+      throw error;
+    }
+    
+    return data as AppModule;
+  }
+
+  async updateModule(moduleId: string, moduleData: any): Promise<AppModule> {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .update(moduleData)
+      .eq('id', moduleId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating module:', error);
+      throw error;
+    }
+    
+    return data as AppModule;
+  }
+
+  async deleteModule(moduleId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('app_modules')
+      .delete()
+      .eq('id', moduleId);
+    
+    if (error) {
+      console.error('Error deleting module:', error);
+      return false;
+    }
+    
+    return true;
+  }
 }

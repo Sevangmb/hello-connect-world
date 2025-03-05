@@ -1,5 +1,8 @@
 
-// Correction du type trop profond et de la propriété shop manquante
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { ShopItem, ShopItemStatus, RawShopItem } from '@/core/shop/domain/types';
+
 interface ShopItemsQueryParams {
   shopId?: string;
   category?: string;
@@ -35,4 +38,52 @@ const transformItems = (rawItems: RawShopItemWithShop[]): ShopItem[] => {
       name: item.shop?.name || ''
     }
   }));
+};
+
+export const useShopItems = (params: ShopItemsQueryParams = {}) => {
+  const { shopId, category, minPrice, maxPrice, sortBy, userId } = params;
+
+  return useQuery({
+    queryKey: ['shopItems', shopId, category, minPrice, maxPrice, sortBy, userId],
+    queryFn: async () => {
+      let query = supabase
+        .from('shop_items')
+        .select(`
+          *,
+          shop:shops (name)
+        `);
+
+      if (shopId) {
+        query = query.eq('shop_id', shopId);
+      }
+
+      if (category) {
+        query = query.eq('category', category);
+      }
+
+      if (minPrice !== undefined) {
+        query = query.gte('price', minPrice);
+      }
+
+      if (maxPrice !== undefined) {
+        query = query.lte('price', maxPrice);
+      }
+
+      // Gestion du tri
+      if (sortBy) {
+        const [field, direction] = sortBy.split(':');
+        query = query.order(field, { ascending: direction === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(`Erreur lors du chargement des articles: ${error.message}`);
+      }
+
+      return transformItems(data as RawShopItemWithShop[]);
+    }
+  });
 };
