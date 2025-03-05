@@ -1,120 +1,158 @@
 
-/**
- * Repository pour l'accès aux données des modules
- * Gère toutes les interactions avec Supabase pour les modules
- */
 import { supabase } from '@/integrations/supabase/client';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { eventBus } from '@/core/event-bus/EventBus';
-import { MODULE_EVENTS } from '../ModuleEvents';
+import { ModuleFeature } from '@/hooks/modules/types';
 
 export class ModuleRepository {
-  /**
-   * Récupère tous les modules depuis Supabase
-   * @returns Promise<AppModule[]> Liste des modules
-   */
-  async fetchAllModules(): Promise<AppModule[]> {
+  async getAllModules(): Promise<AppModule[]> {
     try {
       const { data, error } = await supabase
         .from('app_modules')
         .select('*')
         .order('name');
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      // Assurer que les statuts sont valides et que tous les champs requis sont présents
-      return (data || []).map(module => {
-        const status = module.status as ModuleStatus;
-        // Accept 'maintenance' as a valid status
-        const validStatus = ['active', 'inactive', 'degraded', 'maintenance'].includes(status) ? 
-                           status : 'inactive';
-                           
-        return {
-          ...module,
-          status: validStatus,
-          version: module.version || "1.0.0",
-          is_admin: module.is_admin || false,
-          priority: module.priority || 0
-        } as AppModule;
-      });
+      // Convert to AppModule with all required fields
+      return (data || []).map(module => ({
+        ...module,
+        // Add default values for fields that may be missing
+        version: module.version || '1.0.0',
+        is_admin: module.is_admin || false,
+        priority: module.priority || 1,
+        status: module.status as ModuleStatus
+      })) as AppModule[];
     } catch (error) {
-      console.error("Erreur lors du chargement des modules:", error);
-      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
-        error: "Erreur lors du chargement des modules",
-        context: "fetch",
-        timestamp: Date.now()
-      });
-      throw error;
+      console.error("Error fetching all modules:", error);
+      return [];
     }
   }
 
-  /**
-   * Met à jour le statut d'un module
-   * @param moduleId ID du module
-   * @param status Nouveau statut
-   * @returns Promise<boolean> True si la mise à jour a réussi
-   */
-  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('app_modules')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', moduleId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut du module:", error);
-      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, {
-        error: `Erreur lors de la mise à jour du statut du module: ${error}`,
-        context: "update_status",
-        timestamp: Date.now()
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Récupère un module par son code
-   * @param moduleCode Code du module
-   * @returns Promise<AppModule | null> Module ou null si non trouvé
-   */
-  async getModuleByCode(moduleCode: string): Promise<AppModule | null> {
+  async getModuleByCode(code: string): Promise<AppModule | null> {
     try {
       const { data, error } = await supabase
         .from('app_modules')
         .select('*')
-        .eq('code', moduleCode)
+        .eq('code', code)
         .single();
       
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No rows returned, module not found
-          return null;
-        }
+        if (error.code === 'PGRST116') return null;
         throw error;
       }
       
+      if (!data) return null;
+      
       return {
         ...data,
-        version: data.version || "1.0.0",
+        version: data.version || '1.0.0',
         is_admin: data.is_admin || false,
-        priority: data.priority || 0
+        priority: data.priority || 1,
+        status: data.status as ModuleStatus
       } as AppModule;
     } catch (error) {
-      console.error(`Erreur lors de la récupération du module ${moduleCode}:`, error);
-      throw error;
+      console.error(`Error fetching module by code (${code}):`, error);
+      return null;
+    }
+  }
+
+  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+    try {
+      // Use type casting to resolve type conflict
+      const statusAsString = status as any;
+      
+      const { error } = await supabase
+        .from('app_modules')
+        .update({ 
+          status: statusAsString,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', moduleId);
+      
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error("Error updating module status:", error);
+      return false;
+    }
+  }
+
+  async getAllFeatures(): Promise<ModuleFeature[]> {
+    try {
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*');
+      
+      if (error) throw error;
+      
+      return data as ModuleFeature[];
+    } catch (error) {
+      console.error("Error fetching all features:", error);
+      return [];
+    }
+  }
+
+  async getModuleFeatures(moduleCode: string): Promise<ModuleFeature[]> {
+    try {
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*')
+        .eq('module_code', moduleCode);
+      
+      if (error) throw error;
+      
+      return data as ModuleFeature[];
+    } catch (error) {
+      console.error(`Error fetching features for module ${moduleCode}:`, error);
+      return [];
+    }
+  }
+
+  async updateFeatureStatus(featureId: string, isEnabled: boolean): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('module_features')
+        .update({ 
+          is_enabled: isEnabled,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', featureId);
+      
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error("Error updating feature status:", error);
+      return false;
+    }
+  }
+
+  async getModuleById(id: string): Promise<AppModule | null> {
+    try {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        throw error;
+      }
+      
+      if (!data) return null;
+      
+      return {
+        ...data,
+        version: data.version || '1.0.0',
+        is_admin: data.is_admin || false,
+        priority: data.priority || 1,
+        status: data.status as ModuleStatus
+      } as AppModule;
+    } catch (error) {
+      console.error(`Error fetching module by id (${id}):`, error);
+      return null;
     }
   }
 }
-
-// Exporter une instance unique pour toute l'application
-export const moduleRepository = new ModuleRepository();

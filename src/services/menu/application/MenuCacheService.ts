@@ -1,35 +1,42 @@
 
-// Cache expiration time
-export const CACHE_VALIDITY_MS = 5 * 60 * 1000; // 5 minutes
+import { MenuItem } from '../types';
+import { CACHE_VALIDITY_MS } from '@/hooks/modules/constants';
 
-export class MenuCacheService {
-  private static menuCache: Record<string, { data: any, timestamp: number }> = {};
-  
-  static setMenuData(key: string, data: any): void {
-    this.menuCache[key] = {
-      data,
-      timestamp: Date.now()
-    };
-  }
-  
-  static getMenuData(key: string): any | null {
-    const cached = this.menuCache[key];
-    if (!cached) return null;
+interface CacheItem {
+  items: MenuItem[];
+  timestamp: number;
+}
+
+class MenuCacheService {
+  private static cache: Record<string, CacheItem> = {};
+
+  getCache(key: string): MenuItem[] | null {
+    const cacheItem = MenuCacheService.cache[key];
+    if (!cacheItem) return null;
     
-    // Check if cache is still valid
-    if (Date.now() - cached.timestamp > CACHE_VALIDITY_MS) {
-      delete this.menuCache[key];
+    const now = Date.now();
+    if (now - cacheItem.timestamp > CACHE_VALIDITY_MS) {
+      delete MenuCacheService.cache[key];
       return null;
     }
     
-    return cached.data;
+    return cacheItem.items;
   }
-  
+
+  setCache(key: string, items: MenuItem[]): void {
+    MenuCacheService.cache[key] = {
+      items,
+      timestamp: Date.now()
+    };
+  }
+
   static clearCache(): void {
-    this.menuCache = {};
+    MenuCacheService.cache = {};
   }
-  
-  static invalidateCache(key: string): void {
-    delete this.menuCache[key];
+
+  static invalidateCache(): void {
+    MenuCacheService.cache = {};
   }
 }
+
+export { MenuCacheService };

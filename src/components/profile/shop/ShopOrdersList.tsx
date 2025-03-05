@@ -1,118 +1,146 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Eye, Package, Truck } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
 import { useShop } from '@/hooks/useShop';
-import { OrderStatus } from '@/core/shop/domain/types';
 
-export function ShopOrdersList() {
-  const { orders, loading } = useShop();
+interface ShopOrdersListProps {
+  shopId: string;
+}
+
+export function ShopOrdersList({ shopId }: ShopOrdersListProps) {
+  const { getShopOrders, updateOrderStatus } = useShop(null);
+  const { data: orders, isLoading, error } = getShopOrders(shopId);
   
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="text-red-500 text-center py-4">
+        Erreur lors du chargement des commandes: {error.message}
       </div>
     );
   }
   
   if (!orders || orders.length === 0) {
     return (
-      <div className="text-center py-8 border rounded-lg bg-gray-50">
-        <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-          <Package className="h-6 w-6 text-gray-400" />
-        </div>
-        <h3 className="text-lg font-medium">Aucune commande</h3>
-        <p className="text-muted-foreground mt-1">
-          Vous n'avez pas encore reçu de commandes.
-        </p>
+      <div className="text-center text-muted-foreground py-8">
+        Vous n'avez pas encore reçu de commandes.
       </div>
     );
   }
   
-  const getStatusBadge = (status: OrderStatus) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="secondary">En attente</Badge>;
-      case 'confirmed':
-        return <Badge variant="default">Confirmée</Badge>;
-      case 'shipped':
-        return <Badge className="bg-blue-500">Expédiée</Badge>;
-      case 'delivered':
-        return <Badge className="bg-green-500">Livrée</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Annulée</Badge>;
-      case 'returned':
-        return <Badge variant="outline">Retournée</Badge>;
-      default:
-        return <Badge>Inconnue</Badge>;
+      case 'pending': return 'secondary';
+      case 'confirmed': return 'default';
+      case 'shipped': return 'outline';
+      case 'delivered': return 'success';
+      case 'cancelled': return 'destructive';
+      default: return 'outline';
+    }
+  };
+  
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'confirmed': return 'Confirmée';
+      case 'shipped': return 'Expédiée';
+      case 'delivered': return 'Livrée';
+      case 'cancelled': return 'Annulée';
+      case 'returned': return 'Retournée';
+      default: return status;
+    }
+  };
+  
+  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      await updateOrderStatus.mutateAsync({ orderId, status: newStatus });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error);
     }
   };
   
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>N° Commande</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead>Paiement</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">
-                  #{order.id.slice(0, 8)}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(order.created_at), 'dd MMM yyyy', { locale: fr })}
-                </TableCell>
-                <TableCell>
-                  {formatPrice(order.total_amount)}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(order.status)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={
-                    order.payment_status === 'paid' ? 'default' :
-                    order.payment_status === 'pending' ? 'secondary' :
-                    order.payment_status === 'refunded' ? 'outline' : 'destructive'
-                  }>
-                    {order.payment_status === 'paid' ? 'Payée' :
-                     order.payment_status === 'pending' ? 'En attente' :
-                     order.payment_status === 'refunded' ? 'Remboursée' : 'Échouée'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-1" />
-                    Détails
-                  </Button>
-                  
-                  {order.status === 'confirmed' && (
-                    <Button variant="default" size="sm">
-                      <Truck className="h-4 w-4 mr-1" />
-                      Expédier
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {orders.map((order) => (
+        <Card key={order.id} className="overflow-hidden">
+          <CardHeader className="bg-muted/50 py-3">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base">Commande #{order.id.substring(0, 8)}</CardTitle>
+              <Badge variant={getStatusBadgeVariant(order.status)}>
+                {getStatusLabel(order.status)}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Date:</span>
+              <span>{new Date(order.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Total:</span>
+              <span className="font-medium">{formatPrice(order.total_amount)}</span>
+            </div>
+            <div className="flex justify-between text-sm mb-4">
+              <span className="text-muted-foreground">Paiement:</span>
+              <span>{order.payment_status === 'paid' ? 'Payé' : 'En attente'}</span>
+            </div>
+            
+            <h4 className="font-medium mb-2">Articles</h4>
+            <ul className="space-y-2 mb-4">
+              {order.items.map((item) => (
+                <li key={item.id} className="text-sm flex justify-between">
+                  <span>
+                    {item.name} x{item.quantity}
+                  </span>
+                  <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
+                </li>
+              ))}
+            </ul>
+            
+            {order.status === 'pending' && (
+              <div className="flex gap-2 mt-4">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleUpdateStatus(order.id, 'confirmed')}
+                >
+                  Confirmer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleUpdateStatus(order.id, 'cancelled')}
+                >
+                  Annuler
+                </Button>
+              </div>
+            )}
+            
+            {order.status === 'confirmed' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full"
+                onClick={() => handleUpdateStatus(order.id, 'shipped')}
+              >
+                Marquer comme expédié
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }

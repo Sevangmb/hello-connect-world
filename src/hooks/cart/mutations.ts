@@ -17,7 +17,7 @@ export const useCartMutations = (userId: string | null) => {
         .select('id, quantity')
         .eq('user_id', user_id)
         .eq('shop_item_id', item_id)
-        .single();
+        .maybeSingle();
       
       if (existingItems) {
         // Si l'article existe déjà, mettre à jour la quantité

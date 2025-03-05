@@ -1,357 +1,452 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Shop, 
   ShopItem, 
-  ShopStatus,
+  ShopStatus, 
+  ShopItemStatus, 
+  CartItem, 
+  Order, 
+  OrderItem, 
   ShopReview,
-  Order,
-  ShopSettings
-} from "../domain/types";
+  ShopSettings,
+  DeliveryOption,
+  PaymentMethod,
+  OrderStatus,
+  PaymentStatus
+} from '../domain/types';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-export class ShopRepository {
-  
-  /**
-   * Récupère une boutique par son ID
-   */
-  async getShopById(id: string): Promise<Shop | null> {
+export class ShopRepository implements IShopRepository {
+  // Boutiques
+  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop> {
     const { data, error } = await supabase
       .from('shops')
-      .select(`
-        *,
-        profiles:user_id (
-          username,
-          full_name
-        )
-      `)
-      .eq('id', id)
+      .insert({
+        user_id: shopData.user_id,
+        name: shopData.name,
+        description: shopData.description,
+        image_url: shopData.image_url,
+        status: shopData.status || 'pending',
+        average_rating: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select('*')
       .single();
-    
-    if (error) {
-      console.error("Erreur lors de la récupération de la boutique:", error);
-      return null;
-    }
-    
+
+    if (error) throw error;
+
+    // Cast supabase data to Shop type, handling string to ShopStatus conversion
     return {
       ...data,
-      status: data.status as ShopStatus,
-      average_rating: data.average_rating || 0
+      status: data.status as ShopStatus
     } as Shop;
   }
-  
-  /**
-   * Récupère la boutique d'un utilisateur
-   */
-  async getUserShop(userId: string): Promise<Shop | null> {
+
+  async updateShop(shopData: Partial<Shop> & { id: string }): Promise<Shop> {
+    const { data, error } = await supabase
+      .from('shops')
+      .update({
+        ...shopData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', shopData.id)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    return {
+      ...data,
+      status: data.status as ShopStatus
+    } as Shop;
+  }
+
+  async getShopByUserId(userId: string): Promise<Shop | null> {
     const { data, error } = await supabase
       .from('shops')
       .select(`
         *,
-        profiles:user_id (
+        profiles (
           username,
           full_name
         )
       `)
       .eq('user_id', userId)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
-        // Aucune boutique trouvée
+        // No rows returned
         return null;
       }
-      console.error("Erreur lors de la récupération de la boutique:", error);
-      return null;
+      throw error;
     }
-    
+
     return {
       ...data,
       status: data.status as ShopStatus,
-      average_rating: data.average_rating || 0
+      profiles: data.profiles
     } as Shop;
   }
-  
-  /**
-   * Récupère toutes les boutiques
-   */
+
+  async getShopById(shopId: string): Promise<Shop | null> {
+    const { data, error } = await supabase
+      .from('shops')
+      .select(`
+        *,
+        profiles (
+          username,
+          full_name
+        )
+      `)
+      .eq('id', shopId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+
+    return {
+      ...data,
+      status: data.status as ShopStatus,
+      profiles: data.profiles
+    } as Shop;
+  }
+
   async getAllShops(): Promise<Shop[]> {
     const { data, error } = await supabase
       .from('shops')
       .select(`
         *,
-        profiles:user_id (
+        profiles (
           username,
           full_name
         )
       `)
       .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des boutiques:", error);
-      return [];
-    }
-    
+
+    if (error) throw error;
+
     return data.map(shop => ({
       ...shop,
       status: shop.status as ShopStatus,
-      average_rating: shop.average_rating || 0
+      profiles: shop.profiles
     })) as Shop[];
   }
-  
-  /**
-   * Récupère les articles d'une boutique
-   */
+
+  // Articles de boutique
   async getShopItems(shopId: string): Promise<ShopItem[]> {
     const { data, error } = await supabase
       .from('shop_items')
       .select(`
         *,
-        shops (
-          name
-        )
+        shops (name)
       `)
-      .eq('shop_id', shopId);
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des articles:", error);
-      return [];
-    }
-    
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Transform the data to match ShopItem interface
     return data.map(item => ({
       id: item.id,
       shop_id: item.shop_id,
-      name: item.name || 'Article sans nom', // Valeur par défaut
-      description: item.description,
-      image_url: item.image_url,
+      name: item.name || '',
+      description: item.description || '',
       price: item.price,
       original_price: item.original_price,
-      stock: item.stock || 1, // Valeur par défaut
-      status: item.status as any || 'available',
+      stock: item.stock || 0,
+      status: item.status as ShopItemStatus,
+      image_url: item.image_url,
       created_at: item.created_at,
       updated_at: item.updated_at,
       clothes_id: item.clothes_id,
-      shop: item.shops
+      shop: {
+        name: item.shops?.name || ''
+      }
     })) as ShopItem[];
   }
-  
-  /**
-   * Crée une nouvelle boutique
-   */
-  async createShop(shop: Omit<Shop, "id" | "created_at" | "updated_at" | "average_rating">): Promise<Shop> {
-    const { data, error } = await supabase
-      .from('shops')
-      .insert({
-        user_id: shop.user_id,
-        name: shop.name,
-        description: shop.description,
-        image_url: shop.image_url,
-        status: shop.status || 'pending',
-        categories: shop.categories || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Erreur lors de la création de la boutique:", error);
-      throw error;
-    }
-    
-    return {
-      ...data,
-      status: data.status as ShopStatus,
-      average_rating: 0
-    } as Shop;
-  }
-  
-  /**
-   * Met à jour une boutique
-   */
-  async updateShop(id: string, shop: Partial<Shop>): Promise<Shop> {
-    const { data, error } = await supabase
-      .from('shops')
-      .update({
-        name: shop.name,
-        description: shop.description,
-        image_url: shop.image_url,
-        status: shop.status,
-        categories: shop.categories,
-        address: shop.address,
-        phone: shop.phone,
-        website: shop.website,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Erreur lors de la mise à jour de la boutique:", error);
-      throw error;
-    }
-    
-    return {
-      ...data,
-      status: data.status as ShopStatus,
-      average_rating: data.average_rating || 0
-    } as Shop;
-  }
-  
-  /**
-   * Crée un nouvel article
-   */
-  async createShopItem(item: Omit<ShopItem, "id" | "created_at" | "updated_at">): Promise<ShopItem> {
+
+  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
     const { data, error } = await supabase
       .from('shop_items')
       .insert({
-        shop_id: item.shop_id,
-        clothes_id: item.clothes_id,
-        name: item.name,
-        description: item.description,
-        image_url: item.image_url,
-        price: item.price,
-        original_price: item.original_price,
-        stock: item.stock,
-        status: item.status || 'available',
+        shop_id: itemData.shop_id,
+        name: itemData.name,
+        description: itemData.description,
+        price: itemData.price,
+        original_price: itemData.original_price,
+        stock: itemData.stock,
+        status: itemData.status || 'available',
+        image_url: itemData.image_url,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .select()
       .single();
-    
-    if (error) {
-      console.error("Erreur lors de la création de l'article:", error);
-      throw error;
-    }
-    
+
+    if (error) throw error;
+
     return {
       ...data,
-      name: data.name || 'Article sans nom',
-      stock: data.stock || 1,
-      status: data.status as any
+      status: data.status as ShopItemStatus,
+      name: data.name || '',
+      description: data.description || '',
+      stock: data.stock || 0
     } as ShopItem;
   }
-  
-  /**
-   * Récupère les commandes d'une boutique
-   */
+
+  async getShopItemById(itemId: string): Promise<ShopItem | null> {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .select(`
+        *,
+        shops (name)
+      `)
+      .eq('id', itemId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      shop_id: data.shop_id,
+      name: data.name || '',
+      description: data.description || '',
+      price: data.price,
+      original_price: data.original_price,
+      stock: data.stock || 0,
+      status: data.status as ShopItemStatus,
+      image_url: data.image_url,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      clothes_id: data.clothes_id,
+      shop: {
+        name: data.shops?.name || ''
+      }
+    } as ShopItem;
+  }
+
+  async updateShopItem(itemData: Partial<ShopItem> & { id: string }): Promise<ShopItem> {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .update({
+        ...itemData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', itemData.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      ...data,
+      status: data.status as ShopItemStatus,
+      name: data.name || '',
+      stock: data.stock || 0
+    } as ShopItem;
+  }
+
+  async deleteShopItem(itemId: string): Promise<void> {
+    const { error } = await supabase
+      .from('shop_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) throw error;
+  }
+
+  // Commandes
   async getShopOrders(shopId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
-        order_items (*)
+        order_items(*)
       `)
-      .eq('seller_id', shopId);
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des commandes:", error);
-      return [];
-    }
-    
-    return data.map(order => ({
-      id: order.id,
-      shop_id: order.seller_id,
-      customer_id: order.buyer_id,
-      status: order.status,
-      total_amount: order.total_amount,
-      delivery_fee: order.shipping_cost || 0,
-      payment_status: order.payment_status as any,
-      payment_method: order.payment_method,
-      delivery_address: order.shipping_address ? {
-        street: order.shipping_address.street || '',
-        city: order.shipping_address.city || '',
-        postal_code: order.shipping_address.postal_code || '',
-        country: order.shipping_address.country || ''
-      } : {
+      .eq('shop_id', shopId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Transform data to match Order interface
+    return data.map(order => {
+      const deliveryAddress = typeof order.delivery_address === 'object' ? order.delivery_address : {
         street: '',
         city: '',
         postal_code: '',
         country: ''
-      },
-      created_at: order.created_at,
-      updated_at: order.updated_at || order.created_at,
-      items: order.order_items.map((item: any) => ({
-        id: item.id,
-        order_id: item.order_id,
-        item_id: item.shop_item_id,
-        name: 'Article', // Ce champ serait à récupérer en jointure
-        price: item.price_at_time,
-        quantity: item.quantity,
-        created_at: item.created_at
-      }))
-    })) as Order[];
+      };
+      
+      return {
+        id: order.id,
+        shop_id: order.shop_id,
+        customer_id: order.buyer_id,
+        status: order.status as OrderStatus,
+        total_amount: order.total_amount,
+        delivery_fee: order.shipping_fee || 0,
+        payment_status: order.payment_status as PaymentStatus,
+        payment_method: order.payment_method || '',
+        delivery_address: {
+          street: deliveryAddress.street || '',
+          city: deliveryAddress.city || '',
+          postal_code: deliveryAddress.postal_code || '',
+          country: deliveryAddress.country || ''
+        },
+        created_at: order.created_at,
+        updated_at: order.updated_at || order.created_at,
+        items: (order.order_items || []).map((item: any) => ({
+          id: item.id,
+          order_id: item.order_id,
+          item_id: item.shop_item_id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          created_at: item.created_at
+        }))
+      } as Order;
+    });
   }
-  
-  /**
-   * Récupère les avis d'une boutique
-   */
+
+  // Paramètres de boutique
+  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .select('*')
+      .eq('shop_id', shopId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Pas de paramètres, créer des paramètres par défaut
+        return this.createShopSettings({
+          shop_id: shopId,
+          delivery_options: ['pickup'],
+          payment_methods: ['card'],
+          auto_accept_orders: false,
+          notification_preferences: {
+            email: true,
+            app: true
+          }
+        });
+      }
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      shop_id: data.shop_id,
+      delivery_options: data.delivery_options as DeliveryOption[],
+      payment_methods: data.payment_methods as PaymentMethod[],
+      auto_accept_orders: data.auto_accept_orders,
+      notification_preferences: data.notification_preferences,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    } as ShopSettings;
+  }
+
+  async createShopSettings(settings: Omit<ShopSettings, 'id' | 'created_at' | 'updated_at'>): Promise<ShopSettings> {
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .insert({
+        shop_id: settings.shop_id,
+        delivery_options: settings.delivery_options,
+        payment_methods: settings.payment_methods,
+        auto_accept_orders: settings.auto_accept_orders,
+        notification_preferences: settings.notification_preferences,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      shop_id: data.shop_id,
+      delivery_options: data.delivery_options as DeliveryOption[],
+      payment_methods: data.payment_methods as PaymentMethod[],
+      auto_accept_orders: data.auto_accept_orders,
+      notification_preferences: data.notification_preferences,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    } as ShopSettings;
+  }
+
+  async updateShopSettings(settings: Partial<ShopSettings> & { shop_id: string }): Promise<ShopSettings> {
+    // Vérifier si les paramètres existent
+    const existing = await this.getShopSettings(settings.shop_id);
+    
+    if (!existing) {
+      // Créer de nouveaux paramètres
+      return this.createShopSettings({
+        shop_id: settings.shop_id,
+        delivery_options: settings.delivery_options || ['pickup'],
+        payment_methods: settings.payment_methods || ['card'],
+        auto_accept_orders: settings.auto_accept_orders || false,
+        notification_preferences: settings.notification_preferences || {
+          email: true,
+          app: true
+        }
+      });
+    }
+    
+    // Mettre à jour les paramètres existants
+    const { data, error } = await supabase
+      .from('shop_settings')
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString()
+      })
+      .eq('shop_id', settings.shop_id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      shop_id: data.shop_id,
+      delivery_options: data.delivery_options as DeliveryOption[],
+      payment_methods: data.payment_methods as PaymentMethod[],
+      auto_accept_orders: data.auto_accept_orders,
+      notification_preferences: data.notification_preferences,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    } as ShopSettings;
+  }
+
+  // Avis
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
     const { data, error } = await supabase
       .from('shop_reviews')
       .select(`
         *,
-        profiles:user_id (
+        profiles (
           username,
           full_name
         )
       `)
       .eq('shop_id', shopId)
       .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Erreur lors de la récupération des avis:", error);
-      return [];
-    }
-    
-    return data as ShopReview[];
-  }
-  
-  /**
-   * Récupère les paramètres d'une boutique
-   */
-  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
-    // Cette méthode sera implémentée lorsque la table shop_settings sera créée
-    // Pour l'instant, retournons des paramètres par défaut
-    return {
-      id: '',
-      shop_id: shopId,
-      delivery_options: ['pickup'],
-      payment_methods: ['card', 'paypal'],
-      auto_accept_orders: false,
-      notification_preferences: {
-        email: true,
-        app: true
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-  }
-  
-  /**
-   * Met à jour le statut d'une boutique
-   */
-  async updateShopStatus(id: string, status: ShopStatus): Promise<Shop> {
-    const { data, error } = await supabase
-      .from('shops')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error);
-      throw error;
-    }
-    
-    return {
-      ...data,
-      status: data.status as ShopStatus,
-      average_rating: data.average_rating || 0
-    } as Shop;
+
+    if (error) throw error;
+
+    return data.map(review => ({
+      ...review,
+      profiles: review.profiles
+    })) as ShopReview[];
   }
 }

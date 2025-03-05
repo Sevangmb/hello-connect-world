@@ -1,176 +1,198 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Pencil, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
-import { useShop } from "@/hooks/useShop";
-import { useAuth } from "@/hooks/useAuth";
-import { useCart } from "@/hooks/useCart";
-import { useToast } from "@/hooks/use-toast";
-import { ShopItem } from "@/core/shop/domain/types";
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Edit, ShoppingBag, Trash } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { formatPrice } from '@/lib/utils';
+import { useShop } from '@/hooks/useShop';
+import { useCart } from '@/hooks/cart';
+import { useAuth } from '@/hooks/useAuth';
+import { ShopItem } from '@/core/shop/domain/types';
 
-interface ShopItemsListProps {
+export interface ShopItemsListProps {
   shopId: string;
   isOwner: boolean;
 }
 
 export function ShopItemsList({ shopId, isOwner }: ShopItemsListProps) {
-  const { useShopItems } = useShop(null);
-  const { data: items, isLoading } = useShopItems(shopId);
-  const [selectedItem, setSelectedItem] = useState<ShopItem | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const { user } = useAuth();
   const { addToCart } = useCart(user?.id || null);
+  const { getShopItems, updateShopItemStatus, removeShopItem } = useShop(null);
   const { toast } = useToast();
-
-  const handleAddToCart = (itemId: string) => {
+  const [deleteItem, setDeleteItem] = useState<string | null>(null);
+  
+  const { data: items, isLoading, error } = getShopItems(shopId);
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="text-red-500 text-center py-4">
+        Erreur lors du chargement des articles: {error.message}
+      </div>
+    );
+  }
+  
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-8">
+        {isOwner ? 
+          'Vous n\'avez pas encore ajouté d\'articles à votre boutique.' : 
+          'Cette boutique n\'a pas encore d\'articles.'}
+      </div>
+    );
+  }
+  
+  const handleAddToCart = async (item: ShopItem) => {
     if (!user) {
       toast({
-        title: "Connectez-vous",
-        description: "Vous devez être connecté pour ajouter des articles au panier.",
-        variant: "destructive",
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Vous devez être connecté pour ajouter au panier',
       });
       return;
     }
     
-    addToCart.mutate({
-      user_id: user.id,
-      item_id: itemId,
-      quantity: 1
-    });
+    try {
+      await addToCart.mutateAsync({
+        user_id: user.id,
+        item_id: item.id,
+        quantity: 1
+      });
+      
+      toast({
+        title: 'Article ajouté',
+        description: 'L\'article a été ajouté à votre panier',
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout au panier:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'ajouter l\'article au panier',
+      });
+    }
   };
-
-  const handleEdit = (item: ShopItem) => {
-    setSelectedItem(item);
-    setShowEditDialog(true);
+  
+  const handleStatusChange = async (itemId: string, newStatus: 'available' | 'sold_out' | 'archived') => {
+    try {
+      await updateShopItemStatus.mutateAsync({ itemId, status: newStatus });
+      toast({
+        title: 'Statut mis à jour',
+        description: 'Le statut de l\'article a été mis à jour avec succès.',
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour le statut de l\'article.',
+      });
+    }
   };
-
-  const handleDelete = (item: ShopItem) => {
-    setSelectedItem(item);
-    setShowDeleteDialog(true);
+  
+  const handleDeleteConfirm = async (itemId: string) => {
+    if (deleteItem !== itemId) {
+      setDeleteItem(itemId);
+      return;
+    }
+    
+    try {
+      await removeShopItem.mutateAsync(itemId);
+      setDeleteItem(null);
+      toast({
+        title: 'Article supprimé',
+        description: 'L\'article a été supprimé de votre boutique.',
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de supprimer l\'article.',
+      });
+    }
   };
-
-  if (isLoading) {
-    return <div>Chargement des articles...</div>;
-  }
-
+  
   return (
-    <div>
-      {isOwner && (
-        <div className="flex justify-end mb-4">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un produit
-          </Button>
-        </div>
-      )}
-
-      {!items || items.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Aucun produit disponible pour le moment.</p>
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Produit</TableHead>
-              <TableHead>Prix</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>{formatPrice(item.price)}</TableCell>
-                <TableCell>{item.stock}</TableCell>
-                <TableCell>
-                  <Badge variant={
-                    item.status === 'available' ? "default" :
-                    item.status === 'sold_out' ? "secondary" : "destructive"
-                  }>
-                    {item.status === 'available' ? "Disponible" :
-                     item.status === 'sold_out' ? "Épuisé" : "Archivé"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    {!isOwner && item.status === 'available' && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary"
-                        onClick={() => handleAddToCart(item.id)}
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                      </Button>
-                    )}
-                    
-                    {isOwner && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleEdit(item)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleDelete(item)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      {/* Delete confirmation dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Supprimer le produit</DialogTitle>
-            <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer "{selectedItem?.name}" ? Cette action est irréversible.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-              Annuler
-            </Button>
-            <Button variant="destructive">
-              Supprimer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit dialog would go here */}
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((item) => (
+        <Card key={item.id} className="overflow-hidden">
+          {item.image_url && (
+            <img
+              src={item.image_url}
+              alt={item.name}
+              className="h-48 w-full object-cover"
+            />
+          )}
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-medium truncate">{item.name}</h3>
+              <Badge variant={
+                item.status === 'available' ? 'default' :
+                item.status === 'sold_out' ? 'secondary' : 'outline'
+              }>
+                {item.status === 'available' ? 'Disponible' :
+                 item.status === 'sold_out' ? 'Épuisé' : 'Archivé'}
+              </Badge>
+            </div>
+            
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-bold">{formatPrice(item.price)}</span>
+              {item.original_price && (
+                <span className="text-sm line-through text-muted-foreground">
+                  {formatPrice(item.original_price)}
+                </span>
+              )}
+            </div>
+            
+            {item.description && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {item.description}
+              </p>
+            )}
+            
+            <div className="mt-2 flex gap-2">
+              {isOwner ? (
+                <>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Edit className="mr-1 h-4 w-4" />
+                    Modifier
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleDeleteConfirm(item.id)}
+                  >
+                    <Trash className="mr-1 h-4 w-4" />
+                    {deleteItem === item.id ? 'Confirmer' : 'Supprimer'}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  disabled={item.status !== 'available' || addToCart.isPending}
+                  onClick={() => handleAddToCart(item)}
+                >
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Ajouter au panier
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

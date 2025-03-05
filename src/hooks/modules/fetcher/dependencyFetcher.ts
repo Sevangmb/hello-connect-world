@@ -29,8 +29,8 @@ export async function fetchDependencies(): Promise<ModuleDependency[]> {
       dependency_status: item.dependency_status,
       depends_on: item.dependency_code || "", // We use dependency_code as depends_on
       is_required: item.is_required,
-      created_at: item.created_at || new Date().toISOString(), // Add default if missing
-      updated_at: item.updated_at || new Date().toISOString()  // Add default if missing
+      created_at: new Date().toISOString(), // Add default timestamp
+      updated_at: new Date().toISOString()  // Add default timestamp
     }));
   } catch (error) {
     console.error("Exception during dependency fetch:", error);

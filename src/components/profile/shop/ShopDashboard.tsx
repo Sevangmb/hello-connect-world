@@ -7,6 +7,7 @@ import { AlertCircle, Package, ShoppingBag, Star, Settings as SettingsIcon } fro
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useShop } from '@/hooks/useShop';
+import { useAuth } from '@/hooks/useAuth';
 import { CreateShopForm } from './CreateShopForm';
 import { ShopSettings } from './ShopSettings';
 import { AddItemForm } from './AddItemForm';
@@ -15,10 +16,11 @@ import { ShopOrdersList } from './ShopOrdersList';
 import { ShopReviewsList } from './ShopReviewsList';
 
 export function ShopDashboard() {
-  const { shop, loading, error, isShopOwner } = useShop();
+  const { user } = useAuth();
+  const { shop, isShopLoading, error, isCurrentUserShopOwner } = useShop(user?.id || null);
   const [activeTab, setActiveTab] = useState('general');
   
-  if (loading) {
+  if (isShopLoading) {
     return (
       <Card>
         <CardHeader>
@@ -45,14 +47,14 @@ export function ShopDashboard() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
     );
   }
   
-  if (!shop && isShopOwner) {
+  if (!shop && isCurrentUserShopOwner) {
     return (
       <Card>
         <CardHeader>
@@ -100,7 +102,7 @@ export function ShopDashboard() {
             </CardTitle>
             <CardDescription>{shop.description}</CardDescription>
           </div>
-          {isShopOwner && shop.status === 'approved' && (
+          {isCurrentUserShopOwner && shop.status === 'approved' && (
             <Button size="sm" className="bg-primary">
               <ShoppingBag className="h-4 w-4 mr-2" />
               Ajouter un article
@@ -131,7 +133,7 @@ export function ShopDashboard() {
           </Alert>
         )}
         
-        {isShopOwner && shop.status === 'approved' && (
+        {isCurrentUserShopOwner && shop.status === 'approved' && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="general">
@@ -153,28 +155,28 @@ export function ShopDashboard() {
             </TabsList>
             
             <TabsContent value="general">
-              <ShopItemsList />
+              <ShopItemsList shopId={shop.id} isOwner={isCurrentUserShopOwner} />
               <div className="mt-6">
-                <AddItemForm />
+                <AddItemForm shopId={shop.id} />
               </div>
             </TabsContent>
             
             <TabsContent value="orders">
-              <ShopOrdersList />
+              <ShopOrdersList shopId={shop.id} />
             </TabsContent>
             
             <TabsContent value="reviews">
-              <ShopReviewsList />
+              <ShopReviewsList shopId={shop.id} />
             </TabsContent>
             
             <TabsContent value="settings">
-              <ShopSettings />
+              <ShopSettings shopId={shop.id} />
             </TabsContent>
           </Tabs>
         )}
         
-        {(!isShopOwner || shop.status !== 'approved') && (
-          <ShopItemsList />
+        {(!isCurrentUserShopOwner || shop.status !== 'approved') && (
+          <ShopItemsList shopId={shop.id} isOwner={isCurrentUserShopOwner} />
         )}
       </CardContent>
     </Card>

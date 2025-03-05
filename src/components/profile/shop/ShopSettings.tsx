@@ -1,105 +1,166 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { useShop } from '@/hooks/useShop';
 
-const shopSettingsSchema = z.object({
-  return_policy: z.string().optional(),
+interface ShopSettingsProps {
+  shopId: string;
+}
+
+const formSchema = z.object({
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
+  description: z.string(),
+  phone: z.string().optional(),
+  website: z.string().url('Veuillez entrer une URL valide').optional().or(z.literal('')),
+  image_url: z.string().optional(),
+  address: z.string().optional(),
+  payment_methods: z.array(z.string()),
+  delivery_options: z.array(z.string()),
   auto_accept_orders: z.boolean().default(false),
-  notification_new_order: z.boolean().default(true),
-  notification_order_status: z.boolean().default(true),
-  notification_low_stock: z.boolean().default(true),
-  notification_email: z.boolean().default(true),
-  notification_in_app: z.boolean().default(true),
 });
 
-type ShopSettingsFormValues = z.infer<typeof shopSettingsSchema>;
-
-export function ShopSettings() {
-  const { shop, settings, loading, updateShopInfo } = useShop();
+export function ShopSettings({ shopId }: ShopSettingsProps) {
+  const { shop, isShopLoading, updateShopInfo, getShopSettings, updateShopSettings } = useShop(null);
+  const { data: settings, isLoading: isSettingsLoading } = getShopSettings(shopId);
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
   
-  const form = useForm<ShopSettingsFormValues>({
-    resolver: zodResolver(shopSettingsSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      return_policy: settings?.return_policy || '',
-      auto_accept_orders: settings?.auto_accept_orders || false,
-      notification_new_order: settings?.notification_preferences?.new_order || true,
-      notification_order_status: settings?.notification_preferences?.order_status_change || true,
-      notification_low_stock: settings?.notification_preferences?.low_stock || true,
-      notification_email: settings?.notification_preferences?.email || true,
-      notification_in_app: settings?.notification_preferences?.in_app || true,
+      name: '',
+      description: '',
+      phone: '',
+      website: '',
+      image_url: '',
+      address: '',
+      payment_methods: [],
+      delivery_options: [],
+      auto_accept_orders: false,
     },
   });
   
-  const onSubmit = async (values: ShopSettingsFormValues) => {
-    if (!shop) return;
-    
-    const shopData = {
-      name: shop.name,
-      description: shop.description,
-      // Autres champs à mettre à jour si nécessaire
-    };
-    
-    await updateShopInfo(shopData);
-    
-    // La mise à jour des paramètres serait gérée ici
-    // Mais comme nous n'avons pas encore implémenté cette fonctionnalité dans le repository,
-    // nous affichons seulement un message dans la console
-    console.log('Settings to update:', values);
+  useEffect(() => {
+    if (shop && settings) {
+      form.reset({
+        name: shop.name,
+        description: shop.description,
+        phone: shop.phone || '',
+        website: shop.website || '',
+        image_url: shop.image_url || '',
+        address: shop.address || '',
+        payment_methods: settings.payment_methods || [],
+        delivery_options: settings.delivery_options || [],
+        auto_accept_orders: settings.auto_accept_orders || false,
+      });
+    }
+  }, [shop, settings, form]);
+  
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      // Update shop info
+      await updateShopInfo.mutateAsync({
+        id: shopId,
+        name: values.name,
+        description: values.description,
+        image_url: values.image_url,
+        phone: values.phone,
+        website: values.website,
+        address: values.address,
+      });
+      
+      // Update shop settings
+      await updateShopSettings.mutateAsync({
+        shop_id: shopId,
+        payment_methods: values.payment_methods,
+        delivery_options: values.delivery_options,
+        auto_accept_orders: values.auto_accept_orders,
+      });
+      
+      toast({
+        title: 'Paramètres mis à jour',
+        description: 'Les paramètres de votre boutique ont été mis à jour avec succès.',
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des paramètres:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour les paramètres. Veuillez réessayer.',
+      });
+    }
   };
   
-  if (loading) {
+  if (isShopLoading || isSettingsLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
   
+  const paymentMethods = [
+    { id: 'card', label: 'Carte bancaire' },
+    { id: 'paypal', label: 'PayPal' },
+    { id: 'bank_transfer', label: 'Virement bancaire' },
+    { id: 'cash', label: 'Paiement à la livraison' },
+  ];
+  
+  const deliveryOptions = [
+    { id: 'pickup', label: 'Retrait en boutique' },
+    { id: 'delivery', label: 'Livraison à domicile' },
+  ];
+  
   return (
-    <div className="space-y-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Informations de la boutique</CardTitle>
-              <CardDescription>
-                Mettez à jour les informations principales de votre boutique
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations de la boutique</CardTitle>
+            <CardDescription>
+              Gérez les informations principales de votre boutique.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="image_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Logo de la boutique</FormLabel>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      onUploading={setIsUploading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="return_policy"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Politique de retour</FormLabel>
+                    <FormLabel>Nom de la boutique</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Décrivez votre politique de retour..."
-                        {...field}
-                        rows={4}
-                      />
+                      <Input {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Cette information sera affichée aux clients lors de leur achat.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -107,156 +168,203 @@ export function ShopSettings() {
               
               <FormField
                 control={form.control}
-                name="auto_accept_orders"
+                name="phone"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Acceptation automatique des commandes</FormLabel>
-                      <FormDescription>
-                        Les commandes seront automatiquement acceptées sans validation manuelle
-                      </FormDescription>
-                    </div>
+                  <FormItem>
+                    <FormLabel>Téléphone</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Input {...field} />
                     </FormControl>
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-          
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Notifications</CardTitle>
-              <CardDescription>
-                Configurez vos préférences de notifications
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="notification_new_order"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Nouvelles commandes</FormLabel>
-                      <FormDescription>
-                        Recevoir une notification pour chaque nouvelle commande
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
               
               <FormField
                 control={form.control}
-                name="notification_order_status"
+                name="website"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Changements de statut</FormLabel>
-                      <FormDescription>
-                        Recevoir une notification quand une commande change de statut
-                      </FormDescription>
-                    </div>
+                  <FormItem>
+                    <FormLabel>Site web</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Input {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
               
               <FormField
                 control={form.control}
-                name="notification_low_stock"
+                name="address"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Stock bas</FormLabel>
-                      <FormDescription>
-                        Recevoir une notification quand le stock d'un article est bas
-                      </FormDescription>
-                    </div>
+                  <FormItem>
+                    <FormLabel>Adresse</FormLabel>
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Input {...field} />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <div className="space-y-2 mt-4 pt-4 border-t">
-                <h4 className="text-sm font-medium">Canaux de notification</h4>
-                
-                <FormField
-                  control={form.control}
-                  name="notification_email"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Email</FormLabel>
-                        <FormDescription>
-                          Recevoir les notifications par email
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="notification_in_app"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Dans l'application</FormLabel>
-                        <FormDescription>
-                          Recevoir les notifications dans l'application
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={!form.formState.isDirty || form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? 'Enregistrement...' : 'Enregistrer les modifications'}
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      rows={4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Options de paiement et livraison</CardTitle>
+            <CardDescription>
+              Configurez comment vos clients peuvent payer et recevoir leurs commandes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="payment_methods"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel>Méthodes de paiement acceptées</FormLabel>
+                    <FormDescription>
+                      Sélectionnez les méthodes de paiement que vous acceptez.
+                    </FormDescription>
+                  </div>
+                  {paymentMethods.map((method) => (
+                    <FormField
+                      key={method.id}
+                      control={form.control}
+                      name="payment_methods"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={method.id}
+                            className="flex flex-row items-start space-x-3 space-y-0 mb-2"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(method.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, method.id])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== method.id
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {method.label}
+                            </FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="delivery_options"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel>Options de livraison</FormLabel>
+                    <FormDescription>
+                      Sélectionnez les options de livraison que vous proposez.
+                    </FormDescription>
+                  </div>
+                  {deliveryOptions.map((option) => (
+                    <FormField
+                      key={option.id}
+                      control={form.control}
+                      name="delivery_options"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={option.id}
+                            className="flex flex-row items-start space-x-3 space-y-0 mb-2"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(option.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, option.id])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== option.id
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {option.label}
+                            </FormLabel>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="auto_accept_orders"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">
+                      Confirmation automatique des commandes
+                    </FormLabel>
+                    <FormDescription>
+                      Les commandes seront automatiquement confirmées dès réception.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+        
+        <Button type="submit" disabled={isUploading || updateShopInfo.isPending || updateShopSettings.isPending}>
+          {updateShopInfo.isPending || updateShopSettings.isPending
+            ? 'Enregistrement...'
+            : 'Enregistrer les modifications'}
+        </Button>
+      </form>
+    </Form>
   );
 }

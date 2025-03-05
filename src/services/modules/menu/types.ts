@@ -1,34 +1,25 @@
 
-/**
- * Types pour le module Menu
- */
-
-export interface MenuItem {
+export interface MenuModule {
   id: string;
+  code: string;
   name: string;
+  status: string;
+}
+
+export type MenuCategory = 'admin' | 'user' | 'shop' | 'profile' | 'system';
+
+export interface ModuleMenuItem {
+  id: string;
+  label: string;
   path: string;
-  icon?: string | null;
-  module_code: string | null;
-  category: 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
+  icon?: string;
+  module_code: string;
+  category: MenuCategory;
+  parent_id?: string | null;
   position: number;
-  parent_id: string | null;
-  description: string | null;
-  is_active: boolean;
-  is_visible: boolean;
-  requires_admin: boolean;
+  is_admin: boolean;
+  is_protected: boolean;
+  requires_auth: boolean;
   created_at: string;
   updated_at: string;
-  children?: MenuItem[];
 }
-
-export interface MenuSection {
-  id: string;
-  name: string;
-  items: MenuItem[];
-}
-
-export interface MenuConfiguration {
-  sections: MenuSection[];
-  defaultActiveItem?: string;
-}
-
