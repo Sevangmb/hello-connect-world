@@ -1,5 +1,6 @@
 
-import { ImageUpload } from "@/components/ui/image-upload";
+import React from "react";
+import ImageUpload from "@/components/ui/image-upload";
 import { ClothesFormData } from "../types";
 
 interface ClothesImageUploadProps {

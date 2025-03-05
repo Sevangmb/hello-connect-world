@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useShop } from "@/hooks/useShop";
@@ -46,7 +45,7 @@ export default function ShopDetail() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <Avatar>
+                  <Avatar size="lg" className="w-20 h-20">
                     <div className="bg-primary text-primary-foreground w-full h-full flex items-center justify-center text-xl font-bold">
                       {shop.name?.charAt(0) || "S"}
                     </div>

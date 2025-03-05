@@ -68,7 +68,7 @@ export class FeatureStatusUseCase {
    */
   async getModuleFeatures(moduleCode: string): Promise<any[]> {
     try {
-      return await this.featureRepository.getModuleFeatures(moduleCode);
+      return await this.featureRepository.getFeatures(moduleCode);
     } catch (error) {
       console.error(`Error getting features for module ${moduleCode}:`, error);
       return [];

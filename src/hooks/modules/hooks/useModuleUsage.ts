@@ -1,26 +1,38 @@
 
-import { useEffect, useCallback } from 'react';
-import { ModuleServiceImpl } from '@/services/modules/services/ModuleServiceImpl';
-import { getModuleRepository } from '@/services/modules/repositories';
+import { useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { moduleRepository } from '@/services/modules/repositories';
 
-/**
- * Hook to record module usage
- */
 export const useModuleUsage = (moduleCode: string) => {
   const recordModuleUsage = useCallback(async () => {
     try {
-      const repository = getModuleRepository();
-      const moduleService = new ModuleServiceImpl(repository);
-      await moduleService.recordModuleUsage(moduleCode);
+      // Get the module ID from the code
+      const module = await moduleRepository.getModuleByCode(moduleCode);
+      if (!module) {
+        console.warn(`Module '${moduleCode}' not found, cannot record usage`);
+        return;
+      }
+
+      // Get the current user ID if authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      // Insert the usage record
+      await supabase
+        .from('module_usage')
+        .insert({
+          module_id: module.id,
+          user_id: userId || null,
+          timestamp: new Date().toISOString()
+        });
+
+      console.log(`Recorded usage for module '${moduleCode}'`);
     } catch (error) {
-      console.error(`Error recording usage for module ${moduleCode}:`, error);
+      console.error(`Error recording module usage for '${moduleCode}':`, error);
     }
   }, [moduleCode]);
 
-  // Record usage when the hook is mounted
-  useEffect(() => {
-    recordModuleUsage();
-  }, [recordModuleUsage]);
-
-  return { recordModuleUsage };
+  return {
+    recordModuleUsage
+  };
 };

@@ -1,22 +1,26 @@
 
-/**
- * Hook optimisé pour l'utilisation des modules
- */
-import { useEffect } from 'react';
-import { useModuleUsage } from './hooks/useModuleUsage';
+import { useEffect, useState } from 'react';
+import { useModuleApi } from './useModuleApi';
 
 export const useModuleOptimized = (moduleCode: string) => {
-  const { incrementModuleUsage, isLoading } = useModuleUsage();
-  
-  // Enregistrer l'utilisation du module lors du montage du composant
+  const { recordModuleUsage } = useModuleApi();
+  const [hasRecorded, setHasRecorded] = useState(false);
+
   useEffect(() => {
-    if (moduleCode) {
-      console.log(`Module ${moduleCode} utilisé`);
-      incrementModuleUsage(moduleCode);
+    // Record module usage only once per session
+    if (!hasRecorded) {
+      const recordUsage = async () => {
+        try {
+          await recordModuleUsage(moduleCode);
+          setHasRecorded(true);
+        } catch (error) {
+          console.error("Error recording module usage:", error);
+        }
+      };
+      
+      recordUsage();
     }
-  }, [moduleCode, incrementModuleUsage]);
-  
-  return {
-    isLoading
-  };
+  }, [moduleCode, recordModuleUsage, hasRecorded]);
+
+  return { moduleCode };
 };

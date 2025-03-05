@@ -1,328 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { useShop } from '@/hooks/useShop';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import ImageUpload from '@/components/ui/image-upload';
+import { toast } from '@/hooks/use-toast';
+import { PaymentMethod, DeliveryOption, ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useShop } from "@/hooks/useShop";
-import { Shop, ShopSettings as ShopSettingsType } from "@/core/shop/domain/types";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import ImageUpload from "@/components/ui/image-upload";
+export function ShopSettings({ shopId }: { shopId: string }) {
+  const { 
+    shop, 
+    isShopLoading, 
+    updateShopInfo,
+    updateShopSettings,
+    getShopSettings
+  } = useShop();
 
-interface ShopSettingsProps {
-  shopId: string;
-}
+  const [isUploading, setIsUploading] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOption[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [autoAcceptOrders, setAutoAcceptOrders] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [appNotifications, setAppNotifications] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
-export function ShopSettings({ shopId }: ShopSettingsProps) {
-  const { shop, isShopLoading, shopSettings, isShopSettingsLoading, updateShop, updateShopSettings } = useShop();
-  const [shopInfo, setShopInfo] = useState<Partial<Shop>>({});
-  const [settings, setSettings] = useState<Partial<ShopSettingsType>>({});
-  const [uploading, setUploading] = useState(false);
-  const { toast } = useToast();
-
-  // Load shop data when component mounts
+  // Load shop data
   useEffect(() => {
-    if (shop && !isShopLoading) {
-      setShopInfo({
-        name: shop.name,
-        description: shop.description,
-        image_url: shop.image_url,
-        phone: shop.phone,
-        address: shop.address,
-        website: shop.website
-      });
+    if (shop) {
+      setName(shop.name);
+      setDescription(shop.description || '');
+      setImageUrl(shop.image_url || '');
     }
-  }, [shop, isShopLoading]);
+  }, [shop]);
 
-  // Load shop settings when component mounts
+  // Load shop settings
   useEffect(() => {
-    if (shopSettings && !isShopSettingsLoading) {
-      setSettings({
-        payment_methods: shopSettings.payment_methods,
-        delivery_options: shopSettings.delivery_options,
-        auto_accept_orders: shopSettings.auto_accept_orders,
-        notification_preferences: shopSettings.notification_preferences
-      });
+    const loadSettings = async () => {
+      if (!shopId) return;
+      
+      setSettingsLoading(true);
+      try {
+        const settings = await getShopSettings(shopId);
+        if (settings) {
+          setDeliveryOptions(settings.delivery_options || []);
+          setPaymentMethods(settings.payment_methods || []);
+          setAutoAcceptOrders(settings.auto_accept_orders || false);
+          setEmailNotifications(settings.notification_preferences?.email || true);
+          setAppNotifications(settings.notification_preferences?.app || true);
+        }
+      } catch (error) {
+        console.error('Error loading shop settings:', error);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+    
+    loadSettings();
+  }, [shopId, getShopSettings]);
+
+  // Payment methods handlers
+  const handlePaymentMethodChange = (method: PaymentMethod, checked: boolean) => {
+    if (checked) {
+      setPaymentMethods(prev => [...prev, method]);
+    } else {
+      setPaymentMethods(prev => prev.filter(m => m !== method));
     }
-  }, [shopSettings, isShopSettingsLoading]);
-
-  // Handle shop info form changes
-  const handleShopInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setShopInfo(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle image change
-  const handleImageChange = (url: string) => {
-    setShopInfo(prev => ({ ...prev, image_url: url }));
+  const isPaymentMethodSelected = (method: PaymentMethod) => {
+    return paymentMethods.includes(method);
   };
 
-  // Handle settings form changes
-  const handlePaymentMethodChange = (method: string, checked: boolean) => {
-    setSettings(prev => {
-      const methods = prev.payment_methods ? [...prev.payment_methods] : [];
-      if (checked && !methods.includes(method)) {
-        methods.push(method);
-      } else if (!checked && methods.includes(method)) {
-        const index = methods.indexOf(method);
-        methods.splice(index, 1);
-      }
-      return { ...prev, payment_methods: methods };
-    });
+  // Delivery options handlers
+  const handleDeliveryOptionChange = (option: DeliveryOption, checked: boolean) => {
+    if (checked) {
+      setDeliveryOptions(prev => [...prev, option]);
+    } else {
+      setDeliveryOptions(prev => prev.filter(o => o !== option));
+    }
   };
 
-  const handleDeliveryOptionChange = (option: string, checked: boolean) => {
-    setSettings(prev => {
-      const options = prev.delivery_options ? [...prev.delivery_options] : [];
-      if (checked && !options.includes(option)) {
-        options.push(option);
-      } else if (!checked && options.includes(option)) {
-        const index = options.indexOf(option);
-        options.splice(index, 1);
-      }
-      return { ...prev, delivery_options: options };
-    });
+  const isDeliveryOptionSelected = (option: DeliveryOption) => {
+    return deliveryOptions.includes(option);
   };
 
-  const handleAutoAcceptChange = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, auto_accept_orders: checked }));
-  };
-
-  const handleNotificationChange = (type: string, checked: boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      notification_preferences: {
-        ...(prev.notification_preferences || { email: false, app: false }),
-        [type]: checked
-      }
-    }));
-  };
-
-  // Submit handler for shop info form
-  const handleShopInfoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (uploading) return;
-
+  // Save shop info
+  const handleSaveShopInfo = async () => {
+    if (!shop) return;
+    
+    setIsLoading(true);
     try {
-      if (shopId) {
-        await updateShop(shopId, shopInfo);
-        
+      const success = await updateShopInfo({
+        id: shop.id,
+        name,
+        description,
+        image_url: imageUrl
+      });
+      
+      if (success) {
         toast({
-          title: "Shop information updated",
-          description: "Your shop information has been successfully updated.",
+          title: 'Shop updated',
+          description: 'Your shop information has been updated successfully.'
         });
       }
     } catch (error) {
-      console.error("Error updating shop information:", error);
+      console.error('Error updating shop:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update shop information. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update shop information.'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Submit handler for settings form
-  const handleSettingsSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  // Save shop settings
+  const handleSaveSettings = async () => {
+    if (!shop) return;
+    
+    setSettingsLoading(true);
     try {
-      if (shopId && shopSettings) {
-        await updateShopSettings(shopSettings.id, settings);
-        
+      const settings: Partial<ShopSettingsType> = {
+        delivery_options: deliveryOptions,
+        payment_methods: paymentMethods,
+        auto_accept_orders: autoAcceptOrders,
+        notification_preferences: {
+          email: emailNotifications,
+          app: appNotifications
+        }
+      };
+      
+      const success = await updateShopSettings({
+        id: shop.id,
+        settings
+      });
+      
+      if (success) {
         toast({
-          title: "Shop settings updated",
-          description: "Your shop settings have been successfully updated.",
+          title: 'Settings updated',
+          description: 'Your shop settings have been updated successfully.'
         });
       }
     } catch (error) {
-      console.error("Error updating shop settings:", error);
+      console.error('Error updating shop settings:', error);
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update shop settings. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update shop settings.'
       });
+    } finally {
+      setSettingsLoading(false);
     }
   };
 
-  if (isShopLoading || isShopSettingsLoading) {
+  if (isShopLoading) {
     return <div>Loading shop settings...</div>;
+  }
+
+  if (!shop) {
+    return <div>Shop not found</div>;
   }
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="info">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="info">Shop Information</TabsTrigger>
-          <TabsTrigger value="settings">Shop Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shop Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleShopInfoSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="image">Shop Image</Label>
-                  <ImageUpload 
-                    onChange={handleImageChange} 
-                    defaultValue={shopInfo.image_url} 
-                    onUploading={setUploading} 
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="name">Shop Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={shopInfo.name || ""}
-                    onChange={handleShopInfoChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Shop Description</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={shopInfo.description || ""}
-                    onChange={handleShopInfoChange}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={shopInfo.phone || ""}
-                    onChange={handleShopInfoChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    value={shopInfo.address || ""}
-                    onChange={handleShopInfoChange}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    value={shopInfo.website || ""}
-                    onChange={handleShopInfoChange}
-                    type="url"
-                    placeholder="https://example.com"
-                  />
-                </div>
-
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? "Uploading image..." : "Save Information"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shop Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSettingsSubmit} className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Payment Methods</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {["card", "paypal", "bank_transfer", "cash"].map(method => (
-                      <div key={method} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`payment-${method}`}
-                          checked={settings.payment_methods?.includes(method) || false}
-                          onCheckedChange={(checked) => handlePaymentMethodChange(method, !!checked)}
-                        />
-                        <Label htmlFor={`payment-${method}`} className="capitalize">
-                          {method.replace("_", " ")}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Delivery Options</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {["pickup", "delivery", "both"].map(option => (
-                      <div key={option} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`delivery-${option}`}
-                          checked={settings.delivery_options?.includes(option) || false}
-                          onCheckedChange={(checked) => handleDeliveryOptionChange(option, !!checked)}
-                        />
-                        <Label htmlFor={`delivery-${option}`} className="capitalize">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Order Handling</h3>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="auto-accept"
-                      checked={settings.auto_accept_orders || false}
-                      onCheckedChange={(checked) => handleAutoAcceptChange(!!checked)}
-                    />
-                    <Label htmlFor="auto-accept">Automatically accept orders</Label>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Notifications</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="notify-email"
-                        checked={settings.notification_preferences?.email || false}
-                        onCheckedChange={(checked) => handleNotificationChange("email", !!checked)}
-                      />
-                      <Label htmlFor="notify-email">Email notifications</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="notify-app"
-                        checked={settings.notification_preferences?.app || false}
-                        onCheckedChange={(checked) => handleNotificationChange("app", !!checked)}
-                      />
-                      <Label htmlFor="notify-app">In-app notifications</Label>
-                    </div>
-                  </div>
-                </div>
-
-                <Button type="submit">Save Settings</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Shop Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Shop Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="shopName">Shop Name</Label>
+            <Input 
+              id="shopName" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter shop name"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="shopDescription">Description</Label>
+            <Textarea 
+              id="shopDescription" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter shop description"
+              rows={3}
+            />
+          </div>
+          
+          <div>
+            <Label>Shop Image</Label>
+            <div className="mt-2">
+              <ImageUpload
+                onChange={(url) => setImageUrl(url)}
+                currentImageUrl={imageUrl}
+                onUploading={setIsUploading}
+                bucket="shops"
+              />
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleSaveShopInfo} 
+            disabled={isLoading || isUploading}
+          >
+            {isLoading ? 'Saving...' : 'Save Information'}
+          </Button>
+        </CardContent>
+      </Card>
+      
+      {/* Shop Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Shop Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Payment Methods */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">Payment Methods</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="payment-card" 
+                  checked={isPaymentMethodSelected('card')}
+                  onCheckedChange={(checked) => handlePaymentMethodChange('card', checked === true)}
+                />
+                <Label htmlFor="payment-card">Credit/Debit Card</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="payment-paypal" 
+                  checked={isPaymentMethodSelected('paypal')}
+                  onCheckedChange={(checked) => handlePaymentMethodChange('paypal', checked === true)}
+                />
+                <Label htmlFor="payment-paypal">PayPal</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="payment-bank" 
+                  checked={isPaymentMethodSelected('bank_transfer')}
+                  onCheckedChange={(checked) => handlePaymentMethodChange('bank_transfer', checked === true)}
+                />
+                <Label htmlFor="payment-bank">Bank Transfer</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="payment-cash" 
+                  checked={isPaymentMethodSelected('cash')}
+                  onCheckedChange={(checked) => handlePaymentMethodChange('cash', checked === true)}
+                />
+                <Label htmlFor="payment-cash">Cash on Delivery</Label>
+              </div>
+            </div>
+          </div>
+          
+          <Separator />
+          
+          {/* Delivery Options */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">Delivery Options</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="delivery-pickup" 
+                  checked={isDeliveryOptionSelected('pickup')}
+                  onCheckedChange={(checked) => handleDeliveryOptionChange('pickup', checked === true)}
+                />
+                <Label htmlFor="delivery-pickup">Pickup</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="delivery-delivery" 
+                  checked={isDeliveryOptionSelected('delivery')}
+                  onCheckedChange={(checked) => handleDeliveryOptionChange('delivery', checked === true)}
+                />
+                <Label htmlFor="delivery-delivery">Home Delivery</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="delivery-both" 
+                  checked={isDeliveryOptionSelected('both')}
+                  onCheckedChange={(checked) => handleDeliveryOptionChange('both', checked === true)}
+                />
+                <Label htmlFor="delivery-both">Both Options</Label>
+              </div>
+            </div>
+          </div>
+          
+          <Separator />
+          
+          {/* Other Settings */}
+          <div>
+            <h3 className="text-lg font-medium mb-2">Other Settings</h3>
+            
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <Label htmlFor="auto-accept">Auto-Accept Orders</Label>
+                <p className="text-sm text-gray-500">Automatically accept new orders</p>
+              </div>
+              <Switch 
+                id="auto-accept" 
+                checked={autoAcceptOrders}
+                onCheckedChange={setAutoAcceptOrders}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <Label htmlFor="email-notifications">Email Notifications</Label>
+                <p className="text-sm text-gray-500">Receive order notifications via email</p>
+              </div>
+              <Switch 
+                id="email-notifications" 
+                checked={emailNotifications}
+                onCheckedChange={setEmailNotifications}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <Label htmlFor="app-notifications">App Notifications</Label>
+                <p className="text-sm text-gray-500">Receive order notifications in the app</p>
+              </div>
+              <Switch 
+                id="app-notifications" 
+                checked={appNotifications}
+                onCheckedChange={setAppNotifications}
+              />
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleSaveSettings} 
+            disabled={settingsLoading}
+          >
+            {settingsLoading ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

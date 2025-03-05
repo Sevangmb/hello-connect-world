@@ -1,17 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shop, ShopStatus } from '@/core/shop/domain/types';
-import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
-import ShopItemsList from './ShopItemsList';
-import ShopOrdersList from './ShopOrdersList';
-import ShopReviewsList from './ShopReviewsList';
-import ShopSettings from './ShopSettings';
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { useShop } from "@/hooks/useShop";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { ShopItemsList } from "./ShopItemsList";
+import { ShopOrdersList } from "./ShopOrdersList";
+import { ShopReviewsList } from "./ShopReviewsList";
+import { AddItemForm } from "./AddItemForm";
+import { CreateShopForm } from "./CreateShopForm";
+import { ShopSettings } from "./ShopSettings";
+import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, CheckCircle, Clock, ShoppingBag, Star, Settings, Package, Ban } from 'lucide-react';
 
 interface ShopDashboardProps {
