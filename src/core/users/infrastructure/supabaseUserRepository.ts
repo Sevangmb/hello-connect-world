@@ -20,6 +20,7 @@ export class SupabaseUserRepository implements IUserRepository {
         return null;
       }
 
+      // Récupérer les colonnes supplémentaires ajoutées pour la facturation
       const { data, error } = await supabase
         .from("profiles")
         .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications, is_admin, billing_address, stripe_customer_id, default_payment_method_id")
