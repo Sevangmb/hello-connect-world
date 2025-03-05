@@ -1,95 +1,84 @@
+import { eventBus } from "@/core/event-bus/EventBus";
+import { MODULE_EVENTS } from "@/services/modules/ModuleEvents";
+import { AppModule, ModuleDependency } from "./types";
 
 /**
- * Subscriptions pour les modules
- * Gère les abonnements aux événements liés aux modules
+ * Gestion des abonnements aux événements liés aux modules
  */
-import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
-import { eventBus } from '@/core/event-bus/EventBus';
-import { AppModule, ModuleDependency } from './types';
 
-// Constantes pour les événements locaux
-const LOCAL_EVENTS = {
-  MODULES_UPDATED: 'local:modules_updated',
-  DEPENDENCIES_UPDATED: 'local:dependencies_updated',
-  FEATURES_UPDATED: 'local:features_updated'
+/**
+ * S'abonne aux événements de chargement des modules
+ * @param callback Fonction appelée lorsque les modules sont chargés
+ * @returns Fonction pour se désabonner
+ */
+export const subscribeToModulesLoaded = (callback: (modules: AppModule[]) => void) => {
+  return eventBus.subscribe(MODULE_EVENTS.MODULES_LOADED, callback);
 };
 
 /**
- * Type pour la fonction de désabonnement
+ * S'abonne aux événements de chargement des dépendances
+ * @param callback Fonction appelée lorsque les dépendances sont chargées
+ * @returns Fonction pour se désabonner
  */
-type UnsubscribeFunction = () => void;
-
-/**
- * Adapte un module depuis la réponse Supabase pour ajouter les champs manquants
- */
-export const adaptModuleFromResponse = (moduleFromDb: any): AppModule => {
-  return {
-    ...moduleFromDb,
-    version: moduleFromDb.version || "1.0.0",
-    is_admin: moduleFromDb.is_admin || false,
-    priority: moduleFromDb.priority || 0
-  } as AppModule;
+export const subscribeToDependenciesLoaded = (callback: (dependencies: ModuleDependency[]) => void) => {
+  return eventBus.subscribe(MODULE_EVENTS.DEPENDENCIES_UPDATED, callback);
 };
 
 /**
- * S'abonne aux mises à jour des modules
+ * S'abonne aux événements de changement de statut des modules
+ * @param callback Fonction appelée lorsque le statut d'un module change
+ * @returns Fonction pour se désabonner
  */
-export const subscribeToModuleUpdates = (
-  setModules: React.Dispatch<React.SetStateAction<AppModule[]>>
-): UnsubscribeFunction => {
-  const handleModulesUpdate = (modules: AppModule[]) => {
-    setModules(modules);
-  };
+export const subscribeToModuleStatusChanged = (callback: (data: any) => void) => {
+  return eventBus.subscribe(MODULE_EVENTS.MODULE_STATUS_CHANGED, callback);
+};
 
-  eventBus.subscribe(MODULE_EVENTS.MODULES_LOADED, handleModulesUpdate);
-  eventBus.subscribe(LOCAL_EVENTS.MODULES_UPDATED, handleModulesUpdate);
-
+/**
+ * S'abonne à tous les événements liés aux modules
+ * @returns Fonction pour se désabonner de tous les événements
+ */
+export const subscribeToModuleEvents = () => {
+  const unsubModules = eventBus.subscribe(MODULE_EVENTS.MODULES_LOADED, (modules) => {
+    // Handler for module loading
+    console.log('Modules loaded:', modules);
+  });
+  
+  const unsubDependencies = eventBus.subscribe(MODULE_EVENTS.DEPENDENCIES_UPDATED, (dependencies) => {
+    // Handler for dependency updates
+    console.log('Dependencies updated:', dependencies);
+  });
+  
+  // Return function to unsubscribe from all events
   return () => {
-    eventBus.unsubscribe(MODULE_EVENTS.MODULES_LOADED, handleModulesUpdate);
-    eventBus.unsubscribe(LOCAL_EVENTS.MODULES_UPDATED, handleModulesUpdate);
+    unsubModules();
+    unsubDependencies();
   };
 };
 
 /**
- * Adapte une dépendance depuis la réponse Supabase pour ajouter les champs manquants
+ * S'abonne aux événements d'erreur liés aux modules
+ * @param callback Fonction appelée lorsqu'une erreur survient
+ * @returns Fonction pour se désabonner
  */
-export const adaptDependencyFromResponse = (dependencyFromDb: any): ModuleDependency => {
-  return {
-    ...dependencyFromDb,
-    created_at: dependencyFromDb.created_at || new Date().toISOString(),
-    updated_at: dependencyFromDb.updated_at || new Date().toISOString()
-  } as ModuleDependency;
+export const subscribeToModuleErrors = (callback: (error: any) => void) => {
+  return eventBus.subscribe(MODULE_EVENTS.MODULE_ERROR, callback);
 };
 
 /**
- * S'abonne aux mises à jour des dépendances
+ * S'abonne aux événements d'initialisation des modules
+ * @param onStarted Fonction appelée lorsque l'initialisation commence
+ * @param onCompleted Fonction appelée lorsque l'initialisation est terminée
+ * @returns Fonction pour se désabonner
  */
-export const subscribeToDependencyUpdates = (
-  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>
-): UnsubscribeFunction => {
-  const handleDependenciesUpdate = (dependencies: ModuleDependency[]) => {
-    setDependencies(dependencies);
-  };
-
-  eventBus.subscribe(LOCAL_EVENTS.DEPENDENCIES_UPDATED, handleDependenciesUpdate);
-
+export const subscribeToModuleInitialization = (
+  onStarted: () => void,
+  onCompleted: () => void
+) => {
+  const startedUnsub = eventBus.subscribe(MODULE_EVENTS.MODULES_INITIALIZATION_STARTED, onStarted);
+  const completedUnsub = eventBus.subscribe(MODULE_EVENTS.MODULES_INITIALIZATION_COMPLETED, onCompleted);
+  
   return () => {
-    eventBus.unsubscribe(LOCAL_EVENTS.DEPENDENCIES_UPDATED, handleDependenciesUpdate);
-  };
-};
-
-/**
- * Gère les abonnements et désabonnements pour les modules et dépendances
- */
-export const setupSubscriptions = (
-  setModules: React.Dispatch<React.SetStateAction<AppModule[]>>,
-  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>
-): () => void => {
-  const unsubscribeFromModules = subscribeToModuleUpdates(setModules);
-  const unsubscribeFromDependencies = subscribeToDependencyUpdates(setDependencies);
-
-  return () => {
-    unsubscribeFromModules();
-    unsubscribeFromDependencies();
+    startedUnsub();
+    completedUnsub();
   };
 };

@@ -27,6 +27,7 @@ export class ModuleRepository {
       // Assurer que les statuts sont valides et que tous les champs requis sont présents
       return (data || []).map(module => {
         const status = module.status as ModuleStatus;
+        // Accept 'maintenance' as a valid status
         const validStatus = ['active', 'inactive', 'degraded', 'maintenance'].includes(status) ? 
                            status : 'inactive';
                            

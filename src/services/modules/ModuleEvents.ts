@@ -12,10 +12,23 @@ export const MODULE_EVENTS = {
   MODULES_LOADED: 'modules:loaded',
   MODULE_LOADED: 'module:loaded',
   MODULES_REFRESHED: 'modules:refreshed',
+  MODULES_UPDATED: 'modules:updated',
+  DEPENDENCIES_UPDATED: 'dependencies:updated',
   
   // Événements de changement d'état
   MODULE_STATUS_CHANGED: 'module:status_changed',
   MODULE_FEATURE_CHANGED: 'module:feature_changed',
+  MODULE_ACTIVATED: 'module:activated',
+  MODULE_DEACTIVATED: 'module:deactivated',
+  MODULE_DEGRADED: 'module:degraded',
+  
+  // Événements liés aux fonctionnalités
+  FEATURE_STATUS_CHANGED: 'feature:status_changed',
+  FEATURE_ENABLED: 'feature:enabled',
+  FEATURE_DISABLED: 'feature:disabled',
+  
+  // Événements d'utilisation
+  MODULE_USAGE_RECORDED: 'module:usage_recorded',
   
   // Événements d'erreur
   MODULE_ERROR: 'module:error',

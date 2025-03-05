@@ -1,3 +1,4 @@
+
 import { ClothesFilters } from "@/hooks/useClothes";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,3 +134,6 @@ export const ClothesFiltersComponent = ({ filters, onFiltersChange }: ClothesFil
     </div>
   );
 };
+
+// Export explicitly
+export { ClothesFiltersComponent as ClothesFilters };
