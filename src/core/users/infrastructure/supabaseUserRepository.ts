@@ -52,7 +52,8 @@ export class SupabaseUserRepository implements IUserRepository {
       
       // Convertir et ajouter billing_address si présent (conversion de Json à BillingAddress)
       if (data.billing_address) {
-        profile.billing_address = data.billing_address as BillingAddress;
+        // Cast via unknown pour éviter les problèmes de type
+        profile.billing_address = data.billing_address as unknown as BillingAddress;
       }
       
       if (data.stripe_customer_id) {
@@ -81,7 +82,7 @@ export class SupabaseUserRepository implements IUserRepository {
       }
 
       // Préparer les données pour la mise à jour
-      // Convertir BillingAddress en Json lors de l'envoi à Supabase
+      // Utiliser any pour éviter les problèmes de type
       const updateData: any = {
         ...data,
         updated_at: new Date().toISOString(),
