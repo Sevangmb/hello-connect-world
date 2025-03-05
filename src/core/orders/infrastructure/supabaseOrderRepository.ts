@@ -4,7 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { IOrderRepository } from '../domain/interfaces/IOrderRepository';
-import { Order, OrderItem, OrderStatus, PaymentStatus, ShippingStatus, CreateOrderParams, ShippingAddress, OrderFilter } from '../domain/types';
+import { Order, OrderItem, OrderStatus, PaymentStatus, ShippingStatus, CreateOrderParams, ShippingAddress, OrderFilter, DeliveryType } from '../domain/types';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { ORDER_EVENTS } from '../domain/events';
 
@@ -95,7 +95,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
         cancelledAt: order.cancelled_at,
         transactionType: order.transaction_type,
         paymentMethod: order.payment_method,
-        deliveryType: order.delivery_type || 'shipping',
+        deliveryType: (order.delivery_type as DeliveryType) || 'shipping',
         shippingRequired: order.shipping_required,
         items: []
       };
@@ -153,7 +153,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
         cancelledAt: data.cancelled_at,
         transactionType: data.transaction_type,
         paymentMethod: data.payment_method,
-        deliveryType: data.delivery_type || 'shipping',
+        deliveryType: (data.delivery_type as DeliveryType) || 'shipping',
         items: []
       };
       
@@ -179,13 +179,14 @@ export class SupabaseOrderRepository implements IOrderRepository {
    */
   async getOrderItems(orderId: string): Promise<OrderItem[]> {
     try {
+      // Modifier cette requête pour résoudre le problème de jointure
       const { data, error } = await supabase
         .from('order_items')
         .select(`
           id, shop_item_id, quantity, price_at_time,
-          shop_items:shop_items(
+          shop_items(
             id, price, shop_id,
-            clothes(name, image_url, brand, category, size)
+            clothes(id, name, image_url, brand, category, size)
           )
         `)
         .eq('order_id', orderId);
@@ -205,11 +206,17 @@ export class SupabaseOrderRepository implements IOrderRepository {
         
         // Ajouter les propriétés supplémentaires si disponibles
         if (item.shop_items?.clothes) {
-          orderItem.productName = item.shop_items.clothes.name || 'Article sans nom';
-          orderItem.imageUrl = item.shop_items.clothes.image_url || null;
-          orderItem.brand = item.shop_items.clothes.brand || null;
-          orderItem.category = item.shop_items.clothes.category || null;
-          orderItem.size = item.shop_items.clothes.size || null;
+          const clothes = Array.isArray(item.shop_items.clothes) 
+            ? item.shop_items.clothes[0] 
+            : item.shop_items.clothes;
+            
+          if (clothes) {
+            orderItem.productName = clothes.name || 'Article sans nom';
+            orderItem.imageUrl = clothes.image_url || null;
+            orderItem.brand = clothes.brand || null;
+            orderItem.category = clothes.category || null;
+            orderItem.size = clothes.size || null;
+          }
         }
         
         return orderItem;
@@ -351,7 +358,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
-          deliveryType: item.delivery_type || 'shipping',
+          deliveryType: (item.delivery_type as DeliveryType) || 'shipping',
           items: []
         };
         
@@ -452,7 +459,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
-          deliveryType: item.delivery_type || 'shipping',
+          deliveryType: (item.delivery_type as DeliveryType) || 'shipping',
           items: []
         };
         
