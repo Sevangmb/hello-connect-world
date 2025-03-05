@@ -1,4 +1,3 @@
-
 /**
  * Hook pour accéder au registre des modules dans les composants React
  * Version mise à jour pour utiliser l'API Gateway

@@ -18,7 +18,7 @@ export function useEventSubscription<T = any>(
   deps: React.DependencyList = []
 ): void {
   useEffect(() => {
-    const unsubscribe = eventBus.subscribe<T>(eventName, callback);
+    const unsubscribe = eventBus.subscribe(eventName, callback);
     
     // Nettoyer l'abonnement lors du démontage du composant
     return () => {
@@ -80,7 +80,7 @@ export function useEventPublisher(): {
 } {
   return {
     publish: useCallback(<T = any>(eventName: string, data: T) => {
-      eventBus.publish<T>(eventName, data);
+      eventBus.publish(eventName, data);
     }, [])
   };
 }
@@ -97,7 +97,7 @@ export function useGlobalEventSubscription<T = any>(
   deps: React.DependencyList = []
 ): void {
   useEffect(() => {
-    const unsubscribe = eventBus.subscribeToGlobal<T>(eventName, callback);
+    const unsubscribe = eventBus.subscribeToGlobal(eventName, callback);
     
     // Nettoyer l'abonnement lors du démontage
     return () => {
@@ -112,7 +112,7 @@ export function useGlobalEventSubscription<T = any>(
  * @returns Historique des événements
  */
 export function useEventHistory<T = any>(eventName: string): T[] {
-  return eventBus.getHistory<T>(eventName);
+  return eventBus.getHistory(eventName);
 }
 
 /**
@@ -120,16 +120,16 @@ export function useEventHistory<T = any>(eventName: string): T[] {
  */
 export function useEventBus() {
   return {
-    subscribe: useCallback(<T = any>(eventName: string, callback: EventCallback<T>) => {
-      return eventBus.subscribe<T>(eventName, callback);
+    subscribe: useCallback((eventName: string, callback: EventCallback) => {
+      return eventBus.subscribe(eventName, callback);
     }, []),
     
-    publish: useCallback(<T = any>(eventName: string, data: T) => {
-      eventBus.publish<T>(eventName, data);
+    publish: useCallback((eventName: string, data: any) => {
+      eventBus.publish(eventName, data);
     }, []),
     
-    getHistory: useCallback(<T = any>(eventName: string) => {
-      return eventBus.getHistory<T>(eventName);
+    getHistory: useCallback((eventName: string) => {
+      return eventBus.getHistory(eventName);
     }, []),
     
     clear: useCallback((eventName?: string) => {

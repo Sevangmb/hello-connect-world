@@ -1,87 +1,62 @@
 
 /**
  * Middleware pour l'Event Bus
- * Permet d'ajouter des comportements avant ou après la publication d'événements
+ * Permet d'intercepter et de transformer les événements
  */
 import { EventCallback } from './EventBus';
 
+// Type pour les fonctions middleware
 export type EventMiddleware = (eventName: string, data: any, next: () => void) => void;
 
-export class EventBusMiddleware {
-  private static middlewares: EventMiddleware[] = [];
+// Liste des middlewares enregistrés
+const middlewares: EventMiddleware[] = [];
 
-  /**
-   * Ajoute un middleware à la chaîne
-   * @param middleware Fonction de middleware
-   */
-  static use(middleware: EventMiddleware): void {
-    this.middlewares.push(middleware);
-  }
-
-  /**
-   * Exécute la chaîne de middleware
-   * @param eventName Nom de l'événement
-   * @param data Données de l'événement
-   * @param callback Callback final à exécuter
-   */
-  static execute(eventName: string, data: any, callback: EventCallback): void {
-    let index = 0;
-    
-    const next = () => {
-      if (index < this.middlewares.length) {
-        const middleware = this.middlewares[index++];
-        middleware(eventName, data, next);
-      } else {
-        callback(data);
-      }
-    };
-    
-    next();
-  }
-}
-
-// Middleware de journalisation
-export const loggingMiddleware: EventMiddleware = (eventName, data, next) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[Event Bus] Event: ${eventName}`, data);
-  }
-  next();
+/**
+ * Ajoute un middleware à la chaîne de traitement
+ * @param middleware Fonction middleware à ajouter
+ */
+export const addMiddleware = (middleware: EventMiddleware): void => {
+  middlewares.push(middleware);
 };
 
-// Middleware de filtrage des événements sensibles en production
-export const sensitiveDataFilterMiddleware: EventMiddleware = (eventName, data, next) => {
-  if (process.env.NODE_ENV === 'production' && data) {
-    const sensitiveFields = ['password', 'token', 'secret', 'key', 'apiKey', 'credential'];
-    
-    if (typeof data === 'object' && data !== null) {
-      for (const field of sensitiveFields) {
-        if (field in data) {
-          data = { ...data, [field]: '***REDACTED***' };
-        }
-      }
+/**
+ * Exécute la chaîne de middlewares
+ * @param eventName Nom de l'événement
+ * @param data Données de l'événement
+ * @param callback Callback final
+ */
+export const executeMiddlewareChain = (eventName: string, data: any, callback: EventCallback): void => {
+  let index = 0;
+  
+  // Fonction pour passer au middleware suivant
+  const next = () => {
+    if (index < middlewares.length) {
+      const middleware = middlewares[index++];
+      middleware(eventName, data, next);
+    } else {
+      // Une fois tous les middlewares exécutés, appeler le callback final
+      callback(data);
     }
-  }
+  };
+  
+  // Démarrer la chaîne de middlewares
   next();
 };
 
-// Middleware de métriques de performance
-export const performanceMetricsMiddleware: EventMiddleware = (eventName, data, next) => {
-  // Ajouter automatiquement un timestamp si non présent
-  if (typeof data === 'object' && data !== null && !('timestamp' in data)) {
-    data = { ...data, timestamp: Date.now() };
+/**
+ * Supprime un middleware de la chaîne de traitement
+ * @param middleware Middleware à supprimer
+ */
+export const removeMiddleware = (middleware: EventMiddleware): void => {
+  const index = middlewares.indexOf(middleware);
+  if (index !== -1) {
+    middlewares.splice(index, 1);
   }
-  
-  // Enregistrer le temps passé sur les événements de performance
-  if (eventName.includes('performance') || eventName.includes('metrics')) {
-    console.debug(`[Performance] ${eventName}:`, data);
-    
-    // On pourrait envoyer ces données à un service de télémétrie ici
-  }
-  
-  next();
 };
 
-// Initialiser les middlewares par défaut
-EventBusMiddleware.use(sensitiveDataFilterMiddleware);
-EventBusMiddleware.use(loggingMiddleware);
-EventBusMiddleware.use(performanceMetricsMiddleware);
+/**
+ * Supprime tous les middlewares
+ */
+export const clearMiddlewares = (): void => {
+  middlewares.length = 0;
+};

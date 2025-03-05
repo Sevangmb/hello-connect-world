@@ -8,7 +8,7 @@ export interface UserProfile {
   username: string;
   full_name: string;
   avatar_url: string | null;
-  visibility: "public" | "private";
+  visibility: "public" | "private" | "friends";
   phone: string | null;
   address: string | null;
   preferred_language: string;
