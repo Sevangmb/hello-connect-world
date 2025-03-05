@@ -1,174 +1,148 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { stripe } from '../_shared/stripe.ts';
-import { corsHeaders } from '../_shared/cors.ts';
+// Note: Ceci est un exemple de mise à jour de la fonction handle-stripe-webhook existante.
+// Ajoutez ce code à votre fonction existante pour gérer la génération automatique de factures.
 
-console.log('Stripe Webhook Handler Started');
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Stripe } from 'https://esm.sh/stripe@12.18.0'
+import { corsHeaders } from '../_shared/cors.ts'
 
-Deno.serve(async (req) => {
+// Configuration de Stripe
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2022-11-15',
+})
+
+// Configuration Supabase
+const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+
+serve(async (req) => {
+  // Gestion CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const signature = req.headers.get('stripe-signature')
+  if (!signature) {
+    return new Response(JSON.stringify({ error: 'No signature found' }), { 
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Get the stripe signature from headers
-    const signature = req.headers.get('stripe-signature');
-    if (!signature) {
-      throw new Error('No Stripe signature found');
-    }
-
-    const body = await req.text();
-    console.log('Received webhook payload');
-
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    if (!webhookSecret) {
-      throw new Error('Stripe webhook secret not configured');
-    }
-
-    // Verify the event
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
-
-    console.log('Webhook event type:', event.type);
-
+    // Obtenir le corps de la requête
+    const body = await req.text()
+    
+    // Vérifier et construire l'événement
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
+    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    
+    // Créer un client Supabase
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    
+    // Traiter l'événement en fonction de son type
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const orderIds = JSON.parse(session.metadata.order_ids);
-      const userId = session.metadata.user_id;
-
-      console.log('Processing completed checkout for orders:', orderIds);
-
-      // Update all associated orders
+      const session = event.data.object as Stripe.Checkout.Session
+      
+      // Récupérer les métadonnées de la session
+      const metadata = session.metadata || {}
+      const orderIds = metadata.orderIds ? JSON.parse(metadata.orderIds) : []
+      const buyerId = metadata.userId
+      
+      // Pour chaque commande, mettre à jour son statut et créer un enregistrement de paiement
       for (const orderId of orderIds) {
-        const { error: orderError } = await supabaseClient
+        // Mettre à jour le statut de la commande
+        const { data: order, error: orderError } = await supabase
           .from('orders')
           .update({
             status: 'paid',
             payment_status: 'completed',
-            stripe_payment_intent_id: session.payment_intent
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent as string,
+            confirmed_at: new Date().toISOString()
           })
-          .eq('id', orderId);
-
-        if (orderError) {
-          console.error(`Error updating order ${orderId}:`, orderError);
-          continue;
-        }
-
-        // Créer un enregistrement de paiement
-        const { data: orderData } = await supabaseClient
-          .from('orders')
-          .select('total_amount, buyer_id, seller_id')
           .eq('id', orderId)
-          .single();
-
-        if (orderData) {
-          const { data: paymentData, error: paymentError } = await supabaseClient
-            .from('payments')
-            .insert({
-              order_id: orderId,
-              buyer_id: orderData.buyer_id,
-              seller_id: orderData.seller_id,
-              amount: orderData.total_amount,
-              stripe_payment_intent_id: session.payment_intent,
-              status: 'completed'
-            })
-            .select('id')
-            .single();
-
-          if (paymentError) {
-            console.error(`Error creating payment record for order ${orderId}:`, paymentError);
-          } else if (paymentData) {
-            // Mettre à jour l'order avec l'id du paiement
-            await supabaseClient
-              .from('orders')
-              .update({ payment_id: paymentData.id })
-              .eq('id', orderId);
-          }
+          .select('seller_id, total_amount')
+          .single()
+        
+        if (orderError) {
+          console.error(`Erreur lors de la mise à jour de la commande ${orderId}:`, orderError)
+          continue
         }
-
+        
+        // Créer un enregistrement de paiement
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            order_id: orderId,
+            buyer_id: buyerId,
+            seller_id: order.seller_id,
+            amount: order.total_amount,
+            stripe_payment_intent_id: session.payment_intent,
+            stripe_payment_method_id: session.payment_method,
+            status: 'completed'
+          })
+        
+        if (paymentError) {
+          console.error(`Erreur lors de la création du paiement pour la commande ${orderId}:`, paymentError)
+        }
+        
         // Générer automatiquement la facture
         try {
-          // Appeler la fonction de génération de facture
-          const invoiceResponse = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-invoice`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          // Appeler la fonction edge pour générer la facture
+          const fetchResponse = await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`
+            },
+            body: JSON.stringify({ orderId })
+          })
+          
+          const responseData = await fetchResponse.json()
+          console.log(`Résultat de la génération de facture pour ${orderId}:`, responseData)
+          
+          // Créer une notification pour informer l'acheteur et le vendeur
+          await supabase
+            .from('transaction_notifications')
+            .insert([
+              {
+                user_id: buyerId,
+                order_id: orderId,
+                type: 'payment_received',
+                message: 'Votre paiement a été reçu et votre facture est disponible.'
               },
-              body: JSON.stringify({ orderId })
-            }
-          );
-
-          if (!invoiceResponse.ok) {
-            const errorData = await invoiceResponse.json();
-            console.error(`Error generating invoice for order ${orderId}:`, errorData);
-          } else {
-            console.log(`Invoice generated for order ${orderId}`);
-          }
+              {
+                user_id: order.seller_id,
+                order_id: orderId,
+                type: 'payment_received',
+                message: 'Un paiement a été reçu pour votre article vendu.'
+              }
+            ])
+          
         } catch (invoiceError) {
-          console.error(`Exception when generating invoice for order ${orderId}:`, invoiceError);
-        }
-
-        // Update shipment status
-        const { error: shipmentError } = await supabaseClient
-          .from('order_shipments')
-          .update({ status: 'preparing' })
-          .eq('order_id', orderId);
-
-        if (shipmentError) {
-          console.error(`Error updating shipment for order ${orderId}:`, shipmentError);
-        }
-
-        // Créer une notification de transaction
-        const { error: notificationError } = await supabaseClient
-          .from('transaction_notifications')
-          .insert({
-            user_id: userId,
-            order_id: orderId,
-            type: 'payment_received',
-            message: 'Votre paiement a été reçu et confirmé.',
-            metadata: { payment_intent: session.payment_intent }
-          });
-
-        if (notificationError) {
-          console.error('Error creating transaction notification:', notificationError);
+          console.error(`Erreur lors de la génération de la facture pour la commande ${orderId}:`, invoiceError)
         }
       }
-
-      // Clear cart items for the user
-      const { error: cartError } = await supabaseClient
-        .from('cart_items')
-        .delete()
-        .eq('user_id', userId);
-
-      if (cartError) {
-        console.error('Error clearing cart:', cartError);
-      }
+      
+      return new Response(JSON.stringify({ received: true }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
-
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
-
-  } catch (error) {
-    console.error('Error in webhook handler:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }), 
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
-      }
-    );
+    
+    // Traiter d'autres types d'événements Stripe si nécessaire...
+    
+    // Réponse par défaut
+    return new Response(JSON.stringify({ received: true }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+    
+  } catch (err) {
+    console.error('Erreur dans le webhook Stripe:', err)
+    return new Response(JSON.stringify({ error: err.message }), { 
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
-});
+})

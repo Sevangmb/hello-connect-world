@@ -2420,6 +2420,47 @@ export type Database = {
           },
         ]
       }
+      transaction_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          order_id: string | null
+          read: boolean
+          type: Database["public"]["Enums"]["transaction_notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          order_id?: string | null
+          read?: boolean
+          type: Database["public"]["Enums"]["transaction_notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          order_id?: string | null
+          read?: boolean
+          type?: Database["public"]["Enums"]["transaction_notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transaction_reviews: {
         Row: {
           comment: string | null
@@ -2633,6 +2674,17 @@ export type Database = {
       module_status: "active" | "inactive" | "degraded"
       shipping_carrier_type: "integrated" | "manual"
       suitcase_status: "active" | "archived"
+      transaction_notification_type:
+        | "order_created"
+        | "payment_received"
+        | "order_confirmed"
+        | "order_shipped"
+        | "order_delivered"
+        | "order_completed"
+        | "order_cancelled"
+        | "refund_requested"
+        | "refund_processed"
+        | "payout_processed"
     }
     CompositeTypes: {
       [_ in never]: never
