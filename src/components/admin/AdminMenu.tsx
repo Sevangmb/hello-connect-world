@@ -121,6 +121,12 @@ export const AdminMenu: React.FC = () => {
     });
   }, [location.pathname]);
 
+  // Navigation sécurisée qui gère mieux les redirections
+  const handleNavigate = (path: string) => {
+    console.log("Navigation vers:", path);
+    navigate(path);
+  };
+
   if (!isUserAdmin) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -162,7 +168,7 @@ export const AdminMenu: React.FC = () => {
                 {items.map((item) => (
                   <Button
                     key={item.path}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => handleNavigate(item.path)}
                     variant={isActive(item.path) ? "secondary" : "ghost"}
                     className={cn(
                       "w-full justify-start",

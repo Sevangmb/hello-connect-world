@@ -7,8 +7,15 @@ export default function Admin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Rediriger automatiquement vers le dashboard admin
-    navigate("/admin/dashboard", { replace: true });
+    // Ajouter un console.log pour vérifier l'exécution de la redirection
+    console.log("Admin page - Redirection en cours vers le dashboard admin");
+    
+    // Ajout d'un timeout pour laisser le temps au composant de se monter complètement
+    const redirectTimer = setTimeout(() => {
+      navigate("/admin/dashboard", { replace: true });
+    }, 100);
+    
+    return () => clearTimeout(redirectTimer);
   }, [navigate]);
 
   // Afficher un écran de chargement pendant la redirection

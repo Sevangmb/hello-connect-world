@@ -1,3 +1,4 @@
+
 import { lazy, Suspense, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -20,7 +21,19 @@ const PrelaunchRedirect = lazy(() => import('@/components/home/PrelaunchRedirect
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
 const AdminWaitlist = lazy(() => import('@/pages/admin/AdminWaitlist'));
-// ... autres pages admin
+const AdminStats = lazy(() => import('@/pages/admin/AdminStats'));
+const AdminContent = lazy(() => import('@/pages/admin/AdminContent'));
+const AdminOrders = lazy(() => import('@/pages/admin/AdminOrders'));
+const AdminShops = lazy(() => import('@/pages/admin/AdminShops'));
+const AdminMarketplace = lazy(() => import('@/pages/admin/AdminMarketplace'));
+const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'));
+const AdminModules = lazy(() => import('@/pages/admin/AdminModules'));
+const AdminNotifications = lazy(() => import('@/pages/admin/AdminNotifications'));
+const AdminMenus = lazy(() => import('@/pages/admin/AdminMenus'));
+const AdminApiKeys = lazy(() => import('@/pages/admin/AdminApiKeys'));
+const AdminBackups = lazy(() => import('@/pages/admin/AdminBackups'));
+const AdminReports = lazy(() => import('@/pages/admin/AdminReports'));
+const AdminHelp = lazy(() => import('@/pages/admin/AdminHelp'));
 
 // Préchargement intelligent des routes les plus utilisées
 const preloadRoutes = () => {
@@ -84,7 +97,19 @@ export default function MainRoutes() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="waitlist" element={<AdminWaitlist />} />
-            {/* Autres routes admin gardées identiques */}
+            <Route path="stats" element={<AdminStats />} />
+            <Route path="content" element={<AdminContent />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="shops" element={<AdminShops />} />
+            <Route path="marketplace" element={<AdminMarketplace />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="modules" element={<AdminModules />} />
+            <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="menus" element={<AdminMenus />} />
+            <Route path="api-keys" element={<AdminApiKeys />} />
+            <Route path="backups" element={<AdminBackups />} />
+            <Route path="reports" element={<AdminReports />} />
+            <Route path="help" element={<AdminHelp />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />
