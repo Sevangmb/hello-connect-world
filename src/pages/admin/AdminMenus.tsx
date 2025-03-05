@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,8 @@ export default function AdminMenus() {
     const loadMenuItems = async () => {
       try {
         setLoading(true);
-        const items = await getMenuUseCase.getAllMenuItems();
+        const menuUseCase = getMenuUseCase();
+        const items = await menuUseCase.getAllMenuItems();
         setMenuItems(items);
       } catch (error) {
         console.error("Erreur lors du chargement des éléments de menu:", error);
@@ -92,7 +94,8 @@ export default function AdminMenus() {
 
   const handleUpdateStatus = async (id: string, field: keyof MenuItem, value: boolean) => {
     try {
-      const updatedItem = await getMenuUseCase.updateMenuItem({ id, [field]: value });
+      const menuUseCase = getMenuUseCase();
+      await menuUseCase.updateMenuItem({ id, [field]: value });
       
       setMenuItems(menuItems.map(item => 
         item.id === id ? { ...item, [field]: value } : item
@@ -118,10 +121,11 @@ export default function AdminMenus() {
     if (!currentMenuItem) return;
     
     try {
+      const menuUseCase = getMenuUseCase();
       if (isEditMode && currentMenuItem.id) {
-        const updatedItem = await getMenuUseCase.updateMenuItem(currentMenuItem as (Partial<MenuItem> & { id: string }));
+        const updatedItem = await menuUseCase.updateMenuItem(currentMenuItem as (Partial<MenuItem> & { id: string }));
         setMenuItems(menuItems.map(item => 
-          item.id === updatedItem.id ? updatedItem : item
+          item.id === updatedItem?.id ? updatedItem : item
         ));
         
         toast({
@@ -129,13 +133,15 @@ export default function AdminMenus() {
           description: "Élément de menu mis à jour avec succès",
         });
       } else {
-        const newItem = await getMenuUseCase.createMenuItem(currentMenuItem as Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>);
-        setMenuItems([...menuItems, newItem]);
-        
-        toast({
-          title: "Succès",
-          description: "Élément de menu créé avec succès",
-        });
+        const newItem = await menuUseCase.createMenuItem(currentMenuItem as Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>);
+        if (newItem) {
+          setMenuItems([...menuItems, newItem]);
+          
+          toast({
+            title: "Succès",
+            description: "Élément de menu créé avec succès",
+          });
+        }
       }
       
       closeDialog();
@@ -155,7 +161,8 @@ export default function AdminMenus() {
     }
     
     try {
-      await getMenuUseCase.deleteMenuItem(id);
+      const menuUseCase = getMenuUseCase();
+      await menuUseCase.deleteMenuItem(id);
       
       setMenuItems(menuItems.filter(item => item.id !== id));
       

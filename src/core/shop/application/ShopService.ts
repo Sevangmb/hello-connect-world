@@ -1,15 +1,24 @@
 
 import { ShopRepository } from "../infrastructure/ShopRepository";
-import { Shop, ShopItem, ShopStatus, Order, ShopReview, ShopSettings } from "../domain/types";
+import { 
+  Shop, 
+  ShopItem, 
+  ShopStatus, 
+  Order, 
+  ShopReview, 
+  ShopSettings,
+  OrderStatus
+} from "../domain/types";
+import { IShopRepository } from "../domain/interfaces/IShopRepository";
 
 /**
  * Service pour la gestion des boutiques
  * Couche Application de la Clean Architecture
  */
 export class ShopService {
-  private repository: ShopRepository;
+  private repository: IShopRepository;
 
-  constructor(repository: ShopRepository) {
+  constructor(repository: IShopRepository) {
     this.repository = repository;
   }
 
@@ -17,7 +26,7 @@ export class ShopService {
    * Récupère une boutique par l'ID de l'utilisateur
    */
   async getUserShop(userId: string): Promise<Shop | null> {
-    return this.repository.getShopByUserId(userId);
+    return this.repository.getUserShop(userId);
   }
 
   /**
@@ -31,13 +40,13 @@ export class ShopService {
    * Récupère toutes les boutiques
    */
   async getAllShops(): Promise<Shop[]> {
-    return this.repository.getAllShops();
+    return this.repository.getShops();
   }
 
   /**
    * Crée une nouvelle boutique
    */
-  async createShop(shopData: Omit<Shop, "id" | "created_at" | "updated_at">): Promise<Shop> {
+  async createShop(shopData: Omit<Shop, "id" | "created_at" | "updated_at" | "average_rating">): Promise<Shop> {
     return this.repository.createShop(shopData);
   }
 
@@ -128,7 +137,7 @@ export class ShopService {
   /**
    * Met à jour le statut d'une commande
    */
-  async updateOrderStatus(id: string, status: string): Promise<boolean> {
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
     return this.repository.updateOrderStatus(id, status);
   }
 

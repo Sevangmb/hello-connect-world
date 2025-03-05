@@ -1,48 +1,26 @@
 
+import { useEffect, useCallback } from 'react';
+import { ModuleServiceImpl } from '@/services/modules/services/ModuleServiceImpl';
+import { getModuleRepository } from '@/services/modules/repositories';
+
 /**
- * Hook pour suivre l'utilisation des modules
+ * Hook to record module usage
  */
-import { useState, useCallback } from 'react';
-import { moduleService } from '@/services/modules/services/ModuleServiceImpl';
-
-// Constantes pour les modules prioritaires
-const CORE_MODULES = ['auth', 'profile', 'menu'];
-
-export const useModuleUsage = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  
-  /**
-   * Précharge les modules prioritaires
-   */
-  const preloadPriorityModules = useCallback(async () => {
-    setIsLoading(true);
+export const useModuleUsage = (moduleCode: string) => {
+  const recordModuleUsage = useCallback(async () => {
     try {
-      // Précharger chaque module prioritaire
-      await Promise.all(CORE_MODULES.map(async (moduleCode) => {
-        await moduleService.isModuleActive(moduleCode);
-      }));
-    } catch (error) {
-      console.error("Erreur lors du préchargement des modules prioritaires:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-  
-  /**
-   * Incrémente le compteur d'utilisation d'un module
-   */
-  const incrementModuleUsage = useCallback(async (moduleCode: string) => {
-    try {
+      const repository = getModuleRepository();
+      const moduleService = new ModuleServiceImpl(repository);
       await moduleService.recordModuleUsage(moduleCode);
     } catch (error) {
-      console.error(`Erreur lors de l'incrémentation de l'utilisation du module ${moduleCode}:`, error);
+      console.error(`Error recording usage for module ${moduleCode}:`, error);
     }
-  }, []);
-  
-  return {
-    priorityModules: CORE_MODULES,
-    isLoading,
-    preloadPriorityModules,
-    incrementModuleUsage
-  };
+  }, [moduleCode]);
+
+  // Record usage when the hook is mounted
+  useEffect(() => {
+    recordModuleUsage();
+  }, [recordModuleUsage]);
+
+  return { recordModuleUsage };
 };

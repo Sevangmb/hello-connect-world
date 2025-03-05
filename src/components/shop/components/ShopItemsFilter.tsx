@@ -1,58 +1,64 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React from "react";
 import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Search, X } from 'lucide-react';
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export interface ShopItemsFilterProps {
-  filter: string;
+  currentFilter: string;
   setFilter: React.Dispatch<React.SetStateAction<string>>;
-  sort: string;
+  currentSort: string;
   setSort: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({
-  filter,
-  setFilter,
-  sort,
-  setSort
+const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({ 
+  currentFilter, 
+  setFilter, 
+  currentSort, 
+  setSort 
 }) => {
   return (
-    <div className="flex flex-col md:flex-row gap-4 mb-6">
-      <div className="relative flex-1">
-        <Input
-          placeholder="Search items..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="pl-10 pr-10"
-        />
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        {filter && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
-            onClick={() => setFilter('')}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-      
-      <div className="w-full md:w-48">
-        <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sort by..." />
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="w-full sm:w-auto">
+        <Label htmlFor="filter-select" className="text-sm font-medium mb-1 block">
+          Filter by
+        </Label>
+        <Select
+          value={currentFilter}
+          onValueChange={setFilter}
+        >
+          <SelectTrigger id="filter-select" className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filter items" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="price-asc">Price: Low to High</SelectItem>
-            <SelectItem value="price-desc">Price: High to Low</SelectItem>
+            <SelectItem value="all">All Items</SelectItem>
+            <SelectItem value="available">Available</SelectItem>
+            <SelectItem value="soldOut">Sold Out</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="w-full sm:w-auto">
+        <Label htmlFor="sort-select" className="text-sm font-medium mb-1 block">
+          Sort by
+        </Label>
+        <Select
+          value={currentSort}
+          onValueChange={setSort}
+        >
+          <SelectTrigger id="sort-select" className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Sort items" />
+          </SelectTrigger>
+          <SelectContent>
             <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="name-asc">Name: A to Z</SelectItem>
-            <SelectItem value="name-desc">Name: Z to A</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
+            <SelectItem value="priceLow">Price: Low to High</SelectItem>
+            <SelectItem value="priceHigh">Price: High to Low</SelectItem>
           </SelectContent>
         </Select>
       </div>

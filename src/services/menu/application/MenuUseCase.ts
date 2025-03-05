@@ -1,126 +1,99 @@
 
-import { MenuItem } from '../types';
-import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
-import { MenuCacheService } from './MenuCacheService';
+import { IMenuRepository } from "../domain/interfaces/IMenuRepository";
+import { MenuItem, MenuItemCategory } from "../types";
 
+/**
+ * Menu use case - Application layer
+ * Implements business logic for menu operations
+ */
 export class MenuUseCase {
-  private menuRepository: IMenuRepository;
-  private cacheService: MenuCacheService;
+  private repository: IMenuRepository;
 
-  constructor(menuRepository: IMenuRepository, cacheService: MenuCacheService) {
-    this.menuRepository = menuRepository;
-    this.cacheService = cacheService;
+  constructor(repository: IMenuRepository) {
+    this.repository = repository;
   }
 
   /**
    * Get all menu items
    */
   async getAllMenuItems(): Promise<MenuItem[]> {
-    // Try to get from cache first
-    const cachedItems = this.cacheService.getCache('all_menu_items');
-    if (cachedItems) {
-      return cachedItems;
+    try {
+      return await this.repository.getAllMenuItems();
+    } catch (error) {
+      console.error("Error fetching all menu items:", error);
+      return [];
     }
-
-    // If not in cache, get from repository
-    const items = await this.menuRepository.getAllMenuItems();
-    
-    // Store in cache
-    this.cacheService.setCache('all_menu_items', items);
-    
-    return items;
   }
 
   /**
    * Get menu items by category
    */
-  async getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
-    // Try to get from cache first
-    const cachedItems = this.cacheService.getCache(`category_${category}`);
-    if (cachedItems) {
-      return cachedItems;
+  async getMenuItemsByCategory(category: string, isAdmin?: boolean): Promise<MenuItem[]> {
+    try {
+      return await this.repository.getMenuItemsByCategory(category, isAdmin);
+    } catch (error) {
+      console.error(`Error fetching menu items for category ${category}:`, error);
+      return [];
     }
-
-    // If not in cache, get from repository
-    const items = await this.menuRepository.getMenuItemsByCategory(category);
-    
-    // Store in cache
-    this.cacheService.setCache(`category_${category}`, items);
-    
-    return items;
   }
 
   /**
    * Get menu items by module
    */
-  async getMenuItemsByModule(moduleCode: string): Promise<MenuItem[]> {
-    // Try to get from cache first
-    const cachedItems = this.cacheService.getCache(`module_${moduleCode}`);
-    if (cachedItems) {
-      return cachedItems;
+  async getMenuItemsByModule(moduleCode: string, isAdmin?: boolean): Promise<MenuItem[]> {
+    try {
+      return await this.repository.getMenuItemsByModule(moduleCode, isAdmin);
+    } catch (error) {
+      console.error(`Error fetching menu items for module ${moduleCode}:`, error);
+      return [];
     }
-
-    // If not in cache, get from repository
-    const items = await this.menuRepository.getMenuItemsByModule(moduleCode);
-    
-    // Store in cache
-    this.cacheService.setCache(`module_${moduleCode}`, items);
-    
-    return items;
   }
 
   /**
-   * Get menu items by parent
+   * Get menu items by parent ID
    */
   async getMenuItemsByParent(parentId: string): Promise<MenuItem[]> {
-    // Try to get from cache first
-    const cachedItems = this.cacheService.getCache(`parent_${parentId}`);
-    if (cachedItems) {
-      return cachedItems;
+    try {
+      return await this.repository.getMenuItemsByParent(parentId);
+    } catch (error) {
+      console.error(`Error fetching menu items for parent ${parentId}:`, error);
+      return [];
     }
-
-    // If not in cache, get from repository
-    const items = await this.menuRepository.getMenuItemsByParent(parentId);
-    
-    // Store in cache
-    this.cacheService.setCache(`parent_${parentId}`, items);
-    
-    return items;
   }
 
   /**
    * Create a new menu item
    */
   async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
-    const newItem = await this.menuRepository.createMenuItem(item);
-    
-    // Invalidate cache
-    this.cacheService.invalidateCache();
-    
-    return newItem;
+    try {
+      return await this.repository.createMenuItem(item);
+    } catch (error) {
+      console.error("Error creating menu item:", error);
+      return null;
+    }
   }
 
   /**
-   * Update a menu item
+   * Update an existing menu item
    */
   async updateMenuItem(item: Partial<MenuItem> & { id: string }): Promise<MenuItem | null> {
-    const updatedItem = await this.menuRepository.updateMenuItem(item);
-    
-    // Invalidate cache
-    this.cacheService.invalidateCache();
-    
-    return updatedItem;
+    try {
+      return await this.repository.updateMenuItem(item);
+    } catch (error) {
+      console.error(`Error updating menu item ${item.id}:`, error);
+      return null;
+    }
   }
 
   /**
    * Delete a menu item
    */
   async deleteMenuItem(id: string): Promise<boolean> {
-    const success = await this.menuRepository.deleteMenuItem(id);
-    
-    // Invalidate cache
-    this.cacheService.invalidateCache();
-    
-    return success;
+    try {
+      return await this.repository.deleteMenuItem(id);
+    } catch (error) {
+      console.error(`Error deleting menu item ${id}:`, error);
+      return false;
+    }
   }
 }

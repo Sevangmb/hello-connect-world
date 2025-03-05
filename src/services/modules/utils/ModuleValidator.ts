@@ -1,49 +1,48 @@
 
-/**
- * Service de validation pour les modules
- * Vérifie que les données sont conformes aux attentes
- */
-import { ModuleStatus } from '@/hooks/modules/types';
+import { AppModule, ModuleStatus } from "@/hooks/modules/types";
 
+/**
+ * Validator for module operations
+ */
 export class ModuleValidator {
   /**
-   * Valide le statut d'un module
-   * @param status Statut à valider
-   * @returns ModuleStatus Statut validé (par défaut 'inactive' si invalide)
+   * Validates module status
    */
-  validateModuleStatus(status: any): ModuleStatus {
-    const validStatuses: ModuleStatus[] = ['active', 'inactive', 'degraded'];
-    
-    if (validStatuses.includes(status as ModuleStatus)) {
+  validateStatus(status: string): ModuleStatus {
+    if (status === 'active' || status === 'inactive' || status === 'degraded' || status === 'maintenance') {
       return status as ModuleStatus;
     }
-    
-    console.warn(`Statut de module invalide: ${status}, utilisation de 'inactive' par défaut`);
     return 'inactive';
   }
-
+  
   /**
-   * Valide un code de module
-   * @param code Code à valider
-   * @returns boolean True si le code est valide
+   * Validates a complete module
    */
-  isValidModuleCode(code: string): boolean {
-    // Règles de validation des codes de modules
-    // Exemple: uniquement des lettres, chiffres et underscore, minimum 3 caractères
-    return /^[a-z0-9_]{3,}$/.test(code);
+  validateModule(module: any): Omit<AppModule, "id" | "created_at" | "updated_at"> {
+    // Implement validation logic here
+    return {
+      ...module,
+      status: this.validateStatus(module.status || 'inactive'),
+      is_core: Boolean(module.is_core),
+      is_admin: Boolean(module.is_admin),
+      priority: Number(module.priority || 0),
+      name: String(module.name || ''),
+      code: String(module.code || ''),
+      version: String(module.version || '1.0.0'),
+      description: String(module.description || '')
+    };
   }
-
+  
   /**
-   * Valide un code de fonctionnalité
-   * @param code Code à valider
-   * @returns boolean True si le code est valide
+   * Validates partial module update
    */
-  isValidFeatureCode(code: string): boolean {
-    // Règles de validation des codes de fonctionnalités
-    // Exemple: uniquement des lettres, chiffres et underscore, minimum 3 caractères
-    return /^[a-z0-9_]{3,}$/.test(code);
+  validatePartialModule(module: Partial<AppModule>): Partial<AppModule> {
+    const validated: Partial<AppModule> = { ...module };
+    
+    if (module.status) {
+      validated.status = this.validateStatus(module.status);
+    }
+    
+    return validated;
   }
 }
-
-// Exporter une instance unique pour toute l'application
-export const moduleValidator = new ModuleValidator();

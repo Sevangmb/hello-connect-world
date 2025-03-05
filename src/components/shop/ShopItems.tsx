@@ -1,170 +1,105 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import { ShopItem } from '@/core/shop/domain/types';
-import { ShoppingBag } from 'lucide-react';
-import ShopItemCard from './components/ShopItemCard';
-import ShopItemsFilter from './components/ShopItemsFilter';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { useShop } from "@/hooks/useShop";
+import { ShopItem } from "@/core/shop/domain/types";
+import { ShopItemCard } from "@/components/shop/components/ShopItemCard";
+import ShopItemsFilter, { ShopItemsFilterProps } from "@/components/shop/components/ShopItemsFilter";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 
-interface ShopItemsProps {
+export interface ShopItemsProps {
   shopId: string;
 }
 
-const ShopItems: React.FC<ShopItemsProps> = ({ shopId }) => {
+export default function ShopItems({ shopId }: ShopItemsProps) {
+  const { shop, isShopLoading, getShopItems } = useShop();
   const [items, setItems] = useState<ShopItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-  const [sort, setSort] = useState('newest');
-  const { toast } = useToast();
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
 
-  // Load shop items
   useEffect(() => {
-    const loadItems = async () => {
+    const fetchItems = async () => {
+      if (!shopId) return;
+      
       try {
         setLoading(true);
-        // This would be implemented in a real hook
-        // const data = await getShopItems(shopId);
-        const data: ShopItem[] = []; // Placeholder for real data
-        setItems(data);
-        setFilteredItems(data);
+        const shopItems = await getShopItems(shopId);
+        setItems(shopItems);
       } catch (error) {
-        console.error('Error loading shop items:', error);
-        toast({
-          variant: "destructive",
-          title: "Error loading items",
-          description: "There was a problem loading the shop items."
-        });
+        console.error("Error fetching shop items:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadItems();
-  }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchItems();
+  }, [shopId, getShopItems]);
 
-  // Filter and sort items
-  useEffect(() => {
-    let result = [...items];
-    
-    // Apply text filter
-    if (filter) {
-      const lowercaseFilter = filter.toLowerCase();
-      result = result.filter(item => 
-        item.name.toLowerCase().includes(lowercaseFilter) || 
-        (item.description && item.description.toLowerCase().includes(lowercaseFilter))
-      );
-    }
-    
-    // Apply sorting
-    switch (sort) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'name-asc':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'name-desc':
-        result.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      case 'newest':
-      default:
-        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        break;
-    }
-    
-    setFilteredItems(result);
-  }, [items, filter, sort]);
+  // Filter items based on selected filter
+  const filteredItems = items.filter(item => {
+    if (filter === "all") return true;
+    if (filter === "available") return item.status === "available";
+    if (filter === "soldOut") return item.status === "sold_out";
+    return true;
+  });
 
-  if (loading) {
-    return (
-      <div>
-        <ShopItemsFilter 
-          filter={filter} 
-          setFilter={setFilter} 
-          sort={sort} 
-          setSort={setSort}
-        />
+  // Sort items based on selected sort option
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (sort === "newest") {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sort === "oldest") {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    if (sort === "priceLow") {
+      return a.price - b.price;
+    }
+    if (sort === "priceHigh") {
+      return b.price - a.price;
+    }
+    return 0;
+  });
+
+  return (
+    <div className="space-y-6">
+      <ShopItemsFilter 
+        currentFilter={filter} 
+        setFilter={setFilter} 
+        currentSort={sort} 
+        setSort={setSort} 
+      />
+      
+      {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Card key={i} className="animate-pulse h-72">
               <CardContent className="p-0">
-                <Skeleton className="h-48 w-full rounded-t-md" />
+                <div className="h-40 bg-gray-200 rounded-t-lg" />
                 <div className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-10 w-full" />
+                  <div className="h-5 bg-gray-200 rounded w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-6 bg-gray-200 rounded w-1/4 mt-2" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Shop Items</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <ShoppingBag className="h-12 w-12 text-gray-400 mb-3" />
-            <h3 className="text-xl font-medium text-gray-900">No items found</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md">
-              This shop currently doesn't have any items for sale. Please check back later.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (filteredItems.length === 0) {
-    return (
-      <div>
-        <ShopItemsFilter 
-          filter={filter} 
-          setFilter={setFilter} 
-          sort={sort} 
-          setSort={setSort} 
-        />
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <ShoppingBag className="h-12 w-12 text-gray-400 mb-3" />
-            <h3 className="text-xl font-medium text-gray-900">No matching items</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md">
-              No items match your current filter. Try changing your search criteria.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <ShopItemsFilter 
-        filter={filter} 
-        setFilter={setFilter} 
-        sort={sort} 
-        setSort={setSort} 
-      />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredItems.map((item) => (
-          <ShopItemCard key={item.id} item={item} />
-        ))}
-      </div>
+      ) : sortedItems.length === 0 ? (
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium text-gray-900">No items found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            There are no items matching your criteria.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedItems.map(item => (
+            <ShopItemCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default ShopItems;
+}

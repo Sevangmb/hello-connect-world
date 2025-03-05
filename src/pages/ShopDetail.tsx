@@ -1,178 +1,131 @@
 
-import { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { MapPin, Phone, Globe, ShoppingBag, Pencil, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { useClothes } from "@/hooks/useClothes";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useShop } from "@/hooks/useShop";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { ShopItems } from "@/components/shop/ShopItems";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { ShoppingCart, MapPin, Globe, Phone } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
+import ShopItems from "@/components/shop/ShopItems";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function ShopDetail() {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  const { data: shop } = useQuery({
-    queryKey: ["shop", id],
-    queryFn: async () => {
-      console.log("Fetching shop details for:", id);
-      if (!id) return null;
-      
-      const { data, error } = await supabase
-        .from("shops")
-        .select(`
-          *,
-          profiles:user_id (username),
-          shop_items!shop_items_shop_id_fkey (
-            id
-          )
-        `)
-        .eq("id", id)
-        .single();
-        
-      if (error) {
-        console.error("Error fetching shop:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les détails de la boutique",
-          variant: "destructive",
-        });
-        throw error;
-      }
-      
-      return data;
-    },
-    enabled: !!id,
-  });
+  const { shop, isShopLoading, refetchShop } = useShop();
 
-  const isOwner = user?.id === shop?.user_id;
+  useEffect(() => {
+    if (id) {
+      refetchShop();
+    }
+  }, [id, refetchShop]);
+
+  if (isShopLoading || !shop) {
+    return (
+      <div className="container mx-auto p-4 flex items-center justify-center min-h-[50vh]">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <Header />
-      <MainSidebar />
-      <main className="pt-24 px-4 md:pl-72">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-              {/* Shop Info */}
-              <div className="flex-1 space-y-4">
-                <div className="flex justify-between items-start">
+    <div className="container mx-auto p-4 space-y-6">
+      <Card>
+        <CardContent className="p-0">
+          {shop.image_url && (
+            <div className="w-full h-48 overflow-hidden">
+              <img
+                src={shop.image_url}
+                alt={shop.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <div className="bg-primary text-primary-foreground w-full h-full flex items-center justify-center text-xl font-bold">
+                      {shop.name?.charAt(0) || "S"}
+                    </div>
+                  </Avatar>
                   <div>
-                    <h1 className="text-2xl font-bold mb-2">{shop?.name}</h1>
-                    <p className="text-gray-600 mb-4">{shop?.description}</p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Badge variant="secondary">
-                        <ShoppingBag className="h-3 w-3 mr-1" />
-                        {shop?.shop_items?.length || 0} articles
+                    <h1 className="text-2xl font-bold">{shop.name}</h1>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={shop.status === 'approved' ? 'success' : 'secondary'}>
+                        {shop.status.charAt(0).toUpperCase() + shop.status.slice(1)}
                       </Badge>
-                      {shop?.average_rating && (
-                        <Badge variant="outline">
-                          ⭐️ {shop.average_rating.toFixed(1)}
-                        </Badge>
-                      )}
+                      <div className="flex items-center text-sm text-gray-500">
+                        <span className="mr-1">★</span>
+                        <span>{shop.average_rating?.toFixed(1) || "No ratings"}</span>
+                        {shop.rating_count && <span className="ml-1">({shop.rating_count})</span>}
+                      </div>
                     </div>
                   </div>
-                  {isOwner && (
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => navigate(`/shops/${id}/edit`)}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Modifier
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/shops/${id}/clothes/new`)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Ajouter un article
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {shop?.address && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{shop.address}</span>
-                    </div>
-                  )}
-                  {shop?.phone && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Phone className="h-4 w-4" />
-                      <span>{shop.phone}</span>
-                    </div>
-                  )}
-                  {shop?.website && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Globe className="h-4 w-4" />
-                      <a 
-                        href={shop.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {shop.website}
-                      </a>
-                    </div>
-                  )}
                 </div>
               </div>
+              
+              <Button className="flex items-center gap-2">
+                <ShoppingCart size={18} />
+                View Cart
+              </Button>
             </div>
-
-            <Tabs defaultValue="articles" className="mt-6">
-              <TabsList className="w-full justify-start border-b">
-                <TabsTrigger value="articles" className="flex-1 md:flex-none">
-                  Articles ({shop?.shop_items?.length || 0})
-                </TabsTrigger>
-                <TabsTrigger value="about" className="flex-1 md:flex-none">
-                  À propos
-                </TabsTrigger>
-                <TabsTrigger value="reviews" className="flex-1 md:flex-none">
-                  Avis
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="articles" className="mt-6">
-                {shop && <ShopItems shopId={shop.id} />}
-              </TabsContent>
-
-              <TabsContent value="about" className="mt-6 space-y-4">
-                <h3 className="font-semibold text-lg">À propos de la boutique</h3>
-                <p className="text-gray-600">{shop?.description}</p>
-                {shop?.opening_hours && (
-                  <div>
-                    <h4 className="font-medium mb-2">Horaires d'ouverture</h4>
-                    <pre className="text-sm text-gray-600">
-                      {JSON.stringify(shop.opening_hours, null, 2)}
-                    </pre>
+            
+            <div className="mt-6 space-y-4">
+              <p className="text-gray-700">{shop.description}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                {shop.address && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <MapPin size={16} />
+                    <span>{shop.address}</span>
                   </div>
                 )}
-              </TabsContent>
-
-              <TabsContent value="reviews" className="mt-6">
-                <p className="text-gray-600">Les avis seront bientôt disponibles.</p>
-              </TabsContent>
-            </Tabs>
+                
+                {shop.website && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Globe size={16} />
+                    <a href={shop.website} target="_blank" rel="noopener noreferrer" className="hover:underline truncate">
+                      {shop.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
+                
+                {shop.phone && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone size={16} />
+                    <span>{shop.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
-      <BottomNav />
+        </CardContent>
+      </Card>
+      
+      <Tabs defaultValue="items">
+        <TabsList className="grid grid-cols-2 w-full max-w-md">
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="items" className="mt-6">
+          {shop.id && <ShopItems shopId={shop.id} />}
+        </TabsContent>
+        
+        <TabsContent value="reviews" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>No reviews yet.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
