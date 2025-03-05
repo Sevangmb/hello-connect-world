@@ -25,6 +25,18 @@ export class ModuleService {
   }
 
   /**
+   * Initialize the module service
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      return true;
+    } catch (error) {
+      console.error("Error initializing module service:", error);
+      return false;
+    }
+  }
+
+  /**
    * Get all modules
    */
   async getAllModules(): Promise<AppModule[]> {
@@ -78,6 +90,14 @@ export class ModuleService {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     return await this.dependencyRepo.getModuleDependencies(moduleId);
+  }
+
+  /**
+   * Check module dependencies
+   */
+  async checkModuleDependencies(moduleId: string): Promise<boolean> {
+    const dependencies = await this.getModuleDependencies(moduleId);
+    return dependencies.every(dep => dep.dependency_status === 'active');
   }
 
   /**

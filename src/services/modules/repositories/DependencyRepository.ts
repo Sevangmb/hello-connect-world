@@ -1,4 +1,3 @@
-
 /**
  * Repository pour l'accès aux données des dépendances de modules
  */
@@ -41,6 +40,20 @@ export class DependencyRepository {
       });
       throw error;
     }
+  }
+
+  async getModuleDependencies(moduleId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('module_dependencies_view')
+      .select('*')
+      .eq('module_id', moduleId);
+
+    if (error) {
+      console.error('Error fetching module dependencies:', error);
+      return [];
+    }
+
+    return data;
   }
 }
 

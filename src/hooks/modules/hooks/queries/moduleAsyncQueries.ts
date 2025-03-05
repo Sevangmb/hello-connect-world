@@ -25,8 +25,7 @@ export const isModuleDegradedAsync = async (moduleCode: string): Promise<boolean
  */
 export const isFeatureEnabledAsync = async (
   moduleCode: string, 
-  featureCode: string, 
-  isModuleActive: (moduleCode: string) => Promise<boolean>
+  featureCode: string
 ): Promise<boolean> => {
-  return checkFeatureEnabledAsync(moduleCode, featureCode, isModuleActive);
+  return checkFeatureEnabledAsync(moduleCode, featureCode);
 };

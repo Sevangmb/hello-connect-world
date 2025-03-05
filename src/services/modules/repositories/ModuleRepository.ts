@@ -1,7 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { ModuleFeature } from '@/hooks/modules/types';
 
 export class ModuleRepository {
   async getAllModules(): Promise<AppModule[]> {
@@ -154,5 +152,35 @@ export class ModuleRepository {
       console.error(`Error fetching module by id (${id}):`, error);
       return null;
     }
+  }
+
+  async getModulesByStatus(status: ModuleStatus): Promise<AppModule[]> {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .select('*')
+      .eq('status', status)
+      .order('priority', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching modules by status:', error);
+      return [];
+    }
+
+    return data;
+  }
+
+  async getCoreModules(): Promise<AppModule[]> {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .select('*')
+      .eq('is_core', true)
+      .order('priority', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching core modules:', error);
+      return [];
+    }
+
+    return data;
   }
 }

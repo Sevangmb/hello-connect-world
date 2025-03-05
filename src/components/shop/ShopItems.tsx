@@ -1,85 +1,73 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useShopItems, UseShopItemsProps } from './hooks/useShopItems';
 import { ShopItemCard } from './components/ShopItemCard';
+import { useShopItems } from './hooks/useShopItems';
 import { ShopItemsFilter } from './components/ShopItemsFilter';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/useAuth';
+import { ShopItem } from '@/core/shop/domain/types';
 
 interface ShopItemsProps {
   shopId?: string;
-  title?: string;
   showFilters?: boolean;
-  limit?: number;
+  title?: string;
 }
 
-export const ShopItems: React.FC<ShopItemsProps> = ({
-  shopId,
-  title = "Produits",
-  showFilters = true,
-  limit
-}) => {
-  const [filters, setFilters] = useState({});
+export const ShopItems: React.FC<ShopItemsProps> = ({ shopId, showFilters = true, title = 'Articles' }) => {
+  const { user } = useAuth();
+  const [filters, setFilters] = useState({
+    sort: 'created_at:desc',
+    minPrice: undefined as number | undefined,
+    maxPrice: undefined as number | undefined,
+    category: undefined as string | undefined,
+  });
   
-  const shopItemsProps: UseShopItemsProps = {
+  const { data, isLoading, error } = useShopItems({
     shopId,
-    limit,
-    filters
+    sortBy: filters.sort,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    category: filters.category,
+    userId: user?.id
+  });
+  
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
   };
   
-  const { items, isLoading, error } = useShopItems(shopItemsProps);
+  if (isLoading) {
+    return <div className="p-4">Chargement des articles...</div>;
+  }
   
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  if (error) {
+    return <div className="p-4 text-red-500">Erreur: {error.message}</div>;
+  }
+  
+  if (!data || data.length === 0) {
+    return <div className="p-4">Aucun article disponible.</div>;
+  }
   
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {showFilters && (
-            <div className="md:col-span-1">
-              <ShopItemsFilter onFilterChange={handleFilterChange} />
-            </div>
-          )}
-          
-          <div className={showFilters ? "md:col-span-3" : "md:col-span-4"}>
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <Card key={i}>
-                    <Skeleton className="h-48 w-full" />
-                    <CardContent className="p-4">
-                      <Skeleton className="h-6 w-2/3 mb-2" />
-                      <Skeleton className="h-4 w-1/3 mb-2" />
-                      <Skeleton className="h-4 w-full mb-4" />
-                      <Skeleton className="h-9 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : error ? (
-              <div className="text-center text-red-500 p-4">
-                Une erreur s'est produite lors du chargement des produits
-              </div>
-            ) : items.length === 0 ? (
-              <div className="text-center text-gray-500 p-8">
-                Aucun produit disponible
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {items.map((item) => (
-                  <ShopItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">{title}</h2>
+        {showFilters && (
+          <ShopItemsFilter 
+            filters={filters}
+            onFilterChange={handleFilterChange}
+          />
+        )}
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {data.map((item: ShopItem) => (
+          <ShopItemCard 
+            key={item.id} 
+            item={item}
+            userId={user?.id || ''}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 

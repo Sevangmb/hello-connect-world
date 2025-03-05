@@ -129,18 +129,38 @@ export class FeatureRepository {
    * Get all features for a specific module code
    */
   async getFeaturesByModuleCode(moduleCode: string): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .from('module_features')
-        .select('*')
-        .eq('module_code', moduleCode);
+    const { data, error } = await supabase
+      .from('module_features')
+      .select('*')
+      .eq('module_code', moduleCode);
 
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
+    if (error) {
       console.error('Error fetching features by module code:', error);
       return [];
     }
+
+    return data;
+  }
+
+  // Alias for compatibility
+  async getFeaturesByModule(moduleCode: string): Promise<any[]> {
+    return this.getFeaturesByModuleCode(moduleCode);
+  }
+
+  async getFeature(moduleCode: string, featureCode: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('module_features')
+      .select('*')
+      .eq('module_code', moduleCode)
+      .eq('feature_code', featureCode)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching feature:', error);
+      return null;
+    }
+
+    return data;
   }
 }
 

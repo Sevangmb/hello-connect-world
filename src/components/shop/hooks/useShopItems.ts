@@ -1,137 +1,88 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ShopItem, ShopItemStatus, RawShopItem } from '@/core/shop/domain/types';
+import { RawShopItem, ShopItem, ShopItemStatus } from '@/core/shop/domain/types';
 
-export interface ShopItemsFilters {
+interface ShopItemsQueryParams {
+  shopId?: string;
   category?: string;
-  subcategory?: string;
   minPrice?: number;
   maxPrice?: number;
-  search?: string;
+  sortBy?: string;
+  userId?: string;
 }
 
-export const useShopItems = (filters: ShopItemsFilters = {}) => {
-  return useQuery({
-    queryKey: ['shopItems', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('shop_items')
-        .select(`
-          *,
-          shop:shop_id (
-            name
-          )
-        `)
-        .eq('status', 'available');
-
-      if (filters.category) {
-        // We would need to join with the clothes table to filter by category
-        // For simplicity, we'll filter client-side in this example
-      }
-
-      if (filters.minPrice) {
-        query = query.gte('price', filters.minPrice);
-      }
-
-      if (filters.maxPrice) {
-        query = query.lte('price', filters.maxPrice);
-      }
-
-      if (filters.search) {
-        query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching shop items:', error);
-        throw new Error('Failed to fetch shop items');
-      }
-
-      // Convert string status to enum and handle shop data
-      const items = data.map((item): ShopItem => ({
-        ...item,
-        status: item.status as ShopItemStatus,
-        shop: {
-          name: item.shop?.name || 'Unknown Shop'
-        }
-      }));
-
-      return items;
+export const useShopItems = (params?: ShopItemsQueryParams) => {
+  const fetchShopItems = async (): Promise<ShopItem[]> => {
+    let query = supabase
+      .from('shop_items')
+      .select(`
+        *,
+        shop:shops(name)
+      `);
+    
+    // Apply filters
+    if (params?.shopId) {
+      query = query.eq('shop_id', params.shopId);
     }
-  });
-};
-
-export const useShopItemsByShopId = (shopId: string | null) => {
-  return useQuery({
-    queryKey: ['shopItems', shopId],
-    queryFn: async () => {
-      if (!shopId) return [];
-
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select(`
-          *,
-          shop:shop_id (
-            name
-          )
-        `)
-        .eq('shop_id', shopId);
-
-      if (error) {
-        console.error('Error fetching shop items by shop ID:', error);
-        throw new Error('Failed to fetch shop items');
+    
+    if (params?.category) {
+      // If we want to filter by category, we need to join with clothes table
+      query = query.eq('category', params.category);
+    }
+    
+    if (params?.minPrice !== undefined) {
+      query = query.gte('price', params.minPrice);
+    }
+    
+    if (params?.maxPrice !== undefined) {
+      query = query.lte('price', params.maxPrice);
+    }
+    
+    // Always filter to only show available items
+    query = query.eq('status', 'available');
+    
+    // Apply sorting
+    if (params?.sortBy) {
+      const [field, direction] = params.sortBy.split(':');
+      query = query.order(field, { ascending: direction === 'asc' });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching shop items:', error);
+      throw new Error('Failed to fetch shop items');
+    }
+    
+    if (!data) return [];
+    
+    // Transform raw data to match our domain model
+    const items: ShopItem[] = (data as RawShopItem[]).map(item => ({
+      id: item.id,
+      shop_id: item.shop_id,
+      name: item.name || '',
+      description: item.description || '',
+      price: item.price,
+      original_price: item.original_price,
+      stock: item.stock,
+      image_url: item.image_url,
+      status: item.status as ShopItemStatus,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      clothes_id: item.clothes_id,
+      shop: {
+        name: item.shop?.name || ''
       }
-
-      // Convert string status to enum and handle shop data
-      const items = data.map((item): ShopItem => ({
-        ...item,
-        status: item.status as ShopItemStatus,
-        shop: {
-          name: item.shop?.name || 'Unknown Shop'
-        }
-      }));
-
-      return items;
-    },
-    enabled: !!shopId
-  });
-};
-
-export const useShopItemById = (itemId: string | null) => {
+    }));
+    
+    return items;
+  };
+  
   return useQuery({
-    queryKey: ['shopItem', itemId],
-    queryFn: async () => {
-      if (!itemId) return null;
-
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select(`
-          *,
-          shop:shop_id (
-            name
-          )
-        `)
-        .eq('id', itemId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching shop item by ID:', error);
-        throw new Error('Failed to fetch shop item');
-      }
-
-      // Convert string status to enum and handle shop data
-      const item: ShopItem = {
-        ...data,
-        status: data.status as ShopItemStatus,
-        shop: {
-          name: data.shop?.name || 'Unknown Shop'
-        }
-      };
-
-      return item;
-    },
-    enabled: !!itemId
+    queryKey: ['shop-items', params],
+    queryFn: fetchShopItems
   });
 };

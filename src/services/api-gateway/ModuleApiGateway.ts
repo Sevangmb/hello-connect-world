@@ -7,6 +7,7 @@ let moduleServiceInstance: ModuleService | null = null;
 
 export class ModuleApiGateway {
   private moduleService: ModuleService;
+  private modules: any[] = [];
 
   constructor() {
     if (!moduleServiceInstance) {
@@ -39,14 +40,10 @@ export class ModuleApiGateway {
     return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
   }
 
-  // Add missing methods needed by the application
-  async getModules(): Promise<any[]> {
-    return await this.moduleService.getAllModules();
-  }
-
+  // Add missing methods
   async initialize(): Promise<boolean> {
     try {
-      await this.moduleService.initialize();
+      this.modules = await this.moduleService.getAllModules();
       return true;
     } catch (error) {
       console.error("Failed to initialize module API gateway:", error);
@@ -54,9 +51,13 @@ export class ModuleApiGateway {
     }
   }
 
-  async refreshModules(): Promise<any[]> {
-    // Implement refreshing modules logic
-    return await this.getModules();
+  getModules(): any[] {
+    return this.modules;
+  }
+
+  async refreshModules(force: boolean = false): Promise<any[]> {
+    this.modules = await this.moduleService.getAllModules();
+    return this.modules;
   }
 
   async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {

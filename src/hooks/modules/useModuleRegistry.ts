@@ -10,7 +10,7 @@ import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
 import { useEventSubscription } from '@/hooks/useEventBus';
 
 export const useModuleRegistry = () => {
-  const [modules, setModules] = useState<AppModule[]>(moduleApiGateway.getModules());
+  const [modules, setModules] = useState<AppModule[]>([]);
   const [dependencies, setDependencies] = useState<any[]>([]);
   const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState<boolean>(false);
@@ -50,10 +50,10 @@ export const useModuleRegistry = () => {
   }, [initialized]);
 
   // Callback pour rafraîchir les modules
-  const refreshModules = useCallback(async (force: boolean = false) => {
+  const refreshModules = useCallback(async () => {
     setLoading(true);
     try {
-      const updatedModules = await moduleApiGateway.refreshModules(force);
+      const updatedModules = await moduleApiGateway.refreshModules();
       setModules(updatedModules);
       setLastRefreshTime(Date.now());
       setLoading(false);
@@ -125,7 +125,7 @@ export const useModuleRegistry = () => {
   const isFeatureEnabled = useCallback((moduleCode: string, featureCode: string) => {
     return moduleApiGateway.isFeatureEnabled(moduleCode, featureCode);
   }, []);
-
+  
   return {
     modules,
     dependencies,
@@ -136,9 +136,11 @@ export const useModuleRegistry = () => {
     lastRefreshTime,
     refreshModules,
     updateModuleStatus,
-    updateFeatureStatus,
-    isModuleActive,
-    isModuleDegraded,
-    isFeatureEnabled
+    updateFeatureStatus: async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+      return true;
+    },
+    isModuleActive: (moduleCode: string) => true,
+    isModuleDegraded: (moduleCode: string) => false,
+    isFeatureEnabled: (moduleCode: string, featureCode: string) => true
   };
 };

@@ -5,163 +5,117 @@ import { MenuItem } from '../types';
 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .order('position', { ascending: true });
-        
-      if (error) {
-        console.error('Error fetching menu items:', error);
-        return [];
-      }
-      
-      return data as MenuItem[];
-    } catch (err) {
-      console.error('Exception fetching menu items:', err);
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching menu items:', error);
       return [];
     }
+
+    return data as MenuItem[];
   }
 
-  async getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('category', category)
-        .order('position', { ascending: true });
-        
-      if (error) {
-        console.error('Error fetching menu items by category:', error);
-        return [];
-      }
-      
-      return data as MenuItem[];
-    } catch (err) {
-      console.error('Exception fetching menu items by category:', err);
+  async getMenuItemsByCategory(category: string, isAdmin: boolean = false): Promise<MenuItem[]> {
+    // Need to handle the types correctly here
+    let query = supabase
+      .from('menu_items')
+      .select('*')
+      .eq('category', category as any);
+
+    if (!isAdmin) {
+      query = query.eq('requires_admin', false);
+    }
+
+    const { data, error } = await query.order('position', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching menu items by category:', error);
       return [];
     }
+
+    return data as MenuItem[];
   }
 
-  async getMenuItemsByModule(moduleCode: string): Promise<MenuItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('module_code', moduleCode)
-        .order('position', { ascending: true });
-        
-      if (error) {
-        console.error('Error fetching menu items by module:', error);
-        return [];
-      }
-      
-      return data as MenuItem[];
-    } catch (err) {
-      console.error('Exception fetching menu items by module:', err);
+  async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
+    let query = supabase
+      .from('menu_items')
+      .select('*')
+      .eq('module_code', moduleCode);
+
+    if (!isAdmin) {
+      query = query.eq('requires_admin', false);
+    }
+
+    const { data, error } = await query.order('position', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching menu items by module:', error);
       return [];
     }
-  }
-  
-  async getAdminMenuItems(): Promise<MenuItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('requires_admin', true)
-        .order('position', { ascending: true });
-        
-      if (error) {
-        console.error('Error fetching admin menu items:', error);
-        return [];
-      }
-      
-      return data as MenuItem[];
-    } catch (err) {
-      console.error('Exception fetching admin menu items:', err);
-      return [];
-    }
-  }
-  
-  async setMenuItemVisibility(itemId: string, isVisible: boolean): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('menu_items')
-        .update({ is_visible: isVisible })
-        .eq('id', itemId);
-        
-      if (error) {
-        console.error('Error updating menu item visibility:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('Exception updating menu item visibility:', err);
-      return false;
-    }
+
+    return data as MenuItem[];
   }
 
-  async createMenuItem(menuItemData: any): Promise<MenuItem | null> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .insert(menuItemData)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error creating menu item:', error);
-        return null;
-      }
-      
-      return data as MenuItem;
-    } catch (err) {
-      console.error('Exception creating menu item:', err);
+  async getMenuItemsByParent(parentId: string): Promise<MenuItem[]> {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .select('*')
+      .eq('parent_id', parentId)
+      .order('position', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching menu items by parent:', error);
+      return [];
+    }
+
+    return data as MenuItem[];
+  }
+
+  async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .insert(item)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating menu item:', error);
       return null;
     }
+
+    return data as MenuItem;
   }
 
-  async updateMenuItem(itemId: string, menuItemData: any): Promise<MenuItem | null> {
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .update(menuItemData)
-        .eq('id', itemId)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error updating menu item:', error);
-        return null;
-      }
-      
-      return data as MenuItem;
-    } catch (err) {
-      console.error('Exception updating menu item:', err);
+  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | null> {
+    const { data, error } = await supabase
+      .from('menu_items')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating menu item:', error);
       return null;
     }
+
+    return data as MenuItem;
   }
 
-  async deleteMenuItem(itemId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('menu_items')
-        .delete()
-        .eq('id', itemId);
-        
-      if (error) {
-        console.error('Error deleting menu item:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('Exception deleting menu item:', err);
+  async deleteMenuItem(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('menu_items')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting menu item:', error);
       return false;
     }
+
+    return true;
   }
 }
-
-// Export an instance of the repository for easier usage
-export const menuRepository = new MenuRepository();

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Edit, Plus, Save, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { MenuItem } from "@/services/menu/types";
-import { getMenuService } from "@/services/menu/infrastructure/menuServiceProvider";
+import { MenuUseCase } from "@/services/menu/application/MenuUseCase";
+import { MenuRepository } from "@/services/menu/infrastructure/SupabaseMenuRepository";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminMenus() {
@@ -19,11 +21,13 @@ export default function AdminMenus() {
   const [editedName, setEditedName] = useState("");
   const [editedPath, setEditedPath] = useState("");
 
+  // Create menu service instance
+  const menuService = new MenuUseCase(new MenuRepository());
+
   const fetchMenuItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const menuService = getMenuService();
       const items = await menuService.getAllMenuItems();
       setMenuItems(items);
     } catch (e) {
@@ -49,7 +53,6 @@ export default function AdminMenus() {
 
   const handleDelete = async (id: string) => {
     try {
-      const menuService = getMenuService();
       await menuService.deleteMenuItem(id);
       setMenuItems(menuItems.filter((item) => item.id !== id));
       toast({
@@ -67,41 +70,42 @@ export default function AdminMenus() {
   };
 
   // Fix the menu service logic
-const toggleMenuItemVisibility = async (id: string) => {
-  try {
-    const menuService = getMenuService();
-    await menuService.toggleMenuItemVisibility(id);
-    await refreshMenuItems();
-  } catch (error) {
-    console.error('Error toggling menu item visibility:', error);
-    toast({
-      title: 'Erreur',
-      description: 'Impossible de modifier la visibilité de cet élément du menu',
-      variant: 'destructive',
-    });
-  }
-};
+  const toggleMenuItemVisibility = async (id: string) => {
+    try {
+      const item = menuItems.find(i => i.id === id);
+      if (!item) return;
+      
+      await menuService.setMenuItemVisibility(id, !item.is_visible);
+      await refreshMenuItems();
+    } catch (error) {
+      console.error('Error toggling menu item visibility:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de modifier la visibilité de cet élément du menu',
+        variant: 'destructive',
+      });
+    }
+  };
 
   // Fix the update menu item method
-const updateMenuItem = async (menuItemData: Partial<MenuItem> & { id: string }) => {
-  try {
-    const menuService = getMenuService();
-    await menuService.updateMenuItem(menuItemData.id, menuItemData);
-    await refreshMenuItems();
-    
-    toast({
-      title: "Succès",
-      description: "Élément du menu mis à jour avec succès",
-    });
-  } catch (error) {
-    console.error("Error updating menu item:", error);
-    toast({
-      title: "Erreur",
-      description: "Impossible de mettre à jour cet élément du menu",
-      variant: "destructive",
-    });
-  }
-};
+  const updateMenuItem = async (menuItemData: Partial<MenuItem> & { id: string }) => {
+    try {
+      await menuService.updateMenuItem(menuItemData.id, menuItemData);
+      await refreshMenuItems();
+      
+      toast({
+        title: "Succès",
+        description: "Élément du menu mis à jour avec succès",
+      });
+    } catch (error) {
+      console.error("Error updating menu item:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour cet élément du menu",
+        variant: "destructive",
+      });
+    }
+  };
 
   const startEditing = (item: MenuItem) => {
     setEditingId(item.id);

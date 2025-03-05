@@ -5,6 +5,18 @@ import { ModuleStatus } from '../types';
 const moduleCache = new Map<string, ModuleStatus>();
 const adminModules = new Set<string>();
 
+// Extended module cache structure
+interface ModuleCache {
+  inMemoryModulesCache: any[];
+  lastFetchTimestamp: number;
+}
+
+// Global cache object
+const globalModuleCache: ModuleCache = {
+  inMemoryModulesCache: [],
+  lastFetchTimestamp: 0
+};
+
 export const isActiveStatus = (status: ModuleStatus): boolean => {
   return status === 'active';
 };
@@ -33,12 +45,13 @@ export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | nul
   return moduleCache.get(moduleCode) || null;
 };
 
-export const getModuleCache = (): Map<string, ModuleStatus> => {
-  return moduleCache;
+export const getModuleCache = (): any => {
+  return globalModuleCache;
 };
 
-export const updateModuleCache = (moduleCode: string, status: ModuleStatus): void => {
-  moduleCache.set(moduleCode, status);
+export const updateModuleCache = (modules: any[]): void => {
+  globalModuleCache.inMemoryModulesCache = modules;
+  globalModuleCache.lastFetchTimestamp = Date.now();
 };
 
 export const isModuleActive = (moduleCode: string): boolean => {
