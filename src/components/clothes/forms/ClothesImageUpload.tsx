@@ -1,32 +1,37 @@
 
-import React, { Dispatch, SetStateAction } from 'react';
-import ImageUpload from '@/components/ui/image-upload';
-import { FormLabel } from '@/components/ui/form';
+import React from 'react';
+import { ImageUpload } from "@/components/ui/image-upload";
+import { ClothesFormData } from "../types";
 
 interface ClothesImageUploadProps {
-  onChange: (url: string) => void;
-  defaultValue?: string;
-  onUploading: Dispatch<SetStateAction<boolean>>;
+  formData: ClothesFormData;
+  onFormChange: (field: keyof ClothesFormData, value: any) => void;
 }
 
-const ClothesImageUpload: React.FC<ClothesImageUploadProps> = ({ 
-  onChange, 
-  defaultValue = '', 
-  onUploading 
-}) => {
+export default function ClothesImageUpload({ formData, onFormChange }: ClothesImageUploadProps) {
+  const handleImageChange = (url: string) => {
+    onFormChange("image_url", url);
+  };
+
+  const [isUploading, setIsUploading] = React.useState(false);
+
   return (
-    <div className="space-y-2">
-      <FormLabel htmlFor="image">Image du vêtement</FormLabel>
-      <ImageUpload 
-        onChange={onChange} 
-        value={defaultValue}
-        onUploading={onUploading}
-      />
-      <p className="text-xs text-muted-foreground mt-1">
-        Prenez une photo claire de votre vêtement sur un fond uni.
-      </p>
+    <div className="space-y-4">
+      <div className="form-control">
+        <label className="block text-sm font-medium">
+          Image du vêtement
+        </label>
+        <div className="mt-1">
+          <ImageUpload
+            onChange={handleImageChange}
+            onUploading={setIsUploading}
+            defaultValue={formData.image_url || ''}
+          />
+        </div>
+      </div>
     </div>
   );
-};
+}
 
-export default ClothesImageUpload;
+// Fix for correct imports in parent files
+export { default as ClothesImageUpload } from './ClothesImageUpload';

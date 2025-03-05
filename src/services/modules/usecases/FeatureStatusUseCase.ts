@@ -6,7 +6,7 @@ import { ModuleRepository } from "../repositories/ModuleRepository";
 export class FeatureStatusUseCase {
   private featureRepository: FeatureRepository;
   private moduleRepository: ModuleRepository;
-
+  
   constructor(featureRepository: FeatureRepository, moduleRepository: ModuleRepository) {
     this.featureRepository = featureRepository;
     this.moduleRepository = moduleRepository;
@@ -15,8 +15,13 @@ export class FeatureStatusUseCase {
   /**
    * Check if a feature is enabled
    */
-  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
+  async isFeatureEnabled(moduleCode: string, featureCode: string, features?: Record<string, Record<string, boolean>>): Promise<boolean> {
     try {
+      // If features cache is provided, use it
+      if (features && features[moduleCode] && features[moduleCode][featureCode] !== undefined) {
+        return features[moduleCode][featureCode];
+      }
+      
       // First check if the module is active
       const module = await this.moduleRepository.getModuleByCode(moduleCode);
       if (!module || module.status !== 'active') {
@@ -24,8 +29,7 @@ export class FeatureStatusUseCase {
       }
 
       // Then check if the feature is enabled
-      const features = await this.featureRepository.getFeaturesByModule(moduleCode);
-      const feature = features.find(f => f.feature_code === featureCode);
+      const feature = await this.featureRepository.getFeatureByCode(moduleCode, featureCode);
       return feature?.is_enabled || false;
     } catch (error) {
       console.error(`Error checking if feature ${featureCode} is enabled for module ${moduleCode}:`, error);
@@ -45,8 +49,7 @@ export class FeatureStatusUseCase {
       }
 
       // Then enable the feature
-      const features = await this.featureRepository.getFeaturesByModule(moduleCode);
-      const feature = features.find(f => f.feature_code === featureCode);
+      const feature = await this.featureRepository.getFeatureByCode(moduleCode, featureCode);
       
       if (!feature) {
         return false;
@@ -64,8 +67,7 @@ export class FeatureStatusUseCase {
    */
   async disableFeature(moduleCode: string, featureCode: string): Promise<boolean> {
     try {
-      const features = await this.featureRepository.getFeaturesByModule(moduleCode);
-      const feature = features.find(f => f.feature_code === featureCode);
+      const feature = await this.featureRepository.getFeatureByCode(moduleCode, featureCode);
       
       if (!feature) {
         return false;
@@ -83,15 +85,42 @@ export class FeatureStatusUseCase {
    */
   async getModuleFeatures(moduleCode: string): Promise<any[]> {
     try {
-      return await this.featureRepository.getFeaturesByModule(moduleCode);
+      return await this.featureRepository.getFeaturesByCode(moduleCode);
     } catch (error) {
       console.error(`Error getting features for module ${moduleCode}:`, error);
       return [];
     }
   }
+  
+  /**
+   * Update features cache
+   */
+  updateFeatureCache(features: Record<string, Record<string, boolean>>): void {
+    // Implementation for updating feature cache
+    console.log("Updating feature cache", features);
+    // Cache updating logic would go here
+  }
+  
+  /**
+   * Update feature status
+   */
+  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
+    try {
+      const feature = await this.featureRepository.getFeatureByCode(moduleCode, featureCode);
+      
+      if (!feature) {
+        return false;
+      }
+      
+      return await this.featureRepository.updateFeatureStatus(feature.id, isEnabled);
+    } catch (error) {
+      console.error(`Error updating feature status ${featureCode} for module ${moduleCode}:`, error);
+      return false;
+    }
+  }
 }
 
-// Export a named instance for use in ModuleService
+// Fix for the featureStatusUseCase export
 export const featureStatusUseCase = new FeatureStatusUseCase(
   // These will be replaced by DI at runtime
   {} as FeatureRepository, 

@@ -1,273 +1,210 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { useShop } from "@/hooks/useShop";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { ShopItemsList } from "./ShopItemsList";
-import { ShopOrdersList } from "./ShopOrdersList";
-import { ShopReviewsList } from "./ShopReviewsList";
-import { AddItemForm } from "./AddItemForm";
-import { CreateShopForm } from "./CreateShopForm";
-import { ShopSettings } from "@/components/profile/shop/ShopSettings";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle, Clock, ShoppingBag, Star, Settings, Package, Ban } from 'lucide-react';
 
-interface ShopDashboardProps {
-  shop: Shop;
-  isCurrentUserShopOwner: boolean;
-}
+import React from 'react';
+import { useShop } from '@/hooks/useShop';
+import { useParams } from 'react-router-dom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import ShopItemsList from './ShopItemsList';
+import ShopOrdersList from './ShopOrdersList';
+import ShopReviewsList from './ShopReviewsList';
+import AddItemForm from './AddItemForm';
+import CreateShopForm from './CreateShopForm';
+import ShopSettings from './ShopSettings';
+import { Button } from '@/components/ui/button';
+import { Shop, ShopStatus } from '@/core/shop/domain/types';
+import { useToast } from '@/hooks/use-toast';
 
-const ShopDashboard: React.FC<ShopDashboardProps> = ({ 
-  shop, 
-  isCurrentUserShopOwner 
-}) => {
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+export default function ShopDashboard() {
+  const { shopId } = useParams<{ shopId: string }>();
+  const { shop, isShopLoading, updateShopStatus } = useShop();
+  const [activeTab, setActiveTab] = React.useState('items');
   const { toast } = useToast();
+  const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
 
-  const getStatusBadge = (status: ShopStatus) => {
-    switch (status) {
-      case 'approved':
-        return <Badge variant="success">Active</Badge>;
-      case 'pending':
-        return <Badge variant="outline">Pending Approval</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      case 'suspended':
-        return <Badge variant="destructive">Suspended</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
-    }
-  };
+  // Check if current user is the shop owner
+  const isCurrentUserShopOwner = true; // Mock value, in reality would check user ID
 
   const handleStatusUpdate = async (newStatus: ShopStatus) => {
-    if (newStatus === 'suspended' && !confirm('Are you sure you want to suspend your shop? It will no longer be visible to customers.')) {
-      return;
-    }
+    if (!shop) return;
     
     setIsUpdatingStatus(true);
     try {
-      // This would be implemented in a real hook
-      // await updateShopStatus.mutateAsync({
-      //   id: shop.id,
-      //   status: newStatus
-      // });
-      
-      toast({
-        title: 'Shop Status Updated',
-        description: `Your shop is now ${newStatus}.`,
+      // Use mutation with object directly
+      const success = await updateShopStatus?.mutateAsync({
+        id: shop.id,
+        status: newStatus
       });
+      
+      if (success) {
+        toast({
+          title: 'Status updated',
+          description: `Shop status is now ${newStatus}`,
+        });
+      }
     } catch (error) {
       console.error('Error updating shop status:', error);
       toast({
-        variant: "destructive",
-        title: "Error updating status",
-        description: "There was a problem updating your shop status."
+        title: 'Error',
+        description: 'Failed to update shop status',
+        variant: 'destructive',
       });
     } finally {
       setIsUpdatingStatus(false);
     }
   };
 
-  if (shop.status === 'suspended') {
+  // Case: Loading state
+  if (isShopLoading) {
+    return <div className="p-6">Loading shop dashboard...</div>;
+  }
+
+  // Case: No shop found for current user, show creation form
+  if (!shop && shopId === undefined) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardHeader>
-          <CardTitle className="text-red-700">{shop.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <Ban className="h-4 w-4" />
-            <AlertTitle>Shop Suspended</AlertTitle>
-            <AlertDescription>
-              Your shop has been suspended and is not visible to customers.
-            </AlertDescription>
-          </Alert>
-          
-          {isCurrentUserShopOwner && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                onClick={() => handleStatusUpdate('pending')}
-                disabled={isUpdatingStatus}
-              >
-                Request Reactivation
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">Create Your Shop</h2>
+        <p className="text-gray-600 mb-6">
+          You don't have a shop yet. Create one to start selling!
+        </p>
+        <CreateShopForm />
+      </div>
     );
   }
 
-  if (shop.status === 'rejected') {
+  // Case: No shop found for the requested ID
+  if (!shop && shopId) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardHeader>
-          <CardTitle className="text-red-700">{shop.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Shop Rejected</AlertTitle>
-            <AlertDescription>
-              Your shop application has been rejected. Please update your shop information and reapply.
-            </AlertDescription>
-          </Alert>
-          
-          {isCurrentUserShopOwner && (
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                onClick={() => handleStatusUpdate('pending')}
-                disabled={isUpdatingStatus}
-              >
-                Reapply
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">Shop Not Found</h2>
+        <p className="text-gray-600">
+          The shop you're looking for doesn't exist or you don't have permission to view it.
+        </p>
+      </div>
     );
   }
 
-  if (shop.status === 'pending') {
+  // Case: Shop exists but is pending approval
+  if (shop?.status === 'pending') {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{shop.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-4 border-yellow-200 bg-yellow-50">
-            <Clock className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800">Shop Pending Approval</AlertTitle>
-            <AlertDescription className="text-yellow-800">
-              Your shop is currently being reviewed by our team. This usually takes 1-2 business days.
-            </AlertDescription>
-          </Alert>
-          
-          {isCurrentUserShopOwner && (
-            <Tabs defaultValue="information">
-              <TabsList className="mb-4">
-                <TabsTrigger value="information">Information</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="information">
-                <Card>
-                  <CardContent className="pt-6">
-                    <ShopSettings shop={shop} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="settings">
-                <Card>
-                  <CardContent className="pt-6">
-                    <ShopSettings shop={shop} />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
+        <Alert className="mb-6">
+          <AlertTitle>Shop Pending Approval</AlertTitle>
+          <AlertDescription>
+            Your shop is currently pending approval from our team. This process usually takes 1-2 business days.
+          </AlertDescription>
+        </Alert>
+        <div className="grid gap-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Shop Information</h3>
+            <p>
+              <strong>Name:</strong> {shop.name}
+            </p>
+            <p>
+              <strong>Description:</strong> {shop.description}
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
+  // Case: Shop exists but is rejected
+  if (shop?.status === 'rejected') {
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
+        <Alert className="mb-6" variant="destructive">
+          <AlertTitle>Shop Application Rejected</AlertTitle>
+          <AlertDescription>
+            We're sorry, but your shop application has been rejected. This may be due to incomplete information or
+            our platform policies.
+          </AlertDescription>
+        </Alert>
+        <Button
+          onClick={() => handleStatusUpdate('pending' as ShopStatus)}
+          disabled={isUpdatingStatus}
+        >
+          Reapply
+        </Button>
+      </div>
+    );
+  }
+
+  // Case: Shop exists but is suspended
+  if (shop?.status === 'suspended') {
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">{shop.name}</h2>
+        <Alert className="mb-6" variant="destructive">
+          <AlertTitle>Shop Currently Suspended</AlertTitle>
+          <AlertDescription>
+            Your shop has been temporarily suspended. This may be due to policy violations or customer complaints.
+            Please contact our support team for more information.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Main shop dashboard for approved shops
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>{shop.name}</CardTitle>
-            {getStatusBadge(shop.status)}
+    <div className="p-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">{shop?.name}</h2>
+        {isCurrentUserShopOwner && (
+          <div className="flex items-center mt-2 md:mt-0">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mr-2 
+              ${
+                shop?.status === 'approved'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-yellow-100 text-yellow-800'
+              }`}
+            >
+              {shop?.status}
+            </span>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500 mb-4">{shop.description}</p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4 flex items-center">
-                <ShoppingBag className="h-8 w-8 text-blue-500 mr-3" />
-                <div>
-                  <p className="text-sm text-gray-500">Total Items</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 flex items-center">
-                <Package className="h-8 w-8 text-green-500 mr-3" />
-                <div>
-                  <p className="text-sm text-gray-500">Total Orders</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 flex items-center">
-                <Star className="h-8 w-8 text-yellow-500 mr-3" />
-                <div>
-                  <p className="text-sm text-gray-500">Rating</p>
-                  <p className="text-2xl font-bold">{shop.average_rating.toFixed(1)}</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 flex items-center">
-                <CheckCircle className="h-8 w-8 text-purple-500 mr-3" />
-                <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <p className="text-2xl font-bold capitalize">{shop.status}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          {isCurrentUserShopOwner && (
-            <Tabs defaultValue="items">
-              <TabsList className="mb-4">
-                <TabsTrigger value="items">Items</TabsTrigger>
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="items">
-                <ShopItemsList shopId={shop.id} isOwner={true} />
-              </TabsContent>
-              
-              <TabsContent value="orders">
-                <ShopOrdersList shopId={shop.id} />
-              </TabsContent>
-              
-              <TabsContent value="reviews">
-                <ShopReviewsList shopId={shop.id} />
-              </TabsContent>
-              
-              <TabsContent value="settings">
-                <ShopSettings shop={shop} />
-              </TabsContent>
-            </Tabs>
-          )}
-          
-          {!isCurrentUserShopOwner && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ShopItemsList shopId={shop.id} isOwner={false} limit={6} />
-              <ShopReviewsList shopId={shop.id} limit={5} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </div>
+
+      {isCurrentUserShopOwner && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="items">Items</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="add-item">Add Item</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="items" className="space-y-4">
+            {shop && <ShopItemsList shopId={shop.id} />}
+          </TabsContent>
+
+          <TabsContent value="orders" className="space-y-4">
+            {shop && <ShopOrdersList shopId={shop.id} />}
+          </TabsContent>
+
+          <TabsContent value="reviews" className="space-y-4">
+            {shop && <ShopReviewsList shopId={shop.id} />}
+          </TabsContent>
+
+          <TabsContent value="add-item" className="space-y-4">
+            {shop && <AddItemForm shopId={shop.id} />}
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-4">
+            {shop && <ShopSettings shopId={shop.id} />}
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {!isCurrentUserShopOwner && shop && (
+        <div className="space-y-6">
+          <ShopItemsList shopId={shop.id} />
+        </div>
+      )}
     </div>
   );
-};
-
-export default ShopDashboard;
+}

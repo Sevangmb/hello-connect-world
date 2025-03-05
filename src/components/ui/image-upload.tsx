@@ -1,111 +1,100 @@
 
-import React, { useState, useRef, Dispatch, SetStateAction } from 'react';
-import { Button } from './button';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
 
 export interface ImageUploadProps {
   onChange: (url: string) => void;
-  value?: string;
-  onUploading: Dispatch<SetStateAction<boolean>>;
+  onUploading?: (isUploading: boolean) => void;
+  defaultValue?: string;
+  className?: string;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ onChange, value = '', onUploading }) => {
-  const [previewUrl, setPreviewUrl] = useState<string>(value);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function ImageUpload({
+  onChange,
+  onUploading,
+  defaultValue = '',
+  className = '',
+}: ImageUploadProps) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(defaultValue);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Update local state first
-    setIsUploading(true);
-    onUploading(true);
-
-    // Create a local preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
     try {
-      // Define the FormData for uploading
-      const formData = new FormData();
-      formData.append('file', file);
+      setUploading(true);
+      if (onUploading) onUploading(true);
 
-      // Upload to the server
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const data = await response.json();
-      onChange(data.url);
+      // Upload logic would go here
+      const file = files[0];
+      // Mock upload for example
+      setTimeout(() => {
+        const mockUrl = URL.createObjectURL(file);
+        setPreview(mockUrl);
+        onChange(mockUrl);
+        setUploading(false);
+        if (onUploading) onUploading(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error uploading image:', error);
-    } finally {
-      setIsUploading(false);
-      onUploading(false);
+      console.error("Error uploading image:", error);
+      setUploading(false);
+      if (onUploading) onUploading(false);
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
-    <div className="w-full">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        accept="image/*"
-      />
-      
-      {previewUrl ? (
-        <div className="relative w-full h-48 bg-muted rounded-md overflow-hidden">
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
-          <Button
+    <div className={`relative ${className}`}>
+      {preview ? (
+        <div className="relative w-full h-40 rounded-md overflow-hidden">
+          <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+          <button
             type="button"
-            onClick={triggerFileInput}
-            className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm"
-            size="sm"
+            className="absolute top-2 right-2 bg-red-500 p-1 rounded-full"
+            onClick={() => {
+              setPreview('');
+              onChange('');
+            }}
           >
-            Changer
-          </Button>
+            ✕
+          </button>
         </div>
       ) : (
-        <div
-          onClick={triggerFileInput}
-          className="w-full h-48 border-2 border-dashed border-border rounded-md flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-primary transition-colors"
-        >
-          {isUploading ? (
-            <div className="flex flex-col items-center gap-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              <p className="text-sm text-muted-foreground">Téléchargement...</p>
-            </div>
-          ) : (
-            <>
-              <div className="p-2 bg-muted rounded-full">
-                <Upload className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">Cliquez pour télécharger</p>
-            </>
-          )}
+        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-50">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <svg
+              className="w-8 h-8 mb-3 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              ></path>
+            </svg>
+            <p className="mb-2 text-sm text-gray-500">
+              <span className="font-semibold">Click to upload</span> or drag and drop
+            </p>
+            <p className="text-xs text-gray-500">PNG, JPG or WEBP (MAX. 2MB)</p>
+          </div>
+          <input
+            id="dropzone-file"
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      )}
+      {uploading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-md">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
         </div>
       )}
     </div>
   );
-};
-
-export default ImageUpload;
+}

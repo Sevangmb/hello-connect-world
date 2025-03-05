@@ -1,18 +1,25 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ShopItem } from "@/core/shop/domain/types";
 
-export interface ShopItemCardProps {
-  item: any;
-  onAddToCart: (itemId: string) => void;
+interface ShopItemCardProps {
+  item: ShopItem;
+  onAddToCart?: (item: ShopItem) => void;
 }
 
-const ShopItemCard: React.FC<ShopItemCardProps> = ({ item, onAddToCart }) => {
+export default function ShopItemCard({ item, onAddToCart }: ShopItemCardProps) {
+  const handleAddToCart = () => {
+    if (onAddToCart) {
+      onAddToCart(item);
+    }
+  };
+
   return (
-    <Card className="overflow-hidden h-full flex flex-col">
-      <div className="relative h-48 bg-muted">
+    <Card className="w-full max-w-sm overflow-hidden">
+      <div className="relative h-48 bg-gray-100">
         {item.image_url ? (
           <img 
             src={item.image_url} 
@@ -20,53 +27,52 @@ const ShopItemCard: React.FC<ShopItemCardProps> = ({ item, onAddToCart }) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <span className="text-muted-foreground">Pas d'image</span>
+          <div className="flex items-center justify-center h-full text-gray-400">
+            No image
           </div>
         )}
-        {item.original_price && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-sm text-xs font-medium">
-            -{Math.round((1 - item.price / item.original_price) * 100)}%
-          </div>
+        
+        {item.original_price && item.original_price > item.price && (
+          <Badge className="absolute top-2 right-2 bg-red-500">
+            Sale
+          </Badge>
         )}
       </div>
-      <CardContent className="p-4 flex-1">
-        <h3 className="font-medium text-lg truncate">{item.name}</h3>
-        <p className="text-muted-foreground text-sm line-clamp-2 h-10">
-          {item.description || "Aucune description"}
-        </p>
-        
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-bold text-lg">{item.price}€</span>
-          {item.original_price && (
-            <span className="text-muted-foreground line-through text-sm">
-              {item.original_price}€
-            </span>
-          )}
+      
+      <CardContent className="p-4">
+        <h3 className="font-semibold text-lg truncate">{item.name}</h3>
+        <div className="flex justify-between items-center mt-2">
+          <div>
+            {item.original_price && item.original_price > item.price ? (
+              <div className="flex items-center gap-2">
+                <span className="font-bold">{item.price.toFixed(2)} €</span>
+                <span className="text-sm text-gray-500 line-through">
+                  {item.original_price.toFixed(2)} €
+                </span>
+              </div>
+            ) : (
+              <span className="font-bold">{item.price.toFixed(2)} €</span>
+            )}
+          </div>
+          
+          <Badge variant={item.stock > 0 ? "outline" : "destructive"}>
+            {item.stock > 0 ? `${item.stock} in stock` : "Out of stock"}
+          </Badge>
         </div>
-        
-        {item.stock > 0 ? (
-          <div className="text-xs text-green-600 mt-1">
-            En stock ({item.stock})
-          </div>
-        ) : (
-          <div className="text-xs text-red-500 mt-1">
-            Épuisé
-          </div>
-        )}
       </CardContent>
+      
       <CardFooter className="p-4 pt-0">
         <Button 
-          onClick={() => onAddToCart(item.id)}
-          className="w-full"
+          className="w-full" 
           disabled={item.stock <= 0}
+          onClick={handleAddToCart}
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Ajouter au panier
+          Add to cart
         </Button>
       </CardFooter>
     </Card>
   );
-};
+}
 
-export default ShopItemCard;
+// Fix for correct imports in parent files
+export { default as ShopItemCard } from './ShopItemCard';
