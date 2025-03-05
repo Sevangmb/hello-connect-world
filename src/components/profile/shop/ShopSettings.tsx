@@ -1,296 +1,225 @@
 
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useShop } from '@/hooks/useShop';
+import { ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { useShop } from '@/hooks/useShop';
-import { ImageUpload } from '@/components/ui/image-upload';
 import { Label } from '@/components/ui/label';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { LoaderCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { PaymentMethod, DeliveryOption } from '@/core/shop/domain/types';
 
 interface ShopSettingsProps {
   shopId: string;
 }
 
 export function ShopSettings({ shopId }: ShopSettingsProps) {
-  const { shop, isShopLoading, updateShopInfo } = useShop(shopId);
+  const { shop, updateShop, getShopSettings, updateShopSettings } = useShop();
   const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [address, setAddress] = useState('');
+  const [settings, setSettings] = useState<ShopSettingsType | null>(null);
+  const [autoAcceptOrders, setAutoAcceptOrders] = useState(false);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [appNotifications, setAppNotifications] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedDeliveryOptions, setSelectedDeliveryOptions] = useState<DeliveryOption[]>([]);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    reset,
-    watch,
-    formState: { errors, isSubmitting }
-  } = useForm({
-    defaultValues: {
-      name: '',
-      description: '',
-      image_url: '',
-      address: '',
-      phone: '',
-      website: '',
-      auto_accept_orders: false,
-    }
-  });
-
-  const imageUrl = watch('image_url');
-
-  // Load shop data when available
   useEffect(() => {
     if (shop) {
-      reset({
-        name: shop.name,
-        description: shop.description || '',
-        image_url: shop.image_url || '',
-        address: shop.address || '',
-        phone: shop.phone || '',
-        website: shop.website || '',
-        auto_accept_orders: false, // This would come from shop settings
-      });
+      setName(shop.name || '');
+      setDescription(shop.description || '');
+      setImageUrl(shop.image_url || '');
+      setAddress(shop.address || '');
     }
-  }, [shop, reset]);
+  }, [shop]);
 
-  const onSubmit = async (data: any) => {
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setLoading(true);
+      try {
+        const shopSettings = await getShopSettings(shopId);
+        if (shopSettings) {
+          setSettings(shopSettings);
+          setAutoAcceptOrders(shopSettings.auto_accept_orders);
+          setEmailNotifications(shopSettings.notification_preferences.email);
+          setAppNotifications(shopSettings.notification_preferences.app);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (shopId) {
+      fetchSettings();
+    }
+  }, [shopId, getShopSettings]);
+
+  const handleUpdateShop = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!shop) return;
-    
+
+    setIsUpdating(true);
     try {
-      await updateShopInfo.mutateAsync({
+      await updateShop.mutateAsync({
         id: shop.id,
-        name: data.name,
-        description: data.description,
-        image_url: data.image_url,
-        address: data.address,
-        phone: data.phone,
-        website: data.website,
+        name,
+        description,
+        image_url: imageUrl,
+        address
       });
-      
+
+      // Check if settings exists, update preferences
+      if (settings) {
+        await updateShopSettings.mutateAsync({
+          id: settings.id,
+          settings: {
+            auto_accept_orders: autoAcceptOrders,
+            notification_preferences: {
+              email: emailNotifications,
+              app: appNotifications
+            }
+          }
+        });
+      }
+
       toast({
         title: 'Paramètres mis à jour',
-        description: 'Les paramètres de votre boutique ont été mis à jour avec succès.',
+        description: 'Les paramètres de votre boutique ont été mis à jour',
       });
     } catch (error) {
       console.error('Error updating shop settings:', error);
       toast({
         title: 'Erreur',
-        description: 'Impossible de mettre à jour les paramètres. Veuillez réessayer.',
+        description: 'Impossible de mettre à jour les paramètres',
         variant: 'destructive',
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  if (isShopLoading || !shop) {
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin" />
+      <div className="flex justify-center items-center h-40">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Paramètres de la boutique</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Image de la boutique</label>
-            <ImageUpload 
-              onChange={(url) => setValue('image_url', url)} 
-              onUploading={setIsUploading}
-              value={imageUrl}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom de la boutique *</Label>
+    <form onSubmit={handleUpdateShop} className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations générales</CardTitle>
+          <CardDescription>Mettez à jour les informations de votre boutique</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nom de la boutique</Label>
             <Input
               id="name"
-              {...register('name', { required: 'Le nom est requis' })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nom de votre boutique"
+              required
             />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message as string}</p>
-            )}
           </div>
-
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              rows={4}
-              {...register('description')}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Décrivez votre boutique"
+              rows={3}
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="address">Adresse</Label>
-              <Input
-                id="address"
-                {...register('address')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <Input
-                id="phone"
-                {...register('phone')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="website">Site web</Label>
-              <Input
-                id="website"
-                {...register('website')}
-              />
-            </div>
+          <div>
+            <Label htmlFor="address">Adresse</Label>
+            <Input
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Adresse de votre boutique"
+            />
           </div>
+          <div>
+            <Label>Image de la boutique</Label>
+            <ImageUpload
+              onImageUploaded={setImageUrl}
+              onUploading={setIsUploading}
+              bucket="shop-images"
+              folder="shops"
+              currentImageUrl={imageUrl}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-medium">Options de paiement et livraison</h3>
-            
-            <div className="space-y-2">
-              <Label>Méthodes de paiement acceptées</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="payment_card"
-                    checked={selectedPaymentMethods.includes('card')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedPaymentMethods([...selectedPaymentMethods, 'card']);
-                      } else {
-                        setSelectedPaymentMethods(selectedPaymentMethods.filter(m => m !== 'card'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="payment_card">Carte bancaire</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="payment_paypal"
-                    checked={selectedPaymentMethods.includes('paypal')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedPaymentMethods([...selectedPaymentMethods, 'paypal']);
-                      } else {
-                        setSelectedPaymentMethods(selectedPaymentMethods.filter(m => m !== 'paypal'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="payment_paypal">PayPal</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="payment_transfer"
-                    checked={selectedPaymentMethods.includes('bank_transfer')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedPaymentMethods([...selectedPaymentMethods, 'bank_transfer']);
-                      } else {
-                        setSelectedPaymentMethods(selectedPaymentMethods.filter(m => m !== 'bank_transfer'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="payment_transfer">Virement bancaire</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="payment_cash"
-                    checked={selectedPaymentMethods.includes('cash')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedPaymentMethods([...selectedPaymentMethods, 'cash']);
-                      } else {
-                        setSelectedPaymentMethods(selectedPaymentMethods.filter(m => m !== 'cash'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="payment_cash">Espèces (en personne)</Label>
-                </div>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Préférences</CardTitle>
+          <CardDescription>Configurez les options de votre boutique</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Acceptation automatique des commandes</h4>
+              <p className="text-sm text-muted-foreground">Les commandes seront automatiquement acceptées</p>
             </div>
-
-            <div className="space-y-2">
-              <Label>Options de livraison</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="delivery_pickup"
-                    checked={selectedDeliveryOptions.includes('pickup')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedDeliveryOptions([...selectedDeliveryOptions, 'pickup']);
-                      } else {
-                        setSelectedDeliveryOptions(selectedDeliveryOptions.filter(o => o !== 'pickup'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="delivery_pickup">Retrait en boutique</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="delivery_delivery"
-                    checked={selectedDeliveryOptions.includes('delivery')}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedDeliveryOptions([...selectedDeliveryOptions, 'delivery']);
-                      } else {
-                        setSelectedDeliveryOptions(selectedDeliveryOptions.filter(o => o !== 'delivery'));
-                      }
-                    }}
-                  />
-                  <Label htmlFor="delivery_delivery">Livraison</Label>
-                </div>
-              </div>
-            </div>
-
+            <Switch
+              checked={autoAcceptOrders}
+              onCheckedChange={setAutoAcceptOrders}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <h4 className="font-medium">Notifications</h4>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
-                <Switch 
-                  id="auto_accept_orders"
-                  {...register('auto_accept_orders')}
+                <Switch
+                  id="email-notifications"
+                  checked={emailNotifications}
+                  onCheckedChange={setEmailNotifications}
                 />
-                <Label htmlFor="auto_accept_orders">Accepter automatiquement les commandes</Label>
+                <Label htmlFor="email-notifications">Notifications par email</Label>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Si cette option est activée, les commandes seront automatiquement acceptées sans nécessiter votre confirmation.
-              </p>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="app-notifications"
+                  checked={appNotifications}
+                  onCheckedChange={setAppNotifications}
+                />
+                <Label htmlFor="app-notifications">Notifications dans l'application</Label>
+              </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <Button
-            type="submit"
-            disabled={isSubmitting || isUploading}
-            className="w-full"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mise à jour...
-              </>
-            ) : (
-              'Enregistrer les modifications'
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button 
+        type="submit" 
+        disabled={isUpdating || isUploading}
+        className="w-full"
+      >
+        {isUpdating ? (
+          <>
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            Mise à jour en cours...
+          </>
+        ) : (
+          "Enregistrer les modifications"
+        )}
+      </Button>
+    </form>
   );
 }

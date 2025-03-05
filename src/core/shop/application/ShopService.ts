@@ -1,164 +1,148 @@
 
-import { ShopRepository } from '../infrastructure/ShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, ShopStatus } from '../domain/types';
+import { ShopRepository } from "../infrastructure/ShopRepository";
+import { Shop, ShopItem, ShopStatus, Order, ShopReview, ShopSettings } from "../domain/types";
 
+/**
+ * Service pour la gestion des boutiques
+ * Couche Application de la Clean Architecture
+ */
 export class ShopService {
-  private shopRepository: ShopRepository;
-  private initialized: boolean = false;
+  private repository: ShopRepository;
 
-  constructor() {
-    this.shopRepository = new ShopRepository();
+  constructor(repository: ShopRepository) {
+    this.repository = repository;
   }
 
   /**
-   * Initialize the shop service
+   * Récupère une boutique par l'ID de l'utilisateur
    */
-  async initialize(): Promise<boolean> {
-    if (this.initialized) {
-      return true;
-    }
-
-    this.initialized = true;
-    return true;
+  async getUserShop(userId: string): Promise<Shop | null> {
+    return this.repository.getShopByUserId(userId);
   }
 
   /**
-   * Get a shop by user ID
-   */
-  async getShopByUserId(userId: string): Promise<Shop | null> {
-    return await this.shopRepository.getShopByUserId(userId);
-  }
-
-  /**
-   * Get a shop by ID
+   * Récupère une boutique par son ID
    */
   async getShopById(id: string): Promise<Shop | null> {
-    return await this.shopRepository.getShopById(id);
+    return this.repository.getShopById(id);
   }
 
   /**
-   * Get all shops
+   * Récupère toutes les boutiques
    */
   async getAllShops(): Promise<Shop[]> {
-    return await this.shopRepository.getAllShops();
+    return this.repository.getAllShops();
   }
 
   /**
-   * Create a new shop
+   * Crée une nouvelle boutique
    */
-  async createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop> {
-    return await this.shopRepository.createShop(shop);
+  async createShop(shopData: Omit<Shop, "id" | "created_at" | "updated_at">): Promise<Shop> {
+    return this.repository.createShop(shopData);
   }
 
   /**
-   * Update a shop
+   * Met à jour une boutique
    */
-  async updateShop(id: string, shop: Partial<Shop>): Promise<Shop> {
-    return await this.shopRepository.updateShop(id, shop);
+  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop> {
+    return this.repository.updateShop(id, shopData);
   }
 
   /**
-   * Update shop status
+   * Met à jour le statut d'une boutique
    */
   async updateShopStatus(id: string, status: ShopStatus): Promise<boolean> {
-    return await this.shopRepository.updateShopStatus(id, status);
+    return this.repository.updateShopStatus(id, status);
   }
 
   /**
-   * Get shop items
+   * Récupère tous les articles d'une boutique
    */
   async getShopItems(shopId: string): Promise<ShopItem[]> {
-    return await this.shopRepository.getShopItems(shopId);
+    return this.repository.getShopItems(shopId);
   }
 
   /**
-   * Get shop item by ID
+   * Récupère un article par son ID
    */
   async getShopItemById(id: string): Promise<ShopItem | null> {
-    return await this.shopRepository.getShopItemById(id);
+    return this.repository.getShopItemById(id);
   }
 
   /**
-   * Create a new shop item
+   * Crée un nouvel article dans une boutique
    */
-  async createShopItem(item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
-    return await this.shopRepository.createShopItem(item);
+  async createShopItem(itemData: Omit<ShopItem, "id" | "created_at" | "updated_at">): Promise<ShopItem> {
+    return this.repository.createShopItem(itemData);
   }
 
   /**
-   * Update a shop item
+   * Met à jour un article
    */
-  async updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem> {
-    return await this.shopRepository.updateShopItem(id, item);
+  async updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
+    return this.repository.updateShopItem(id, itemData);
   }
 
   /**
-   * Update shop item status
-   */
-  async updateShopItemStatus(id: string, status: ShopItem['status']): Promise<boolean> {
-    return await this.shopRepository.updateShopItemStatus(id, status);
-  }
-
-  /**
-   * Delete a shop item
+   * Supprime un article
    */
   async deleteShopItem(id: string): Promise<boolean> {
-    return await this.shopRepository.deleteShopItem(id);
+    return this.repository.deleteShopItem(id);
   }
 
   /**
-   * Get shop reviews
+   * Met à jour le statut d'un article
+   */
+  async updateShopItemStatus(id: string, status: string): Promise<boolean> {
+    return this.repository.updateShopItemStatus(id, status);
+  }
+
+  /**
+   * Récupère les avis d'une boutique
    */
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    return await this.shopRepository.getShopReviews(shopId);
+    return this.repository.getShopReviews(shopId);
   }
 
   /**
-   * Add a shop review
+   * Ajoute un avis sur une boutique
    */
-  async addShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview> {
-    return await this.shopRepository.addShopReview(review);
+  async addShopReview(review: Omit<ShopReview, "id" | "created_at" | "updated_at">): Promise<ShopReview> {
+    return this.repository.addShopReview(review);
   }
 
   /**
-   * Get shop orders
+   * Récupère les commandes d'une boutique
    */
   async getShopOrders(shopId: string): Promise<Order[]> {
-    return await this.shopRepository.getShopOrders(shopId);
+    return this.repository.getShopOrders(shopId);
   }
 
   /**
-   * Get order by ID
+   * Récupère une commande par son ID
    */
   async getOrderById(id: string): Promise<Order | null> {
-    return await this.shopRepository.getOrderById(id);
+    return this.repository.getOrderById(id);
   }
 
   /**
-   * Update order status
+   * Met à jour le statut d'une commande
    */
-  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
-    return await this.shopRepository.updateOrderStatus(id, status);
+  async updateOrderStatus(id: string, status: string): Promise<boolean> {
+    return this.repository.updateOrderStatus(id, status);
   }
 
   /**
-   * Get shop settings
+   * Récupère les paramètres d'une boutique
    */
   async getShopSettings(shopId: string): Promise<ShopSettings | null> {
-    return await this.shopRepository.getShopSettings(shopId);
+    return this.repository.getShopSettings(shopId);
   }
 
   /**
-   * Create shop settings
-   */
-  async createShopSettings(settings: Omit<ShopSettings, 'id' | 'created_at' | 'updated_at'>): Promise<ShopSettings> {
-    return await this.shopRepository.createShopSettings(settings);
-  }
-
-  /**
-   * Update shop settings
+   * Met à jour les paramètres d'une boutique
    */
   async updateShopSettings(id: string, settings: Partial<ShopSettings>): Promise<boolean> {
-    return await this.shopRepository.updateShopSettings(id, settings);
+    return this.repository.updateShopSettings(id, settings);
   }
 }

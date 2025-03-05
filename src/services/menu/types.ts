@@ -1,35 +1,37 @@
 
 /**
- * Types pour le module de gestion des menus
+ * Types pour le module de menu
  */
 
-// Catégories de menu
+// Catégorie de menu
 export type MenuItemCategory = 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
 
-// Type pour un élément de menu
+// Élément de menu
 export interface MenuItem {
   id: string;
   name: string;
   path: string;
-  icon: string | null;
-  module_code: string | null;
-  category: MenuItemCategory;
+  icon?: string;
+  description?: string;
+  parent_id?: string | null;
   position: number;
-  parent_id: string | null;
-  description: string | null;
+  category: MenuItemCategory;
+  module_code?: string | null;
   is_active: boolean;
   is_visible: boolean;
   requires_admin: boolean;
   created_at: string;
   updated_at: string;
-  children?: MenuItem[]; // Pour les menus hiérarchiques
 }
 
-// Type pour les options de filtre de menu
-export interface MenuFilterOptions {
-  category?: MenuItemCategory;
-  moduleCode?: string;
-  isActive?: boolean;
-  isVisible?: boolean;
-  requiresAdmin?: boolean;
+// Catégorie du menu
+export interface MenuCategory {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  icon?: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
 }

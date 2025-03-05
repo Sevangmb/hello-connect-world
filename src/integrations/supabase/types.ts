@@ -15,30 +15,39 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_admin: boolean
           is_core: boolean
           name: string
+          priority: number
           status: Database["public"]["Enums"]["module_status"]
           updated_at: string
+          version: string
         }
         Insert: {
           code: string
           created_at?: string
           description?: string | null
           id?: string
+          is_admin?: boolean
           is_core?: boolean
           name: string
+          priority?: number
           status?: Database["public"]["Enums"]["module_status"]
           updated_at?: string
+          version?: string
         }
         Update: {
           code?: string
           created_at?: string
           description?: string | null
           id?: string
+          is_admin?: boolean
           is_core?: boolean
           name?: string
+          priority?: number
           status?: Database["public"]["Enums"]["module_status"]
           updated_at?: string
+          version?: string
         }
         Relationships: []
       }
@@ -738,6 +747,39 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      menu_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1907,31 +1949,43 @@ export type Database = {
         Row: {
           clothes_id: string
           created_at: string
+          description: string | null
           id: string
+          image_url: string | null
+          name: string | null
           original_price: number | null
           price: number
           shop_id: string
           status: string
+          stock: number
           updated_at: string
         }
         Insert: {
           clothes_id: string
           created_at?: string
+          description?: string | null
           id?: string
+          image_url?: string | null
+          name?: string | null
           original_price?: number | null
           price: number
           shop_id: string
           status?: string
+          stock?: number
           updated_at?: string
         }
         Update: {
           clothes_id?: string
           created_at?: string
+          description?: string | null
           id?: string
+          image_url?: string | null
+          name?: string | null
           original_price?: number | null
           price?: number
           shop_id?: string
           status?: string
+          stock?: number
           updated_at?: string
         }
         Relationships: [
@@ -1999,6 +2053,47 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_settings: {
+        Row: {
+          auto_accept_orders: boolean
+          created_at: string
+          delivery_options: string[]
+          id: string
+          notification_preferences: Json
+          payment_methods: string[]
+          shop_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_accept_orders?: boolean
+          created_at?: string
+          delivery_options?: string[]
+          id?: string
+          notification_preferences?: Json
+          payment_methods?: string[]
+          shop_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_accept_orders?: boolean
+          created_at?: string
+          delivery_options?: string[]
+          id?: string
+          notification_preferences?: Json
+          payment_methods?: string[]
+          shop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_settings_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
             referencedColumns: ["id"]
           },
         ]

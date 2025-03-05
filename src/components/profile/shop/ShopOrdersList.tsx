@@ -1,13 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from 'react';
 import { useShop } from '@/hooks/useShop';
-import { Loader2, Eye } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Order } from '@/core/shop/domain/types';
-import { 
+import { Button } from '@/components/ui/button';
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,191 +11,151 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { format } from 'date-fns';
 
 interface ShopOrdersListProps {
   shopId: string;
 }
 
 export function ShopOrdersList({ shopId }: ShopOrdersListProps) {
-  const { getShopOrders, updateOrderStatus } = useShop(shopId);
-  const { toast } = useToast();
+  const { getShopOrders, updateOrderStatus } = useShop();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadOrders = async () => {
+    const fetchOrders = async () => {
       setLoading(true);
       try {
-        const items = await getShopOrders(shopId);
-        setOrders(items);
+        const shopOrders = await getShopOrders(shopId);
+        setOrders(shopOrders);
       } catch (error) {
-        console.error('Error loading shop orders:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Impossible de charger les commandes. Veuillez réessayer.',
-          variant: 'destructive',
-        });
+        console.error('Error fetching orders:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadOrders();
-  }, [shopId, getShopOrders, toast]);
+    if (shopId) {
+      fetchOrders();
+    }
+  }, [shopId, getShopOrders]);
 
-  const handleStatusChange = async (orderId: string, status: Order['status']) => {
+  const handleStatusUpdate = async (orderId: string, status: string) => {
     try {
-      await updateOrderStatus.mutateAsync({ orderId, status });
-      
+      await updateOrderStatus.mutateAsync({ id: orderId, status });
       // Update local state
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status } : order
-      ));
-      
-      toast({
-        title: 'Statut mis à jour',
-        description: `Le statut de la commande a été changé à ${status}`,
-      });
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, status } : order
+        )
+      );
     } catch (error) {
       console.error('Error updating order status:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour le statut. Veuillez réessayer.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const getStatusBadge = (status: Order['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline">En attente</Badge>;
-      case 'confirmed':
-        return <Badge variant="secondary">Confirmée</Badge>;
-      case 'shipped':
-        return <Badge>Expédiée</Badge>;
-      case 'delivered':
-        return <Badge className="bg-green-500">Livrée</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Annulée</Badge>;
-      case 'returned':
-        return <Badge variant="destructive">Retournée</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getPaymentStatusBadge = (status: Order['payment_status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline">En attente</Badge>;
-      case 'paid':
-        return <Badge className="bg-green-500">Payée</Badge>;
-      case 'refunded':
-        return <Badge variant="secondary">Remboursée</Badge>;
-      case 'failed':
-        return <Badge variant="destructive">Échouée</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="flex justify-center items-center h-40">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium mb-2">Aucune commande</h3>
-        <p className="text-muted-foreground">
-          Vous n'avez reçu aucune commande pour le moment.
-        </p>
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">Aucune commande pour cette boutique</p>
       </div>
     );
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>N° Commande</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Montant</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Paiement</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">
-                    {order.id.substring(0, 8)}...
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {order.total_amount.toFixed(2)} €
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(order.status)}
-                  </TableCell>
-                  <TableCell>
-                    {getPaymentStatusBadge(order.payment_status)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Détails
-                      </Button>
-                      
-                      {order.status === 'pending' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleStatusChange(order.id, 'confirmed')}
-                        >
-                          Accepter
-                        </Button>
-                      )}
-                      
-                      {order.status === 'confirmed' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleStatusChange(order.id, 'shipped')}
-                        >
-                          Expédier
-                        </Button>
-                      )}
-                      
-                      {(order.status === 'shipped' || order.status === 'confirmed') && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleStatusChange(order.id, 'delivered')}
-                        >
-                          Marquer comme livré
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ID</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Montant</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead>Paiement</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {orders.map((order) => (
+          <TableRow key={order.id}>
+            <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
+            <TableCell>{format(new Date(order.created_at), 'dd/MM/yyyy')}</TableCell>
+            <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
+            <TableCell>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                order.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                order.status === 'delivered' ? 'bg-primary/20 text-primary-foreground' :
+                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {order.status}
+              </span>
+            </TableCell>
+            <TableCell>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                order.payment_status === 'refunded' ? 'bg-blue-100 text-blue-800' :
+                order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {order.payment_status}
+              </span>
+            </TableCell>
+            <TableCell>
+              <div className="flex space-x-2">
+                {order.status === 'pending' && (
+                  <Button 
+                    size="sm" 
+                    variant="success"
+                    onClick={() => handleStatusUpdate(order.id, 'confirmed')}
+                    disabled={updateOrderStatus.isPending}
+                  >
+                    Confirmer
+                  </Button>
+                )}
+                {order.status === 'confirmed' && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleStatusUpdate(order.id, 'shipped')}
+                    disabled={updateOrderStatus.isPending}
+                  >
+                    Expédier
+                  </Button>
+                )}
+                {order.status === 'shipped' && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                    disabled={updateOrderStatus.isPending}
+                  >
+                    Livré
+                  </Button>
+                )}
+                {(order.status === 'pending' || order.status === 'confirmed') && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => handleStatusUpdate(order.id, 'cancelled')}
+                    disabled={updateOrderStatus.isPending}
+                  >
+                    Annuler
+                  </Button>
+                )}
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

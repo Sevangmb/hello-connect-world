@@ -1,324 +1,306 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { toast } from '@/hooks/use-toast';
-import { Shop, ShopItem, ShopStatus, Order, ShopSettings, ShopReview } from '@/core/shop/domain/types';
+import { ShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { Shop, ShopItem, ShopItemStatus, ShopSettings } from '@/core/shop/domain/types';
+import { useToast } from './use-toast';
 
-export const useShop = (shopId?: string) => {
+export function useShop() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isShopOwner, setIsShopOwner] = useState(false);
 
-  // Get shop by ID
+  // Récupérer la boutique de l'utilisateur actuel
   const {
     data: shop,
     isLoading: isShopLoading,
-    refetch: refetchShop,
-    error: shopError
+    refetch: refetchShop
   } = useQuery({
-    queryKey: ['shop', shopId],
-    queryFn: async () => {
-      if (!shopId) return null;
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles:user_id(username, full_name)')
-        .eq('id', shopId)
-        .single();
-
-      if (error) throw error;
-      return data as Shop;
-    },
-    enabled: !!shopId
-  });
-
-  // Check if current user is the shop owner
-  const isCurrentUserShopOwner = user?.id === shop?.user_id;
-
-  // Get user's shop
-  const {
-    data: userShop,
-    isLoading: isUserShopLoading,
-    refetch: refetchUserShop
-  } = useQuery({
-    queryKey: ['userShop', user?.id],
+    queryKey: ['user-shop', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null; // No shop found
-        throw error;
-      }
-      return data as Shop;
+      return ShopService.getUserShop(user.id);
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
-  // Create shop mutation
-  const createShop = useMutation({
-    mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>) => {
-      const { data, error } = await supabase
-        .from('shops')
-        .insert(shopData)
-        .select()
-        .single();
+  // Déterminer si l'utilisateur actuel est le propriétaire de la boutique
+  const isCurrentUserShopOwner = !!shop && shop.user_id === user?.id;
 
-      if (error) throw error;
-      return data as Shop;
+  // Créer une boutique
+  const createShop = useMutation({
+    mutationFn: async (data: { name: string; description: string; image_url?: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return ShopService.createShop({
+        user_id: user.id,
+        name: data.name,
+        description: data.description,
+        image_url: data.image_url,
+        status: 'pending',
+        average_rating: 0
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
       toast({
         title: 'Boutique créée',
         description: 'Votre boutique a été créée avec succès',
-        variant: 'default',
       });
+      queryClient.invalidateQueries({ queryKey: ['user-shop'] });
     },
     onError: (error) => {
       toast({
         title: 'Erreur',
-        description: `Impossible de créer la boutique: ${error.message}`,
+        description: 'Impossible de créer la boutique: ' + error.message,
         variant: 'destructive',
       });
-    }
+    },
   });
 
-  // Update shop info
-  const updateShopInfo = useMutation({
-    mutationFn: async ({ id, ...shopData }: Partial<Shop> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('shops')
-        .update(shopData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Shop;
+  // Mettre à jour une boutique
+  const updateShop = useMutation({
+    mutationFn: async (data: { id: string; name?: string; description?: string; image_url?: string }) => {
+      return ShopService.updateShop(data.id, {
+        name: data.name,
+        description: data.description,
+        image_url: data.image_url,
+      });
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['shop', data.id] });
-      queryClient.invalidateQueries({ queryKey: ['userShop', user?.id] });
+    onSuccess: () => {
       toast({
         title: 'Boutique mise à jour',
         description: 'Les informations de votre boutique ont été mises à jour',
-        variant: 'default',
       });
-    }
+      queryClient.invalidateQueries({ queryKey: ['user-shop'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour la boutique: ' + error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
-  // Update shop status
+  // Mettre à jour le statut d'une boutique
   const updateShopStatus = useMutation({
-    mutationFn: async ({ shopId, status }: { shopId: string; status: ShopStatus }) => {
-      const { data, error } = await supabase
-        .from('shops')
-        .update({ status })
-        .eq('id', shopId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Shop;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['shop', data.id] });
-      queryClient.invalidateQueries({ queryKey: ['shops'] });
-      toast({
-        title: 'Statut mis à jour',
-        description: `Le statut de la boutique a été changé à ${data.status}`,
-        variant: 'default',
-      });
-    }
-  });
-
-  // Get shop items
-  const getShopItems = useCallback(async (shopId: string) => {
-    const { data, error } = await supabase
-      .from('shop_items')
-      .select('*, clothes(name, description, image_url)')
-      .eq('shop_id', shopId);
-
-    if (error) throw error;
-    return data as ShopItem[];
-  }, []);
-
-  // Create shop item
-  const createShopItem = useMutation({
-    mutationFn: async (itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .insert(itemData)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ShopItem;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
-      toast({
-        title: 'Article ajouté',
-        description: 'L\'article a été ajouté à votre boutique',
-        variant: 'default',
-      });
-    }
-  });
-
-  // Update shop item status
-  const updateShopItemStatus = useMutation({
-    mutationFn: async ({ itemId, status }: { itemId: string; status: ShopItem['status'] }) => {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .update({ status })
-        .eq('id', itemId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ShopItem;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems', data.shop_id] });
-    }
-  });
-
-  // Remove shop item
-  const removeShopItem = useMutation({
-    mutationFn: async (itemId: string) => {
-      const { error } = await supabase
-        .from('shop_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) throw error;
-      return true;
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return ShopService.updateShopStatus(id, status as any);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopItems'] });
+      toast({
+        title: 'Statut mis à jour',
+        description: 'Le statut de la boutique a été mis à jour',
+      });
+      queryClient.invalidateQueries({ queryKey: ['user-shop'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour le statut: ' + error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Récupérer les articles d'une boutique
+  const getShopItems = useCallback(async (shopId: string) => {
+    if (!shopId) return [];
+    try {
+      const items = await ShopService.getShopItems(shopId);
+      return items;
+    } catch (error) {
+      console.error('Error fetching shop items:', error);
+      return [];
+    }
+  }, []);
+
+  // Créer un article
+  const createShopItem = useMutation({
+    mutationFn: async (item: Omit<ShopItem, "id" | "created_at" | "updated_at">) => {
+      if (!item.shop_id) throw new Error('Shop ID is required');
+      return ShopService.createShopItem(item);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Article créé',
+        description: 'L\'article a été ajouté à votre boutique',
+      });
+      queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de créer l\'article: ' + error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mettre à jour un article
+  const updateShopItem = useMutation({
+    mutationFn: async (data: { id: string; item: Partial<ShopItem> }) => {
+      return ShopService.updateShopItem(data.id, data.item);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Article mis à jour',
+        description: 'L\'article a été mis à jour avec succès',
+      });
+      queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour l\'article: ' + error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Mettre à jour le statut d'un article
+  const updateShopItemStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: ShopItemStatus }) => {
+      return ShopService.updateShopItemStatus(id, status);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Statut mis à jour',
+        description: 'Le statut de l\'article a été mis à jour',
+      });
+      queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour le statut: ' + error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Supprimer un article
+  const removeShopItem = useMutation({
+    mutationFn: async (id: string) => {
+      return ShopService.deleteShopItem(id);
+    },
+    onSuccess: () => {
       toast({
         title: 'Article supprimé',
         description: 'L\'article a été supprimé de votre boutique',
-        variant: 'default',
       });
-    }
+      queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de supprimer l\'article: ' + error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
-  // Get shop reviews
-  const getShopReviews = useCallback(async (shopId: string) => {
-    const { data, error } = await supabase
-      .from('shop_reviews')
-      .select('*, profiles:user_id(username, full_name)')
-      .eq('shop_id', shopId);
-
-    if (error) throw error;
-    return data as ShopReview[];
-  }, []);
-
-  // Get shop orders
+  // Récupérer les commandes d'une boutique
   const getShopOrders = useCallback(async (shopId: string) => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, order_items(*)')
-      .eq('seller_id', shopId);
-
-    if (error) throw error;
-    return data as Order[];
+    if (!shopId) return [];
+    try {
+      const orders = await ShopService.getShopOrders(shopId);
+      return orders;
+    } catch (error) {
+      console.error('Error fetching shop orders:', error);
+      return [];
+    }
   }, []);
 
-  // Update order status
+  // Mettre à jour le statut d'une commande
   const updateOrderStatus = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: string; status: Order['status'] }) => {
-      const { data, error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('id', orderId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Order;
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return ShopService.updateOrderStatus(id, status);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
       toast({
         title: 'Commande mise à jour',
         description: 'Le statut de la commande a été mis à jour',
-        variant: 'default',
       });
-    }
+      queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour la commande: ' + error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
-  // Get shop settings
+  // Récupérer les paramètres de la boutique
   const getShopSettings = useCallback(async (shopId: string) => {
-    const { data, error } = await supabase
-      .from('shop_settings')
-      .select('*')
-      .eq('shop_id', shopId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null; // No settings found
-      throw error;
+    if (!shopId) return null;
+    try {
+      const settings = await ShopService.getShopSettings(shopId);
+      return settings;
+    } catch (error) {
+      console.error('Error fetching shop settings:', error);
+      return null;
     }
-    return data as ShopSettings;
   }, []);
 
-  // Update shop settings
+  // Mettre à jour les paramètres de la boutique
   const updateShopSettings = useMutation({
-    mutationFn: async (settings: Partial<ShopSettings> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('shop_settings')
-        .update(settings)
-        .eq('id', settings.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ShopSettings;
+    mutationFn: async (data: { id: string; settings: Partial<ShopSettings> }) => {
+      return ShopService.updateShopSettings(data.id, data.settings);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shopSettings'] });
       toast({
         title: 'Paramètres mis à jour',
         description: 'Les paramètres de votre boutique ont été mis à jour',
-        variant: 'default',
       });
-    }
+      queryClient.invalidateQueries({ queryKey: ['shop-settings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de mettre à jour les paramètres: ' + error.message,
+        variant: 'destructive',
+      });
+    },
   });
 
-  // Update shop owner status when shop data changes
-  useEffect(() => {
-    if (shop && user) {
-      setIsShopOwner(shop.user_id === user.id);
+  // Récupérer les avis sur une boutique
+  const getShopReviews = useCallback(async (shopId: string) => {
+    if (!shopId) return [];
+    try {
+      const reviews = await ShopService.getShopReviews(shopId);
+      return reviews;
+    } catch (error) {
+      console.error('Error fetching shop reviews:', error);
+      return [];
     }
-  }, [shop, user]);
+  }, []);
 
   return {
+    // Données
     shop,
     isShopLoading,
     refetchShop,
-    shopError,
     isCurrentUserShopOwner,
-    userShop,
-    isUserShopLoading,
-    refetchUserShop,
+
+    // Mutations
     createShop,
-    updateShopInfo,
+    updateShop,
     updateShopStatus,
-    getShopItems,
     createShopItem,
+    updateShopItem,
     updateShopItemStatus,
     removeShopItem,
-    getShopReviews,
-    getShopOrders,
     updateOrderStatus,
+    updateShopSettings,
+
+    // Fonctions
+    getShopItems,
+    getShopOrders,
     getShopSettings,
-    updateShopSettings
+    getShopReviews
   };
-};
+}

@@ -6,5 +6,5 @@ import { ShopService } from "../application/ShopService";
 const shopRepository = new ShopRepository();
 const shopService = new ShopService(shopRepository);
 
-// Exporter le service
-export const getShopService = () => shopService;
+// Exporter le service de boutique
+export { shopService as ShopService };

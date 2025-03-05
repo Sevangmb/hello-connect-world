@@ -1,110 +1,162 @@
 
-import React, { useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, X } from 'lucide-react';
+import { UploadCloud, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface ImageUploadProps {
-  onUploading: (isUploading: boolean) => void;
-  onChange: (url: string) => void;
-  value?: string; // Add value prop
+  onImageUploaded: (url: string) => void;
+  onUploading?: (isUploading: boolean) => void;
+  bucket?: string;
+  folder?: string;
+  currentImageUrl?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
-export function ImageUpload({ onUploading, onChange, value }: ImageUploadProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
+export function ImageUpload({
+  onImageUploaded,
+  onUploading,
+  bucket = 'shop-images',
+  folder = 'products',
+  currentImageUrl,
+  value,
+  onChange
+}: ImageUploadProps) {
+  const { toast } = useToast();
+  const [imageUrl, setImageUrl] = useState<string | null>(currentImageUrl || value || null);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => {
+    // Update the image URL when value changes externally
+    if (value !== undefined && value !== imageUrl) {
+      setImageUrl(value);
+    }
+  }, [value]);
 
-    // Show preview immediately 
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    
-    // Set uploading state
-    setIsUploading(true);
-    onUploading(true);
+  useEffect(() => {
+    // Update the image URL when currentImageUrl changes externally
+    if (currentImageUrl !== undefined && currentImageUrl !== imageUrl) {
+      setImageUrl(currentImageUrl);
+    }
+  }, [currentImageUrl]);
 
+  const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      // Create form data
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Upload to Supabase Storage
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
       }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${folder}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      setIsUploading(true);
+      if (onUploading) onUploading(true);
+
+      // Make sure the bucket exists
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        if (!buckets?.find(b => b.name === bucket)) {
+          await supabase.storage.createBucket(bucket, {
+            public: true
+          });
+        }
+      } catch (error) {
+        console.error('Error checking/creating bucket:', error);
+      }
+
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          upsert: true
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(data.path);
+
+      setImageUrl(urlData.publicUrl);
+      onImageUploaded(urlData.publicUrl);
       
-      const data = await response.json();
-      onChange(data.url);
+      // Call onChange if provided
+      if (onChange) {
+        onChange(urlData.publicUrl);
+      }
+
+      toast({
+        title: 'Image téléchargée',
+        description: 'L\'image a été téléchargée avec succès',
+      });
     } catch (error) {
       console.error('Error uploading image:', error);
-      // Reset preview on error
-      setPreviewUrl(value || null);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de télécharger l\'image',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
-      onUploading(false);
+      if (onUploading) onUploading(false);
     }
   };
 
-  const clearImage = () => {
-    setPreviewUrl(null);
-    onChange('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const removeImage = () => {
+    setImageUrl(null);
+    onImageUploaded('');
+    
+    // Call onChange if provided
+    if (onChange) {
+      onChange('');
     }
   };
 
   return (
     <div className="w-full">
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-        ref={fileInputRef}
-      />
-      
-      <div className="flex flex-col items-center gap-4">
-        {previewUrl ? (
-          <div className="relative w-full">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="w-full h-auto rounded-md object-cover max-h-[200px]"
-            />
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-2 right-2 h-8 w-8"
-              onClick={clearImage}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full h-[200px] border-dashed"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
+      {imageUrl ? (
+        <div className="relative w-full h-40 mb-2">
+          <img
+            src={imageUrl}
+            alt="Uploaded"
+            className="w-full h-full object-cover rounded-md"
+          />
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="absolute top-2 right-2"
+            onClick={removeImage}
           >
-            <div className="flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {isUploading ? 'Uploading...' : 'Click to upload image'}
-              </span>
-            </div>
+            <X className="h-4 w-4" />
           </Button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center text-center">
+          <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
+          <p className="text-sm text-gray-500 mb-2">
+            Glissez et déposez une image, ou cliquez pour parcourir
+          </p>
+          <input
+            type="file"
+            id="imageUpload"
+            className="hidden"
+            accept="image/*"
+            onChange={uploadImage}
+            disabled={isUploading}
+          />
+          <label
+            htmlFor="imageUpload"
+            className="cursor-pointer inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90"
+          >
+            {isUploading ? 'Téléchargement...' : 'Sélectionner une image'}
+          </label>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,129 +1,85 @@
 
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { useShop } from '@/hooks/useShop';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 
-interface CreateShopFormProps {
-  onSuccess?: () => void;
-}
-
-export function CreateShopForm({ onSuccess }: CreateShopFormProps) {
+export function CreateShopForm() {
   const { createShop } = useShop();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting }
-  } = useForm({
-    defaultValues: {
-      name: '',
-      description: '',
-      image_url: '',
-    }
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-  const imageUrl = watch('image_url');
-
-  const onSubmit = async (data: { name: string; description: string; image_url: string }) => {
-    if (!user) {
-      toast({
-        title: 'Erreur',
-        description: 'Vous devez être connecté pour créer une boutique',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      await createShop.mutateAsync({
-        user_id: user.id,
-        name: data.name,
-        description: data.description,
-        image_url: data.image_url || undefined,
-        status: 'pending',
-      });
-
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error) {
-      console.error('Error creating shop:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de créer votre boutique. Veuillez réessayer.',
-        variant: 'destructive',
-      });
-    }
+    await createShop.mutateAsync({
+      name,
+      description,
+      image_url: imageUrl || undefined
+    });
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Créer votre boutique</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Image de la boutique</label>
-            <ImageUpload
-              onChange={(url) => setValue('image_url', url)}
-              onUploading={setIsUploading}
-              value={imageUrl}
-            />
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium mb-1">
+          Nom de la boutique <span className="text-red-500">*</span>
+        </label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nom de votre boutique"
+          required
+        />
+      </div>
 
-          <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium">
-              Nom de la boutique *
-            </label>
-            <Input
-              id="name"
-              {...register('name', { required: 'Le nom est requis' })}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
-          </div>
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium mb-1">
+          Description
+        </label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Décrivez votre boutique"
+          rows={4}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <label htmlFor="description" className="block text-sm font-medium">
-              Description
-            </label>
-            <Textarea
-              id="description"
-              rows={4}
-              {...register('description')}
-            />
-          </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          Image de la boutique
+        </label>
+        <ImageUpload
+          onImageUploaded={setImageUrl}
+          onUploading={setIsUploading}
+          bucket="shop-images"
+          folder="shops"
+          currentImageUrl={imageUrl}
+        />
+      </div>
 
-          <Button
-            type="submit"
-            disabled={isSubmitting || isUploading}
-            className="w-full"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Création en cours...
-              </>
-            ) : (
-              'Créer ma boutique'
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <Button
+        type="submit"
+        disabled={createShop.isPending || isUploading || !name.trim()}
+        className="w-full"
+      >
+        {createShop.isPending ? (
+          <>
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            Création en cours...
+          </>
+        ) : (
+          "Créer ma boutique"
+        )}
+      </Button>
+    </form>
   );
 }
