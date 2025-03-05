@@ -2,19 +2,17 @@
 import { MenuUseCase } from '../application/MenuUseCase';
 import { MenuRepository } from './SupabaseMenuRepository';
 
-// Singleton instance
-let menuRepository: MenuRepository | null = null;
-let menuUseCase: MenuUseCase | null = null;
+let menuService: MenuUseCase | null = null;
 
+/**
+ * Get or create a menu service instance
+ * @returns MenuUseCase
+ */
 export const getMenuService = (): MenuUseCase => {
-  if (!menuUseCase) {
-    if (!menuRepository) {
-      menuRepository = new MenuRepository();
-    }
-    menuUseCase = new MenuUseCase(menuRepository);
+  if (!menuService) {
+    const menuRepository = new MenuRepository();
+    menuService = new MenuUseCase(menuRepository);
   }
-  return menuUseCase;
+  
+  return menuService;
 };
-
-// Alias pour l'API historique
-export const getMenuUseCase = getMenuService;

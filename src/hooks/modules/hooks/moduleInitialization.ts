@@ -38,10 +38,6 @@ export const initializeModuleApi = async (
     }
   }
   
-  // Setup cleanup function
-  const cleanupFunction = () => {
-    console.log('Cleaning up module API...');
-  };
-  
-  return { cleanupFunction };
+  // Return a promise that resolves to true for cleanup
+  return Promise.resolve(true);
 };

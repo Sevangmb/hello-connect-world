@@ -20,15 +20,15 @@ export const useMenu = (options: UseMenuOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
 
   // Get admin status
-  const { isAdmin: isUserAdmin } = useAdminStatus();
+  const { isUserAdmin } = useAdminStatus();
 
   // Query for menu items based on provided options
-  const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory, isUserAdmin);
-  const moduleQuery = useMenuItemsByModule(moduleCode as string, isUserAdmin);
+  const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory);
+  const moduleQuery = useMenuItemsByModule(moduleCode as string);
   const allItemsQuery = useAllMenuItems();
 
   // Categories 
-  const { data: categories = [] } = useMenuCategories();
+  const menuCategories = useMenuCategories(menuItems);
 
   // Effect to set menu items based on query results
   useEffect(() => {
@@ -94,7 +94,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     loading: loading || categoryQuery.isLoading || moduleQuery.isLoading || allItemsQuery.isLoading,
     error,
     isUserAdmin,
-    categories,
+    categories: menuCategories,
     refreshMenu
   };
 };

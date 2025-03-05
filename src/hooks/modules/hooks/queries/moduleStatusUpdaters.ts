@@ -1,108 +1,88 @@
 
-import { ModuleStatus } from '../../types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Met à jour le statut d'un module de manière asynchrone
+ * Update a module's status asynchronously (direct function, not a hook)
  */
 export const updateModuleStatusAsync = async (
-  moduleId: string,
+  moduleId: string, 
   status: ModuleStatus
-): Promise<boolean> => {
-  try {
-    // Fix: Remove the third argument
-    const { data, error } = await supabase
-      .from('app_modules')
-      .update({ status })
-      .eq('id', moduleId);
-
-    if (error) {
-      console.error('Error updating module status:', error);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error('Error in updateModuleStatusAsync:', err);
-    return false;
+): Promise<any> => {
+  const { data, error } = await supabase
+    .from('app_modules')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', moduleId)
+    .select();
+  
+  if (error) {
+    console.error('Error updating module status:', error);
+    throw error;
   }
+  
+  return data;
 };
 
 /**
- * Met à jour le statut d'une fonctionnalité de manière asynchrone
+ * Mutation hook for updating a module's status
+ */
+export const useUpdateModuleStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ moduleId, status }: { moduleId: string; status: ModuleStatus }) => 
+      updateModuleStatusAsync(moduleId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['modules'] });
+    }
+  });
+};
+
+/**
+ * Update a feature's status asynchronously (direct function, not a hook)
  */
 export const updateFeatureStatusAsync = async (
   moduleCode: string,
   featureCode: string,
   isEnabled: boolean
-): Promise<boolean> => {
-  try {
-    // Fix: Remove the fourth argument
-    const { data, error } = await supabase
-      .from('module_features')
-      .update({ is_enabled: isEnabled })
-      .eq('module_code', moduleCode)
-      .eq('feature_code', featureCode);
-
-    if (error) {
-      console.error('Error updating feature status:', error);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error('Error in updateFeatureStatusAsync:', err);
-    return false;
+): Promise<any> => {
+  const { data, error } = await supabase
+    .from('module_features')
+    .update({ 
+      is_enabled: isEnabled, 
+      updated_at: new Date().toISOString() 
+    })
+    .eq('module_code', moduleCode)
+    .eq('feature_code', featureCode)
+    .select();
+  
+  if (error) {
+    console.error('Error updating feature status:', error);
+    throw error;
   }
+  
+  return data;
 };
 
-// Add the missing functions that are expected in index.ts
-export const updateModuleStatusData = async (
-  moduleId: string, 
-  status: ModuleStatus,
-  modules: any[],
-  setModules: any,
-  refreshModules: any
-): Promise<boolean> => {
-  const result = await updateModuleStatusAsync(moduleId, status);
-  if (result && modules?.length > 0) {
-    const updatedModules = [...modules];
-    const moduleIndex = updatedModules.findIndex(m => m.id === moduleId);
-    if (moduleIndex !== -1) {
-      updatedModules[moduleIndex] = { ...updatedModules[moduleIndex], status };
-      setModules(updatedModules);
+/**
+ * Mutation hook for updating a feature's status
+ */
+export const useUpdateFeatureStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      moduleCode, 
+      featureCode, 
+      isEnabled 
+    }: { 
+      moduleCode: string; 
+      featureCode: string; 
+      isEnabled: boolean 
+    }) => updateFeatureStatusAsync(moduleCode, featureCode, isEnabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['module-features'] });
     }
-  }
-  
-  // Refresh modules anyway to ensure we have the latest data
-  if (refreshModules) await refreshModules(true);
-  
-  return result;
-};
-
-export const updateFeatureStatusData = async (
-  moduleCode: string,
-  featureCode: string,
-  isEnabled: boolean,
-  features: any,
-  setFeatures: any,
-  refreshFeatures: any
-): Promise<boolean> => {
-  const result = await updateFeatureStatusAsync(moduleCode, featureCode, isEnabled);
-  
-  if (result && features) {
-    const updatedFeatures = { ...features };
-    if (updatedFeatures[moduleCode]) {
-      updatedFeatures[moduleCode] = {
-        ...updatedFeatures[moduleCode],
-        [featureCode]: isEnabled
-      };
-      setFeatures(updatedFeatures);
-    }
-  }
-  
-  // Refresh features anyway to ensure we have the latest data
-  if (refreshFeatures) await refreshFeatures(true);
-  
-  return result;
+  });
 };

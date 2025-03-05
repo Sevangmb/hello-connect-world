@@ -1,123 +1,73 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { FeatureStatusUseCase } from './usecases/FeatureStatusUseCase';
-import { moduleStatusUseCase } from './usecases/ModuleStatusUseCase';
 import { ModuleRepository } from './repositories/ModuleRepository';
-import { FeatureRepository } from './repositories/FeatureRepository';
-import { DependencyRepository } from './repositories/DependencyRepository';
 
-/**
- * Core service for module management
- */
 export class ModuleService {
-  private moduleRepo: ModuleRepository;
-  private featureRepo: FeatureRepository;
-  private dependencyRepo: DependencyRepository;
-  private moduleStatusUseCase: typeof moduleStatusUseCase;
-  private featureStatusUseCase: FeatureStatusUseCase;
+  private moduleRepository: ModuleRepository;
 
   constructor() {
-    this.moduleRepo = new ModuleRepository();
-    this.featureRepo = new FeatureRepository();
-    this.dependencyRepo = new DependencyRepository();
-    this.moduleStatusUseCase = moduleStatusUseCase;
-    this.featureStatusUseCase = new FeatureStatusUseCase(this.moduleRepo, this.featureRepo);
-  }
-
-  /**
-   * Initialize the module service
-   */
-  async initialize(): Promise<boolean> {
-    try {
-      return true;
-    } catch (error) {
-      console.error("Error initializing module service:", error);
-      return false;
-    }
+    this.moduleRepository = new ModuleRepository();
   }
 
   /**
    * Get all modules
    */
   async getAllModules(): Promise<AppModule[]> {
-    return await this.moduleRepo.getAllModules();
-  }
-
-  /**
-   * Get active modules
-   */
-  async getActiveModules(): Promise<AppModule[]> {
-    return await this.moduleRepo.getModulesByStatus('active');
-  }
-
-  /**
-   * Get core modules
-   */
-  async getCoreModules(): Promise<AppModule[]> {
-    return await this.moduleRepo.getCoreModules();
+    return this.moduleRepository.getAllModules();
   }
 
   /**
    * Get a module by code
    */
   async getModuleByCode(code: string): Promise<AppModule | null> {
-    return await this.moduleRepo.getModuleByCode(code);
+    return this.moduleRepository.getModuleByCode(code);
+  }
+
+  /**
+   * Get a module by ID
+   */
+  async getModuleById(id: string): Promise<AppModule | null> {
+    return this.moduleRepository.getModuleById(id);
+  }
+
+  /**
+   * Update a module's status
+   */
+  async updateModuleStatus(id: string, status: ModuleStatus): Promise<AppModule | null> {
+    return this.moduleRepository.updateModuleStatus(id, status);
+  }
+
+  /**
+   * Get modules by status
+   */
+  async getModulesByStatus(status: ModuleStatus): Promise<AppModule[]> {
+    return this.moduleRepository.getAllModules().then(modules => 
+      modules.filter(module => module.status === status)
+    );
+  }
+
+  /**
+   * Get core modules
+   */
+  async getCoreModules(): Promise<AppModule[]> {
+    return this.moduleRepository.getAllModules().then(modules => 
+      modules.filter(module => module.is_core === true)
+    );
+  }
+
+  /**
+   * Initialize a module
+   */
+  async initializeModule(moduleCode: string): Promise<boolean> {
+    console.log(`Initializing module: ${moduleCode}`);
+    // Implementation will depend on specific requirements
+    return true;
   }
 
   /**
    * Check if a module is active
    */
   async isModuleActive(moduleCode: string): Promise<boolean> {
-    return await this.moduleStatusUseCase.isModuleActive(moduleCode);
-  }
-
-  /**
-   * Get module status
-   */
-  async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-    return await this.moduleStatusUseCase.getModuleStatus(moduleCode);
-  }
-
-  /**
-   * Update module status
-   */
-  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-    return await this.moduleStatusUseCase.updateModuleStatus(moduleId, status);
-  }
-
-  /**
-   * Get module dependencies
-   */
-  async getModuleDependencies(moduleId: string): Promise<any[]> {
-    return await this.dependencyRepo.getModuleDependencies(moduleId);
-  }
-
-  /**
-   * Check module dependencies
-   */
-  async checkModuleDependencies(moduleId: string): Promise<boolean> {
-    const dependencies = await this.getModuleDependencies(moduleId);
-    return dependencies.every(dep => dep.dependency_status === 'active');
-  }
-
-  /**
-   * Check if a feature is enabled
-   */
-  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
-    return await this.featureStatusUseCase.isFeatureEnabled(moduleCode, featureCode);
-  }
-
-  /**
-   * Get all features for a module
-   */
-  async getModuleFeatures(moduleCode: string): Promise<any[]> {
-    return await this.featureRepo.getFeaturesByModule(moduleCode);
-  }
-
-  /**
-   * Update feature status
-   */
-  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
-    return await this.featureStatusUseCase.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+    const module = await this.getModuleByCode(moduleCode);
+    return module?.status === 'active';
   }
 }

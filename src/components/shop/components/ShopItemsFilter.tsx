@@ -1,107 +1,106 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
+import { X, Search } from 'lucide-react';
 
-export interface ShopItemsFilterProps {
+interface ShopItemsFilterProps {
   filter: {
-    search: string;
-    minPrice: number;
-    maxPrice: number;
-    category: string;
-    sort: string;
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+    category?: string;
   };
-  setFilter: (filter: any) => void;
+  setFilter: React.Dispatch<React.SetStateAction<{
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'popular';
+    category?: string;
+  }>>;
 }
 
-export const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({ filter, setFilter }) => {
+export function ShopItemsFilter({ filter, setFilter }: ShopItemsFilterProps) {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFilter({ ...filter, search: e.target.value });
-  };
-
-  const handlePriceChange = (value: number[]) => {
-    setFilter({ ...filter, minPrice: value[0], maxPrice: value[1] });
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setFilter({ ...filter, category: value });
+    setFilter(prev => ({ ...prev, search: e.target.value }));
   };
 
   const handleSortChange = (value: string) => {
-    setFilter({ ...filter, sort: value });
+    setFilter(prev => ({ 
+      ...prev, 
+      sortBy: value as 'price_asc' | 'price_desc' | 'newest' | 'popular' 
+    }));
+  };
+
+  const handlePriceChange = (value: number[]) => {
+    setFilter(prev => ({ ...prev, minPrice: value[0], maxPrice: value[1] }));
+  };
+
+  const clearFilters = () => {
+    setFilter({});
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="search">Search</Label>
-            <Input
-              id="search"
-              placeholder="Search items..."
-              value={filter.search}
-              onChange={handleSearchChange}
-            />
-          </div>
-
-          <div>
-            <Label className="mb-2 block">Price Range</Label>
-            <div className="px-2">
-              <Slider
-                defaultValue={[filter.minPrice, filter.maxPrice]}
-                max={1000}
-                step={10}
-                onValueChange={handlePriceChange}
-              />
-              <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                <span>{filter.minPrice}€</span>
-                <span>{filter.maxPrice}€</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Select value={filter.category} onValueChange={handleCategoryChange}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All categories</SelectItem>
-                  <SelectItem value="clothing">Clothing</SelectItem>
-                  <SelectItem value="accessories">Accessories</SelectItem>
-                  <SelectItem value="shoes">Shoes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="sort">Sort by</Label>
-              <Select value={filter.sort} onValueChange={handleSortChange}>
-                <SelectTrigger id="sort">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="priceAsc">Price: Low to High</SelectItem>
-                  <SelectItem value="priceDesc">Price: High to Low</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+    <div className="bg-background p-4 rounded-md shadow-sm mb-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search items..."
+            value={filter.search || ''}
+            onChange={handleSearchChange}
+            className="pl-8"
+          />
         </div>
-      </CardContent>
-    </Card>
+        <Select
+          value={filter.sortBy || ''}
+          onValueChange={handleSortChange}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="price_asc">Price: Low to High</SelectItem>
+            <SelectItem value="price_desc">Price: High to Low</SelectItem>
+            <SelectItem value="popular">Popular</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={clearFilters}
+          className="shrink-0"
+          title="Clear filters"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Price Range Slider */}
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-sm">Price Range</span>
+          <span className="text-sm">
+            {filter.minPrice || 0}€ - {filter.maxPrice || 1000}€
+          </span>
+        </div>
+        <Slider
+          defaultValue={[filter.minPrice || 0, filter.maxPrice || 1000]}
+          max={1000}
+          step={10}
+          onValueChange={handlePriceChange}
+        />
+      </div>
+    </div>
   );
-};
+}

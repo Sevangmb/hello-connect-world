@@ -36,7 +36,7 @@ export class ShopService {
     return this.repository.getShopsByStatus(status);
   }
 
-  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> {
+  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop> {
     return this.repository.createShop(shopData);
   }
 
@@ -57,10 +57,6 @@ export class ShopService {
     return this.repository.getShopItemById(id);
   }
 
-  async getShopItemsByIds(ids: string[]): Promise<ShopItem[]> {
-    return this.repository.getShopItemsByIds(ids);
-  }
-
   async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
     return this.repository.createShopItem(itemData);
   }
@@ -69,7 +65,7 @@ export class ShopService {
     return this.repository.updateShopItem(id, itemData);
   }
 
-  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem> {
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean> {
     return this.repository.updateShopItemStatus(id, status);
   }
 
@@ -78,14 +74,12 @@ export class ShopService {
   }
 
   // Order operations
-  async getOrders(shopId: string): Promise<Order[]> {
-    return this.repository.getOrders(shopId);
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    return this.repository.getShopOrders(shopId);
   }
 
-  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    // Implement this in the repository
-    const orders = await this.repository.getOrders("");
-    return orders.filter(order => order.customer_id === customerId);
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return this.repository.getUserOrders(userId);
   }
 
   async getOrderById(id: string): Promise<Order | null> {
@@ -100,8 +94,8 @@ export class ShopService {
     return this.repository.updateOrder(id, orderData);
   }
 
-  async updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
-    return this.repository.updateOrderStatus(id, status);
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
+    return this.repository.updateOrderStatus(orderId, status);
   }
 
   // Shop review operations
@@ -126,24 +120,24 @@ export class ShopService {
     return this.repository.getShopSettings(shopId);
   }
 
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
+  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
     return this.repository.updateShopSettings(shopId, settings);
   }
 
   // Favorites operations
-  async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
-    return this.repository.addShopToFavorites(userId, shopId);
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
+    return this.repository.getFavoriteShops(userId);
   }
 
-  async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
-    return this.repository.removeShopFromFavorites(userId, shopId);
+  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.repository.addFavoriteShop(userId, shopId);
   }
 
-  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
-    return this.repository.isShopFavorited(userId, shopId);
+  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.repository.removeFavoriteShop(userId, shopId);
   }
 
-  async getUserFavoriteShops(userId: string): Promise<Shop[]> {
-    return this.repository.getUserFavoriteShops(userId);
+  async checkIfFavorited(userId: string, shopId: string): Promise<boolean> {
+    return this.repository.checkIfFavorited(userId, shopId);
   }
 }

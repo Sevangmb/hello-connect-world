@@ -16,24 +16,26 @@ export const useAllMenuItems = () => {
 };
 
 // Function to get menu items by category
-export const useMenuItemsByCategory = (category: MenuItemCategory, isAdmin: boolean = false) => {
+export const useMenuItemsByCategory = (category: MenuItemCategory) => {
   return useQuery({
-    queryKey: ['menuItems', 'category', category, isAdmin],
+    queryKey: ['menuItems', 'category', category],
     queryFn: async () => {
       const menuService = getMenuService();
-      return await menuService.getMenuItemsByCategory(category, isAdmin);
-    }
+      return await menuService.getMenuItemsByCategory(category);
+    },
+    enabled: !!category
   });
 };
 
 // Function to get menu items by module
-export const useMenuItemsByModule = (moduleCode: string, isAdmin: boolean = false) => {
+export const useMenuItemsByModule = (moduleCode: string) => {
   return useQuery({
-    queryKey: ['menuItems', 'module', moduleCode, isAdmin],
+    queryKey: ['menuItems', 'module', moduleCode],
     queryFn: async () => {
       const menuService = getMenuService();
-      return await menuService.getMenuItemsByModule(moduleCode, isAdmin);
-    }
+      return await menuService.getMenuItemsByModule(moduleCode);
+    },
+    enabled: !!moduleCode
   });
 };
 
@@ -44,7 +46,8 @@ export const useMenuItemsByParent = (parentId: string | null) => {
     queryFn: async () => {
       const menuRepository = new MenuRepository();
       return await menuRepository.getMenuItemsByParent(parentId);
-    }
+    },
+    enabled: parentId !== undefined
   });
 };
 

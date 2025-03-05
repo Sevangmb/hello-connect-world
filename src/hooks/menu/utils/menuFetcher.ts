@@ -1,32 +1,43 @@
 
-import { MenuType } from '@/services/menu/types';
 import { getMenuService } from '@/services/menu/infrastructure/menuServiceProvider';
+import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { MenuRepository } from '@/services/menu/infrastructure/SupabaseMenuRepository';
 
 /**
- * Fonction pour récupérer les éléments de menu
+ * Fetch all menu items
  */
-export const fetchMenuItems = async (menuType: MenuType) => {
+export async function fetchMenuItems() {
   try {
     const menuService = getMenuService();
-    // Use getAllMenuItems since getMenuItems doesn't exist
-    return await menuService.getMenuItemsByCategory(menuType);
+    return await menuService.getAllMenuItems();
   } catch (error) {
     console.error('Error fetching menu items:', error);
     return [];
   }
-};
+}
 
 /**
- * Fonction pour récupérer les éléments de menu par parent
+ * Fetch menu items by parent
  */
-export const fetchMenuItemsByParent = async (parentId: string | null) => {
+export async function fetchMenuItemsByParent(parentId: string | null) {
   try {
-    // Fetch from repository directly since the method doesn't exist in useCase
     const menuRepository = new MenuRepository();
     return await menuRepository.getMenuItemsByParent(parentId);
   } catch (error) {
     console.error('Error fetching menu items by parent:', error);
     return [];
   }
-};
+}
+
+/**
+ * Fetch menu items by category
+ */
+export async function fetchMenuItemsByCategory(category: MenuItemCategory) {
+  try {
+    const menuService = getMenuService();
+    return await menuService.getMenuItemsByCategory(category);
+  } catch (error) {
+    console.error(`Error fetching menu items for category ${category}:`, error);
+    return [];
+  }
+}

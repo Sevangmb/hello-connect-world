@@ -1,58 +1,57 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { preloadModuleStatuses } from '@/hooks/modules/hooks/status/modulePreload';
 import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
-import { initializeModuleApi } from '@/hooks/modules/hooks/moduleInitialization';
+import { supabase } from '@/integrations/supabase/client';
+import { eventBus } from '@/core/event-bus/EventBus';
 
 /**
- * Initialise l'application
+ * Application Initializer
+ * Handles initialization of various modules and services
  */
 export class AppInitializer {
-  private static instance: AppInitializer;
-  private initialized = false;
   private moduleInitializer: ModuleInitializer;
-
-  private constructor() {
+  
+  constructor() {
     this.moduleInitializer = new ModuleInitializer();
   }
-
-  public static getInstance(): AppInitializer {
-    if (!AppInitializer.instance) {
-      AppInitializer.instance = new AppInitializer();
-    }
-    return AppInitializer.instance;
-  }
-
-  public async initialize(): Promise<boolean> {
-    if (this.initialized) return true;
-
-    console.log('Initializing application...');
+  
+  /**
+   * Initialize the application
+   */
+  async initialize(): Promise<boolean> {
     try {
-      // Initialize the auth listener
-      this.initializeAuthListener();
-
-      // Initialize modules
-      await this.moduleInitializer.initializeModules();
+      console.log('Starting app initialization...');
       
-      // Preload module statuses
-      preloadModuleStatuses();
-
-      this.initialized = true;
+      // Check Supabase connection
+      const { error } = await supabase.from('site_stats').select('count(*)', { count: 'exact' });
+      if (error) {
+        console.error('Failed to connect to Supabase:', error);
+        return false;
+      }
+      
+      // Initialize event bus
+      eventBus.initialize();
+      
+      // Initialize modules
+      await this.initializeModules();
+      
+      console.log('App initialization completed successfully');
       return true;
     } catch (error) {
-      console.error('Failed to initialize application:', error);
+      console.error('Error during app initialization:', error);
       return false;
     }
   }
-
-  private initializeAuthListener() {
-    supabase.auth.onAuthStateChange((event, session) => {
-      console.info('Supabase Auth Event:', event, session ? 'Session active' : 'No session');
-      if (session?.user) {
-        console.info('Utilisateur connecté:', session.user.id);
-      } else {
-        console.info('Aucun utilisateur connecté');
-      }
-    });
+  
+  /**
+   * Initialize modules
+   */
+  private async initializeModules(): Promise<boolean> {
+    try {
+      await this.moduleInitializer.initializeModule('core');
+      return true;
+    } catch (error) {
+      console.error('Error initializing modules:', error);
+      return false;
+    }
   }
 }

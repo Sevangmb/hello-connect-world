@@ -1,19 +1,14 @@
 
-// Export des fonctions de vérification asynchrone
+/**
+ * Re-export all module query hooks
+ */
+
+// Base queries
+export * from './moduleAsyncQueries';
+export * from './moduleDataRefresh';
+
+// Status updaters
 export { 
-  isModuleActiveAsync,
-  isModuleDegradedAsync,
-  isFeatureEnabledAsync
-} from './moduleAsyncQueries';
-
-// Export des fonctions de rafraîchissement des données
-export {
-  refreshModulesData,
-  refreshFeaturesData
-} from './moduleDataRefresh';
-
-// Export des fonctions de mise à jour des statuts
-export {
-  updateModuleStatusData,
-  updateFeatureStatusData
+  updateModuleStatusAsync,
+  updateFeatureStatusAsync
 } from './moduleStatusUpdaters';
