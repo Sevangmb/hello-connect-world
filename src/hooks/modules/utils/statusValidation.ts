@@ -17,7 +17,7 @@ export const isAdminModule = (moduleCode: string): boolean => {
  * Valide le statut d'un module et retourne un statut ModuleStatus valide
  */
 export const validateModuleStatus = (status: string): ModuleStatus => {
-  if (status === 'active' || status === 'inactive' || status === 'degraded') {
+  if (status === 'active' || status === 'inactive' || status === 'degraded' || status === 'maintenance') {
     return status as ModuleStatus;
   }
   return 'inactive' as ModuleStatus;

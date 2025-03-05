@@ -17,6 +17,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, isPending = fa
         return <Badge className="bg-red-500">Inactif</Badge>;
       case 'degraded':
         return <Badge className="bg-yellow-500">Dégradé</Badge>;
+      case 'maintenance':
+        return <Badge className="bg-blue-500">Maintenance</Badge>;
       default:
         return <Badge>Inconnu</Badge>;
     }
