@@ -1,20 +1,13 @@
 
-// Import only what's actually available
-import ClothesGrid from "@/components/clothes/ClothesGrid";
-// Comment out problematic imports until they're properly implemented
-// import { ClothesFilters } from "@/components/clothes/ClothesFilters";
-// import { ClothesFeature } from './ClothesFeature';
-// import { ClothesModule } from './ClothesModule';
+// Remove reference to non-existent file
+import { ClothesList } from '@/components/clothes/ClothesList'; 
+// Comment out references to files that don't exist
+// import { ClothesFilters } from '@/components/clothes/ClothesFilters';
+// import ClothesGrid from '@/components/clothes/ClothesGrid';
 
+// Export only the components that exist
 export {
-  ClothesGrid,
+  ClothesList,
   // ClothesFilters,
-  // ClothesFeature
-};
-
-// Default export
-export default {
-  name: "Clothes Module",
-  code: "clothes",
-  // Add other module properties as needed
+  // ClothesGrid
 };

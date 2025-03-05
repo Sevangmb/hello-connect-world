@@ -1,5 +1,4 @@
 
-// If the file doesn't exist, create it with a basic structure
 import { useEffect } from 'react';
 import { AppModule } from './types';
 
