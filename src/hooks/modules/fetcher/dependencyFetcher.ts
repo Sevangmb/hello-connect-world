@@ -18,7 +18,7 @@ export async function fetchDependencies(): Promise<ModuleDependency[]> {
 
     // Map the returned data to match the ModuleDependency interface
     return (data || []).map(item => ({
-      id: item.module_id + '_' + item.dependency_id, // Creating a synthetic id from module_id and dependency_id
+      id: item.module_id + '_' + item.dependency_id, // Creating a synthetic id
       module_id: item.module_id,
       module_code: item.module_code,
       module_name: item.module_name,

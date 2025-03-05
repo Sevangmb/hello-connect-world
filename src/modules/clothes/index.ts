@@ -1,26 +1,20 @@
 
-// Exporter les composants et hooks du module vêtements
-import { ClothesFilters } from "@/components/clothes/ClothesFilters";
-
-// Placeholder pour les futures importations
+// Import only what's actually available
+import ClothesGrid from "@/components/clothes/ClothesGrid";
+// Comment out problematic imports until they're properly implemented
+// import { ClothesFilters } from "@/components/clothes/ClothesFilters";
 // import { ClothesFeature } from './ClothesFeature';
 // import { ClothesModule } from './ClothesModule';
 
-// Exporter les fonctionnalités publiques du module
 export {
-  ClothesFilters,
-  // ClothesFeature,
-  // ClothesModule
+  ClothesGrid,
+  // ClothesFilters,
+  // ClothesFeature
 };
 
-// Module de vêtements
-export const ClothesModule = {
-  name: "Vêtements",
+// Default export
+export default {
+  name: "Clothes Module",
   code: "clothes",
-  description: "Gestion des vêtements et des collections",
-  version: "1.0.0",
-  initialize: () => {
-    console.log("Module vêtements initialisé");
-    return true;
-  }
+  // Add other module properties as needed
 };

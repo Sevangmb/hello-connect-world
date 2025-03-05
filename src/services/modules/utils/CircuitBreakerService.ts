@@ -3,7 +3,7 @@ import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_EVENTS } from '../ModuleEvents';
 
 // États possibles du circuit breaker
-type CircuitState = 'closed' | 'open' | 'half-open';
+type CircuitStateType = 'closed' | 'open' | 'half-open';
 
 // Configuration pour un circuit
 interface CircuitConfig {
@@ -14,8 +14,8 @@ interface CircuitConfig {
 }
 
 // État actuel d'un circuit
-interface CircuitState {
-  state: CircuitState;
+interface CircuitStateData {
+  state: CircuitStateType;
   failures: number;
   successes: number;
   lastFailure: number | null;
@@ -24,9 +24,9 @@ interface CircuitState {
 }
 
 class CircuitBreakerService {
-  private circuits: Map<string, CircuitState> = new Map();
+  private circuits: Map<string, CircuitStateData> = new Map();
   private configs: Map<string, CircuitConfig> = new Map();
-  private name: string = 'CircuitBreakerService'; // Ajout de la propriété name manquante
+  private name: string = 'CircuitBreakerService';
 
   constructor() {
     this.setDefaultConfig('default', {
@@ -96,9 +96,10 @@ class CircuitBreakerService {
         circuitState.successes = 0;
         
         // Publier un événement de changement d'état
-        eventBus.publish(MODULE_EVENTS.CIRCUIT_HALF_OPEN, {
+        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
           circuit: circuitName,
           service: this.name,
+          status: 'half-open',
           timestamp: now
         });
         
@@ -128,9 +129,10 @@ class CircuitBreakerService {
         circuitState.state = 'closed';
         
         // Publier un événement de changement d'état
-        eventBus.publish(MODULE_EVENTS.CIRCUIT_CLOSED, {
+        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
           circuit: circuitName,
           service: this.name,
+          status: 'closed',
           timestamp: Date.now()
         });
         
@@ -150,10 +152,11 @@ class CircuitBreakerService {
         circuitState.state = 'open';
         
         // Publier un événement de changement d'état
-        eventBus.publish(MODULE_EVENTS.CIRCUIT_OPENED, {
+        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
           circuit: circuitName,
           service: this.name,
-          error: error.message,
+          status: 'open',
+          error: error instanceof Error ? error.message : String(error),
           failures: circuitState.failures,
           timestamp: Date.now(),
           previousState
