@@ -1,138 +1,139 @@
 
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { getShopServiceInstance } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { ShopItem } from '@/core/shop/domain/types';
 
-const addItemSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters'),
-  description: z.string().optional(),
-  price: z.coerce.number().positive('Price must be positive'),
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative'),
-  image_url: z.string().url('Invalid URL').optional().or(z.literal('')),
-});
-
-export type AddItemFormValues = z.infer<typeof addItemSchema>;
-
-export interface AddItemFormProps {
+interface AddItemFormProps {
   shopId: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export const AddItemForm: React.FC<AddItemFormProps> = ({ shopId, onSuccess, onCancel }) => {
-  const form = useForm<AddItemFormValues>({
-    resolver: zodResolver(addItemSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      price: 0,
-      stock: 1,
-      image_url: '',
-    },
-  });
+export const AddItemForm = ({ shopId, onSuccess, onCancel }: AddItemFormProps) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState<number | undefined>(undefined);
+  const [stock, setStock] = useState<number | undefined>(undefined);
+  const [imageUrl, setImageUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSubmit = async (data: AddItemFormValues) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !price || stock === undefined) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
-      const shopService = getShopServiceInstance();
-      await shopService.createShopItem({
-        ...data,
+      const shopService = getShopService();
+      
+      // S'assurer que toutes les propriétés requises sont présentes
+      const itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> = {
         shop_id: shopId,
+        name,
+        description,
+        price,
+        stock,
+        image_url: imageUrl,
         status: 'available',
-      });
+        clothes_id: undefined, // Ou utiliser un ID valide si nécessaire
+        shop: { name: '' } // Requis par l'interface mais sera ignoré à l'insertion
+      };
+      
+      await shopService.createShopItem(itemData);
       onSuccess();
     } catch (error) {
-      console.error('Error creating shop item:', error);
+      console.error('Error adding item:', error);
+      alert('Une erreur est survenue lors de l\'ajout de l\'article');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nom</FormLabel>
-              <FormControl>
-                <Input placeholder="Nom de l'article" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Description de l'article" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Prix (€)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="stock"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Stock</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="image_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL de l'image</FormLabel>
-              <FormControl>
-                <Input placeholder="https://exemple.com/image.jpg" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end space-x-2">
+    <Card className="w-full max-w-lg">
+      <CardHeader>
+        <CardTitle>Ajouter un nouvel article</CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nom *</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="Nom de l'article"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Description de l'article"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="price">Prix *</Label>
+            <Input 
+              id="price" 
+              type="number" 
+              value={price || ''} 
+              onChange={(e) => setPrice(parseFloat(e.target.value))} 
+              placeholder="Prix"
+              required
+              min="0"
+              step="0.01"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="stock">Stock *</Label>
+            <Input 
+              id="stock" 
+              type="number" 
+              value={stock || ''} 
+              onChange={(e) => setStock(parseInt(e.target.value))} 
+              placeholder="Quantité en stock"
+              required
+              min="0"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="imageUrl">URL de l'image</Label>
+            <Input 
+              id="imageUrl" 
+              value={imageUrl} 
+              onChange={(e) => setImageUrl(e.target.value)} 
+              placeholder="URL de l'image"
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-between">
           <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
-          <Button type="submit">
-            Ajouter
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Ajout en cours...' : 'Ajouter'}
           </Button>
-        </div>
+        </CardFooter>
       </form>
-    </Form>
+    </Card>
   );
 };
+
+export default AddItemForm;

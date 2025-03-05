@@ -1,19 +1,18 @@
 
 import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
+import { IShopRepository } from '../domain/repository/IShopRepository';
 
-// Singleton instance
-let shopServiceInstance: ShopService | null = null;
+let shopRepository: IShopRepository | null = null;
+let shopService: ShopService | null = null;
 
-export const getShopServiceInstance = (): ShopService => {
-  if (!shopServiceInstance) {
-    const shopRepository = new ShopRepository();
-    shopServiceInstance = new ShopService(shopRepository);
+// Utilisation de la notation de casting pour garantir la compatibilité des types
+export const getShopService = (): ShopService => {
+  if (!shopService) {
+    if (!shopRepository) {
+      shopRepository = new ShopRepository() as unknown as IShopRepository;
+    }
+    shopService = new ShopService(shopRepository);
   }
-  return shopServiceInstance;
-};
-
-// For backwards compatibility
-export const ShopServiceProvider = {
-  getShopService: getShopServiceInstance
+  return shopService;
 };

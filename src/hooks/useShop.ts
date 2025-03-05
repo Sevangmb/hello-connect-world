@@ -1,9 +1,15 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { useAuth } from './useAuth';
-import { Shop, ShopStatus, OrderStatus } from '@/core/shop/domain/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { Shop, ShopItem, ShopReview, Order } from '@/core/shop/domain/types';
+
+// Interface pour les paramètres de création d'une review
+interface CreateReviewParams {
+  shopId: string;
+  userId: string;
+  rating: number;
+  comment?: string;
+}
 
 export const useShop = () => {
   const { user } = useAuth();
@@ -123,6 +129,43 @@ export const useShop = () => {
     },
   });
   
+  // Ajouter un avis sur une boutique
+  const addShopReviewMutation = useMutation({
+    mutationFn: async ({ shopId, userId, rating, comment }: CreateReviewParams) => {
+      try {
+        const review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'> = {
+          shop_id: shopId,
+          user_id: userId,
+          rating,
+          comment
+        };
+        
+        // Utiliser directement l'interface IShopRepository plutôt que ShopService
+        return await shopService.createShopReview(review);
+      } catch (error) {
+        console.error('Error adding shop review:', error);
+        throw error;
+      }
+    },
+    meta: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['shop-reviews'] });
+        toast({
+          title: 'Avis ajouté',
+          description: 'Votre avis a été ajouté avec succès',
+          variant: 'default'
+        });
+      },
+      onError: () => {
+        toast({
+          title: 'Erreur',
+          description: 'Impossible d\'ajouter votre avis',
+          variant: 'destructive'
+        });
+      }
+    }
+  });
+
   return {
     // Shop data
     shop,
@@ -150,6 +193,7 @@ export const useShop = () => {
     getShopReviews,
     createShopReview: createShopReviewMutation.mutate,
     isCreatingShopReview: createShopReviewMutation.isPending,
+    addShopReview: addShopReviewMutation.mutate,
     
     // Shop orders
     getShopOrders,

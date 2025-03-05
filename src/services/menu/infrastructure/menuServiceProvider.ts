@@ -15,3 +15,6 @@ export const getMenuService = (): MenuUseCase => {
   }
   return menuUseCase;
 };
+
+// Alias pour l'API historique
+export const getMenuUseCase = getMenuService;
