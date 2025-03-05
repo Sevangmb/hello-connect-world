@@ -1,33 +1,38 @@
-
 /**
- * Types communs pour les modules de l'application
+ * Types pour le module de gestion des modules
  */
 
-// Status possibles pour un module
+// Définit les statuts possibles pour un module
 export type ModuleStatus = 'active' | 'inactive' | 'degraded' | 'maintenance';
 
-// Module de l'application
+// Définit la structure d'un module d'application
 export interface AppModule {
   id: string;
-  code: string;
   name: string;
-  description: string;
-  version: string;
+  code: string;
   status: ModuleStatus;
+  description?: string;
   is_core: boolean;
-  is_admin: boolean;
-  priority: number;
-  created_at: string;
-  updated_at: string;
-  features?: Record<string, boolean>; // Ajout de features optionnel pour supporter statusManager
+  version?: string;
+  is_admin?: boolean;
+  priority?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// Pour compatibilité avec le code existant (alias de AppModule)
-export type Module = AppModule;
-
-// Dépendance entre modules
-export interface ModuleDependency {
+// Définit la structure d'une fonctionnalité de module
+export interface ModuleFeature {
   id: string;
+  module_code: string;
+  feature_code: string;
+  is_enabled: boolean;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Définit la structure d'une dépendance de module
+export interface ModuleDependency {
   module_id: string;
   module_code: string;
   module_name: string;
@@ -36,20 +41,5 @@ export interface ModuleDependency {
   dependency_code: string;
   dependency_name: string;
   dependency_status: ModuleStatus;
-  depends_on: string;
   is_required: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// Feature de module
-export interface ModuleFeature {
-  id: string;
-  module_code: string;
-  feature_code: string;
-  feature_name: string;
-  description: string | null;
-  is_enabled: boolean;
-  created_at: string;
-  updated_at: string;
 }

@@ -1,155 +1,163 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Order, OrderStatus } from '@/core/shop/domain/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useShop } from "@/hooks/useShop";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { CheckCircle, Truck, Clock, Ban, Package, ExternalLink } from "lucide-react";
 
-interface ShopOrdersListProps {
-  shopId: string;
-}
-
-const ShopOrdersList: React.FC<ShopOrdersListProps> = ({ shopId }) => {
-  const [orders, setOrders] = useState<Order[]>([]);
+export const ShopOrdersList = ({ shop }) => {
+  const { 
+    getShopOrders, 
+    updateOrderStatus 
+  } = useShop();
+  
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  // Load shop orders
-  const loadOrders = async () => {
+  useEffect(() => {
+    if (shop?.id) {
+      fetchOrders();
+    }
+  }, [shop]);
+
+  const fetchOrders = async () => {
     try {
       setLoading(true);
-      // Get shop orders (this would be implemented in a real hook)
-      // const data = await getShopOrders(shopId);
-      const data: Order[] = []; // Placeholder for real data
-      setOrders(data);
+      const shopOrders = await getShopOrders(shop.id);
+      setOrders(shopOrders);
     } catch (error) {
-      console.error('Error loading shop orders:', error);
-      toast({
-        variant: "destructive",
-        title: "Error loading orders",
-        description: "There was a problem loading the shop orders."
-      });
+      console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadOrders();
-  }, [shopId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Handle order status change
-  const handleStatusChange = async (id: string, status: OrderStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus) => {
     try {
-      // This would be implemented in a real hook
-      // await updateOrderStatus.mutateAsync({ id, status });
-      
-      // Update local state
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === id ? { ...order, status } : order
-        ) as Order[]
-      );
-      
-      toast({
-        title: "Status updated",
-        description: `Order status has been updated to ${status}.`
-      });
+      await updateOrderStatus(orderId, newStatus);
+      await fetchOrders();
     } catch (error) {
-      console.error('Error updating order status:', error);
-      toast({
-        variant: "destructive",
-        title: "Error updating status",
-        description: "There was a problem updating the order status."
-      });
+      console.error("Error updating order status:", error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" /> En attente</Badge>;
+      case "confirmed":
+        return <Badge><CheckCircle className="mr-1 h-3 w-3" /> Confirmé</Badge>;
+      case "shipped":
+        return <Badge variant="default"><Truck className="mr-1 h-3 w-3" /> Expédié</Badge>;
+      case "delivered":
+        return <Badge variant="outline"><Package className="mr-1 h-3 w-3" /> Livré</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" /> Annulé</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const renderOrderActions = (order) => {
+    switch (order.status) {
+      case "pending":
+        return (
+          <>
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={() => handleUpdateStatus(order.id, "confirmed")}
+              className="mr-2"
+            >
+              <CheckCircle className="mr-1 h-3 w-3" /> Confirmer
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={() => handleUpdateStatus(order.id, "cancelled")}
+            >
+              <Ban className="mr-1 h-3 w-3" /> Annuler
+            </Button>
+          </>
+        );
+      case "confirmed":
+        return (
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => handleUpdateStatus(order.id, "shipped")}
+          >
+            <Truck className="mr-1 h-3 w-3" /> Marquer comme expédié
+          </Button>
+        );
+      case "shipped":
+        return (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleUpdateStatus(order.id, "delivered")}
+          >
+            <Package className="mr-1 h-3 w-3" /> Marquer comme livré
+          </Button>
+        );
+      default:
+        return null;
     }
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (orders.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <ShoppingCart className="h-10 w-10 text-gray-400 mb-2" />
-            <h3 className="text-lg font-medium text-gray-900">No orders yet</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              Your shop hasn't received any orders yet.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <div>Chargement des commandes...</div>;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
+        <CardTitle>Commandes</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        {orders.length === 0 ? (
+          <p>Aucune commande pour le moment.</p>
+        ) : (
+          <div className="space-y-4">
             {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id.substring(0, 8)}...</TableCell>
-                <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Badge variant={
-                    order.status === 'delivered' ? 'success' :
-                    order.status === 'shipped' ? 'secondary' :
-                    order.status === 'cancelled' ? 'destructive' :
-                    'default'
-                  }>
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {/* View order details */}}
-                  >
-                    View
-                  </Button>
-                </TableCell>
-              </TableRow>
+              <div key={order.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-medium">Commande #{order.id.slice(0, 8)}</p>
+                    <p className="text-sm text-gray-500">
+                      {format(new Date(order.created_at), 'PPp', { locale: fr })}
+                    </p>
+                  </div>
+                  {getStatusBadge(order.status)}
+                </div>
+                
+                <div className="mb-3">
+                  <p className="text-sm font-medium">Articles:</p>
+                  <ul className="text-sm">
+                    {order.items.map((item) => (
+                      <li key={item.id} className="flex justify-between">
+                        <span>{item.name} x{item.quantity}</span>
+                        <span>{(item.price * item.quantity).toFixed(2)} €</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="flex justify-between text-sm font-medium mb-3">
+                  <span>Total:</span>
+                  <span>{order.total_amount.toFixed(2)} €</span>
+                </div>
+                
+                <div className="flex justify-end space-x-2 mt-4">
+                  {renderOrderActions(order)}
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

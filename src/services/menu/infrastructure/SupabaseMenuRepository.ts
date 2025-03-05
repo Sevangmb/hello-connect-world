@@ -108,14 +108,40 @@ export class SupabaseMenuRepository implements IMenuRepository {
   }
   
   /**
+   * Récupère les éléments de menu avec le parent spécifié
+   * @param parentId Identifiant du parent
+   */
+  async getMenuItemsByParent(parentId: string): Promise<MenuItem[]> {
+    const query = supabase
+      .from('menu_items')
+      .select('*')
+      .eq('parent_id', parentId)
+      .eq('is_visible', true)
+      .eq('is_active', true)
+      .order('position', { ascending: true });
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
+      throw error;
+    }
+    
+    return data as MenuItem[] || [];
+  }
+  
+  /**
    * Met à jour un élément de menu
    * @param id Identifiant de l'élément à mettre à jour
    * @param updates Mises à jour à appliquer
    */
-  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem> {
+  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | null> {
     const { data, error } = await supabase
       .from('menu_items')
-      .update(updates)
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select()
       .single();
@@ -132,7 +158,7 @@ export class SupabaseMenuRepository implements IMenuRepository {
    * Crée un nouvel élément de menu
    * @param menuItem Élément de menu à créer
    */
-  async createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem> {
+  async createMenuItem(menuItem: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
     const { data, error } = await supabase
       .from('menu_items')
       .insert(menuItem)

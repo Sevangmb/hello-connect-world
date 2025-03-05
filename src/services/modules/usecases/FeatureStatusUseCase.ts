@@ -24,8 +24,8 @@ export class FeatureStatusUseCase {
       }
 
       // Then check if the feature is enabled
-      const feature = await this.featureRepository.getFeaturesByModule(moduleCode)
-        .then(features => features.find(f => f.feature_code === featureCode));
+      const features = await this.featureRepository.getFeaturesByModule(moduleCode);
+      const feature = features.find(f => f.feature_code === featureCode);
       return feature?.is_enabled || false;
     } catch (error) {
       console.error(`Error checking if feature ${featureCode} is enabled for module ${moduleCode}:`, error);

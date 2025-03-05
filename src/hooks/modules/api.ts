@@ -1,66 +1,11 @@
-import { supabase } from "@/integrations/supabase/client";
-import { AppModule, ModuleStatus } from "./types";
 
-// Récupérer tous les modules
-export const fetchModules = async () => {
-  const { data, error } = await supabase
-    .from('app_modules')
-    .select('*')
-    .order('name');
-
-  if (error) throw error;
-  return data || [];
-};
-
-// Récupérer les feature flags pour tous les modules
-export const fetchFeatureFlags = async () => {
-  const { data, error } = await supabase
-    .from('module_features')
-    .select('*');
-
-  if (error) throw error;
-  
-  // Organiser les feature flags par module
-  const featuresByModule: Record<string, Record<string, boolean>> = {};
-  data?.forEach(feature => {
-    if (!featuresByModule[feature.module_code]) {
-      featuresByModule[feature.module_code] = {};
-    }
-    featuresByModule[feature.module_code][feature.feature_code] = feature.is_enabled;
-  });
-  
-  return featuresByModule;
-};
-
-// Récupérer toutes les dépendances
-export const fetchDependencies = async () => {
-  const { data, error } = await supabase
-    .from('module_dependencies_view')
-    .select('*');
-
-  if (error) throw error;
-  return data || [];
-};
-
-// Mettre à jour l'état d'un module
-export const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
-  const { error } = await supabase
-    .from('app_modules')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', moduleId);
-
-  if (error) throw error;
-};
-
-// Mettre à jour l'état d'une fonctionnalité spécifique
-export const updateFeatureStatus = async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
-  const { error } = await supabase
-    .from('module_features')
-    .update({ is_enabled: isEnabled, updated_at: new Date().toISOString() })
-    .match({ module_code: moduleCode, feature_code: featureCode });
-
-  if (error) throw error;
-};
+import { ModuleStatus } from './types';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  updateModuleCache, 
+  getModuleCache, 
+  isAdminModule 
+} from './api/moduleStatusCore';
 
 import { 
   checkModuleActiveAsync, 
@@ -73,8 +18,82 @@ import {
   updateFeatureStatusInDb 
 } from './api/moduleStatusUpdates';
 
-import {
-  getModuleCache,
-  updateModuleCache,
-  isAdminModule
-} from './api/moduleStatusCore';
+// Fonctions principales pour la gestion des modules
+
+/**
+ * Vérifie si un module est actif (version synchrone)
+ */
+export const isModuleActive = (moduleCode: string): boolean => {
+  // Les modules Admin sont toujours actifs
+  if (isAdminModule(moduleCode)) {
+    return true;
+  }
+
+  // Vérifier le cache
+  const moduleData = getModuleCache(moduleCode);
+  return moduleData?.status === 'active';
+};
+
+/**
+ * Vérifie si une fonctionnalité de module est activée (version synchrone)
+ */
+export const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
+  // Si le module n'est pas actif, la fonctionnalité n'est pas disponible
+  if (!isModuleActive(moduleCode)) {
+    return false;
+  }
+
+  // Vérifier le cache
+  const moduleData = getModuleCache(moduleCode);
+  return moduleData?.features?.[featureCode] === true;
+};
+
+/**
+ * Met à jour le statut d'un module
+ */
+export const updateModuleStatus = async (
+  moduleId: string, 
+  status: ModuleStatus
+): Promise<boolean> => {
+  const isAdmin = isAdminModule(moduleId);
+  
+  // Mettre à jour en base de données
+  const success = await updateModuleStatusInDb(moduleId, status, isAdmin);
+  
+  if (success) {
+    // Mettre à jour le cache local
+    updateModuleCache(moduleId, { status });
+  }
+  
+  return success;
+};
+
+/**
+ * Met à jour le statut d'une fonctionnalité de module
+ */
+export const updateFeatureStatus = async (
+  moduleCode: string, 
+  featureCode: string, 
+  isEnabled: boolean
+): Promise<boolean> => {
+  const isAdmin = isAdminModule(moduleCode);
+  
+  // Mettre à jour en base de données
+  const success = await updateFeatureStatusInDb(moduleCode, featureCode, isEnabled, isAdmin);
+  
+  if (success) {
+    // Mettre à jour le cache local
+    const moduleData = getModuleCache(moduleCode) || {};
+    const features = { ...(moduleData.features || {}), [featureCode]: isEnabled };
+    updateModuleCache(moduleCode, { features });
+  }
+  
+  return success;
+};
+
+export {
+  // Ré-exporter les fonctions asynchrones
+  checkModuleActiveAsync,
+  checkModuleDegradedAsync,
+  checkFeatureEnabledAsync
+};
