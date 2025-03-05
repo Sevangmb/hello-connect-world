@@ -36,7 +36,8 @@ export class SupabaseUserRepository implements IUserRepository {
         return null;
       }
       
-      const profile = {
+      // Construire l'objet de profil avec des valeurs par défaut sûres
+      const profile: UserProfile = {
         id: userId,
         username: data.username || "",
         full_name: data.full_name || "",
@@ -46,11 +47,21 @@ export class SupabaseUserRepository implements IUserRepository {
         address: data.address || null,
         preferred_language: data.preferred_language || "fr",
         email_notifications: data.email_notifications ?? true,
-        is_admin: data.is_admin || false,
-        billing_address: data.billing_address || undefined,
-        stripe_customer_id: data.stripe_customer_id || undefined,
-        default_payment_method_id: data.default_payment_method_id || undefined
+        is_admin: data.is_admin || false
       };
+      
+      // Ajouter les champs de facturation s'ils existent
+      if (data.billing_address) {
+        profile.billing_address = data.billing_address;
+      }
+      
+      if (data.stripe_customer_id) {
+        profile.stripe_customer_id = data.stripe_customer_id;
+      }
+      
+      if (data.default_payment_method_id) {
+        profile.default_payment_method_id = data.default_payment_method_id;
+      }
       
       eventBus.publish(USER_EVENTS.PROFILE_FETCHED, { userId, profile });
       return profile;
@@ -110,9 +121,7 @@ export class SupabaseUserRepository implements IUserRepository {
           user_id: userId
         });
         
-        if (rpcError) {
-          console.error("RPC error:", rpcError);
-        } else if (isAdmin !== undefined) {
+        if (!rpcError && isAdmin !== undefined) {
           return !!isAdmin;
         }
       } catch (error) {
