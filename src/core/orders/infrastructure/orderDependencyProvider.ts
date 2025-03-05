@@ -4,9 +4,10 @@
  */
 import { OrderService } from '../application/OrderService';
 import { SupabaseOrderRepository } from './supabaseOrderRepository';
+import { IOrderRepository } from '../domain/interfaces/IOrderRepository';
 
 // Singleton pour le repository
-let orderRepository: SupabaseOrderRepository | null = null;
+let orderRepository: IOrderRepository | null = null;
 
 // Singleton pour le service
 let orderService: OrderService | null = null;
@@ -14,7 +15,7 @@ let orderService: OrderService | null = null;
 /**
  * Fournit une instance du repository de commandes
  */
-export function getOrderRepository(): SupabaseOrderRepository {
+export function getOrderRepository(): IOrderRepository {
   if (!orderRepository) {
     orderRepository = new SupabaseOrderRepository();
   }

@@ -10,5 +10,7 @@ export const ORDER_EVENTS = {
   ORDER_DELIVERED: 'order:delivered',
   PAYMENT_PROCESSED: 'order:payment_processed',
   PAYMENT_FAILED: 'order:payment_failed',
-  SHIPPING_UPDATED: 'order:shipping_updated'
+  SHIPPING_UPDATED: 'order:shipping_updated',
+  ORDER_FETCHED: 'order:fetched',
+  ORDER_STATUS_UPDATED: 'order:status_updated'
 };

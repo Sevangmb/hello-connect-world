@@ -18,12 +18,11 @@ export class SupabaseOrderRepository implements IOrderRepository {
       const totalAmount = params.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       
       // Préparer les données pour l'insertion
-      const orderData = {
+      const orderData: any = {
         status: params.status || 'pending',
         payment_status: params.paymentStatus || 'pending',
         shipping_status: params.shippingStatus || null,
         shipping_required: params.shippingRequired || false,
-        shipping_address: params.shippingAddress ? params.shippingAddress : null,
         buyer_id: params.buyerId,
         seller_id: params.sellerId,
         total_amount: totalAmount,
@@ -32,6 +31,11 @@ export class SupabaseOrderRepository implements IOrderRepository {
         transaction_type: params.transactionType || 'p2p',
         payment_method: params.paymentMethod || 'stripe'
       };
+      
+      // Ajouter l'adresse de livraison si présente
+      if (params.shippingAddress) {
+        orderData.shipping_address = params.shippingAddress;
+      }
 
       // Insérer la commande
       const { data: order, error } = await supabase
@@ -122,6 +126,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
         cancelledAt: data.cancelled_at,
         transactionType: data.transaction_type,
         paymentMethod: data.payment_method,
+        deliveryType: 'shipping', // Valeur par défaut
         items: []
       };
       
@@ -135,9 +140,9 @@ export class SupabaseOrderRepository implements IOrderRepository {
         .from('order_items')
         .select(`
           id, shop_item_id, quantity, price_at_time,
-          shop_items:shop_item_id(
-            id, price, shop_id, 
-            clothes:clothes_id(name, image_url, brand, category, size)
+          shop_items:shop_items(
+            id, price, shop_id,
+            clothes:clothes(name, image_url, brand, category, size)
           )
         `)
         .eq('order_id', orderId);
@@ -300,6 +305,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
+          deliveryType: 'shipping', // Valeur par défaut
           items: []
         };
         
@@ -317,9 +323,9 @@ export class SupabaseOrderRepository implements IOrderRepository {
           .from('order_items')
           .select(`
             id, shop_item_id, quantity, price_at_time,
-            shop_items:shop_item_id(
-              id, price, shop_id, 
-              clothes:clothes_id(name, image_url, brand, category, size)
+            shop_items:shop_items(
+              id, price, shop_id,
+              clothes:clothes(name, image_url, brand, category, size)
             )
           `)
           .eq('order_id', order.id);
@@ -345,6 +351,44 @@ export class SupabaseOrderRepository implements IOrderRepository {
       return orders;
     } catch (error: any) {
       console.error('Exception lors de la récupération des commandes acheteur:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Récupère les articles d'une commande
+   */
+  async getOrderItems(orderId: string): Promise<OrderItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('order_items')
+        .select(`
+          id, shop_item_id, quantity, price_at_time,
+          shop_items:shop_items(
+            id, price, shop_id,
+            clothes:clothes(name, image_url, brand, category, size)
+          )
+        `)
+        .eq('order_id', orderId);
+        
+      if (error) {
+        console.error('Erreur lors de la récupération des articles:', error);
+        return [];
+      }
+      
+      return data.map(item => ({
+        id: item.id,
+        shopItemId: item.shop_item_id,
+        quantity: item.quantity,
+        price: item.price_at_time,
+        productName: item.shop_items?.clothes?.name || 'Article sans nom',
+        imageUrl: item.shop_items?.clothes?.image_url || null,
+        brand: item.shop_items?.clothes?.brand || null,
+        category: item.shop_items?.clothes?.category || null,
+        size: item.shop_items?.clothes?.size || null
+      }));
+    } catch (error: any) {
+      console.error('Exception lors de la récupération des articles:', error);
       return [];
     }
   }
@@ -426,6 +470,7 @@ export class SupabaseOrderRepository implements IOrderRepository {
           cancelledAt: item.cancelled_at,
           transactionType: item.transaction_type,
           paymentMethod: item.payment_method,
+          deliveryType: 'shipping', // Valeur par défaut
           items: []
         };
         
@@ -443,9 +488,9 @@ export class SupabaseOrderRepository implements IOrderRepository {
           .from('order_items')
           .select(`
             id, shop_item_id, quantity, price_at_time,
-            shop_items:shop_item_id(
-              id, price, shop_id, 
-              clothes:clothes_id(name, image_url, brand, category, size)
+            shop_items:shop_items(
+              id, price, shop_id,
+              clothes:clothes(name, image_url, brand, category, size)
             )
           `)
           .eq('order_id', order.id);
@@ -472,6 +517,92 @@ export class SupabaseOrderRepository implements IOrderRepository {
     } catch (error: any) {
       console.error('Exception lors de la récupération des commandes vendeur:', error);
       return [];
+    }
+  }
+
+  /**
+   * Met à jour une commande
+   */
+  async updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean> {
+    try {
+      // Convertir des champs en format base de données
+      const dbUpdates: any = {};
+      
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.paymentStatus) dbUpdates.payment_status = updates.paymentStatus;
+      if (updates.shippingStatus) dbUpdates.shipping_status = updates.shippingStatus;
+      if (updates.totalAmount) dbUpdates.total_amount = updates.totalAmount;
+      if (updates.commissionAmount) dbUpdates.commission_amount = updates.commissionAmount;
+      if (updates.shippingCost) dbUpdates.shipping_cost = updates.shippingCost;
+      if (updates.shippingAddress) dbUpdates.shipping_address = updates.shippingAddress;
+      if (updates.shippingRequired !== undefined) dbUpdates.shipping_required = updates.shippingRequired;
+      if (updates.paymentMethod) dbUpdates.payment_method = updates.paymentMethod;
+      if (updates.stripePaymentIntentId) dbUpdates.stripe_payment_intent_id = updates.stripePaymentIntentId;
+      if (updates.stripeSessionId) dbUpdates.stripe_session_id = updates.stripeSessionId;
+      
+      const { error } = await supabase
+        .from('orders')
+        .update(dbUpdates)
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('Erreur lors de la mise à jour de la commande:', error);
+        return false;
+      }
+      
+      eventBus.publish(ORDER_EVENTS.ORDER_UPDATED, {
+        orderId,
+        updates,
+        timestamp: Date.now()
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Exception lors de la mise à jour de la commande:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Traite le paiement d'une commande
+   */
+  async processPayment(orderId: string, paymentMethodId: string): Promise<boolean> {
+    try {
+      // Appel à la fonction RPC Supabase pour le traitement du paiement
+      const { data, error } = await supabase.rpc('process_order_payment', {
+        order_id: orderId,
+        payment_method_id: paymentMethodId
+      });
+      
+      if (error) {
+        console.error('Erreur lors du traitement du paiement:', error);
+        
+        eventBus.publish(ORDER_EVENTS.PAYMENT_FAILED, {
+          orderId,
+          error: error.message,
+          timestamp: Date.now()
+        });
+        
+        return false;
+      }
+      
+      eventBus.publish(ORDER_EVENTS.PAYMENT_PROCESSED, {
+        orderId,
+        paymentMethodId,
+        timestamp: Date.now()
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Exception lors du traitement du paiement:', error);
+      
+      eventBus.publish(ORDER_EVENTS.PAYMENT_FAILED, {
+        orderId,
+        error: 'Erreur interne lors du traitement du paiement',
+        timestamp: Date.now()
+      });
+      
+      return false;
     }
   }
 }

@@ -2,13 +2,13 @@
 /**
  * Interface du repository pour le service de commandes
  */
-import { Order, OrderItem, CreateOrderParams, OrderFilter } from '../types';
+import { Order, OrderItem, CreateOrderParams, OrderFilter, OrderStatus, PaymentStatus, ShippingStatus } from '../types';
 
 export interface IOrderRepository {
   /**
    * Crée une nouvelle commande
    */
-  createOrder(params: CreateOrderParams): Promise<Order | null>;
+  createOrder(params: CreateOrderParams): Promise<{ success: boolean; orderId?: string; error?: string; }>;
   
   /**
    * Obtient une commande par son ID
@@ -19,6 +19,16 @@ export interface IOrderRepository {
    * Met à jour une commande
    */
   updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean>;
+  
+  /**
+   * Met à jour le statut d'une commande
+   */
+  updateOrderStatus(
+    orderId: string, 
+    status: OrderStatus, 
+    paymentStatus?: PaymentStatus, 
+    shippingStatus?: ShippingStatus
+  ): Promise<{ success: boolean; error?: string; }>;
   
   /**
    * Récupère les commandes d'un acheteur

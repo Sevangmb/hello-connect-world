@@ -4,10 +4,13 @@
  */
 
 // Status des commandes
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
+export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded' | 'completed';
 
 // Status des paiements
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
+
+// Status des livraisons
+export type ShippingStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | null;
 
 // Type de livraison
 export type DeliveryType = 'in_person' | 'shipping' | 'pickup';
@@ -27,17 +30,15 @@ export interface ShippingAddress {
 // Interface pour un article de commande
 export interface OrderItem {
   id: string;
-  orderId: string;
   shopItemId: string;
   quantity: number;
   price: number;
-  shopItem: {
-    id: string;
-    name: string;
-    price: number;
-    category?: string;
-    imageUrl?: string | null;
-  };
+  // Propriétés additionnelles pour les données du produit
+  productName?: string;
+  imageUrl?: string | null;
+  brand?: string | null;
+  category?: string | null;
+  size?: string | null;
 }
 
 // Interface pour une commande
@@ -47,10 +48,11 @@ export interface Order {
   sellerId: string;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  shippingStatus?: ShippingStatus;
   totalAmount: number;
   commissionAmount: number;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt?: string | null;
   stripePaymentIntentId?: string | null;
   stripeSessionId?: string | null;
   deliveryType: DeliveryType;
@@ -59,6 +61,9 @@ export interface Order {
   shippingCost: number;
   paymentMethod: string;
   items: OrderItem[];
+  confirmedAt?: string | null;
+  cancelledAt?: string | null;
+  transactionType?: string;
 }
 
 // Interface pour les paramètres de création d'une commande
@@ -76,13 +81,19 @@ export interface CreateOrderParams {
   shippingCost?: number;
   shippingAddress?: ShippingAddress;
   paymentMethod?: string;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  shippingStatus?: ShippingStatus;
+  transactionType?: string;
 }
 
 // Interface pour les filtres de recherche des commandes
 export interface OrderFilter {
   status?: OrderStatus;
-  dateFrom?: Date;
-  dateTo?: Date;
+  paymentStatus?: PaymentStatus;
+  shippingStatus?: ShippingStatus;
+  createdAfter?: Date;
+  createdBefore?: Date;
   orderBy?: string;
   orderDirection?: 'asc' | 'desc';
   limit?: number;
