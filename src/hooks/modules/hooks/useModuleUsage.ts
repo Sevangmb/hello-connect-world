@@ -1,60 +1,64 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useModuleUsage = (moduleCode: string) => {
-  const [usageCount, setUsageCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [usageCount, setUsageCount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
+  // Fetch usage data for the module
   const fetchUsageData = useCallback(async () => {
+    if (!moduleCode) return;
+    
+    setLoading(true);
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('module_usage_stats')
         .select('usage_count')
         .eq('module_code', moduleCode)
         .single();
-
+      
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No usage data found
-          setUsageCount(0);
-        } else {
-          console.error(`Error fetching usage data for module ${moduleCode}:`, error);
-        }
-      } else if (data) {
-        setUsageCount(data.usage_count);
+        console.error(`Error fetching usage stats for module ${moduleCode}:`, error);
+        setUsageCount(0);
+      } else {
+        setUsageCount(data?.usage_count || 0);
       }
     } catch (err) {
-      console.error(`Exception when fetching usage data for module ${moduleCode}:`, err);
+      console.error(`Exception fetching usage stats for module ${moduleCode}:`, err);
+      setUsageCount(0);
     } finally {
       setLoading(false);
     }
   }, [moduleCode]);
 
+  // Record module usage via RPC
+  const trackUsage = async () => {
+    if (!moduleCode) return;
+    
+    try {
+      const { error } = await supabase.rpc('increment_module_usage', {
+        module_code: moduleCode
+      });
+      
+      if (error) {
+        console.error(`Error incrementing usage for module ${moduleCode}:`, error);
+      } else {
+        // Increment the local count and invalidate the query
+        setUsageCount(prev => prev + 1);
+        queryClient.invalidateQueries({ queryKey: ['moduleUsage', moduleCode] });
+      }
+    } catch (err) {
+      console.error(`Exception incrementing usage for module ${moduleCode}:`, err);
+    }
+  };
+
+  // Initial data fetch
   useEffect(() => {
     fetchUsageData();
   }, [fetchUsageData]);
-
-  const trackUsage = useCallback(async () => {
-    try {
-      const { error } = await supabase.rpc('increment_module_usage', {
-        p_module_code: moduleCode
-      });
-
-      if (error) {
-        console.error(`Error tracking usage for module ${moduleCode}:`, error);
-      } else {
-        setUsageCount(prev => prev + 1);
-        // Invalidate queries related to this module
-        queryClient.invalidateQueries(['modules', moduleCode]);
-      }
-    } catch (err) {
-      console.error(`Exception when tracking usage for module ${moduleCode}:`, err);
-    }
-  }, [moduleCode, queryClient]);
 
   return {
     usageCount,

@@ -1,128 +1,81 @@
-
-import { ModuleStatus } from "@/hooks/modules/types";
-import { FeatureRepository } from "../repositories/FeatureRepository";
-import { ModuleRepository } from "../repositories/ModuleRepository";
+import { IModuleRepository } from "../domain/interfaces/IModuleRepository";
+import { IFeatureRepository } from "../domain/interfaces/IFeatureRepository";
+import { ModuleEventPublisher } from "../services/ModuleEventPublisher";
 
 export class FeatureStatusUseCase {
-  private featureRepository: FeatureRepository;
-  private moduleRepository: ModuleRepository;
-  
-  constructor(featureRepository: FeatureRepository, moduleRepository: ModuleRepository) {
-    this.featureRepository = featureRepository;
+  private moduleRepository: IModuleRepository;
+  private featureRepository: IFeatureRepository;
+  private moduleEventPublisher: ModuleEventPublisher;
+
+  constructor(
+    moduleRepository: IModuleRepository,
+    featureRepository: IFeatureRepository,
+    moduleEventPublisher: ModuleEventPublisher
+  ) {
     this.moduleRepository = moduleRepository;
+    this.featureRepository = featureRepository;
+    this.moduleEventPublisher = moduleEventPublisher;
   }
 
-  /**
-   * Update the cache of feature statuses
-   */
-  updateFeatureCache(features: Record<string, Record<string, boolean>>): void {
-    // Implementation for updating feature cache
-    console.log("Updating feature cache", features);
-    // Cache updating logic would go here
-  }
-
-  /**
-   * Check if a feature is enabled
-   */
-  async isFeatureEnabled(moduleCode: string, featureCode: string, features?: Record<string, Record<string, boolean>>): Promise<boolean> {
-    try {
-      // If features cache is provided, use it
-      if (features && features[moduleCode] && features[moduleCode][featureCode] !== undefined) {
-        return features[moduleCode][featureCode];
-      }
-      
-      // First check if the module is active
-      const module = await this.moduleRepository.getModuleByCode(moduleCode);
-      if (!module || module.status !== 'active') {
-        return false;
-      }
-
-      // Then check if the feature is enabled
-      const feature = await this.featureRepository.getFeatureByModuleAndCode(moduleCode, featureCode);
-      return feature?.is_enabled || false;
-    } catch (error) {
-      console.error(`Error checking if feature ${featureCode} is enabled for module ${moduleCode}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Enable a feature
-   */
   async enableFeature(moduleCode: string, featureCode: string): Promise<boolean> {
-    try {
-      // First check if the module is active
-      const module = await this.moduleRepository.getModuleByCode(moduleCode);
-      if (!module || module.status !== 'active') {
-        return false;
-      }
-
-      // Then enable the feature
-      const feature = await this.featureRepository.getFeatureByModuleAndCode(moduleCode, featureCode);
-      
-      if (!feature) {
-        return false;
-      }
-      
-      return await this.featureRepository.updateFeatureStatus(feature.id, true);
-    } catch (error) {
-      console.error(`Error enabling feature ${featureCode} for module ${moduleCode}:`, error);
-      return false;
-    }
+    return this.updateFeatureStatus(moduleCode, featureCode, true);
   }
 
-  /**
-   * Disable a feature
-   */
   async disableFeature(moduleCode: string, featureCode: string): Promise<boolean> {
+    return this.updateFeatureStatus(moduleCode, featureCode, false);
+  }
+
+  async getFeatureStatus(moduleCode: string, featureCode: string): Promise<boolean | null> {
     try {
-      const feature = await this.featureRepository.getFeatureByModuleAndCode(moduleCode, featureCode);
-      
+      const feature = await this.featureRepository.getFeatureByCode(moduleCode, featureCode);
       if (!feature) {
-        return false;
+        console.warn(`Feature ${moduleCode}.${featureCode} not found`);
+        return null;
       }
-      
-      return await this.featureRepository.updateFeatureStatus(feature.id, false);
+      return feature.is_enabled;
     } catch (error) {
-      console.error(`Error disabling feature ${featureCode} for module ${moduleCode}:`, error);
-      return false;
+      console.error(`Error getting feature status for ${moduleCode}.${featureCode}:`, error);
+      return null;
     }
   }
 
-  /**
-   * Get all features for a module
-   */
-  async getModuleFeatures(moduleCode: string): Promise<any[]> {
-    try {
-      return await this.featureRepository.getFeaturesByModuleCode(moduleCode);
-    } catch (error) {
-      console.error(`Error getting features for module ${moduleCode}:`, error);
-      return [];
-    }
-  }
-  
-  /**
-   * Update feature status
-   */
   async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
     try {
-      const feature = await this.featureRepository.getFeatureByModuleAndCode(moduleCode, featureCode);
+      // Check if the module exists and is active
+      const moduleExists = await this.moduleRepository.getModuleByCode(moduleCode);
+      if (!moduleExists) {
+        console.error(`Module ${moduleCode} does not exist`);
+        return false;
+      }
+
+      // Get all features for the module to check if this one exists
+      const features = await this.featureRepository.getFeaturesByModule(moduleCode);
+      const featureExists = features.some(feature => feature.feature_code === featureCode);
       
-      if (!feature) {
+      if (!featureExists) {
+        console.error(`Feature ${featureCode} does not exist for module ${moduleCode}`);
         return false;
       }
       
-      return await this.featureRepository.updateFeatureStatus(feature.id, isEnabled);
+      // Update the feature status
+      const success = await this.featureRepository.updateFeature(moduleCode, featureCode, isEnabled);
+      
+      if (success) {
+        // Update the cache
+        const { module_code, feature_code, isEnabled: enabled } = { 
+          module_code: moduleCode, 
+          feature_code: featureCode,
+          isEnabled
+        };
+        
+        // Publish an event for the feature status change
+        this.moduleEventPublisher.publishFeatureStatusChanged(module_code, feature_code, enabled);
+      }
+      
+      return success;
     } catch (error) {
-      console.error(`Error updating feature status ${featureCode} for module ${moduleCode}:`, error);
+      console.error(`Error updating feature status for ${moduleCode}.${featureCode}:`, error);
       return false;
     }
   }
 }
-
-// Fix for the featureStatusUseCase export
-export const featureStatusUseCase = new FeatureStatusUseCase(
-  // These will be replaced by DI at runtime
-  {} as FeatureRepository, 
-  {} as ModuleRepository
-);

@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -216,14 +215,23 @@ export function useShop() {
   // Mettre à jour le statut d'une commande
   const updateOrderStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      return ShopService.updateOrderStatus(id, status);
+      try {
+        const success = await shopService.updateOrderStatus(id, status as string);
+        if (success) {
+          await queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
+        }
+        return success;
+      } catch (error) {
+        console.error("Error updating order status:", error);
+        return false;
+      }
     },
     onSuccess: () => {
       toast({
         title: 'Commande mise à jour',
         description: 'Le statut de la commande a été mis à jour',
       });
-      queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
     },
     onError: (error) => {
       toast({

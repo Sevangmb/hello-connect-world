@@ -3,14 +3,16 @@ import { ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { isAdminModule } from './moduleStatusCore';
 
+/**
+ * Update a module's status in the database
+ */
 export const updateModuleStatusInDb = async (
   moduleId: string, 
-  status: ModuleStatus, 
-  isAdminModule: boolean
+  status: ModuleStatus
 ): Promise<boolean> => {
-  // Bloquer la désactivation du module Admin
-  if (isAdminModule && status !== 'active') {
-    console.error("Le module Admin ne peut pas être désactivé");
+  // Prevent disabling the Admin module
+  if (isAdminModule(moduleId) && status !== 'active') {
+    console.error("The Admin module cannot be disabled");
     return false;
   }
 
@@ -24,26 +26,28 @@ export const updateModuleStatusInDb = async (
       .eq('id', moduleId);
 
     if (error) {
-      console.error('Erreur lors de la mise à jour du statut du module:', error);
+      console.error('Error updating module status:', error);
       return false;
     }
 
     return true;
   } catch (e) {
-    console.error('Exception lors de la mise à jour du statut du module:', e);
+    console.error('Exception when updating module status:', e);
     return false;
   }
 };
 
+/**
+ * Update a feature's status in the database
+ */
 export const updateFeatureStatusInDb = async (
   moduleCode: string, 
   featureCode: string, 
-  isEnabled: boolean,
-  isAdminModule: boolean
+  isEnabled: boolean
 ): Promise<boolean> => {
-  // Bloquer la désactivation des fonctionnalités du module Admin
-  if (isAdminModule && !isEnabled) {
-    console.error("Les fonctionnalités du module Admin ne peuvent pas être désactivées");
+  // Prevent disabling Admin module features
+  if (isAdminModule(moduleCode) && !isEnabled) {
+    console.error("Admin module features cannot be disabled");
     return false;
   }
 
@@ -58,13 +62,24 @@ export const updateFeatureStatusInDb = async (
       .eq('feature_code', featureCode);
 
     if (error) {
-      console.error('Erreur lors de la mise à jour du statut de la fonctionnalité:', error);
+      console.error('Error updating feature status:', error);
       return false;
     }
 
     return true;
   } catch (e) {
-    console.error('Exception lors de la mise à jour du statut de la fonctionnalité:', e);
+    console.error('Exception when updating feature status:', e);
     return false;
   }
+};
+
+/**
+ * Silent update of a feature's status without notifications
+ */
+export const updateFeatureStatusSilent = async (
+  moduleCode: string, 
+  featureCode: string, 
+  isEnabled: boolean
+): Promise<boolean> => {
+  return await updateFeatureStatusInDb(moduleCode, featureCode, isEnabled);
 };

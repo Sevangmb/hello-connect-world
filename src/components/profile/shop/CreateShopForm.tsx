@@ -1,99 +1,121 @@
+
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { ImageUpload } from "@/components/ui/image-upload";
-import { useToast } from "@/hooks/use-toast";
-import { useShop } from "@/hooks/useShop";
-import { Shop } from "@/core/shop/domain/types";
+import { getShopServiceInstance } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { useToast } from '@/hooks/use-toast';
 
 const CreateShopForm = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
-  const createShop = useMutation(
-    async (shopData: { name: string; description: string; image_url?: string }) => {
-      return await shopApiGateway.createShop(shopData);
+  const shopService = getShopServiceInstance();
+
+  const createShopMutation = useMutation({
+    mutationFn: async (shopData: { name: string; description: string; image_url?: string }) => {
+      return await shopService.createShop(shopData);
     },
-    {
-      onSuccess: () => {
-        toast({
-          title: "Shop created successfully!",
-          description: "Your shop is now pending approval.",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Failed to create shop",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
+    onSuccess: () => {
+      toast({
+        title: "Boutique créée",
+        description: "Votre boutique a été créée avec succès.",
+      });
+      setName('');
+      setDescription('');
+      setImageUrl('');
+      queryClient.invalidateQueries({ queryKey: ['shop'] });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de créer la boutique. Veuillez réessayer.",
+      });
+      console.error("Error creating shop:", error);
     }
-  );
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isUploading) {
+    if (!name.trim()) {
       toast({
-        description: "Please wait for the image to finish uploading",
         variant: "destructive",
+        title: "Erreur",
+        description: "Le nom de la boutique est requis.",
       });
       return;
     }
     
-    createShop.mutate({
+    createShopMutation.mutate({
       name,
       description,
-      image_url: imageUrl,
+      image_url: imageUrl
     });
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed">
-          Shop Name
-        </label>
-        <Input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Enter shop name"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed">
-          Description
-        </label>
-        <Textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter shop description"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium leading-none peer-disabled:cursor-not-allowed">
-          Image
-        </label>
-        <ImageUpload 
-          value={imageUrl}
-          onChange={(value) => setImageUrl(value)}
-          onUploading={setIsUploading}
-        />
-      </div>
-      <Button disabled={createShop.isLoading}>
-        {createShop.isLoading ? "Creating..." : "Create Shop"}
-      </Button>
-    </form>
+    <Card className="w-full max-w-lg mx-auto">
+      <CardHeader>
+        <CardTitle>Créer votre boutique</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="name" className="block text-sm font-medium">
+              Nom de la boutique
+            </label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Nom de votre boutique"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="description" className="block text-sm font-medium">
+              Description
+            </label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Décrivez votre boutique"
+              rows={4}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Image de la boutique
+            </label>
+            <ImageUpload
+              onChange={setImageUrl}
+              onUploading={setIsUploading}
+              currentImageUrl={imageUrl}
+            />
+          </div>
+          
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!name.trim() || isUploading || createShopMutation.isPending}
+          >
+            {createShopMutation.isPending ? "Création en cours..." : "Créer la boutique"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

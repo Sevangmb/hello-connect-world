@@ -1,42 +1,40 @@
 
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, ShopItemStatus, PaymentMethod, ShopStatus } from '@/core/shop/domain/types';
+import { Order, OrderStatus, Shop, ShopItem, ShopItemStatus, ShopReview, ShopSettings } from "@/core/shop/domain/types";
 
 export interface IShopRepository {
-  // Shop operations
+  // Shop methods
   getShopById(id: string): Promise<Shop | null>;
   getShopByUserId(userId: string): Promise<Shop | null>;
   getShops(): Promise<Shop[]>;
-  createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'average_rating'>): Promise<Shop | null>;
-  updateShop(shopData: Partial<Shop> & { id: string }): Promise<Shop>;
-  deleteShop(id: string): Promise<boolean>;
-  updateShopStatus(id: string, status: ShopStatus): Promise<boolean>;
+  createShop(shopData: Omit<Shop, "id" | "created_at" | "updated_at" | "average_rating">): Promise<Shop>;
+  updateShop(id: string, shopData: Partial<Shop>): Promise<Shop>;
   
-  // Shop items operations
+  // Shop items methods
   getShopItems(shopId: string): Promise<ShopItem[]>;
   getShopItemById(id: string): Promise<ShopItem | null>;
-  createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem | null>;
-  updateShopItem(item: Partial<ShopItem> & { id: string }): Promise<ShopItem>;
+  createShopItem(item: Omit<ShopItem, "id" | "created_at" | "updated_at">): Promise<ShopItem>;
+  updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem>;
+  updateShopItemStatus(itemId: string, status: ShopItemStatus): Promise<boolean>;
   deleteShopItem(id: string): Promise<boolean>;
-  updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean>;
   
-  // Shop review operations
+  // Shop reviews methods
   getShopReviews(shopId: string): Promise<ShopReview[]>;
-  addShopReview(reviewData: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview | null>;
+  addShopReview(review: Omit<ShopReview, "id" | "created_at" | "updated_at">): Promise<ShopReview>;
   
-  // Shop settings operations
-  getShopSettings(shopId: string): Promise<ShopSettings | null>;
-  updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings>;
-  
-  // Order operations
+  // Orders methods
   getShopOrders(shopId: string): Promise<Order[]>;
   getUserOrders(userId: string): Promise<Order[]>;
   getOrderById(id: string): Promise<Order | null>;
-  createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null>;
-  updateOrderStatus(id: string, status: OrderStatus): Promise<boolean>;
+  createOrder(orderData: Omit<Order, "id" | "created_at">): Promise<Order>;
+  updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
   
-  // Favorite operations
+  // Shop settings methods
+  getShopSettings(shopId: string): Promise<ShopSettings | null>;
+  updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings>;
+  
+  // Favorites methods
+  getFavoriteShops(userId: string): Promise<Shop[]>;
+  checkIfFavorited(userId: string, shopId: string): Promise<boolean>;
   addFavoriteShop(userId: string, shopId: string): Promise<boolean>;
   removeFavoriteShop(userId: string, shopId: string): Promise<boolean>;
-  getUserFavoriteShops(userId: string): Promise<Shop[]>;
-  checkIfShopFavorited(userId: string, shopId: string): Promise<boolean>;
 }

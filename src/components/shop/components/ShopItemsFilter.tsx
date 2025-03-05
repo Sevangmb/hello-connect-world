@@ -1,41 +1,56 @@
+
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dispatch, SetStateAction } from 'react';
 
 export interface ShopItemsFilterProps {
   filterValue: string;
-  setFilterValue: React.Dispatch<React.SetStateAction<string>>;
+  onFilterChange?: Dispatch<SetStateAction<string>>;
+  setFilterValue?: Dispatch<SetStateAction<string>>;
   sortValue: string;
-  setSortValue: React.Dispatch<React.SetStateAction<string>>;
+  onSortChange?: Dispatch<SetStateAction<string>>;
+  setSortValue?: Dispatch<SetStateAction<string>>;
 }
 
-export function ShopItemsFilter({ 
-  filterValue, 
-  setFilterValue, 
-  sortValue, 
-  setSortValue 
-}: ShopItemsFilterProps) {
+const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({
+  filterValue,
+  onFilterChange,
+  setFilterValue,
+  sortValue,
+  onSortChange,
+  setSortValue,
+}) => {
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onFilterChange) onFilterChange(e.target.value);
+    if (setFilterValue) setFilterValue(e.target.value);
+  };
+
+  const handleSortChange = (value: string) => {
+    if (onSortChange) onSortChange(value);
+    if (setSortValue) setSortValue(value);
+  };
+
   return (
-    <div className="flex flex-col md:flex-row gap-4 mb-6">
-      <div className="flex-1">
+    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="w-full sm:w-2/3">
         <Input
-          placeholder="Search items..."
+          placeholder="Rechercher par nom..."
           value={filterValue}
-          onChange={(e) => setFilterValue(e.target.value)}
-          className="w-full"
+          onChange={handleFilterChange}
         />
       </div>
-      <div className="w-full md:w-48">
-        <Select value={sortValue} onValueChange={setSortValue}>
+      <div className="w-full sm:w-1/3">
+        <Select value={sortValue} onValueChange={handleSortChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Sort by" />
+            <SelectValue placeholder="Trier par" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="price-asc">Price: Low to High</SelectItem>
-            <SelectItem value="price-desc">Price: High to Low</SelectItem>
-            <SelectItem value="newest">Newest First</SelectItem>
-            <SelectItem value="name-asc">Name: A-Z</SelectItem>
+            <SelectItem value="price-asc">Prix croissant</SelectItem>
+            <SelectItem value="price-desc">Prix décroissant</SelectItem>
+            <SelectItem value="name-asc">Nom (A-Z)</SelectItem>
+            <SelectItem value="name-desc">Nom (Z-A)</SelectItem>
+            <SelectItem value="newest">Plus récent</SelectItem>
           </SelectContent>
         </Select>
       </div>

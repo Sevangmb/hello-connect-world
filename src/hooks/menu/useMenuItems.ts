@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { getMenuUseCase } from '@/services/menu/infrastructure/menuServiceProvider';
@@ -74,13 +73,7 @@ export const useMenuItems = (options?: UseMenuItemsOptions) => {
         setLoading(true);
         fetchingRef.current = true;
         
-        const items = await fetchMenuItems({
-          category: options?.category,
-          moduleCode: options?.moduleCode,
-          hierarchical: options?.hierarchical,
-          isAdmin: isUserAdmin,
-          modules,
-        });
+        const items = await fetchMenuItems();
         
         // Update cache
         cacheRef.current = menuCache.create(items, cacheKey);

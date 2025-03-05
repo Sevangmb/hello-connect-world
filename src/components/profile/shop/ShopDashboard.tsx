@@ -1,180 +1,96 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
-
-import ShopItemsList from "./ShopItemsList";
-import ShopOrdersList from "./ShopOrdersList";
-import ShopReviewsList from "./ShopReviewsList";
-import AddItemForm from "./AddItemForm";
-import CreateShopForm from "./CreateShopForm";
-import ShopSettings from "@/components/profile/shop/ShopSettings";
-
-import { useShop } from '@/hooks/useShop';
-import { Shop, ShopStatus } from '@/core/shop/domain/types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/modules/auth/hooks/useAuth";
+import { useShop } from "@/hooks/useShop";
+import { CreateShopForm } from "./CreateShopForm";
+import { ShopSettings } from "./ShopSettings";
+import { ShopItemsList } from "./ShopItemsList";
+import { AddItemForm } from "./AddItemForm";
+import { useParams, useRouter } from 'next/navigation';
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from 'lucide-react';
+import { ShopOrdersList } from './ShopOrdersList';
 
 const ShopDashboard = () => {
-  const { shopId } = useParams<{ shopId: string }>();
-  const { shop, isShopLoading, refetchShop, updateShopStatus } = useShop();
-  const [activeTab, setActiveTab] = useState('items');
-  const [isOwner, setIsOwner] = useState(false);
-  const { toast } = useToast();
+  const [tab, setTab] = useState<"items" | "orders" | "settings">("items");
+  const { user } = useAuth();
+  const { shop, loading, refreshShop } = useShop(user?.id);
+  const { push } = useRouter();
+  const { shopId } = useParams();
 
-  // Handle shop status change
-  const handleStatusChange = (status: ShopStatus) => {
-    if (!shop) return;
-    
-    updateShopStatus.mutate(
-      { id: shop.id, status },
-      {
-        onSuccess: () => {
-          toast({
-            title: "Shop status updated",
-            description: `Your shop is now ${status}`,
-          });
-          refetchShop();
-        },
-        onError: (error) => {
-          toast({
-            title: "Failed to update shop status",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      }
-    );
-  };
-
-  // Check ownership
   useEffect(() => {
-    if (shop) {
-      setIsOwner(true); // Simplified for now
+    if (shopId === 'new' && shop) {
+      push(`/profile/shop/${shop.id}`);
     }
-  }, [shop]);
+  }, [shop, push, shopId]);
 
-  if (isShopLoading) {
-    return <div className="container py-8">Loading shop details...</div>;
+  if (loading) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => push('/profile')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au profil
+          </Button>
+        </div>
+        <div className="grid gap-4">
+          <Skeleton className="h-10 w-[160px]" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-10 w-[240px]" />
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!shop) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>Shop Not Found</AlertTitle>
-        <AlertDescription>
-          The shop you're looking for doesn't exist or you don't have permission to view it.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Show creation form if user doesn't have a shop
-  if (!shop.id) {
-    return (
-      <div className="container py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create Your Shop</CardTitle>
-            <CardDescription>Set up your own shop to start selling items</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CreateShopForm />
-          </CardContent>
-        </Card>
+      <div className="container py-10">
+        <div className="mb-4">
+          <Button variant="ghost" onClick={() => push('/profile')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Retour au profil
+          </Button>
+        </div>
+        <CreateShopForm />
       </div>
-    );
-  }
-
-  // Shop exists but is pending approval
-  if (shop.status === 'pending') {
-    return (
-      <Alert>
-        <AlertTitle>Your Shop is Pending Approval</AlertTitle>
-        <AlertDescription>
-          Your shop has been created and is waiting for administrator approval.
-          You'll be notified once it's approved.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Shop is rejected
-  if (shop.status === 'rejected') {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Your Shop Registration was Rejected</AlertTitle>
-        <AlertDescription>
-          Unfortunately, your shop registration was not approved. Please contact support for more details.
-        </AlertDescription>
-      </Alert>
     );
   }
 
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{shop.name}</h1>
-        <p className="text-muted-foreground mb-4">{shop.description}</p>
-        
-        {isOwner && (
-          <div className="flex gap-2 mt-4">
-            {shop.status === 'approved' && (
-              <Button 
-                variant="outline" 
-                onClick={() => handleStatusChange('suspended')}
-              >
-                Temporarily Close Shop
-              </Button>
-            )}
-            
-            {shop.status === 'suspended' && (
-              <Button 
-                variant="default" 
-                onClick={() => handleStatusChange('approved')}
-              >
-                Reopen Shop
-              </Button>
-            )}
-          </div>
-        )}
+    <div className="container py-10">
+      <div className="mb-4">
+        <Button variant="ghost" onClick={() => push('/profile')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour au profil
+        </Button>
       </div>
-
-      {isOwner && (
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="items">Items</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="items" className="space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Your Items</h2>
-              <Button>Add New Item</Button>
-            </div>
+      <Tabs defaultValue="items" className="w-full">
+        <TabsList>
+          <TabsTrigger value="items" onClick={() => setTab("items")}>Articles</TabsTrigger>
+          <TabsTrigger value="orders" onClick={() => setTab("orders")}>Commandes</TabsTrigger>
+          <TabsTrigger value="settings" onClick={() => setTab("settings")}>Paramètres</TabsTrigger>
+        </TabsList>
+        <TabsContent value="items">
+          <div className="grid gap-4">
+            <AddItemForm />
             <ShopItemsList shopId={shop.id} />
-          </TabsContent>
-          
-          <TabsContent value="orders">
-            <h2 className="text-xl font-bold mb-4">Your Orders</h2>
-            <ShopOrdersList shopId={shop.id} />
-          </TabsContent>
-          
-          <TabsContent value="reviews">
-            <h2 className="text-xl font-bold mb-4">Customer Reviews</h2>
-            <ShopReviewsList shopId={shop.id} />
-          </TabsContent>
-          
-          <TabsContent value="settings">
-            <h2 className="text-xl font-bold mb-4">Shop Settings</h2>
-            <ShopSettings shopId={shop.id} />
-          </TabsContent>
-        </Tabs>
-      )}
+          </div>
+        </TabsContent>
+        <TabsContent value="orders">
+          <ShopOrdersList shopId={shop.id} />
+        </TabsContent>
+        <TabsContent value="settings">
+          {tab === 'settings' && shop && (
+            <ShopSettings shop={shop} />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

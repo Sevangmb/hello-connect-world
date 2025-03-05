@@ -6,13 +6,17 @@ interface Props {
 }
 
 export const useModuleOptimized = ({ moduleCode }: Props) => {
-  const moduleUsage = useModuleUsage();
+  const moduleUsage = useModuleUsage(moduleCode);
 
   useEffect(() => {
-    moduleUsage.recordModuleUsage(moduleCode);
-  }, [moduleCode, moduleUsage.recordModuleUsage]);
+    moduleUsage.trackUsage();
+  }, [moduleCode, moduleUsage.trackUsage]);
 
   return {
-    // You can return any other relevant data or functions here
+    trackUsage: () => {
+      if (moduleUsage) {
+        moduleUsage.trackUsage();
+      }
+    }
   };
 };

@@ -1,10 +1,19 @@
 
-import { ShopRepository } from "./ShopRepository";
 import { ShopService } from "../application/ShopService";
+import { IShopRepository } from "../domain/interfaces/IShopRepository";
+import { ShopRepository } from "./ShopRepository";
 
-// Créer des instances uniques pour l'application
-const shopRepository = new ShopRepository();
-const shopService = new ShopService(shopRepository);
+// Singleton instance
+let shopServiceInstance: ShopService | null = null;
 
-// Exporter le service de boutique
-export { shopService as ShopService };
+// Create a new instance of ShopService with ShopRepository
+export const getShopService = (): ShopService => {
+  if (!shopServiceInstance) {
+    const shopRepository = new ShopRepository() as IShopRepository;
+    shopServiceInstance = new ShopService(shopRepository);
+  }
+  return shopServiceInstance;
+};
+
+// Alias for backward compatibility
+export const getShopServiceInstance = getShopService;
