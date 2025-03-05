@@ -1,34 +1,36 @@
 
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Dispatch, SetStateAction } from 'react';
 
 export interface ClothesImageUploadProps {
   onChange: (url: string) => void;
   onUploading: Dispatch<SetStateAction<boolean>>;
-  currentImageUrl?: string;
+  currentImageUrl: string;
 }
 
 const ClothesImageUpload: React.FC<ClothesImageUploadProps> = ({
   onChange,
   onUploading,
-  currentImageUrl = ''
+  currentImageUrl
 }) => {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
-        Image du vêtement
-      </label>
-      <div className="mt-1">
-        <ImageUpload
-          onChange={onChange}
-          onUploading={onUploading}
-          currentImageUrl={currentImageUrl}
-        />
-      </div>
-      <p className="text-xs text-gray-500">
-        Téléchargez une image claire du vêtement.
-      </p>
+      <label className="block text-sm font-medium text-gray-700">Image du vêtement</label>
+      <ImageUpload
+        onChange={onChange}
+        onUploading={onUploading}
+        currentImageUrl={currentImageUrl}
+      />
+      {currentImageUrl && (
+        <div className="mt-2">
+          <p className="text-sm text-gray-500">Image actuelle:</p>
+          <img 
+            src={currentImageUrl} 
+            alt="Vêtement" 
+            className="mt-2 max-h-48 rounded-md object-cover" 
+          />
+        </div>
+      )}
     </div>
   );
 };

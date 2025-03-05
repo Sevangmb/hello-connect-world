@@ -1,106 +1,92 @@
 
-import { ModuleStatus } from "../types";
 import { supabase } from '@/integrations/supabase/client';
+import { ModuleStatus } from '../types';
+import { getModuleStatusFromCache, updateModuleCache } from './moduleStatusCore';
 
 /**
- * Check if a module is active by querying the database
+ * Check if a module is active (asynchronous)
  */
-export async function checkModuleActiveAsync(moduleCode: string): Promise<boolean> {
+export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolean> => {
+  // First try from cache
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'active';
+  }
+
+  // If not in cache, fetch from DB
   try {
     const { data, error } = await supabase
       .from('app_modules')
       .select('status')
       .eq('code', moduleCode)
       .single();
-    
-    if (error || !data) {
-      console.error(`Error fetching status for module ${moduleCode}:`, error);
+
+    if (error) {
+      console.error(`Error checking module ${moduleCode} status:`, error);
       return false;
     }
-    
-    return data.status === 'active';
-  } catch (e) {
-    console.error(`Exception when checking if module ${moduleCode} is active:`, e);
+
+    const status = data.status as ModuleStatus;
+    updateModuleCache(moduleCode, status);
+    return status === 'active';
+  } catch (error) {
+    console.error(`Error in checkModuleActiveAsync for ${moduleCode}:`, error);
     return false;
   }
-}
+};
 
 /**
- * Check if a module is in degraded mode by querying the database
+ * Check if a module is in degraded state (asynchronous)
  */
-export async function checkModuleDegradedAsync(moduleCode: string): Promise<boolean> {
+export const checkModuleDegradedAsync = async (moduleCode: string): Promise<boolean> => {
+  // First try from cache
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  if (cachedStatus !== null) {
+    return cachedStatus === 'degraded';
+  }
+
+  // If not in cache, fetch from DB
   try {
     const { data, error } = await supabase
       .from('app_modules')
       .select('status')
       .eq('code', moduleCode)
       .single();
-    
-    if (error || !data) {
-      console.error(`Error fetching status for module ${moduleCode}:`, error);
+
+    if (error) {
+      console.error(`Error checking module ${moduleCode} status:`, error);
       return false;
     }
-    
-    return data.status === 'degraded';
-  } catch (e) {
-    console.error(`Exception when checking if module ${moduleCode} is degraded:`, e);
+
+    const status = data.status as ModuleStatus;
+    updateModuleCache(moduleCode, status);
+    return status === 'degraded';
+  } catch (error) {
+    console.error(`Error in checkModuleDegradedAsync for ${moduleCode}:`, error);
     return false;
   }
-}
+};
 
 /**
- * Check if a feature is enabled by querying the database
+ * Check if a feature is enabled (asynchronous)
  */
-export async function checkFeatureEnabledAsync(
-  moduleCode: string, 
-  featureCode: string,
-  isModuleActive: (moduleCode: string) => Promise<boolean>
-): Promise<boolean> {
+export const checkFeatureEnabledAsync = async (moduleCode: string, featureCode: string): Promise<boolean> => {
   try {
-    // First, check if the module is active
-    const moduleIsActive = await isModuleActive(moduleCode);
-    if (!moduleIsActive) {
-      return false;
-    }
-
     const { data, error } = await supabase
       .from('module_features')
       .select('is_enabled')
       .eq('module_code', moduleCode)
       .eq('feature_code', featureCode)
       .single();
-    
-    if (error || !data) {
-      console.error(`Error fetching feature ${featureCode} for module ${moduleCode}:`, error);
+
+    if (error) {
+      console.error(`Error checking feature ${featureCode} status:`, error);
       return false;
     }
-    
+
     return data.is_enabled;
-  } catch (e) {
-    console.error(`Exception when checking if feature ${featureCode} is enabled for module ${moduleCode}:`, e);
+  } catch (error) {
+    console.error(`Error in checkFeatureEnabledAsync for ${moduleCode}/${featureCode}:`, error);
     return false;
   }
-}
-
-/**
- * Get a module's status by querying the database
- */
-export async function getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-  try {
-    const { data, error } = await supabase
-      .from('app_modules')
-      .select('status')
-      .eq('code', moduleCode)
-      .single();
-    
-    if (error || !data) {
-      console.error(`Error fetching status for module ${moduleCode}:`, error);
-      return null;
-    }
-    
-    return data.status as ModuleStatus;
-  } catch (e) {
-    console.error(`Exception when fetching module status for ${moduleCode}:`, e);
-    return null;
-  }
-}
+};

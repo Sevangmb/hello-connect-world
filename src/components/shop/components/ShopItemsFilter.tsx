@@ -1,56 +1,51 @@
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dispatch, SetStateAction } from 'react';
+import { Label } from '@/components/ui/label';
 
 export interface ShopItemsFilterProps {
   filterValue: string;
-  onFilterChange?: Dispatch<SetStateAction<string>>;
-  setFilterValue?: Dispatch<SetStateAction<string>>;
+  onFilterChange: (value: string) => void;
   sortValue: string;
-  onSortChange?: Dispatch<SetStateAction<string>>;
-  setSortValue?: Dispatch<SetStateAction<string>>;
+  onSortChange: (value: string) => void;
 }
 
-const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({
+export const ShopItemsFilter: React.FC<ShopItemsFilterProps> = ({
   filterValue,
   onFilterChange,
-  setFilterValue,
   sortValue,
-  onSortChange,
-  setSortValue,
+  onSortChange
 }) => {
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (onFilterChange) onFilterChange(e.target.value);
-    if (setFilterValue) setFilterValue(e.target.value);
-  };
-
-  const handleSortChange = (value: string) => {
-    if (onSortChange) onSortChange(value);
-    if (setSortValue) setSortValue(value);
-  };
-
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6">
-      <div className="w-full sm:w-2/3">
-        <Input
-          placeholder="Rechercher par nom..."
-          value={filterValue}
-          onChange={handleFilterChange}
-        />
+    <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+      <div className="space-y-1">
+        <Label htmlFor="filter">Filtrer par catégorie</Label>
+        <Select value={filterValue} onValueChange={onFilterChange}>
+          <SelectTrigger className="w-full md:w-[200px]">
+            <SelectValue placeholder="Catégorie" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les catégories</SelectItem>
+            <SelectItem value="Haut">Hauts</SelectItem>
+            <SelectItem value="Bas">Bas</SelectItem>
+            <SelectItem value="Veste">Vestes</SelectItem>
+            <SelectItem value="Robe">Robes</SelectItem>
+            <SelectItem value="Accessoire">Accessoires</SelectItem>
+            <SelectItem value="Chaussures">Chaussures</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div className="w-full sm:w-1/3">
-        <Select value={sortValue} onValueChange={handleSortChange}>
-          <SelectTrigger>
+      
+      <div className="space-y-1">
+        <Label htmlFor="sort">Trier par</Label>
+        <Select value={sortValue} onValueChange={onSortChange}>
+          <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="Trier par" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="price-asc">Prix croissant</SelectItem>
-            <SelectItem value="price-desc">Prix décroissant</SelectItem>
-            <SelectItem value="name-asc">Nom (A-Z)</SelectItem>
-            <SelectItem value="name-desc">Nom (Z-A)</SelectItem>
-            <SelectItem value="newest">Plus récent</SelectItem>
+            <SelectItem value="newest">Plus récents</SelectItem>
+            <SelectItem value="price-low">Prix croissant</SelectItem>
+            <SelectItem value="price-high">Prix décroissant</SelectItem>
           </SelectContent>
         </Select>
       </div>

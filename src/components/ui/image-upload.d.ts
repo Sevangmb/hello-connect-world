@@ -5,6 +5,4 @@ export interface ImageUploadProps {
   onChange: (url: string) => void;
   onUploading: Dispatch<SetStateAction<boolean>>;
   currentImageUrl?: string;
-  bucket?: string;
-  folder?: string;
 }

@@ -1,34 +1,32 @@
 
+// Define categories as simple string arrays
 export const CATEGORIES = [
-  "Hauts",
+  "Haut",
   "Bas",
-  "Robes",
-  "Manteaux",
+  "Robe",
+  "Veste",
+  "Manteau",
   "Chaussures",
-  "Accessoires",
+  "Accessoire",
+  "Sous-vêtement"
 ];
-
-export const CATEGORY_MAPPINGS = {
-  tops: ["Hauts", "T-shirt", "Chemise", "Pull", "Sweat", "Top", "Veste", "Manteaux"],
-  bottoms: ["Bas", "Pantalon", "Jean", "Short", "Jupe"],
-  shoes: ["Chaussures", "Baskets", "Bottes", "Sandales", "Escarpins"],
-  accessories: ["Accessoires", "Sac", "Bijoux", "Ceinture", "Écharpe"]
-};
 
 export const STYLES = [
   "Casual",
+  "Sportif",
   "Formel",
-  "Sport",
   "Soirée",
-  "Vacances",
-  "Business",
+  "Vintage",
+  "Bohème",
+  "Streetwear",
+  "Business"
 ];
 
 export const WEATHER_CATEGORIES = [
   "Été",
   "Hiver",
-  "Mi-saison",
   "Pluie",
-  "Soleil",
-  "Intérieur",
+  "Neige",
+  "Mi-saison",
+  "Toutes saisons"
 ];

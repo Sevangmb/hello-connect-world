@@ -1,65 +1,104 @@
 
-import { AppModule, ModuleStatus } from "../types";
 import { supabase } from '@/integrations/supabase/client';
+import { AppModule, ModuleStatus } from '../types';
 
-// Cache structure
+/**
+ * Cache for module status to avoid frequent DB queries
+ */
 interface ModuleCache {
-  [moduleCode: string]: {
+  [key: string]: {
     status: ModuleStatus;
     timestamp: number;
   };
 }
 
-// In-memory module cache
-const moduleStatusCache: ModuleCache = {};
+const moduleCache: ModuleCache = {};
+const CACHE_TTL = 60 * 1000; // 1 minute cache TTL
 
 /**
- * Check if a module is an admin module
+ * Get module status from cache or calculate it
  */
-export function isAdminModule(moduleCode: string): boolean {
-  return moduleCode === 'admin' || moduleCode.startsWith('admin_');
-}
-
-/**
- * Check if a module is a system module
- */
-export function isSystemModule(moduleCode: string): boolean {
-  return moduleCode === 'system' || moduleCode === 'core';
-}
-
-/**
- * Check if a module is a core module
- */
-export function isCoreModule(module: AppModule): boolean {
-  return module.is_core === true;
-}
+export const getModuleStatusFromCache = (moduleCode: string): ModuleStatus | null => {
+  const cachedModule = moduleCache[moduleCode];
+  
+  if (cachedModule && Date.now() - cachedModule.timestamp < CACHE_TTL) {
+    return cachedModule.status;
+  }
+  
+  return null;
+};
 
 /**
  * Update the module cache
  */
-export function updateModuleCache(modules: AppModule[]): void {
-  modules.forEach(module => {
-    moduleStatusCache[module.code] = {
-      status: module.status,
-      timestamp: Date.now()
-    };
-  });
-}
+export const updateModuleCache = (moduleCode: string, status: ModuleStatus): void => {
+  moduleCache[moduleCode] = {
+    status,
+    timestamp: Date.now()
+  };
+};
 
 /**
- * Get a module's status from cache
+ * Get module cache data
  */
-export function getModuleStatusFromCache(moduleCode: string): ModuleStatus | null {
-  const cached = moduleStatusCache[moduleCode];
-  if (cached && (Date.now() - cached.timestamp < 30000)) { // 30 second cache validity
-    return cached.status;
+export const getModuleCache = (): ModuleCache => {
+  return { ...moduleCache };
+};
+
+/**
+ * Check if a module is active (synchronous)
+ */
+export const isModuleActive = (moduleCode: string): boolean => {
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  return cachedStatus === 'active';
+};
+
+/**
+ * Check if a module is in degraded state (synchronous)
+ */
+export const isModuleDegraded = (moduleCode: string): boolean => {
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  return cachedStatus === 'degraded';
+};
+
+/**
+ * Check if a module is in maintenance (synchronous)
+ */
+export const isModuleMaintenance = (moduleCode: string): boolean => {
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  return cachedStatus === 'maintenance';
+};
+
+/**
+ * Check if a module is inactive (synchronous)
+ */
+export const isModuleInactive = (moduleCode: string): boolean => {
+  const cachedStatus = getModuleStatusFromCache(moduleCode);
+  return cachedStatus === 'inactive';
+};
+
+/**
+ * Get modules from database
+ */
+export const getModulesFromDb = async (): Promise<AppModule[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching modules:', error);
+      return [];
+    }
+
+    // Update cache with fresh data
+    data.forEach(module => {
+      updateModuleCache(module.code, module.status);
+    });
+
+    return data as AppModule[];
+  } catch (error) {
+    console.error('Error in getModulesFromDb:', error);
+    return [];
   }
-  return null;
-}
-
-/**
- * Get the module cache
- */
-export function getModuleCache(): ModuleCache {
-  return moduleStatusCache;
-}
+};

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ interface ClothesFormProps {
   formData: ClothesFormData;
   onFormChange: (field: keyof ClothesFormData, value: any) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  clothesId?: string;
+  onSuccess?: () => void;
 }
 
 export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormProps) => {
@@ -68,14 +71,16 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
 
         <div>
           <Label htmlFor="category">Catégorie</Label>
-          <Select onValueChange={(value) => onFormChange('category', value)}>
+          <Select 
+            value={formData.category}
+            onValueChange={(value) => onFormChange('category', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner une catégorie" />
             </SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((category) => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
+                <SelectItem key={category} value={category}>
+                  {category}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -84,14 +89,16 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
 
         <div>
           <Label htmlFor="style">Style</Label>
-          <Select onValueChange={(value) => onFormChange('style', value)}>
+          <Select 
+            value={formData.style}
+            onValueChange={(value) => onFormChange('style', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un style" />
             </SelectTrigger>
             <SelectContent>
               {STYLES.map((style) => (
-                <SelectItem key={style.value} value={style.value}>
-                  {style.label}
+                <SelectItem key={style} value={style}>
+                  {style}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -100,14 +107,16 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
 
         <div>
           <Label htmlFor="weather">Météo</Label>
-          <Select onValueChange={(value) => onFormChange('weather', value)}>
+          <Select 
+            value={formData.weather_categories?.length ? formData.weather_categories[0] : ''}
+            onValueChange={(value) => onFormChange('weather_categories', [value])}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner une météo" />
             </SelectTrigger>
             <SelectContent>
               {WEATHER_CATEGORIES.map((weather) => (
-                <SelectItem key={weather.value} value={weather.value}>
-                  {weather.label}
+                <SelectItem key={weather} value={weather}>
+                  {weather}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -173,7 +182,7 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
           <Input
             type="number"
             id="price"
-            value={formData.price}
+            value={formData.price || ''}
             onChange={(e) => onFormChange('price', parseFloat(e.target.value))}
             placeholder="Prix d'achat"
             step="0.01"
@@ -181,33 +190,22 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
         </div>
 
         <div>
-          <Label htmlFor="notes">Notes</Label>
-          <Textarea
-            id="notes"
-            value={formData.notes}
-            onChange={(e) => onFormChange('notes', e.target.value)}
-            placeholder="Notes supplémentaires"
-            rows={3}
+          <Label htmlFor="is_for_sale">À vendre ?</Label>
+          <input
+            type="checkbox"
+            id="is_for_sale"
+            checked={formData.is_for_sale}
+            onChange={(e) => onFormChange('is_for_sale', e.target.checked)}
           />
         </div>
 
         <div>
-          <Label htmlFor="is_clean">Propre ?</Label>
+          <Label htmlFor="needs_alteration">Besoin d'être modifié ?</Label>
           <input
             type="checkbox"
-            id="is_clean"
-            checked={formData.is_clean}
-            onChange={(e) => onFormChange('is_clean', e.target.checked)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="needs_repair">Besoin d'être réparé ?</Label>
-          <input
-            type="checkbox"
-            id="needs_repair"
-            checked={formData.needs_repair}
-            onChange={(e) => onFormChange('needs_repair', e.target.checked)}
+            id="needs_alteration"
+            checked={formData.needs_alteration}
+            onChange={(e) => onFormChange('needs_alteration', e.target.checked)}
           />
         </div>
 
@@ -218,3 +216,5 @@ export const ClothesForm = ({ formData, onFormChange, onSubmit }: ClothesFormPro
     </div>
   );
 };
+
+export default ClothesForm;

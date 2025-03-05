@@ -1,46 +1,66 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClothesForm } from "@/components/clothes/ClothesForm";
-import { ClothesList } from "@/components/clothes/ClothesList";
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { Plus, List } from "lucide-react";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import ClothesForm from '@/components/clothes/ClothesForm';
+import { ClothesFormData } from '@/components/clothes/types';
+import { PlusCircle } from 'lucide-react';
 
 const Clothes = () => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<ClothesFormData>({
+    name: '',
+    description: '',
+    category: '',
+    image_url: null,
+    brand: '',
+    size: '',
+    material: '',
+    color: '',
+    style: '',
+    price: null,
+    purchase_date: '',
+    is_for_sale: false,
+    needs_alteration: false,
+    weather_categories: [],
+  });
+
+  const handleFormChange = (field: keyof ClothesFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // Handle form submission logic here
+    console.log('Form submitted:', formData);
+    setDialogOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
-      <Header />
-      <MainSidebar />
-      <main className="pt-24 px-4 md:pl-72">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list" className="space-x-2">
-                <List className="h-4 w-4" />
-                <span>Liste des vêtements</span>
-              </TabsTrigger>
-              <TabsTrigger value="add" className="space-x-2">
-                <Plus className="h-4 w-4" />
-                <span>Ajouter un vêtement</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="list" className="mt-6">
-              <h2 className="text-2xl font-bold mb-4">Mes vêtements</h2>
-              <ClothesList />
-            </TabsContent>
-            
-            <TabsContent value="add" className="mt-6">
-              <ClothesForm onSuccess={() => {
-                // Rafraîchir la liste des vêtements si nécessaire
-                window.location.reload();
-              }} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-      <BottomNav />
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Mes vêtements</h1>
+        
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="default">
+              <PlusCircle className="mr-2 h-5 w-5" />
+              Ajouter un vêtement
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogTitle>Ajouter un nouveau vêtement</DialogTitle>
+            <ClothesForm 
+              formData={formData}
+              onFormChange={handleFormChange}
+              onSubmit={handleSubmit}
+              onSuccess={() => setDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      
+      {/* The rest of the Clothes page content */}
     </div>
   );
 };

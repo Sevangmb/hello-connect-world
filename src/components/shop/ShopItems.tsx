@@ -1,133 +1,83 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useShop } from '@/hooks/useShop';
-import { Button } from '@/components/ui/button';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useShopItems } from './hooks/useShopItems';
 import ShopItemCard from './components/ShopItemCard';
-import { ShopItemsFilter } from './components/ShopItemsFilter';
-import { Shop, ShopItem } from '@/core/shop/domain/types';
+import { ShopItemsFilter, ShopItemsFilterProps } from './components/ShopItemsFilter';
 
-const ShopItems = ({ shopId }: { shopId: string }) => {
-  const { shop, isShopLoading, getShopItems } = useShop();
-  const [isLoading, setIsLoading] = useState(true);
-  const [items, setItems] = useState<ShopItem[]>([]);
-  const [filterValue, setFilterValue] = useState('');
-  const [sortValue, setSortValue] = useState('');
+export const ShopItems = () => {
+  const { shopId } = useParams<{ shopId: string }>();
+  const [filterValue, setFilterValue] = useState('all');
+  const [sortValue, setSortValue] = useState('newest');
+  const { items, isLoading, error } = useShopItems(shopId);
 
-  useEffect(() => {
-    const loadItems = async () => {
-      setIsLoading(true);
-      if (shopId) {
-        const shopItems = await getShopItems(shopId);
-        setItems(shopItems || []);
-      }
-      setIsLoading(false);
-    };
-
-    loadItems();
-  }, [shopId, getShopItems]);
-
-  useEffect(() => {
-    if (!items) return;
-
-    let filteredItems = [...items];
-
-    if (filterValue) {
-      filteredItems = filteredItems.filter(item =>
-        item.name.toLowerCase().includes(filterValue.toLowerCase())
-      );
-    }
-
-    if (sortValue) {
-      switch (sortValue) {
-        case 'price-asc':
-          filteredItems.sort((a, b) => a.price - b.price);
-          break;
-        case 'price-desc':
-          filteredItems.sort((a, b) => b.price - a.price);
-          break;
-        case 'newest':
-          filteredItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          break;
-        case 'name-asc':
-          filteredItems.sort((a, b) => a.name.localeCompare(b.name));
-          break;
-        default:
-          break;
-      }
-    }
-
-    setItems(filteredItems);
-  }, [filterValue, sortValue, items]);
-
-  if (isLoading || isShopLoading) {
-    return <div>Loading items...</div>;
-  }
-
-  if (!items) {
-    return <div>No items found for this shop.</div>;
-  }
-
-  const ShopItemsFilter = ({ 
-    filterValue, 
-    onFilterChange, 
-    sortValue, 
-    onSortChange 
-  }: {
-    filterValue: string;
-    onFilterChange: (value: string) => void;
-    sortValue: string;
-    onSortChange: (value: string) => void;
-  }) => {
+  if (error) {
     return (
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search items..."
-            value={filterValue}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-500"
-          />
+      <Alert variant="destructive" className="my-4">
+        <AlertDescription>
+          Une erreur est survenue lors du chargement des articles: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 my-4">
+        <div className="flex justify-between mb-4">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-48" />
         </div>
-        <div className="w-full md:w-48">
-          <select
-            value={sortValue}
-            onChange={(e) => onSortChange(e.target.value)}
-            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-500"
-          >
-            <option value="">Sort by</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="newest">Newest First</option>
-            <option value="name-asc">Name: A-Z</option>
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-64 w-full rounded-md" />
+          ))}
         </div>
       </div>
     );
-  };
+  }
 
-  const onFilterChange = (value: string) => {
-    setFilterValue(value);
-  };
+  // Filter and sort items
+  const filteredItems = items?.filter(item => {
+    if (filterValue === 'all') return true;
+    return item.category === filterValue;
+  }) || [];
 
-  const onSortChange = (value: string) => {
-    setSortValue(value);
-  };
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (sortValue === 'newest') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+    if (sortValue === 'price-low') {
+      return a.price - b.price;
+    }
+    if (sortValue === 'price-high') {
+      return b.price - a.price;
+    }
+    return 0;
+  });
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {items.map(item => (
-          <ShopItemCard key={item.id} item={item} />
-        ))}
-      </div>
-      <ShopItemsFilter 
-        filterValue={filterValue} 
+    <div className="my-4 space-y-4">
+      <ShopItemsFilter
+        filterValue={filterValue}
         onFilterChange={setFilterValue}
-        sortValue={sortValue} 
+        sortValue={sortValue}
         onSortChange={setSortValue}
       />
+
+      {sortedItems.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Aucun article disponible.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sortedItems.map(item => (
+            <ShopItemCard key={item.id} item={item} shopId={shopId} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

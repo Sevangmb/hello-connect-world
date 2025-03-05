@@ -1,99 +1,69 @@
 
-import { IMenuRepository } from "../domain/interfaces/IMenuRepository";
-import { MenuItem, MenuItemCategory } from "../types";
+import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 
 /**
- * Menu use case - Application layer
- * Implements business logic for menu operations
+ * MenuUseCase class for handling menu-related logic
  */
 export class MenuUseCase {
-  private repository: IMenuRepository;
+  private menuRepository: IMenuRepository;
 
-  constructor(repository: IMenuRepository) {
-    this.repository = repository;
+  constructor(menuRepository: IMenuRepository) {
+    this.menuRepository = menuRepository;
   }
 
   /**
    * Get all menu items
    */
-  async getAllMenuItems(): Promise<MenuItem[]> {
-    try {
-      return await this.repository.getAllMenuItems();
-    } catch (error) {
-      console.error("Error fetching all menu items:", error);
-      return [];
-    }
+  async getAllMenuItems() {
+    return await this.menuRepository.getAllMenuItems();
   }
 
   /**
    * Get menu items by category
    */
-  async getMenuItemsByCategory(category: string, isAdmin?: boolean): Promise<MenuItem[]> {
-    try {
-      return await this.repository.getMenuItemsByCategory(category, isAdmin);
-    } catch (error) {
-      console.error(`Error fetching menu items for category ${category}:`, error);
-      return [];
-    }
+  async getMenuItemsByCategory(category: string) {
+    return await this.menuRepository.getMenuItemsByCategory(category);
   }
 
   /**
    * Get menu items by module
    */
-  async getMenuItemsByModule(moduleCode: string, isAdmin?: boolean): Promise<MenuItem[]> {
-    try {
-      return await this.repository.getMenuItemsByModule(moduleCode, isAdmin);
-    } catch (error) {
-      console.error(`Error fetching menu items for module ${moduleCode}:`, error);
-      return [];
-    }
+  async getMenuItemsByModule(moduleCode: string) {
+    return await this.menuRepository.getMenuItemsByModule(moduleCode);
   }
 
   /**
-   * Get menu items by parent ID
+   * Get admin menu items
    */
-  async getMenuItemsByParent(parentId: string): Promise<MenuItem[]> {
-    try {
-      return await this.repository.getMenuItemsByParent(parentId);
-    } catch (error) {
-      console.error(`Error fetching menu items for parent ${parentId}:`, error);
-      return [];
-    }
+  async getAdminMenuItems() {
+    return await this.menuRepository.getAdminMenuItems();
+  }
+
+  /**
+   * Set menu item visibility
+   */
+  async setMenuItemVisibility(itemId: string, isVisible: boolean) {
+    return await this.menuRepository.setMenuItemVisibility(itemId, isVisible);
   }
 
   /**
    * Create a new menu item
    */
-  async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
-    try {
-      return await this.repository.createMenuItem(item);
-    } catch (error) {
-      console.error("Error creating menu item:", error);
-      return null;
-    }
+  async createMenuItem(menuItemData: any) {
+    return await this.menuRepository.createMenuItem(menuItemData);
   }
 
   /**
-   * Update an existing menu item
+   * Update a menu item
    */
-  async updateMenuItem(item: Partial<MenuItem> & { id: string }): Promise<MenuItem | null> {
-    try {
-      return await this.repository.updateMenuItem(item);
-    } catch (error) {
-      console.error(`Error updating menu item ${item.id}:`, error);
-      return null;
-    }
+  async updateMenuItem(itemId: string, menuItemData: any) {
+    return await this.menuRepository.updateMenuItem(itemId, menuItemData);
   }
 
   /**
    * Delete a menu item
    */
-  async deleteMenuItem(id: string): Promise<boolean> {
-    try {
-      return await this.repository.deleteMenuItem(id);
-    } catch (error) {
-      console.error(`Error deleting menu item ${id}:`, error);
-      return false;
-    }
+  async deleteMenuItem(itemId: string) {
+    return await this.menuRepository.deleteMenuItem(itemId);
   }
 }

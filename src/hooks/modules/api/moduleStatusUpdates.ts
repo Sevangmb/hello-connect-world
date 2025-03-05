@@ -1,34 +1,34 @@
 
-import { ModuleStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
-import { isAdminModule } from './moduleStatusCore';
+import { ModuleStatus } from '../types';
+import { updateModuleCache } from './moduleStatusCore';
 
 /**
  * Update a module's status in the database
  */
 export const updateModuleStatusInDb = async (
   moduleId: string, 
-  status: ModuleStatus,
-  isAdminModuleCheck: boolean = false
+  status: ModuleStatus
 ): Promise<boolean> => {
-  // Prevent disabling the Admin module
-  if (isAdminModuleCheck && status !== 'active') {
-    console.error("The Admin module cannot be disabled");
-    return false;
-  }
-
   try {
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('app_modules')
       .update({ 
         status: status,
         updated_at: new Date().toISOString() 
       })
-      .eq('id', moduleId);
+      .eq('id', moduleId)
+      .select('code')
+      .single();
 
     if (error) {
       console.error('Error updating module status:', error);
       return false;
+    }
+
+    // Update the cache with the new status
+    if (data?.code) {
+      updateModuleCache(data.code, status);
     }
 
     return true;
@@ -44,15 +44,8 @@ export const updateModuleStatusInDb = async (
 export const updateFeatureStatusInDb = async (
   moduleCode: string, 
   featureCode: string, 
-  isEnabled: boolean,
-  isAdminModuleCheck: boolean = false
+  isEnabled: boolean
 ): Promise<boolean> => {
-  // Prevent disabling Admin module features
-  if (isAdminModuleCheck && !isEnabled) {
-    console.error("Admin module features cannot be disabled");
-    return false;
-  }
-
   try {
     const { error } = await supabase
       .from('module_features')
