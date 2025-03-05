@@ -1,87 +1,95 @@
 
-import { useEffect } from 'react';
-import { AppModule, ModuleDependency, ModuleStatus } from './types';
-import { eventBus } from '@/core/event-bus/EventBus';
+/**
+ * Subscriptions pour les modules
+ * Gère les abonnements aux événements liés aux modules
+ */
 import { MODULE_EVENTS } from '@/services/modules/ModuleEvents';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { AppModule, ModuleDependency } from './types';
+
+// Constantes pour les événements locaux
+const LOCAL_EVENTS = {
+  MODULES_UPDATED: 'local:modules_updated',
+  DEPENDENCIES_UPDATED: 'local:dependencies_updated',
+  FEATURES_UPDATED: 'local:features_updated'
+};
 
 /**
- * Process incoming module data for consistency
+ * Type pour la fonction de désabonnement
  */
-const processModuleData = (module: any): AppModule => {
-  const status = module.status as ModuleStatus;
-  
-  // Ensure we have a valid status
-  const validStatus = status === 'active' || 
-                      status === 'inactive' || 
-                      status === 'degraded' || 
-                      status === 'maintenance' ? 
-                      status : 'inactive';
-  
-  // Return a fully-formed module with defaults for missing properties
+type UnsubscribeFunction = () => void;
+
+/**
+ * Adapte un module depuis la réponse Supabase pour ajouter les champs manquants
+ */
+export const adaptModuleFromResponse = (moduleFromDb: any): AppModule => {
   return {
-    id: module.id,
-    code: module.code,
-    name: module.name,
-    description: module.description || '',
-    status: validStatus,
-    is_core: !!module.is_core,
-    version: module.version || '1.0.0',
-    created_at: module.created_at || new Date().toISOString(),
-    updated_at: module.updated_at || new Date().toISOString(),
-    is_admin: module.is_admin || false,
-    priority: module.priority || 0,
-    features: module.features || {}
+    ...moduleFromDb,
+    version: moduleFromDb.version || "1.0.0",
+    is_admin: moduleFromDb.is_admin || false,
+    priority: moduleFromDb.priority || 0
+  } as AppModule;
+};
+
+/**
+ * S'abonne aux mises à jour des modules
+ */
+export const subscribeToModuleUpdates = (
+  setModules: React.Dispatch<React.SetStateAction<AppModule[]>>
+): UnsubscribeFunction => {
+  const handleModulesUpdate = (modules: AppModule[]) => {
+    setModules(modules);
+  };
+
+  eventBus.subscribe(MODULE_EVENTS.MODULES_LOADED, handleModulesUpdate);
+  eventBus.subscribe(LOCAL_EVENTS.MODULES_UPDATED, handleModulesUpdate);
+
+  return () => {
+    eventBus.unsubscribe(MODULE_EVENTS.MODULES_LOADED, handleModulesUpdate);
+    eventBus.unsubscribe(LOCAL_EVENTS.MODULES_UPDATED, handleModulesUpdate);
   };
 };
 
 /**
- * Process incoming dependency data for consistency
+ * Adapte une dépendance depuis la réponse Supabase pour ajouter les champs manquants
  */
-const processDependencyData = (dependency: any): ModuleDependency => {
+export const adaptDependencyFromResponse = (dependencyFromDb: any): ModuleDependency => {
   return {
-    id: dependency.id || `${dependency.module_id}_${dependency.dependency_id}`,
-    module_id: dependency.module_id,
-    module_code: dependency.module_code,
-    module_name: dependency.module_name,
-    module_status: dependency.module_status || 'inactive',
-    dependency_id: dependency.dependency_id,
-    dependency_code: dependency.dependency_code,
-    dependency_name: dependency.dependency_name,
-    dependency_status: dependency.dependency_status || 'inactive',
-    depends_on: dependency.depends_on || dependency.dependency_code || '',
-    is_required: !!dependency.is_required,
-    created_at: dependency.created_at || new Date().toISOString(),
-    updated_at: dependency.updated_at || new Date().toISOString()
+    ...dependencyFromDb,
+    created_at: dependencyFromDb.created_at || new Date().toISOString(),
+    updated_at: dependencyFromDb.updated_at || new Date().toISOString()
+  } as ModuleDependency;
+};
+
+/**
+ * S'abonne aux mises à jour des dépendances
+ */
+export const subscribeToDependencyUpdates = (
+  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>
+): UnsubscribeFunction => {
+  const handleDependenciesUpdate = (dependencies: ModuleDependency[]) => {
+    setDependencies(dependencies);
+  };
+
+  eventBus.subscribe(LOCAL_EVENTS.DEPENDENCIES_UPDATED, handleDependenciesUpdate);
+
+  return () => {
+    eventBus.unsubscribe(LOCAL_EVENTS.DEPENDENCIES_UPDATED, handleDependenciesUpdate);
   };
 };
 
 /**
- * Subscribe to module events via event bus
+ * Gère les abonnements et désabonnements pour les modules et dépendances
  */
-export const useModuleSubscriptions = (
+export const setupSubscriptions = (
   setModules: React.Dispatch<React.SetStateAction<AppModule[]>>,
-  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>,
-) => {
-  useEffect(() => {
-    // Subscribe to module updates
-    const subscription = eventBus.subscribe(MODULE_EVENTS.MODULES_REFRESHED, (event) => {
-      if (event.modules) {
-        const processedModules = event.modules.map(processModuleData);
-        setModules(processedModules);
-      }
-    });
+  setDependencies: React.Dispatch<React.SetStateAction<ModuleDependency[]>>
+): () => void => {
+  const unsubscribeFromModules = subscribeToModuleUpdates(setModules);
+  const unsubscribeFromDependencies = subscribeToDependencyUpdates(setDependencies);
 
-    // Subscribe to dependency updates
-    const depSubscription = eventBus.subscribe(MODULE_EVENTS.DEPENDENCIES_UPDATED, (event) => {
-      if (event.dependencies) {
-        const processedDependencies = event.dependencies.map(processDependencyData);
-        setDependencies(processedDependencies);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      depSubscription.unsubscribe();
-    };
-  }, [setModules, setDependencies]);
+  return () => {
+    unsubscribeFromModules();
+    unsubscribeFromDependencies();
+  };
 };

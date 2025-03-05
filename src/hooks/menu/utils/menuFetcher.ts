@@ -29,23 +29,23 @@ export const fetchMenuItems = async ({
   // Fetch menu items based on options
   if (category === 'admin') {
     if (adminEnabled) {
-      items = await MenuService.getMenuItemsByCategory('admin', modules);
+      items = await MenuService.getMenuItemsByCategory('admin', modules, hierarchical);
     }
   } else if (category) {
-    items = await MenuService.getMenuItemsByCategory(category, modules);
+    items = await MenuService.getMenuItemsByCategory(category, modules, hierarchical);
     items = menuFilters.byModuleVisibility(items, modules, isAdmin);
   } else if (moduleCode) {
     if (!moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules)) {
       return [];
     }
     
-    items = await MenuService.getMenuItemsByModule(moduleCode, modules);
+    items = await MenuService.getMenuItemsByModule(moduleCode, modules, hierarchical);
   } else {
-    items = await MenuService.getVisibleMenuItems(modules);
+    items = await MenuService.getVisibleMenuItems(modules, hierarchical);
     items = menuFilters.byModuleVisibility(items, modules, isAdmin);
     
     if (adminEnabled && !category) {
-      const adminItems = await MenuService.getMenuItemsByCategory('admin', modules);
+      const adminItems = await MenuService.getMenuItemsByCategory('admin', modules, hierarchical);
       const existingIds = new Set(items.map(item => item.id));
       for (const adminItem of adminItems) {
         if (!existingIds.has(adminItem.id)) {

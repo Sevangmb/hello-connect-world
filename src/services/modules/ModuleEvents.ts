@@ -2,53 +2,30 @@
 /**
  * Événements liés aux modules
  */
-
 export const MODULE_EVENTS = {
-  // Événements d'initialisation
-  MODULES_INITIALIZATION_STARTED: 'modules:initialization:started',
-  MODULES_INITIALIZATION_COMPLETED: 'modules:initialization:completed',
+  // Événements de chargement initial
+  MODULES_INITIALIZATION_STARTED: 'modules:initialization_started',
+  MODULES_INITIALIZATION_COMPLETED: 'modules:initialization_completed',
+  MODULES_INITIALIZED: 'modules:initialized',
   
-  // Événements de chargement
+  // Événements de chargement de données
   MODULES_LOADED: 'modules:loaded',
   MODULE_LOADED: 'module:loaded',
   MODULES_REFRESHED: 'modules:refreshed',
-  MODULES_INITIALIZED: 'modules:initialized',
   
-  // Événements de statut
-  MODULE_STATUS_CHANGED: 'module:status:changed',
-  MODULE_ACTIVATED: 'module:activated',
-  MODULE_DEACTIVATED: 'module:deactivated',
-  MODULE_DEGRADED: 'module:degraded',
-  
-  // Événements de fonctionnalités
-  FEATURE_STATUS_CHANGED: 'feature:status:changed',
-  FEATURE_ENABLED: 'feature:enabled',
-  FEATURE_DISABLED: 'feature:disabled',
-  FEATURE_ACTIVATED: 'feature:activated',
-  FEATURE_DEACTIVATED: 'feature:deactivated',
-  
-  // Événements de synchronisation
-  MODULE_SYNC_STARTED: 'module:sync:started',
-  MODULE_SYNC_COMPLETED: 'module:sync:completed',
-  MODULE_SYNC_FAILED: 'module:sync:failed',
-  
-  // Événements de connexion
-  MODULE_CONNECTION_RESTORED: 'module:connection:restored',
-  MODULE_CONNECTION_ERROR: 'module:connection:error',
+  // Événements de changement d'état
+  MODULE_STATUS_CHANGED: 'module:status_changed',
+  MODULE_FEATURE_CHANGED: 'module:feature_changed',
   
   // Événements d'erreur
   MODULE_ERROR: 'module:error',
   MODULE_WARNING: 'module:warning',
   
-  // Événements Circuit Breaker
-  CIRCUIT_OPENED: 'circuit:opened',
-  CIRCUIT_CLOSED: 'circuit:closed',
-  CIRCUIT_HALF_OPEN: 'circuit:half:open',
+  // Événements d'accès
+  MODULE_ACCESS_GRANTED: 'module:access_granted',
+  MODULE_ACCESS_DENIED: 'module:access_denied',
   
-  // Événements d'utilisation
-  MODULE_USAGE_RECORDED: 'module:usage:recorded',
-  
-  // Événements d'accès administrateur
-  ADMIN_ACCESS_GRANTED: 'admin:access:granted',
-  ADMIN_ACCESS_REVOKED: 'admin:access:revoked',
+  // Événements d'administration
+  ADMIN_ACCESS_GRANTED: 'admin:access_granted',
+  ADMIN_ACCESS_REVOKED: 'admin:access_revoked',
 };
