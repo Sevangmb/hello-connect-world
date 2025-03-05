@@ -1,137 +1,128 @@
-/**
- * Service pour gérer les modules - Implémentation concrète
- * Couche Application de la Clean Architecture
- */
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { ModuleRepository, moduleRepository } from '../repositories/ModuleRepository';
 import { IModuleService } from './IModuleService';
-import { eventBus } from '@/core/event-bus/EventBus';
-import { MODULE_EVENTS } from '../ModuleEvents';
-import { supabase } from '@/integrations/supabase/client';
-import { ADMIN_MODULE_CODE } from '@/hooks/modules/constants';
+import { ModuleRepository } from '../repositories/ModuleRepository';
+import { ModuleValidator } from '../utils/ModuleValidator';
 
 export class ModuleServiceImpl implements IModuleService {
-  private repository: ModuleRepository;
-  
-  constructor(repository: ModuleRepository) {
-    this.repository = repository;
+  private moduleRepository: ModuleRepository;
+  private moduleValidator: ModuleValidator;
+
+  constructor() {
+    this.moduleRepository = new ModuleRepository();
+    this.moduleValidator = new ModuleValidator();
   }
-  
-  /**
-   * Récupère tous les modules
-   */
+
   async getAllModules(): Promise<AppModule[]> {
     try {
-      const modules = await this.repository.fetchAllModules();
-      eventBus.publish(MODULE_EVENTS.MODULES_LOADED, { 
-        count: modules.length,
-        timestamp: Date.now()
-      });
-      return modules;
+      return await this.moduleRepository.getAllModules();
     } catch (error) {
-      console.error("Erreur lors du chargement des modules:", error);
-      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, { 
-        error,
-        context: "getAllModules", 
-        timestamp: Date.now()
-      });
+      console.error('Error getting all modules:', error);
       return [];
     }
   }
-  
-  /**
-   * Met à jour le statut d'un module
-   * @param moduleId ID du module
-   * @param status Nouveau statut
-   * @returns Promise<boolean> True si la mise à jour a réussi
-   */
-  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+
+  async getModuleById(id: string): Promise<AppModule | null> {
     try {
-      // Vérifier si c'est le module Admin
-      const module = await this.repository.getModuleByCode(ADMIN_MODULE_CODE);
-      if (module && module.id === moduleId && status !== 'active') {
-        console.error("Le module Admin ne peut pas être désactivé");
+      return await this.moduleRepository.getModuleById(id);
+    } catch (error) {
+      console.error(`Error getting module by id ${id}:`, error);
+      return null;
+    }
+  }
+
+  async getModuleByCode(code: string): Promise<AppModule | null> {
+    try {
+      return await this.moduleRepository.getModuleByCode(code);
+    } catch (error) {
+      console.error(`Error getting module by code ${code}:`, error);
+      return null;
+    }
+  }
+
+  async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
+    try {
+      // Validate status
+      const validStatus = this.moduleValidator.validateStatus(status);
+      if (!validStatus) {
+        console.error(`Invalid module status: ${status}`);
         return false;
       }
-      
-      const success = await this.repository.updateModuleStatus(moduleId, status);
-      
-      if (success) {
-        eventBus.publish(MODULE_EVENTS.MODULE_STATUS_CHANGED, {
-          moduleId,
-          status,
-          timestamp: Date.now()
-        });
+
+      // Check if module exists
+      const module = await this.moduleRepository.getModuleById(id);
+      if (!module) {
+        console.error(`Module with id ${id} does not exist`);
+        return false;
       }
-      
-      return success;
+
+      // Don't allow disabling core modules
+      if (module.is_core && status !== 'active') {
+        console.error(`Cannot disable core module ${module.code}`);
+        return false;
+      }
+
+      // Update status
+      return await this.moduleRepository.updateModuleStatus(id, status);
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut du module:", error);
-      eventBus.publish(MODULE_EVENTS.MODULE_ERROR, { 
-        error,
-        context: "updateModuleStatus",
-        moduleId,
-        status,
-        timestamp: Date.now()
-      });
+      console.error(`Error updating module status for ${id}:`, error);
       return false;
     }
   }
-  
-  /**
-   * Enregistre l'utilisation d'un module
-   * @param moduleCode Code du module
-   */
-  async recordModuleUsage(moduleCode: string): Promise<void> {
+
+  async createModule(module: Omit<AppModule, 'id' | 'created_at' | 'updated_at' | 'features'>): Promise<AppModule | null> {
     try {
-      if (!moduleCode) return;
-      
-      // Utiliser la fonction RPC pour incrémenter l'utilisation du module
-      const { error } = await supabase.rpc('increment_module_usage', { module_code: moduleCode });
-      
-      if (error) throw error;
-      
-      eventBus.publish(MODULE_EVENTS.MODULE_USAGE_RECORDED, {
-        moduleCode,
-        timestamp: Date.now()
-      });
+      // Validate module
+      const validModule = this.moduleValidator.validateModule(module);
+      if (!validModule) {
+        console.error(`Invalid module: ${module.code}`);
+        return null;
+      }
+
+      // Create module
+      return await this.moduleRepository.createModule(module);
     } catch (error) {
-      console.error(`Erreur lors de l'enregistrement de l'utilisation du module ${moduleCode}:`, error);
+      console.error('Error creating module:', error);
+      return null;
     }
   }
-  
-  /**
-   * Vérifie si un module est actif
-   * @param moduleCode Code du module
-   * @returns Promise<boolean> True si le module est actif
-   */
-  async isModuleActive(moduleCode: string): Promise<boolean> {
+
+  async updateModule(module: Partial<AppModule> & { id: string }): Promise<AppModule | null> {
     try {
-      // Si c'est le module Admin, toujours retourner true
-      if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin_')) {
-        return true;
+      // Validate module
+      const validModule = this.moduleValidator.validatePartialModule(module);
+      if (!validModule) {
+        console.error(`Invalid module: ${module.code}`);
+        return null;
       }
-      
-      // Utiliser la fonction RPC pour vérifier si le module est actif
-      const { data, error } = await supabase.rpc('is_module_active', { module_code: moduleCode });
-      
-      if (error) throw error;
-      
-      return !!data;
+
+      // Update module
+      return await this.moduleRepository.updateModule(module);
     } catch (error) {
-      console.error(`Erreur lors de la v��rification du statut du module ${moduleCode}:`, error);
-      
-      // Fallback: vérifier directement dans la table
-      try {
-        const module = await this.repository.getModuleByCode(moduleCode);
-        return module?.status === 'active';
-      } catch (fallbackError) {
-        console.error(`Erreur lors de la vérification du fallback pour ${moduleCode}:`, fallbackError);
+      console.error(`Error updating module ${module.id}:`, error);
+      return null;
+    }
+  }
+
+  async deleteModule(id: string): Promise<boolean> {
+    try {
+      // Check if module exists
+      const module = await this.moduleRepository.getModuleById(id);
+      if (!module) {
+        console.error(`Module with id ${id} does not exist`);
         return false;
       }
+
+      // Don't allow deleting core modules
+      if (module.is_core) {
+        console.error(`Cannot delete core module ${module.code}`);
+        return false;
+      }
+
+      // Delete module
+      return await this.moduleRepository.deleteModule(id);
+    } catch (error) {
+      console.error(`Error deleting module ${id}:`, error);
+      return false;
     }
   }
 }
-
-// Exporter une instance unique pour toute l'application
-export const moduleService = new ModuleServiceImpl(moduleRepository);

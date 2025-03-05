@@ -1,14 +1,10 @@
 
-/**
- * Service central pour la gestion des modules
- * Implémente l'API de communication avec les modules
- */
 import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_EVENTS } from './ModuleEvents';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 
 // Importation des repositories
-import { moduleRepository } from './repositories/ModuleRepository';
+import { ModuleRepository } from './repositories/ModuleRepository';
 import { dependencyRepository } from './repositories/DependencyRepository';
 import { featureRepository } from './repositories/FeatureRepository';
 
@@ -25,6 +21,11 @@ class ModuleService {
   private dependencies: any[] = [];
   private features: Record<string, Record<string, boolean>> = {};
   private initialized: boolean = false;
+  private moduleRepository: ModuleRepository;
+
+  constructor() {
+    this.moduleRepository = new ModuleRepository();
+  }
 
   /**
    * Initialise le service de modules
@@ -95,7 +96,7 @@ class ModuleService {
     try {
       // Utiliser le circuit breaker pour éviter les appels répétés en cas d'erreur
       const updatedModules = await circuitBreakerService.execute('modules_refresh', async () => {
-        const modules = await moduleRepository.fetchAllModules();
+        const modules = await this.moduleRepository.getAllModules();
         
         // Mettre à jour l'état interne
         this.modules = modules;

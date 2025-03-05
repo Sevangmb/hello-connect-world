@@ -1,225 +1,356 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/hooks/useShop';
-import { ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ImageUpload } from '@/components/ui/image-upload';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { LoaderCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
+import { ImageUpload } from '@/components/clothes/components/ImageUpload';
+import { CheckboxGroup, CheckboxItem } from '@/components/ui/checkbox-group';
+import { DeliveryOption, PaymentMethod } from '@/core/shop/domain/types';
 
 interface ShopSettingsProps {
   shopId: string;
 }
 
-export function ShopSettings({ shopId }: ShopSettingsProps) {
-  const { shop, updateShop, getShopSettings, updateShopSettings } = useShop();
-  const { toast } = useToast();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [address, setAddress] = useState('');
-  const [settings, setSettings] = useState<ShopSettingsType | null>(null);
-  const [autoAcceptOrders, setAutoAcceptOrders] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [appNotifications, setAppNotifications] = useState(true);
+export const ShopSettings: React.FC<ShopSettingsProps> = ({ shopId }) => {
+  const { shop, getShopSettings, updateShopInfo, updateShopSettings } = useShop();
   const [loading, setLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+  const [shopData, setShopData] = useState({
+    id: shopId,
+    name: '',
+    description: '',
+    phone: '',
+    website: '',
+    address: '',
+    image_url: ''
+  });
   const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (shop) {
-      setName(shop.name || '');
-      setDescription(shop.description || '');
-      setImageUrl(shop.image_url || '');
-      setAddress(shop.address || '');
-    }
-  }, [shop]);
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      setLoading(true);
+    async function fetchData() {
       try {
+        // Load shop settings
         const shopSettings = await getShopSettings(shopId);
-        if (shopSettings) {
-          setSettings(shopSettings);
-          setAutoAcceptOrders(shopSettings.auto_accept_orders);
-          setEmailNotifications(shopSettings.notification_preferences.email);
-          setAppNotifications(shopSettings.notification_preferences.app);
+        setSettings(shopSettings);
+        
+        // Initialize shop data
+        if (shop) {
+          setShopData({
+            id: shop.id,
+            name: shop.name || '',
+            description: shop.description || '',
+            phone: shop.phone || '',
+            website: shop.website || '',
+            address: shop.address || '',
+            image_url: shop.image_url || ''
+          });
         }
       } catch (error) {
-        console.error('Error fetching settings:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les paramètres de la boutique.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
-    };
-
-    if (shopId) {
-      fetchSettings();
     }
-  }, [shopId, getShopSettings]);
 
-  const handleUpdateShop = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!shop) return;
+    fetchData();
+  }, [getShopSettings, shop, shopId, toast]);
 
-    setIsUpdating(true);
-    try {
-      await updateShop.mutateAsync({
-        id: shop.id,
-        name,
-        description,
-        image_url: imageUrl,
-        address
+  const handleShopInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setShopData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (url: string) => {
+    setShopData(prev => ({ ...prev, image_url: url }));
+  };
+
+  const handlePaymentMethodsChange = (values: string[]) => {
+    if (settings) {
+      setSettings({
+        ...settings,
+        payment_methods: values as PaymentMethod[]
       });
+    }
+  };
 
-      // Check if settings exists, update preferences
-      if (settings) {
-        await updateShopSettings.mutateAsync({
-          id: settings.id,
-          settings: {
-            auto_accept_orders: autoAcceptOrders,
-            notification_preferences: {
-              email: emailNotifications,
-              app: appNotifications
-            }
-          }
-        });
-      }
+  const handleDeliveryOptionsChange = (values: string[]) => {
+    if (settings) {
+      setSettings({
+        ...settings,
+        delivery_options: values as DeliveryOption[]
+      });
+    }
+  };
 
+  const handleAutoAcceptChange = (checked: boolean) => {
+    if (settings) {
+      setSettings({
+        ...settings,
+        auto_accept_orders: checked
+      });
+    }
+  };
+
+  const handleNotificationChange = (type: 'email' | 'app', checked: boolean) => {
+    if (settings) {
+      setSettings({
+        ...settings,
+        notification_preferences: {
+          ...settings.notification_preferences,
+          [type]: checked
+        }
+      });
+    }
+  };
+
+  const saveShopInfo = async () => {
+    setUpdating(true);
+    try {
+      // Only send allowed fields to updateShopInfo
+      const updateData = {
+        id: shopData.id,
+        name: shopData.name,
+        description: shopData.description,
+        image_url: shopData.image_url,
+        phone: shopData.phone,
+        website: shopData.website,
+        address: shopData.address
+      };
+      
+      await updateShopInfo.mutateAsync(updateData);
+      
       toast({
-        title: 'Paramètres mis à jour',
-        description: 'Les paramètres de votre boutique ont été mis à jour',
+        title: "Informations mises à jour",
+        description: "Les informations de la boutique ont été mises à jour avec succès.",
       });
     } catch (error) {
-      console.error('Error updating shop settings:', error);
       toast({
-        title: 'Erreur',
-        description: 'Impossible de mettre à jour les paramètres',
-        variant: 'destructive',
+        title: "Erreur",
+        description: "Impossible de mettre à jour les informations de la boutique.",
+        variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setUpdating(false);
+    }
+  };
+
+  const saveShopSettings = async () => {
+    if (!settings) return;
+    
+    setUpdating(true);
+    try {
+      await updateShopSettings(shopId, settings);
+      
+      toast({
+        title: "Paramètres mis à jour",
+        description: "Les paramètres de la boutique ont été mis à jour avec succès.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour les paramètres de la boutique.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex h-48 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleUpdateShop} className="space-y-8">
+    <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Informations générales</CardTitle>
-          <CardDescription>Mettez à jour les informations de votre boutique</CardDescription>
+          <CardTitle>Informations de la boutique</CardTitle>
+          <CardDescription>Modifiez les informations générales de votre boutique.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nom de la boutique</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nom de votre boutique"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez votre boutique"
-              rows={3}
-            />
-          </div>
-          <div>
-            <Label htmlFor="address">Adresse</Label>
-            <Input
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Adresse de votre boutique"
-            />
-          </div>
-          <div>
-            <Label>Image de la boutique</Label>
-            <ImageUpload
-              onImageUploaded={setImageUrl}
-              onUploading={setIsUploading}
-              bucket="shop-images"
-              folder="shops"
-              currentImageUrl={imageUrl}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Préférences</CardTitle>
-          <CardDescription>Configurez les options de votre boutique</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
+        <CardContent>
+          <div className="grid gap-4">
             <div>
-              <h4 className="font-medium">Acceptation automatique des commandes</h4>
-              <p className="text-sm text-muted-foreground">Les commandes seront automatiquement acceptées</p>
-            </div>
-            <Switch
-              checked={autoAcceptOrders}
-              onCheckedChange={setAutoAcceptOrders}
-            />
-          </div>
-          
-          <div className="space-y-4">
-            <h4 className="font-medium">Notifications</h4>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="email-notifications"
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
+              <Label htmlFor="image">Image de la boutique</Label>
+              <div className="mt-2">
+                <ImageUpload 
+                  imageUrl={shopData.image_url}
+                  onImageUploaded={handleImageChange}
+                  onUploading={setIsUploading}
                 />
-                <Label htmlFor="email-notifications">Notifications par email</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="app-notifications"
-                  checked={appNotifications}
-                  onCheckedChange={setAppNotifications}
-                />
-                <Label htmlFor="app-notifications">Notifications dans l'application</Label>
               </div>
             </div>
+            
+            <div>
+              <Label htmlFor="name">Nom de la boutique</Label>
+              <Input
+                id="name"
+                name="name"
+                value={shopData.name}
+                onChange={handleShopInfoChange}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={shopData.description}
+                onChange={handleShopInfoChange}
+                className="mt-1"
+                rows={4}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={shopData.phone}
+                onChange={handleShopInfoChange}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="website">Site web</Label>
+              <Input
+                id="website"
+                name="website"
+                value={shopData.website}
+                onChange={handleShopInfoChange}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Adresse</Label>
+              <Input
+                id="address"
+                name="address"
+                value={shopData.address}
+                onChange={handleShopInfoChange}
+                className="mt-1"
+              />
+            </div>
+            
+            <Button 
+              onClick={saveShopInfo} 
+              disabled={updating || isUploading}
+              className="mt-2"
+            >
+              {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Enregistrer les informations
+            </Button>
           </div>
         </CardContent>
       </Card>
-
-      <Button 
-        type="submit" 
-        disabled={isUpdating || isUploading}
-        className="w-full"
-      >
-        {isUpdating ? (
-          <>
-            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-            Mise à jour en cours...
-          </>
-        ) : (
-          "Enregistrer les modifications"
-        )}
-      </Button>
-    </form>
+      
+      {settings && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Paramètres de vente</CardTitle>
+            <CardDescription>Configurez les méthodes de paiement et options de livraison.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <div>
+                <Label>Méthodes de paiement acceptées</Label>
+                <CheckboxGroup 
+                  className="mt-2"
+                  value={settings.payment_methods}
+                  onValueChange={handlePaymentMethodsChange}
+                >
+                  <CheckboxItem value="card">Carte bancaire</CheckboxItem>
+                  <CheckboxItem value="paypal">PayPal</CheckboxItem>
+                  <CheckboxItem value="bank_transfer">Virement bancaire</CheckboxItem>
+                  <CheckboxItem value="cash">Espèces (en personne)</CheckboxItem>
+                </CheckboxGroup>
+              </div>
+              
+              <div>
+                <Label>Options de livraison</Label>
+                <CheckboxGroup 
+                  className="mt-2"
+                  value={settings.delivery_options}
+                  onValueChange={handleDeliveryOptionsChange}
+                >
+                  <CheckboxItem value="pickup">Retrait en boutique</CheckboxItem>
+                  <CheckboxItem value="delivery">Livraison</CheckboxItem>
+                  <CheckboxItem value="both">Les deux</CheckboxItem>
+                </CheckboxGroup>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="auto_accept" className="block">Acceptation automatique des commandes</Label>
+                  <p className="text-sm text-muted-foreground">Accepter automatiquement les nouvelles commandes</p>
+                </div>
+                <Switch
+                  id="auto_accept"
+                  checked={settings.auto_accept_orders}
+                  onCheckedChange={handleAutoAcceptChange}
+                />
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">Préférences de notification</Label>
+                
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <Label htmlFor="email_notif" className="font-normal">Notifications par email</Label>
+                    <p className="text-sm text-muted-foreground">Recevoir des emails pour les nouvelles commandes</p>
+                  </div>
+                  <Switch
+                    id="email_notif"
+                    checked={settings.notification_preferences.email}
+                    onCheckedChange={(checked) => handleNotificationChange('email', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <Label htmlFor="app_notif" className="font-normal">Notifications dans l'application</Label>
+                    <p className="text-sm text-muted-foreground">Recevoir des notifications dans l'application</p>
+                  </div>
+                  <Switch
+                    id="app_notif"
+                    checked={settings.notification_preferences.app}
+                    onCheckedChange={(checked) => handleNotificationChange('app', checked)}
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                onClick={saveShopSettings} 
+                disabled={updating}
+                className="mt-2"
+              >
+                {updating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Enregistrer les paramètres
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
-}
+};

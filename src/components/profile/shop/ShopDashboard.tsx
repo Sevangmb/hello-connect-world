@@ -1,189 +1,198 @@
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useState } from 'react';
 import { useShop } from '@/hooks/useShop';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShopItemsList } from './ShopItemsList';
 import { ShopOrdersList } from './ShopOrdersList';
 import { ShopReviewsList } from './ShopReviewsList';
 import { ShopSettings } from './ShopSettings';
-import { AddItemForm } from './AddItemForm';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 import { ShopStatus } from '@/core/shop/domain/types';
-import { AlertCircle, Package, Settings, ShoppingBag, Star } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-export function ShopDashboard() {
-  const { shop, isShopLoading, updateShopStatus, isCurrentUserShopOwner } = useShop();
-  const [isAddingItem, setIsAddingItem] = useState(false);
+interface ShopDashboardProps {
+  shopId?: string;
+}
+
+export const ShopDashboard: React.FC<ShopDashboardProps> = ({ shopId }) => {
+  const { shop, isShopLoading, updateShopStatus } = useShop();
+  const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  // Check if current user is the shop owner
+  const isOwner = shop && shopId ? shop.id === shopId : false;
 
   if (isShopLoading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex h-48 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!shop) {
     return (
-      <Alert variant="default" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Aucune boutique</AlertTitle>
-        <AlertDescription>
-          Vous n'avez pas encore de boutique. Créez une boutique pour commencer à vendre.
-        </AlertDescription>
-      </Alert>
+      <div className="flex h-48 w-full flex-col items-center justify-center">
+        <h3 className="text-lg font-medium">Boutique introuvable</h3>
+        <p className="text-muted-foreground">La boutique que vous recherchez n'existe pas.</p>
+      </div>
     );
   }
 
-  const handleStatusUpdate = (status: ShopStatus) => {
-    updateShopStatus.mutate({ id: shop.id, status });
+  const handleStatusUpdate = async (newStatus: ShopStatus) => {
+    setIsUpdating(true);
+    try {
+      await updateShopStatus.mutateAsync({
+        id: shop.id,
+        status: newStatus
+      });
+      
+      toast({
+        title: "Statut mis à jour",
+        description: `Le statut de la boutique a été mis à jour avec succès en "${newStatus}".`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la boutique.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{shop.name}</CardTitle>
-              <CardDescription>{shop.description}</CardDescription>
-            </div>
-            {isCurrentUserShopOwner && shop.status === 'pending' && (
-              <div className="space-x-2">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => handleStatusUpdate('inactive')}
-                  disabled={updateShopStatus.isPending}
-                >
-                  Mettre en pause
-                </Button>
-              </div>
-            )}
-            {isCurrentUserShopOwner && shop.status === 'inactive' && (
+    <div className="container mx-auto py-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{shop.name}</h1>
+          <p className="text-muted-foreground">{shop.description}</p>
+        </div>
+        
+        {isOwner && (
+          <div className="flex gap-2">
+            {shop.status === 'pending' && (
               <Button 
-                variant="secondary" 
-                onClick={() => handleStatusUpdate('pending')}
-                disabled={updateShopStatus.isPending}
+                onClick={() => handleStatusUpdate('approved' as ShopStatus)} 
+                variant="success"
+                disabled={isUpdating}
               >
-                Activer
+                {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Ouvrir la boutique
+              </Button>
+            )}
+            
+            {shop.status === 'approved' && (
+              <Button 
+                onClick={() => handleStatusUpdate('suspended' as ShopStatus)} 
+                variant="outline"
+                disabled={isUpdating}
+              >
+                {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Suspendre
+              </Button>
+            )}
+            
+            {shop.status === 'suspended' && (
+              <Button 
+                onClick={() => handleStatusUpdate('approved' as ShopStatus)} 
+                variant="outline"
+                disabled={isUpdating}
+              >
+                {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Réactiver
               </Button>
             )}
           </div>
-          <div className="flex items-center mt-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              shop.status === 'approved' ? 'bg-green-100 text-green-800' :
-              shop.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-              shop.status === 'rejected' ? 'bg-red-100 text-red-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {shop.status === 'approved' ? 'Approuvée' :
-               shop.status === 'pending' ? 'En attente' :
-               shop.status === 'rejected' ? 'Rejetée' :
-               shop.status === 'inactive' ? 'Inactive' :
-               shop.status === 'suspended' ? 'Suspendue' : shop.status}
-            </span>
-            {shop.average_rating > 0 && (
-              <div className="ml-4 flex items-center">
-                <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                <span>{shop.average_rating.toFixed(1)}</span>
-              </div>
-            )}
-          </div>
+        )}
+      </div>
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Informations de la boutique</CardTitle>
+          <CardDescription>Vue d'ensemble de votre boutique et de ses performances.</CardDescription>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="rounded-lg border p-3">
+              <p className="text-sm text-muted-foreground">Statut</p>
+              <h3 className="text-lg font-medium">
+                {shop.status === 'approved' && 'Approuvée'}
+                {shop.status === 'pending' && 'En attente'}
+                {shop.status === 'rejected' && 'Rejetée'} 
+                {shop.status === 'suspended' && 'Suspendue'}
+              </h3>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-sm text-muted-foreground">Note moyenne</p>
+              <h3 className="text-lg font-medium">{shop.average_rating.toFixed(1)}/5</h3>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-sm text-muted-foreground">Nombre d'avis</p>
+              <h3 className="text-lg font-medium">{shop.rating_count || 0}</h3>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-sm text-muted-foreground">Date de création</p>
+              <h3 className="text-lg font-medium">{new Date(shop.created_at).toLocaleDateString()}</h3>
+            </div>
+          </div>
+        </CardContent>
       </Card>
       
-      <Tabs defaultValue="items">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="items" className="flex items-center">
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Articles
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center">
-            <Package className="h-4 w-4 mr-2" />
-            Commandes
-          </TabsTrigger>
-          <TabsTrigger value="reviews" className="flex items-center">
-            <Star className="h-4 w-4 mr-2" />
-            Avis
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center">
-            <Settings className="h-4 w-4 mr-2" />
-            Paramètres
-          </TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview">Aperçu</TabsTrigger>
+          <TabsTrigger value="items">Articles</TabsTrigger>
+          <TabsTrigger value="orders">Commandes</TabsTrigger>
+          <TabsTrigger value="reviews">Avis</TabsTrigger>
+          {isOwner && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
         </TabsList>
         
+        <TabsContent value="overview">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Articles récents</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ShopItemsList shopId={shop.id} isOwner={isOwner} limit={5} />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Derniers avis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ShopReviewsList shopId={shop.id} limit={5} />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
         <TabsContent value="items">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Articles</CardTitle>
-                <CardDescription>Gérez les articles de votre boutique</CardDescription>
-              </div>
-              {isCurrentUserShopOwner && (
-                <Dialog open={isAddingItem} onOpenChange={setIsAddingItem}>
-                  <DialogTrigger asChild>
-                    <Button>Ajouter un article</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Ajouter un nouvel article</DialogTitle>
-                    </DialogHeader>
-                    <AddItemForm 
-                      shopId={shop.id} 
-                      onSuccess={() => setIsAddingItem(false)} 
-                    />
-                  </DialogContent>
-                </Dialog>
-              )}
-            </CardHeader>
-            <CardContent>
-              <ShopItemsList 
-                shopId={shop.id} 
-                isOwner={isCurrentUserShopOwner} 
-              />
-            </CardContent>
-          </Card>
+          <ShopItemsList shopId={shop.id} isOwner={isOwner} />
         </TabsContent>
         
         <TabsContent value="orders">
-          <Card>
-            <CardHeader>
-              <CardTitle>Commandes</CardTitle>
-              <CardDescription>Gérez les commandes de votre boutique</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ShopOrdersList shopId={shop.id} />
-            </CardContent>
-          </Card>
+          <ShopOrdersList shopId={shop.id} />
         </TabsContent>
         
         <TabsContent value="reviews">
-          <Card>
-            <CardHeader>
-              <CardTitle>Avis</CardTitle>
-              <CardDescription>Consultez les avis sur votre boutique</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ShopReviewsList shopId={shop.id} />
-            </CardContent>
-          </Card>
+          <ShopReviewsList shopId={shop.id} />
         </TabsContent>
         
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres</CardTitle>
-              <CardDescription>Gérez les paramètres de votre boutique</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ShopSettings shopId={shop.id} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {isOwner && (
+          <TabsContent value="settings">
+            <ShopSettings shopId={shop.id} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
-}
+};

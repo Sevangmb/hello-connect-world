@@ -1,118 +1,88 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useShop } from "@/hooks/useShop";
-import { Loader2, ShoppingBag } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
-import { useCart } from "@/hooks/cart";
-import { useAuth } from "@/hooks/useAuth";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from 'react';
+import { useShop } from '@/hooks/useShop';
+import { ShopItemCard } from './components/ShopItemCard';
+import { ShopItemsFilter } from './components/ShopItemsFilter';
+import { Loader2 } from 'lucide-react';
+import { ShopItem } from '@/core/shop/domain/types';
 
-interface ShopItemsFilterProps {
-  category?: string;
-  onChange: (value: string) => void;
+interface ShopItemsProps {
+  shopId: string;
 }
 
-const ShopItemsFilter = ({ onChange }: ShopItemsFilterProps) => {
-  return (
-    <div className="mb-4">
-      <Input
-        type="search"
-        placeholder="Rechercher des articles..."
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full max-w-sm"
-      />
-    </div>
-  );
-};
+export const ShopItems: React.FC<ShopItemsProps> = ({ shopId }) => {
+  const { getShopItems } = useShop();
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [sort, setSort] = useState('newest');
 
-export function ShopItems({ shopId }: { shopId: string }) {
-  const { shopItems, areShopItemsLoading } = useShop(shopId);
-  const { user } = useAuth();
-  const { addToCart } = useCart(user?.id || null);
-  const [search, setSearch] = useState("");
+  useEffect(() => {
+    async function fetchShopItems() {
+      setLoading(true);
+      try {
+        const shopItems = await getShopItems(shopId);
+        setItems(shopItems);
+      } catch (error) {
+        console.error('Error fetching shop items:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const filteredItems = shopItems?.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
+    fetchShopItems();
+  }, [shopId, getShopItems]);
 
-  const handleAddToCart = (item: any) => {
-    if (!user) return;
-    
-    addToCart.mutate({
-      user_id: user.id,
-      item_id: item.id,
-      quantity: 1
-    });
-  };
+  // Filter and sort items
+  const filteredItems = items.filter(item => {
+    if (filter === 'all') return true;
+    return item.status === filter;
+  });
 
-  if (areShopItemsLoading) {
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    if (sort === 'newest') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    } else if (sort === 'oldest') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sort === 'price-low') {
+      return a.price - b.price;
+    } else if (sort === 'price-high') {
+      return b.price - a.price;
+    }
+    return 0;
+  });
+
+  if (loading) {
     return (
-      <div className="flex justify-center py-8">
+      <div className="flex h-64 w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex h-64 w-full flex-col items-center justify-center">
+        <h3 className="text-lg font-medium">Aucun article</h3>
+        <p className="text-muted-foreground">Cette boutique n'a pas encore d'articles à vendre.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <ShopItemsFilter onChange={setSearch} />
+      <ShopItemsFilter 
+        filter={filter}
+        setFilter={setFilter}
+        sort={sort}
+        setSort={setSort}
+      />
       
-      {filteredItems?.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">Aucun article trouvé</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredItems?.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
-              {item.image_url ? (
-                <div className="aspect-square overflow-hidden">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="h-full w-full object-cover transition-transform hover:scale-105"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-square bg-muted flex items-center justify-center">
-                  <ShoppingBag className="h-12 w-12 text-muted-foreground" />
-                </div>
-              )}
-              <CardHeader className="p-4 pb-0">
-                <CardTitle className="text-lg">{item.name}</CardTitle>
-                <div className="flex justify-between items-center mt-1">
-                  <div className="font-bold">{formatPrice(item.price)}</div>
-                  <Badge variant="secondary">
-                    {item.stock > 0 ? `${item.stock} en stock` : "Épuisé"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {item.description || "Aucune description disponible"}
-                </p>
-              </CardContent>
-              <CardFooter className="p-4 pt-0">
-                <Button 
-                  className="w-full" 
-                  disabled={item.stock <= 0 || !user || addToCart.isPending}
-                  onClick={() => handleAddToCart(item)}
-                >
-                  {addToCart.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ShoppingBag className="mr-2 h-4 w-4" />
-                  )}
-                  Ajouter au panier
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {sortedItems.map(item => (
+          <ShopItemCard key={item.id} item={item} />
+        ))}
+      </div>
     </div>
   );
-}
+};

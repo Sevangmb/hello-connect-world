@@ -97,6 +97,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   created_at: string;
+  shop_item_id?: string; // Added for database compatibility
+  price_at_time?: number; // Added for database compatibility
 }
 
 // Commande

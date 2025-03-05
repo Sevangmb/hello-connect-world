@@ -1,161 +1,160 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/hooks/useShop';
-import { Order } from '@/core/shop/domain/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
+import { Order, OrderStatus } from '@/core/shop/domain/types';
 
 interface ShopOrdersListProps {
   shopId: string;
 }
 
-export function ShopOrdersList({ shopId }: ShopOrdersListProps) {
+export const ShopOrdersList: React.FC<ShopOrdersListProps> = ({ shopId }) => {
   const { getShopOrders, updateOrderStatus } = useShop();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
+    async function fetchOrders() {
       try {
-        const shopOrders = await getShopOrders(shopId);
-        setOrders(shopOrders);
+        const fetchedOrders = await getShopOrders(shopId);
+        setOrders(fetchedOrders);
       } catch (error) {
-        console.error('Error fetching orders:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les commandes.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
-    };
-
-    if (shopId) {
-      fetchOrders();
     }
-  }, [shopId, getShopOrders]);
 
-  const handleStatusUpdate = async (orderId: string, status: string) => {
+    fetchOrders();
+  }, [getShopOrders, shopId, toast]);
+
+  const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      await updateOrderStatus.mutateAsync({ id: orderId, status });
+      await updateOrderStatus(orderId, newStatus);
+      
       // Update local state
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, status } : order
-        )
+          order.id === orderId 
+            ? { ...order, status: newStatus } 
+            : order
+        ) as Order[]
       );
+      
+      toast({
+        title: "Statut mis à jour",
+        description: `Le statut de la commande a été mis à jour avec succès en "${newStatus}".`,
+      });
     } catch (error) {
-      console.error('Error updating order status:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la commande.",
+        variant: "destructive",
+      });
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex h-48 w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (orders.length === 0) {
     return (
-      <div className="py-8 text-center">
-        <p className="text-muted-foreground">Aucune commande pour cette boutique</p>
+      <div className="flex h-48 w-full flex-col items-center justify-center">
+        <h3 className="text-lg font-medium">Aucune commande</h3>
+        <p className="text-muted-foreground">Vous n'avez pas encore reçu de commandes.</p>
       </div>
     );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>ID</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Montant</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Paiement</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {orders.map((order) => (
-          <TableRow key={order.id}>
-            <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
-            <TableCell>{format(new Date(order.created_at), 'dd/MM/yyyy')}</TableCell>
-            <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
-            <TableCell>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                order.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                order.status === 'delivered' ? 'bg-primary/20 text-primary-foreground' :
-                order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {order.status}
-              </span>
-            </TableCell>
-            <TableCell>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                order.payment_status === 'refunded' ? 'bg-blue-100 text-blue-800' :
-                order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {order.payment_status}
-              </span>
-            </TableCell>
-            <TableCell>
-              <div className="flex space-x-2">
-                {order.status === 'pending' && (
-                  <Button 
-                    size="sm" 
-                    variant="success"
-                    onClick={() => handleStatusUpdate(order.id, 'confirmed')}
-                    disabled={updateOrderStatus.isPending}
-                  >
-                    Confirmer
-                  </Button>
-                )}
-                {order.status === 'confirmed' && (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleStatusUpdate(order.id, 'shipped')}
-                    disabled={updateOrderStatus.isPending}
-                  >
-                    Expédier
-                  </Button>
-                )}
-                {order.status === 'shipped' && (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleStatusUpdate(order.id, 'delivered')}
-                    disabled={updateOrderStatus.isPending}
-                  >
-                    Livré
-                  </Button>
-                )}
-                {(order.status === 'pending' || order.status === 'confirmed') && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleStatusUpdate(order.id, 'cancelled')}
-                    disabled={updateOrderStatus.isPending}
-                  >
-                    Annuler
-                  </Button>
-                )}
-              </div>
-            </TableCell>
+    <div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Montant</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {orders.map((order) => (
+            <TableRow key={order.id}>
+              <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
+              <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>{order.customer_id.slice(0, 8)}</TableCell>
+              <TableCell>{order.total_amount.toFixed(2)} €</TableCell>
+              <TableCell>
+                <span className={
+                  order.status === 'pending' ? "rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800" :
+                  order.status === 'confirmed' ? "rounded bg-blue-100 px-2 py-1 text-xs text-blue-800" :
+                  order.status === 'shipped' ? "rounded bg-indigo-100 px-2 py-1 text-xs text-indigo-800" :
+                  order.status === 'delivered' ? "rounded bg-green-100 px-2 py-1 text-xs text-green-800" :
+                  order.status === 'cancelled' ? "rounded bg-red-100 px-2 py-1 text-xs text-red-800" :
+                  "rounded bg-gray-100 px-2 py-1 text-xs text-gray-800"
+                }>
+                  {order.status}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  {order.status === 'pending' && (
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'confirmed')} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Confirmer
+                    </Button>
+                  )}
+                  {order.status === 'confirmed' && (
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'shipped')} 
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Expédier
+                    </Button>
+                  )}
+                  {order.status === 'shipped' && (
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'delivered')} 
+                      variant="success" 
+                      size="sm"
+                    >
+                      Livré
+                    </Button>
+                  )}
+                  {(order.status === 'pending' || order.status === 'confirmed') && (
+                    <Button 
+                      onClick={() => handleUpdateStatus(order.id, 'cancelled')} 
+                      variant="destructive" 
+                      size="sm"
+                    >
+                      Annuler
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
-}
+};

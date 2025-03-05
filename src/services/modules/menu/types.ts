@@ -1,23 +1,22 @@
 
-// Menu types for module menu service
+export type MenuItemCategory = 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
+
 export interface MenuItem {
   id: string;
   name: string;
   path: string;
   icon?: string;
-  module_code: string | null;
-  category: 'main' | 'admin' | 'social' | 'marketplace' | 'utility' | 'system';
+  description?: string;
+  parent_id?: string | null;
   position: number;
-  parent_id: string | null;
+  category: MenuItemCategory;
+  module_code?: string | null;
   is_active: boolean;
   is_visible: boolean;
   requires_admin: boolean;
-  description?: string;
   created_at: string;
   updated_at: string;
 }
-
-export type MenuItemCategory = 'main' | 'admin' | 'social' | 'marketplace' | 'utility' | 'system';
 
 export interface MenuCategory {
   id: string;
