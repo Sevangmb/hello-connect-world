@@ -1641,7 +1641,9 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          billing_address: Json | null
           created_at: string
+          default_payment_method_id: string | null
           email_notifications: boolean | null
           full_name: string | null
           id: string
@@ -1649,6 +1651,7 @@ export type Database = {
           phone: string | null
           preferences: Json | null
           preferred_language: string | null
+          stripe_customer_id: string | null
           updated_at: string
           username: string | null
           visibility: string
@@ -1656,7 +1659,9 @@ export type Database = {
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          billing_address?: Json | null
           created_at?: string
+          default_payment_method_id?: string | null
           email_notifications?: boolean | null
           full_name?: string | null
           id: string
@@ -1664,6 +1669,7 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           preferred_language?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
           username?: string | null
           visibility?: string
@@ -1671,7 +1677,9 @@ export type Database = {
         Update: {
           address?: string | null
           avatar_url?: string | null
+          billing_address?: Json | null
           created_at?: string
+          default_payment_method_id?: string | null
           email_notifications?: boolean | null
           full_name?: string | null
           id?: string
@@ -1679,6 +1687,7 @@ export type Database = {
           phone?: string | null
           preferences?: Json | null
           preferred_language?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
           username?: string | null
           visibility?: string
