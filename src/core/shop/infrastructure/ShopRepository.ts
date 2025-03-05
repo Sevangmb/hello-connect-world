@@ -19,14 +19,14 @@ import {
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
 export class ShopRepository implements IShopRepository {
-  // Fix mapShopFromDB method to handle image_url field that might not exist
+  // Mapping methods
   private mapShopFromDB(shop: any): Shop {
     return {
       id: shop.id,
       user_id: shop.user_id,
       name: shop.name,
       description: shop.description || '',
-      image_url: shop.image_url || '', // Handle missing field
+      image_url: shop.image_url || '',
       address: shop.address || '',
       phone: shop.phone || '',
       website: shop.website || '',
@@ -95,7 +95,6 @@ export class ShopRepository implements IShopRepository {
     };
   }
 
-  // Fix type casts for DeliveryOption and PaymentMethod arrays
   private mapShopSettingsFromDB(settings: any): ShopSettings {
     return {
       id: settings.id,
@@ -112,7 +111,6 @@ export class ShopRepository implements IShopRepository {
     };
   }
 
-  // Fix Order mapping to include payment_method field
   private mapOrderFromDB(order: any, items: any[] = []): Order {
     return {
       id: order.id,
@@ -122,7 +120,7 @@ export class ShopRepository implements IShopRepository {
       total_amount: order.total_amount,
       delivery_fee: order.delivery_fee,
       payment_status: order.payment_status as PaymentStatus,
-      payment_method: order.payment_method || 'card', // Set a default value
+      payment_method: order.payment_method || 'card',
       delivery_address: {
         street: order.delivery_address?.street || '',
         city: order.delivery_address?.city || '',
@@ -135,6 +133,7 @@ export class ShopRepository implements IShopRepository {
     };
   }
 
+  // Repository methods
   async getShops(): Promise<Shop[]> {
     const { data, error } = await supabase
       .from('shops')
@@ -306,7 +305,7 @@ export class ShopRepository implements IShopRepository {
     return this.mapShopItemFromDB(data);
   }
 
-  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>>): Promise<ShopItem> {
+  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
     const { data, error } = await supabase
       .from('shop_items')
       .insert({
@@ -388,7 +387,7 @@ export class ShopRepository implements IShopRepository {
     return data.map(this.mapShopReviewFromDB);
   }
 
-  async createShopReview(reviewData: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>>): Promise<ShopReview> {
+  async createShopReview(reviewData: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview> {
     const { data, error } = await supabase
       .from('shop_reviews')
       .insert({
@@ -410,7 +409,7 @@ export class ShopRepository implements IShopRepository {
     return this.mapShopReviewFromDB(data);
   }
 
-  // Add missing methods for order operations and favorites
+  // Order operations
   async getOrdersByShop(shopId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
@@ -468,6 +467,7 @@ export class ShopRepository implements IShopRepository {
     return true;
   }
 
+  // Favorites operations
   async isShopFavorited(shopId: string): Promise<boolean> {
     // Implementation
     return false;
@@ -512,5 +512,26 @@ export class ShopRepository implements IShopRepository {
 
     if (error) throw error;
     return this.mapShopSettingsFromDB(data);
+  }
+
+  // Additional methods for IShopRepository implementation
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    return this.getOrdersByShop(shopId);
+  }
+
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return this.getOrdersByCustomer(userId);
+  }
+
+  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.addShopToFavorites(shopId);
+  }
+
+  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.removeShopFromFavorites(shopId);
+  }
+
+  async isFavoriteShop(userId: string, shopId: string): Promise<boolean> {
+    return this.isShopFavorited(shopId);
   }
 }
