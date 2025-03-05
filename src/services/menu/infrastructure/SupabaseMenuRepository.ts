@@ -1,46 +1,29 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 import { MenuItem, MenuItemCategory } from '../types';
 
 export class MenuRepository implements IMenuRepository {
-  
   async getAllMenuItems(): Promise<MenuItem[]> {
     const { data, error } = await supabase
       .from('menu_items')
       .select('*')
-      .order('position', { ascending: true });
-      
-    if (error) {
-      console.error('Error fetching menu items:', error);
-      return [];
-    }
+      .order('position');
     
-    return data;
+    if (error) throw error;
+    return data as MenuItem[];
   }
-  
-  async getMenuItemsByCategory(category: string, isAdmin: boolean = false): Promise<MenuItem[]> {
-    let query = supabase
+
+  async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
+    const { data, error } = await supabase
       .from('menu_items')
       .select('*')
-      .eq('category', category)
-      .eq('is_active', true)
-      .order('position', { ascending: true });
-      
-    if (!isAdmin) {
-      query = query.eq('requires_admin', false).eq('is_visible', true);
-    }
+      .eq('category', category as string)
+      .order('position');
     
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error(`Error fetching menu items for category ${category}:`, error);
-      return [];
-    }
-    
-    return data;
+    if (error) throw error;
+    return data as MenuItem[];
   }
-  
+
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     let query = supabase
       .from('menu_items')

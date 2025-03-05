@@ -55,7 +55,36 @@ interface ModuleApiProviderProps {
 
 // Provider pour le contexte
 export const ModuleApiProvider = ({ children }: ModuleApiProviderProps) => {
-  const moduleApi = useModuleApiCore();
+  const moduleApiCore = useModuleApiCore();
+  
+  // Complete the context with missing methods
+  const moduleApi: ModuleApiContextType = {
+    ...moduleApiCore,
+    isModuleActive: async (moduleCode: string) => {
+      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
+      return module?.status === 'active';
+    },
+    isModuleDegraded: async (moduleCode: string) => {
+      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
+      return module?.status === 'degraded';
+    },
+    isFeatureEnabled: async (moduleCode: string, featureCode: string) => {
+      return moduleApiCore.features?.[moduleCode]?.[featureCode] || false;
+    },
+    getModuleActiveStatus: (moduleCode: string) => {
+      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
+      return module?.status === 'active';
+    },
+    getModuleDegradedStatus: (moduleCode: string) => {
+      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
+      return module?.status === 'degraded';
+    },
+    getFeatureEnabledStatus: (moduleCode: string, featureCode: string) => {
+      return moduleApiCore.features?.[moduleCode]?.[featureCode] || false;
+    },
+    refreshModules: moduleApiCore.refreshModules || (async () => []),
+    refreshFeatures: async () => moduleApiCore.features || {}
+  };
   
   return (
     <ModuleApiContext.Provider value={moduleApi}>

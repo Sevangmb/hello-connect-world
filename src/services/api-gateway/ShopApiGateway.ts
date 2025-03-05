@@ -62,7 +62,7 @@ export class ShopApiGateway extends BaseApiGateway {
   /**
    * Update shop item status
    */
-  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem> {
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean> {
     return this.shopService.updateShopItemStatus(id, status);
   }
 
@@ -84,7 +84,7 @@ export class ShopApiGateway extends BaseApiGateway {
    * Get shop orders
    */
   async getShopOrders(shopId: string): Promise<Order[]> {
-    return this.shopService.getOrders(shopId);
+    return this.shopService.getOrdersByShop(shopId);
   }
 
   /**
@@ -125,28 +125,28 @@ export class ShopApiGateway extends BaseApiGateway {
   /**
    * Get favorite shops
    */
-  async getFavoriteShops(userId: string): Promise<Shop[]> {
-    return this.shopService.getUserFavoriteShops(userId);
+  async getFavoriteShops(): Promise<Shop[]> {
+    return this.shopService.getFavoriteShops();
   }
 
   /**
    * Check if shop is favorited
    */
-  async checkIfFavorited(userId: string, shopId: string): Promise<boolean> {
-    return this.shopService.isShopFavorited(userId, shopId);
+  async checkIfFavorited(shopId: string): Promise<boolean> {
+    return this.shopService.isShopFavorited(shopId);
   }
 
   /**
    * Add favorite shop
    */
-  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    return this.shopService.addShopToFavorites(userId, shopId);
+  async addFavoriteShop(shopId: string): Promise<boolean> {
+    return this.shopService.addShopToFavorites(shopId);
   }
 
   /**
    * Remove favorite shop
    */
-  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    return this.shopService.removeShopFromFavorites(userId, shopId);
+  async removeFavoriteShop(shopId: string): Promise<boolean> {
+    return this.shopService.removeShopFromFavorites(shopId);
   }
 }

@@ -25,11 +25,13 @@ export class ModuleApiGateway {
   }
 
   async activateModule(moduleId: string): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(moduleId, 'active');
+    const result = await this.moduleService.updateModuleStatus(moduleId, 'active');
+    return !!result;
   }
 
   async deactivateModule(moduleId: string): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(moduleId, 'inactive');
+    const result = await this.moduleService.updateModuleStatus(moduleId, 'inactive');
+    return !!result;
   }
 
   async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
@@ -61,7 +63,8 @@ export class ModuleApiGateway {
   }
 
   async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(moduleId, status);
+    const result = await this.moduleService.updateModuleStatus(moduleId, status);
+    return !!result;
   }
 
   isModuleDegraded(moduleCode: string): boolean {

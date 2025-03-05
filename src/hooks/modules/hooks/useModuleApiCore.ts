@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppModule } from '@/hooks/modules/types';
-import { moduleQueries, updateModuleStatusAsync } from './queries';
+import { moduleQueries, updateModuleStatusAsync, updateFeatureStatusAsync } from './moduleQueries';
 import { initializeModuleApi } from './moduleInitialization';
 import { useModulePriority } from './useModulePriority';
 
@@ -129,6 +129,10 @@ export const useModuleApiCore = () => {
     refreshModules: () => {
       queryClient.invalidateQueries({ queryKey: ['modules'] });
       queryClient.invalidateQueries({ queryKey: ['module-features'] });
+      return refreshModules();
+    },
+    refreshFeatures: () => {
+      return refreshFeatures();
     }
   };
 };

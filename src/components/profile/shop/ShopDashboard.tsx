@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { ShopItemsList } from './ShopItemsList';
 import { ShopOrdersList } from './ShopOrdersList';
-import { ShopReviewsList } from './ShopReviewsList';
+import ShopReviewsList from './ShopReviewsList';
 import { AddItemForm } from './AddItemForm';
 import { useShop } from '@/hooks/useShop';
 

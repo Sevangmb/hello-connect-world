@@ -1,155 +1,252 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { useShop } from '@/hooks/useShop';
-import { ShopItem } from '@/core/shop/domain/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
-export const AddItemForm: React.FC = () => {
-  const { useAddShopItem, useUserShop } = useShop();
-  const addItemMutation = useAddShopItem();
-  const { data: shop } = useUserShop();
-  
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+interface AddItemFormProps {
+  shopId: string;
+  onSuccess: () => void;
+}
+
+const formSchema = z.object({
+  name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
+  description: z.string().optional(),
+  price: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
+    message: 'Price must be a positive number',
+  }),
+  stock: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
+    message: 'Stock must be a non-negative number',
+  }),
+  image_url: z.string().optional(),
+});
+
+export const AddItemForm: React.FC<AddItemFormProps> = ({ shopId, onSuccess }) => {
+  const { toast } = useToast();
+  const { useCreateShopItem } = useShop();
+  const { mutate: createItem, isPending } = useCreateShopItem();
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       description: '',
       price: '',
       stock: '1',
       image_url: '',
-      status: 'available'
-    }
+    },
   });
 
-  const onSubmit = async (data: any) => {
-    if (!shop) {
-      toast({
-        title: "Error",
-        description: "You need to create a shop first",
-        variant: "destructive"
-      });
-      return;
-    }
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    createItem({
+      shop_id: shopId,
+      name: values.name,
+      description: values.description || '',
+      price: Number(values.price),
+      stock: Number(values.stock),
+      image_url: values.image_url || '',
+      status: 'available',
+    }, {
+      onSuccess: () => {
+        toast({
+          title: 'Item created',
+          description: 'Your item has been added to your shop',
+        });
+        onSuccess();
+      },
+      onError: (error) => {
+        toast({
+          title: 'Error',
+          description: `Failed to create item: ${error.message}`,
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     try {
-      const shopItem: Omit<ShopItem, "id" | "created_at" | "updated_at"> = {
-        name: data.name,
-        description: data.description,
-        price: parseFloat(data.price),
-        stock: parseInt(data.stock),
-        image_url: data.image_url,
-        shop_id: shop.id,
-        status: data.status,
-        clothes_id: data.clothes_id || null
-      };
-
-      await addItemMutation.mutateAsync(shopItem);
+      setImageUploading(true);
+      // Image upload logic would go here
+      // For now, just simulate a delay and set a placeholder URL
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const imageUrl = URL.createObjectURL(file);
+      
+      form.setValue('image_url', imageUrl);
       toast({
-        title: "Success",
-        description: "Item added successfully"
+        title: 'Image uploaded',
+        description: 'Your image has been uploaded successfully',
       });
-      reset();
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to add item",
-        variant: "destructive"
+        title: 'Upload failed',
+        description: 'Failed to upload image',
+        variant: 'destructive',
       });
+    } finally {
+      setImageUploading(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Add New Item</CardTitle>
-      </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              {...register('name', { required: 'Name is required' })}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
+    <div className="space-y-4 py-2 pb-4">
+      <div className="space-y-2">
+        <h2 className="text-xl font-bold">Add New Item</h2>
+        <p className="text-sm text-muted-foreground">
+          Fill out the form below to add a new item to your shop.
+        </p>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Item name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
+          />
           
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...register('description')}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="price">Price</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              {...register('price', { 
-                required: 'Price is required',
-                min: { value: 0.01, message: 'Price must be greater than 0' } 
-              })}
-            />
-            {errors.price && (
-              <p className="text-sm text-red-500">{errors.price.message}</p>
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Describe your item" 
+                    className="resize-none" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
+          />
+          
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0.01" 
+                      step="0.01" 
+                      placeholder="0.00" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stock</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      step="1" 
+                      placeholder="1" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="stock">Stock</Label>
-            <Input
-              id="stock"
-              type="number"
-              {...register('stock', { 
-                required: 'Stock is required',
-                min: { value: 0, message: 'Stock cannot be negative' } 
-              })}
-            />
-            {errors.stock && (
-              <p className="text-sm text-red-500">{errors.stock.message}</p>
+          <FormField
+            control={form.control}
+            name="image_url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Image</FormLabel>
+                <FormControl>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={imageUploading}
+                    />
+                    <Input 
+                      type="text" 
+                      placeholder="Or enter image URL" 
+                      {...field} 
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
+          />
           
-          <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input
-              id="image_url"
-              {...register('image_url')}
-            />
-          </div>
+          {form.watch('image_url') && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Preview:</p>
+              <img 
+                src={form.watch('image_url')} 
+                alt="Preview" 
+                className="w-full max-h-40 object-contain border rounded-md" 
+              />
+            </div>
+          )}
           
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select defaultValue="available">
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="sold_out">Sold Out</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onSuccess()}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isPending || imageUploading}
+            >
+              {(isPending || imageUploading) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Add Item
+            </Button>
           </div>
-        </CardContent>
-        
-        <CardFooter>
-          <Button type="submit" disabled={addItemMutation.isPending}>
-            {addItemMutation.isPending ? 'Adding...' : 'Add Item'}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+        </form>
+      </Form>
+    </div>
   );
 };

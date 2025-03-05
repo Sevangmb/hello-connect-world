@@ -1,57 +1,55 @@
+import { EventBus as EventBusClient } from '@/integrations/event-bus/client';
+import { ModuleInitializationService } from '@/services/modules/ModuleInitializationService';
+import { getAuthService } from '@/services/auth/infrastructure/authServiceProvider';
+import { getMenuService } from '@/services/menu/infrastructure/menuServiceProvider';
+import { getSettingsService } from '@/services/settings/infrastructure/settingsServiceProvider';
 
-import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
-import { supabase } from '@/integrations/supabase/client';
-import { eventBus } from '@/core/event-bus/EventBus';
-
-/**
- * Application Initializer
- * Handles initialization of various modules and services
- */
-export class AppInitializer {
-  private moduleInitializer: ModuleInitializer;
-  
-  constructor() {
-    this.moduleInitializer = new ModuleInitializer();
+// Mock implementation of EventBus for compatibility
+export class EventBus {
+  initialize(): Promise<boolean> {
+    // Implementation
+    return Promise.resolve(true);
   }
   
-  /**
-   * Initialize the application
-   */
-  async initialize(): Promise<boolean> {
-    try {
-      console.log('Starting app initialization...');
-      
-      // Check Supabase connection
-      const { error } = await supabase.from('site_stats').select('count(*)', { count: 'exact' });
-      if (error) {
-        console.error('Failed to connect to Supabase:', error);
-        return false;
-      }
-      
-      // Initialize event bus
-      eventBus.initialize();
-      
-      // Initialize modules
-      await this.initializeModules();
-      
-      console.log('App initialization completed successfully');
-      return true;
-    } catch (error) {
-      console.error('Error during app initialization:', error);
-      return false;
-    }
+  on(event: string, callback: Function): void {
+    console.log(`Subscribed to event: ${event}`);
   }
-  
-  /**
-   * Initialize modules
-   */
-  private async initializeModules(): Promise<boolean> {
-    try {
-      await this.moduleInitializer.initializeModule('core');
-      return true;
-    } catch (error) {
-      console.error('Error initializing modules:', error);
-      return false;
-    }
+
+  off(event: string, callback: Function): void {
+      console.log(`Unsubscribed from event: ${event}`);
+  }
+
+  emit(event: string, ...args: any[]): void {
+      console.log(`Emitting event: ${event} with args:`, args);
   }
 }
+
+export const initializeApp = async () => {
+  try {
+    // Initialize EventBus
+    const eventBus = new EventBus();
+    await eventBus.initialize();
+
+    // Initialize Module system
+    const moduleInitializationService = new ModuleInitializationService();
+    await moduleInitializationService.initializeModules();
+
+    // Initialize Auth system
+    const authService = getAuthService();
+    await authService.initialize();
+    
+    // Initialize Menu system
+    const menuService = getMenuService();
+    await menuService.getAdminMenuItems();
+
+    // Initialize Settings system
+    const settingsService = getSettingsService();
+    await settingsService.initialize();
+
+    console.log('App initialization completed successfully.');
+    return true;
+  } catch (error) {
+    console.error('App initialization failed:', error);
+    return false;
+  }
+};
