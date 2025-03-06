@@ -45,7 +45,7 @@ export interface Shop {
     username?: string;
     full_name?: string;
   };
-  settings?: ShopSettings; // Add the settings property
+  settings?: ShopSettings;
 }
 
 // Article de boutique
@@ -105,6 +105,16 @@ export interface CartItem {
   };
 }
 
+// Base DB cart item structure for db operations
+export interface DbCartItem {
+  id?: string;
+  user_id: string;
+  shop_item_id: string;
+  quantity: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Article dans une commande
 export interface OrderItem {
   id: string;
@@ -115,7 +125,7 @@ export interface OrderItem {
   quantity: number;
   created_at: string;
   shop_item_id?: string; // Added for database compatibility
-  price_at_time?: number; // Added for database compatibility
+  price_at_time: number; // Changed from optional to required
 }
 
 // Commande
@@ -148,7 +158,7 @@ export interface DbOrder {
   total_amount: number;
   delivery_fee: number;
   payment_status: string;
-  payment_method?: string;
+  payment_method: string; // Changed to required
   delivery_address: any;
   created_at: string;
   updated_at: string;

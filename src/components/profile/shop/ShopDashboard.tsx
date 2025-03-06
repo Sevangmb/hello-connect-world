@@ -1,19 +1,19 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ShopItemsList } from "./ShopItemsList";
 import { ShopOrdersList } from "./ShopOrdersList";
 import ShopReviewsList from "./ShopReviewsList";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Package, Star } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AddItemForm } from './AddItemForm';
-import { ShopSettings } from './ShopSettings';
 import { useShop } from '@/hooks/useShop';
+import ShopSettings from './ShopSettings';
 
-const ShopDashboard = () => {
+const ShopDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('items');
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const { toast } = useToast();

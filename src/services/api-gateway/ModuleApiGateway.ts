@@ -1,77 +1,84 @@
 
-import { ModuleStatus } from '@/hooks/modules/types';
-import { ModuleService } from '@/services/modules/ModuleService';
+import { BaseApiGateway } from './BaseApiGateway';
+import { AppModule, ModuleStatus } from '@/hooks/modules/types';
+import { ModuleService } from '../modules/ModuleService';
 
-// Create a singleton instance
-let moduleServiceInstance: ModuleService | null = null;
-
-export class ModuleApiGateway {
+export class ModuleApiGateway extends BaseApiGateway {
   private moduleService: ModuleService;
-  private modules: any[] = [];
 
-  constructor() {
-    if (!moduleServiceInstance) {
-      moduleServiceInstance = new ModuleService();
-    }
-    this.moduleService = moduleServiceInstance;
+  constructor(moduleService: ModuleService) {
+    super();
+    this.moduleService = moduleService;
   }
 
+  /**
+   * Check if a module is active
+   */
   async isModuleActive(moduleCode: string): Promise<boolean> {
     return await this.moduleService.isModuleActive(moduleCode);
   }
 
+  /**
+   * Get a module's status
+   */
   async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
     return await this.moduleService.getModuleStatus(moduleCode);
   }
 
+  /**
+   * Activate a module
+   */
   async activateModule(moduleId: string): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(moduleId, 'active');
-    return !!result;
+    return await this.moduleService.updateModuleStatus(moduleId, 'active');
   }
 
+  /**
+   * Deactivate a module
+   */
   async deactivateModule(moduleId: string): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(moduleId, 'inactive');
-    return !!result;
+    return await this.moduleService.updateModuleStatus(moduleId, 'inactive');
   }
 
+  /**
+   * Check if a feature is enabled
+   */
   async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
     return await this.moduleService.isFeatureEnabled(moduleCode, featureCode);
   }
 
-  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
+  /**
+   * Enable or disable a feature
+   */
+  async setFeatureEnabled(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
     return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
   }
 
-  // Add missing methods
-  async initialize(): Promise<boolean> {
-    try {
-      this.modules = await this.moduleService.getAllModules();
+  /**
+   * Get all modules (with filters)
+   */
+  async getModules(filters?: { status?: ModuleStatus; isCore?: boolean }): Promise<AppModule[]> {
+    const modules = await this.moduleService.getAllModules();
+    
+    if (!filters) return modules;
+    
+    return modules.filter(module => {
+      if (filters.status && module.status !== filters.status) return false;
+      if (filters.isCore !== undefined && module.is_core !== filters.isCore) return false;
       return true;
-    } catch (error) {
-      console.error("Failed to initialize module API gateway:", error);
-      return false;
-    }
+    });
   }
 
-  getModules(): any[] {
-    return this.modules;
+  /**
+   * Get all modules
+   */
+  async getAllModules(): Promise<AppModule[]> {
+    return await this.moduleService.getAllModules();
   }
 
-  async refreshModules(force: boolean = false): Promise<any[]> {
-    this.modules = await this.moduleService.getAllModules();
-    return this.modules;
-  }
-
-  async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(moduleId, status);
-    return !!result;
-  }
-
-  isModuleDegraded(moduleCode: string): boolean {
-    // This is a synchronous check, might need to be implemented differently
-    return moduleCode ? false : false; // Placeholder implementation
+  /**
+   * Update module status
+   */
+  async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
+    return await this.moduleService.updateModuleStatus(id, status);
   }
 }
-
-// Export a singleton instance for easier usage
-export const moduleApiGateway = new ModuleApiGateway();

@@ -92,7 +92,7 @@ export class ModuleRepository implements IModuleRepository {
         .eq('module_id', moduleId);
 
       if (error) throw error;
-      return data;
+      return data || [];
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
       return [];
