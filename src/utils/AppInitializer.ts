@@ -1,16 +1,14 @@
 
-import { ModuleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { useModules } from '@/hooks/modules';
 import { ModuleService } from '@/services/modules/ModuleService';
 import { useState, useEffect } from 'react';
 
 export class AppInitializer {
   private moduleService: ModuleService;
-  private moduleOptimizer: ModuleOptimizer;
 
   constructor() {
     this.moduleService = new ModuleService();
-    this.moduleOptimizer = new ModuleOptimizer();
   }
 
   /**
@@ -24,7 +22,7 @@ export class AppInitializer {
       await this.moduleService.initializeModules();
       
       // Preload module resources for better performance
-      await this.moduleOptimizer.preloadPriorityModules();
+      await moduleOptimizer.preloadPriorityModules();
       
       console.log('App initialized successfully');
       return true;

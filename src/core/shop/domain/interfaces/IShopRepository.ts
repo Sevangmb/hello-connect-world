@@ -1,45 +1,26 @@
 
-import { 
-  Shop, 
-  ShopItem, 
-  ShopStatus, 
-  ShopItemStatus, 
-  Order, 
-  ShopReview,
-  PaymentMethod,
-  OrderStatus,
-  PaymentStatus
-} from '@/core/shop/domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings } from '../types';
 
 export interface IShopRepository {
-  // Shop operations
+  // Shop management
   getShopById(id: string): Promise<Shop | null>;
   getShopByUserId(userId: string): Promise<Shop | null>;
-  createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop | null>;
-  updateShop(id: string, shop: Partial<Shop>): Promise<Shop | null>;
-  getShopsByStatus(status: ShopStatus): Promise<Shop[]>;
+  createShop(shopData: Partial<Shop>): Promise<Shop | null>;
+  updateShop(id: string, shopData: Partial<Shop>): Promise<Shop | null>;
   
-  // ShopItem operations
-  addShopItems(shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<boolean>;
-  getShopItems(shopId: string): Promise<ShopItem[]>;
+  // Shop items management
+  getAllShopItems(): Promise<ShopItem[]>;
+  getShopItemsByShopId(shopId: string): Promise<ShopItem[]>;
+  createShopItem(itemData: Partial<ShopItem>): Promise<ShopItem | null>;
+  updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem | null>;
+  deleteShopItem(id: string): Promise<boolean>;
   getShopItemById(id: string): Promise<ShopItem | null>;
-  updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem | null>;
-  updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean>;
-  
-  // Order operations
-  getShopOrders(shopId: string): Promise<Order[]>;
-  createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null>;
-  updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
-  
-  // Favorites operations
-  isShopFavorited(userId: string, shopId: string): Promise<boolean>;
-  addShopToFavorites(userId: string, shopId: string): Promise<boolean>;
-  removeShopFromFavorites(userId: string, shopId: string): Promise<boolean>;
-  getFavoriteShops(userId: string): Promise<Shop[]>;
   
   // Shop reviews
-  getShopReviews(shopId: string): Promise<ShopReview[]>;
+  getShopReviewsByShopId(shopId: string): Promise<ShopReview[]>;
+  createShopReview(reviewData: Partial<ShopReview>): Promise<ShopReview | null>;
   
-  // Cart operations
-  addToCart(userId: string, itemId: string, quantity: number): Promise<boolean>;
+  // Shop settings
+  getShopSettings(shopId: string): Promise<ShopSettings | null>;
+  updateShopSettings(shopId: string, settingsData: Partial<ShopSettings>): Promise<ShopSettings | null>;
 }

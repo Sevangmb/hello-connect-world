@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,11 +9,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useShop } from '@/hooks/useShop';
+import { ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
 
-export const ShopSettings = () => {
-  const { shop, isLoading, updateShop } = useShop();
+interface ShopSettingsProps {
+  shopId: string;
+}
+
+export const ShopSettings: React.FC<ShopSettingsProps> = ({ shopId }) => {
+  const { useShopById, useUpdateShopSettings } = useShop();
+  const { data: shop, isLoading } = useShopById(shopId);
+  const updateShopSettingsMutation = useUpdateShopSettings();
+  
   const [values, setValues] = useState({
-    paymentMethods: [],
+    paymentMethods: [] as string[],
     autoAcceptOrders: false,
     emailNotifications: true,
     appNotifications: true
@@ -20,17 +29,17 @@ export const ShopSettings = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (shop) {
+    if (shop && shop.settings) {
       setValues({
-        paymentMethods: shop.payment_methods || [],
-        autoAcceptOrders: shop.auto_accept_orders || false,
-        emailNotifications: shop.notification_preferences?.email !== false,
-        appNotifications: shop.notification_preferences?.app !== false
+        paymentMethods: shop.settings.payment_methods || [],
+        autoAcceptOrders: shop.settings.auto_accept_orders || false,
+        emailNotifications: shop.settings.notification_preferences?.email !== false,
+        appNotifications: shop.settings.notification_preferences?.app !== false
       });
     }
   }, [shop]);
 
-  const updateShopSettings = async (values: any) => {
+  const onSubmit = async () => {
     try {
       // Remove any shop properties that aren't allowed
       const shopSettings = {
@@ -40,23 +49,17 @@ export const ShopSettings = () => {
           email: values.emailNotifications,
           app: values.appNotifications
         }
-        // Don't include delivery_options directly in shop update
       };
 
-      const success = await updateShop(shopSettings);
+      await updateShopSettingsMutation.mutateAsync({
+        shopId,
+        settings: shopSettings as Partial<ShopSettingsType>
+      });
 
-      if (success) {
-        toast({
-          title: "Paramètres enregistrés",
-          description: "Les paramètres de votre boutique ont été mis à jour.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de mettre à jour les paramètres de la boutique.",
-        });
-      }
+      toast({
+        title: "Paramètres enregistrés",
+        description: "Les paramètres de votre boutique ont été mis à jour.",
+      });
     } catch (error) {
       console.error("Error updating shop settings:", error);
       toast({
@@ -65,10 +68,6 @@ export const ShopSettings = () => {
         description: "Une erreur s'est produite lors de la mise à jour des paramètres.",
       });
     }
-  };
-
-  const onSubmit = async () => {
-    await updateShopSettings(values);
   };
 
   if (isLoading || !shop) {

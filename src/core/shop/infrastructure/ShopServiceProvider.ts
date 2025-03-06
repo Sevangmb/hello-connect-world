@@ -3,9 +3,8 @@ import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-// Create the repository instance - type assertion needed due to interface differences
-// that will be addressed with proper implementations
-const shopRepository: IShopRepository = new ShopRepository() as IShopRepository;
+// Create the repository instance
+const shopRepository: IShopRepository = new ShopRepository();
 
 // Instance of the service
 const shopService = new ShopService(shopRepository);

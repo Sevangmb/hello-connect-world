@@ -1,264 +1,232 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useShop } from '@/hooks/useShop';
-import { ShopItem, ShopItemStatus } from '@/core/shop/domain/types';
-import { uploadImage } from '@/integrations/supabase/storage';
-import { ImageIcon } from 'lucide-react';
-import { useProfile } from '@/hooks/useProfile';
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Le nom doit contenir au moins 2 caractères.",
-  }),
-  description: z.string().optional(),
-  price: z.string().refine((value) => {
-    try {
-      const num = parseFloat(value);
-      return !isNaN(num) && num > 0;
-    } catch (e) {
-      return false;
-    }
-  }, {
-    message: "Le prix doit être un nombre valide supérieur à zéro.",
-  }),
-  originalPrice: z.string().optional(),
-  stock: z.string().refine((value) => {
-    try {
-      const num = parseInt(value, 10);
-      return !isNaN(num) && num >= 0;
-    } catch (e) {
-      return false;
-    }
-  }, {
-    message: "Le stock doit être un nombre entier valide supérieur ou égal à zéro.",
-  }),
-  clothesId: z.string().optional(),
-});
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Upload } from 'lucide-react';
+import { ShopItem } from '@/core/shop/domain/types';
+import { useShop } from '@/hooks/useShop';
+import { uploadFile } from '@/integrations/supabase/storage';
 
 interface AddItemFormProps {
   shopId: string;
   onSuccess?: () => void;
 }
 
-export function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
+export const AddItemForm: React.FC<AddItemFormProps> = ({ shopId, onSuccess }) => {
+  const [formData, setFormData] = useState<Partial<ShopItem>>({
+    shop_id: shopId,
+    name: '',
+    description: '',
+    price: 0,
+    original_price: 0,
+    stock: 1,
+    status: 'available',
+  });
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { addShopItems } = useShop();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const { profile } = useProfile();
+  const { useCreateShopItem } = useShop();
+  const createShopItemMutation = useCreateShopItem();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      price: "",
-      originalPrice: "",
-      stock: "",
-      clothesId: "",
-    },
-  })
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: name === 'price' || name === 'original_price' || name === 'stock' ? parseFloat(value) : value });
+  };
 
-  const onImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Veuillez sélectionner une image.",
-      });
-      return;
-    }
+  const handleSelectChange = (value: string, field: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
 
-    try {
-      setIsSubmitting(true);
-      const url = await uploadImage(file, `shop-items/${profile?.username}`);
-      setImageUrl(url);
-      toast({
-        title: "Succès",
-        description: "Image téléchargée avec succès.",
-      });
-    } catch (error) {
-      console.error("Erreur lors du téléchargement de l'image :", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Erreur lors du téléchargement de l'image.",
-      });
-    } finally {
-      setIsSubmitting(false);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  const onSubmit = async (data: any) => {
-    setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      const formData: Omit<ShopItem, "id" | "created_at" | "updated_at"> = {
-        shop_id: shopId,
-        name: data.name,
-        description: data.description,
-        price: parseFloat(data.price),
-        original_price: data.originalPrice ? parseFloat(data.originalPrice) : undefined,
-        stock: parseInt(data.stock, 10),
-        status: 'available' as ShopItemStatus,
-        image_url: imageUrl || undefined,
-        clothes_id: data.clothesId || undefined
+      let imageUrl = '';
+      
+      // Upload image if selected
+      if (image) {
+        const filename = `${Date.now()}-${image.name}`;
+        const path = `shop_items/${shopId}/${filename}`;
+        const { data, error } = await uploadFile('shop_images', path, image);
+        
+        if (error) throw error;
+        imageUrl = data.publicURL;
+      }
+      
+      // Create shop item with image URL
+      const itemWithImage = {
+        ...formData,
+        image_url: imageUrl || undefined
       };
-
-      const success = await addShopItems([formData]);
-
-      if (success) {
-        toast({
-          title: "Succès",
-          description: "Article ajouté avec succès.",
-        });
-        form.reset();
-        setImageUrl(null);
-        onSuccess?.();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Erreur lors de l'ajout de l'article.",
-        });
+      
+      await createShopItemMutation.mutateAsync(itemWithImage);
+      
+      toast({
+        title: "Article ajouté",
+        description: "L'article a été ajouté à votre boutique avec succès."
+      });
+      
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      console.error("Erreur lors de la soumission du formulaire :", error);
+      console.error('Error adding shop item:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Erreur lors de la soumission du formulaire.",
+        description: "Une erreur s'est produite lors de l'ajout de l'article."
       });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Ajouter un article</CardTitle>
-        <CardDescription>Ajouter un nouvel article à votre boutique.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nom de l'article" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Description de l'article"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prix</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Prix de l'article" type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="originalPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Prix original</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Prix original de l'article" type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Stock de l'article" type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="clothesId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Clothes ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Clothes ID" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex flex-col space-y-2">
-              <FormLabel>Image de l'article</FormLabel>
-              <Input type="file" id="image" accept="image/*" onChange={onImageUpload} />
-              {imageUrl && (
-                <img src={imageUrl} alt="Article" className="mt-2 rounded-md object-cover w-32 h-32" />
-              )}
-              {!imageUrl && (
-                <div className="flex items-center justify-center w-32 h-32 mt-2 rounded-md bg-muted">
-                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Nom de l'article</Label>
+        <Input
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          name="description"
+          value={formData.description || ''}
+          onChange={handleInputChange}
+          rows={3}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="price">Prix (€)</Label>
+          <Input
+            id="price"
+            name="price"
+            type="number"
+            value={formData.price}
+            onChange={handleInputChange}
+            min={0}
+            step={0.01}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="original_price">Prix initial (€)</Label>
+          <Input
+            id="original_price"
+            name="original_price"
+            type="number"
+            value={formData.original_price || ''}
+            onChange={handleInputChange}
+            min={0}
+            step={0.01}
+            placeholder="Optionnel"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="stock">Stock</Label>
+          <Input
+            id="stock"
+            name="stock"
+            type="number"
+            value={formData.stock}
+            onChange={handleInputChange}
+            min={0}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="status">Statut</Label>
+        <Select
+          value={formData.status}
+          onValueChange={(value) => handleSelectChange(value, 'status')}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionnez un statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="available">Disponible</SelectItem>
+            <SelectItem value="sold_out">Épuisé</SelectItem>
+            <SelectItem value="archived">Archivé</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="image">Image</Label>
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center">
+            <label htmlFor="imageUpload" className="cursor-pointer">
+              <div className="border-2 border-dashed border-gray-300 rounded-md p-4 hover:border-primary transition-colors">
+                <div className="flex flex-col items-center">
+                  <Upload className="w-8 h-8 text-gray-400" />
+                  <span className="mt-2 text-sm text-gray-500">Cliquez pour choisir une image</span>
                 </div>
-              )}
+              </div>
+              <input
+                id="imageUpload"
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+            </label>
+          </div>
+          {imagePreview && (
+            <div className="mt-2">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="max-h-40 rounded-md object-contain"
+              />
             </div>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Envoi..." : "Ajouter l'article"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  )
-}
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              En cours...
+            </>
+          ) : (
+            'Ajouter l\'article'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+};

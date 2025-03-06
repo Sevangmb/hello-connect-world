@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShopItemsList } from "./ShopItemsList";
@@ -13,14 +14,14 @@ import { ShopSettings } from './ShopSettings';
 import { useShop } from '@/hooks/useShop';
 
 const ShopDashboard = () => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState('items');
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const { toast } = useToast();
   const { useUserShop } = useShop();
   const { data: shop, isLoading } = useUserShop();
 
-  const handleTabChange = (index: number) => {
-    setActiveTab(index);
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
   const handleAddItemSuccess = () => {
@@ -53,23 +54,23 @@ const ShopDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs selectedIndex={activeTab} onSelect={handleTabChange}>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="flex justify-between items-center mb-4">
           <TabsList className="flex space-x-4 border-b">
-            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            <TabsTrigger value="items" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
               Articles
             </TabsTrigger>
-            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            <TabsTrigger value="orders" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
               Commandes
             </TabsTrigger>
-            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            <TabsTrigger value="reviews" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
               Avis
             </TabsTrigger>
-            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            <TabsTrigger value="settings" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
               Paramètres
             </TabsTrigger>
           </TabsList>
-          {activeTab === 0 && (
+          {activeTab === 'items' && (
             <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Ajouter
@@ -77,26 +78,26 @@ const ShopDashboard = () => {
           )}
         </div>
 
-        <TabsContent>
+        <TabsContent value="items">
           <Card>
             <ShopItemsList shopId={shop.id} />
           </Card>
         </TabsContent>
 
-        <TabsContent>
+        <TabsContent value="orders">
           <Card>
             <ShopOrdersList shopId={shop.id} />
           </Card>
         </TabsContent>
 
-        <TabsContent>
+        <TabsContent value="reviews">
           <Card>
             <ShopReviewsList shopId={shop.id} />
           </Card>
         </TabsContent>
 
-        <TabsContent>
-          <ShopSettings shop={shop} />
+        <TabsContent value="settings">
+          <ShopSettings shopId={shop.id} />
         </TabsContent>
       </Tabs>
 

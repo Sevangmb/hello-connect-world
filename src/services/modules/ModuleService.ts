@@ -1,5 +1,5 @@
 
-import { AppModule, ModuleStatus } from '@/hooks/modules/types';
+import { AppModule } from '@/hooks/modules/types';
 import { ModuleRepository } from './repositories/ModuleRepository';
 
 export class ModuleService {
@@ -10,120 +10,55 @@ export class ModuleService {
   }
 
   /**
-   * Get all modules
+   * Initialize modules based on their priority and dependencies
    */
-  async getAllModules(): Promise<AppModule[]> {
-    return this.moduleRepository.getAllModules();
+  public async initializeModules(): Promise<AppModule[]> {
+    try {
+      console.log('Initializing modules...');
+      
+      // Get all active modules
+      const activeModules = await this.getActiveModules();
+      
+      // Sort by priority or dependency order if needed
+      
+      // Initialize each module
+      for (const module of activeModules) {
+        await this.initializeModule(module.code);
+      }
+      
+      return activeModules;
+    } catch (error) {
+      console.error('Error initializing modules:', error);
+      return [];
+    }
   }
 
   /**
-   * Get a module by code
+   * Initialize a specific module
    */
-  async getModuleByCode(code: string): Promise<AppModule | null> {
+  public async initializeModule(moduleCode: string): Promise<AppModule | null> {
+    try {
+      console.log(`Initializing module: ${moduleCode}`);
+      
+      const module = await this.getModuleByCode(moduleCode);
+      return module;
+    } catch (error) {
+      console.error(`Error initializing module ${moduleCode}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get module by code
+   */
+  public async getModuleByCode(code: string): Promise<AppModule | null> {
     return this.moduleRepository.getModuleByCode(code);
-  }
-
-  /**
-   * Get a module by ID
-   */
-  async getModuleById(id: string): Promise<AppModule | null> {
-    return this.moduleRepository.getModuleById(id);
-  }
-
-  /**
-   * Update a module's status
-   */
-  async updateModuleStatus(id: string, status: ModuleStatus): Promise<AppModule | null> {
-    return this.moduleRepository.updateModuleStatus(id, status);
-  }
-
-  /**
-   * Get modules by status
-   */
-  async getModulesByStatus(status: ModuleStatus): Promise<AppModule[]> {
-    const modules = await this.moduleRepository.getAllModules();
-    return modules.filter(module => module.status === status);
-  }
-
-  /**
-   * Get core modules
-   */
-  async getCoreModules(): Promise<AppModule[]> {
-    const modules = await this.moduleRepository.getAllModules();
-    return modules.filter(module => module.is_core === true);
-  }
-
-  /**
-   * Initialize a module
-   */
-  async initializeModule(moduleCode: string): Promise<AppModule | null> {
-    console.log(`Initializing module: ${moduleCode}`);
-    // Implementation will depend on specific requirements
-    const module = await this.getModuleByCode(moduleCode);
-    return module;
-  }
-
-  /**
-   * Check if a module is active
-   */
-  async isModuleActive(moduleCode: string): Promise<boolean> {
-    const module = await this.getModuleByCode(moduleCode);
-    return module?.status === 'active';
-  }
-
-  /**
-   * Get module status
-   */
-  async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-    const module = await this.getModuleByCode(moduleCode);
-    return module ? module.status : null;
-  }
-
-  /**
-   * Check if a feature is enabled
-   */
-  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
-    // Implementation depends on how features are stored
-    return true;
-  }
-
-  /**
-   * Update feature status
-   */
-  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
-    // Implementation depends on how features are stored
-    return true;
-  }
-
-  /**
-   * Check module dependencies
-   */
-  async checkModuleDependencies(moduleCode: string): Promise<boolean> {
-    // Implementation depends on how dependencies are stored
-    return true;
   }
 
   /**
    * Get active modules
    */
-  async getActiveModules(): Promise<AppModule[]> {
-    return this.getModulesByStatus('active');
-  }
-
-  /**
-   * Get module dependencies
-   */
-  async getModuleDependencies(moduleId: string): Promise<any[]> {
-    // Implementation depends on how dependencies are stored
-    return [];
-  }
-
-  /**
-   * Initialize all modules
-   */
-  async initializeModules(): Promise<AppModule[]> {
-    // Get all active modules
-    const modules = await this.getActiveModules();
-    return modules;
+  public async getActiveModules(): Promise<AppModule[]> {
+    return this.moduleRepository.getModulesByStatus('active');
   }
 }
