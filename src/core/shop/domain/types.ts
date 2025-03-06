@@ -47,7 +47,7 @@ export interface Shop {
   settings?: ShopSettings;
 }
 
-// Article de boutique
+// Types pour les articles
 export interface ShopItem {
   id: string;
   shop_id: string;
@@ -66,45 +66,26 @@ export interface ShopItem {
   };
 }
 
-// Raw shop item from database
-export interface RawShopItem {
-  id: string;
-  shop_id: string;
-  name: string;
-  description?: string;
-  image_url?: string;
-  price: number;
-  original_price?: number;
-  stock: number;
-  status: ShopItemStatus;
-  created_at: string;
-  updated_at: string;
-  clothes_id?: string;
-}
-
 // Élément du panier
 export interface CartItem {
   id: string;
   user_id: string;
   shop_id: string;
-  item_id: string;
+  shop_item_id: string;
   quantity: number;
   created_at: string;
   updated_at: string;
   shop_items: {
-    id: string;
     name: string;
     price: number;
     image_url?: string;
-    shop_id: string;
   };
   shop: {
-    id: string;
     name: string;
   };
 }
 
-// Base DB cart item structure for db operations
+// Base cart item for DB operations
 export interface DbCartItem {
   id?: string;
   user_id: string;

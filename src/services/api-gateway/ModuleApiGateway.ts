@@ -1,4 +1,3 @@
-
 import { BaseApiGateway } from './BaseApiGateway';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleService } from '../modules/ModuleService';
@@ -9,6 +8,16 @@ export class ModuleApiGateway extends BaseApiGateway {
   constructor(moduleService: ModuleService) {
     super();
     this.moduleService = moduleService;
+  }
+
+  async initialize(): Promise<boolean> {
+    try {
+      await this.moduleService.initializeModules();
+      return true;
+    } catch (error) {
+      console.error('Error initializing modules:', error);
+      return false;
+    }
   }
 
   /**
@@ -81,7 +90,20 @@ export class ModuleApiGateway extends BaseApiGateway {
   async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
     return await this.moduleService.updateModuleStatus(id, status);
   }
+
+  async refreshModules(): Promise<AppModule[]> {
+    return await this.moduleService.getAllModules();
+  }
+
+  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
+    return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+  }
+
+  async isModuleDegraded(moduleId: string): Promise<boolean> {
+    const module = await this.moduleService.getModuleById(moduleId);
+    return module?.status === 'degraded';
+  }
 }
 
-// Export a singleton instance
+// Export singleton instance
 export const moduleApiGateway = new ModuleApiGateway(new ModuleService());

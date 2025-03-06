@@ -3,7 +3,7 @@ import { Shop, ShopItem, ShopStatus, ShopItemStatus } from '@/core/shop/domain/t
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-export const useShop = () => {
+export function useShop() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
