@@ -1,8 +1,8 @@
 
+import { useState, useEffect } from 'react';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { useModules } from '@/hooks/modules';
 import { ModuleService } from '@/services/modules/ModuleService';
-import { useState, useEffect } from 'react';
 
 export class AppInitializer {
   private moduleService: ModuleService;

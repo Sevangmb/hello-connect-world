@@ -45,6 +45,7 @@ export interface Shop {
     username?: string;
     full_name?: string;
   };
+  settings?: ShopSettings; // Add the settings property
 }
 
 // Article de boutique
