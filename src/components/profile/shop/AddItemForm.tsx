@@ -1,178 +1,282 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ShopItemStatus } from '@/core/shop/domain/types';
 import { useShop } from '@/hooks/useShop';
-import { Shop, ShopItem, ShopItemStatus } from '@/core/shop/domain/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddItemFormProps {
-  shop: Shop;
+  shopId: string;
   onSuccess?: () => void;
 }
 
-export const AddItemForm: React.FC<AddItemFormProps> = ({ shop, onSuccess }) => {
-  const [imageUrl, setImageUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const { useCreateShopItem } = useShop();
-  const createShopItem = useCreateShopItem();
+export function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
+  const { useAddShopItems } = useShop();
+  const addItemMutation = useAddShopItems();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors, isSubmitting }
-  } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm({
+    defaultValues: {
+      name: '',
+      description: '',
+      price: 0,
+      original_price: 0,
+      stock: 1,
+      status: 'available' as ShopItemStatus,
+      clothes_id: '',
+    }
+  });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
 
-    setUploading(true);
+  const uploadImage = async (): Promise<string> => {
+    if (!imageFile) return '';
+    
     try {
-      // Simuler un upload d'image pour le moment
-      setTimeout(() => {
-        setImageUrl('/placeholder.svg');
-        setValue('image_url', '/placeholder.svg');
-        setUploading(false);
-        toast.success('Image téléchargée');
-      }, 1500);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non authentifié");
+      
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `shop-items/${shopId}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('shop-items')
+        .upload(filePath, imageFile);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('shop-items')
+        .getPublicUrl(filePath);
+        
+      return urlData.publicUrl;
     } catch (error) {
-      console.error('Erreur lors du téléchargement de l\'image:', error);
-      toast.error('Erreur lors du téléchargement de l\'image');
-      setUploading(false);
+      console.error("Erreur lors de l'upload de l'image:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de télécharger l'image. Veuillez réessayer.",
+      });
+      return '';
     }
   };
 
   const onSubmit = async (data: any) => {
     try {
-      const item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> = {
-        name: data.name,
-        description: data.description,
-        price: parseFloat(data.price),
-        original_price: data.original_price ? parseFloat(data.original_price) : undefined,
-        stock: parseInt(data.stock, 10),
-        image_url: data.image_url || '/placeholder.svg',
-        status: data.status as ShopItemStatus || 'available',
-        clothes_id: data.clothes_id || '',
-        shop_id: shop.id,
+      const imageUrl = await uploadImage();
+      
+      // Préparer les données de l'item avec shopId
+      const itemData = {
+        ...data,
+        image_url: imageUrl,
+        shop_id: shopId
       };
-
-      await createShopItem.mutateAsync({
-        shopId: shop.id,
-        item
+      
+      // Utiliser la mutation pour créer l'item
+      await addItemMutation.mutate({ 
+        shopId, 
+        item: itemData 
       });
-
-      toast.success('Article ajouté avec succès');
+      
+      // Réinitialiser le formulaire
       reset();
-      setImageUrl('');
+      setImageFile(null);
+      setImagePreview(null);
+      
+      // Notifier le succès
+      toast({
+        title: "Article ajouté",
+        description: "L'article a été ajouté à votre boutique avec succès.",
+      });
+      
+      // Appeler le callback de succès si fourni
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'article:', error);
-      toast.error('Erreur lors de l\'ajout de l\'article. Veuillez réessayer.');
+      console.error("Erreur lors de l'ajout de l'article:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'ajouter l'article. Veuillez réessayer.",
+      });
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">Nom de l'article *</label>
-          <Input
-            id="name"
-            type="text"
-            {...register('name', { required: 'Le nom est requis' })}
-          />
-          {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name.message as string}</p>}
-        </div>
-        <div>
-          <label htmlFor="price" className="block text-sm font-medium mb-1">Prix *</label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            min="0"
-            {...register('price', { required: 'Le prix est requis' })}
-          />
-          {errors.price && <p className="text-sm text-red-500 mt-1">{errors.price.message as string}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="original_price" className="block text-sm font-medium mb-1">Prix d'origine</label>
-          <Input
-            id="original_price"
-            type="number"
-            step="0.01"
-            min="0"
-            {...register('original_price')}
-          />
-        </div>
-        <div>
-          <label htmlFor="stock" className="block text-sm font-medium mb-1">Stock *</label>
-          <Input
-            id="stock"
-            type="number"
-            min="0"
-            {...register('stock', { required: 'Le stock est requis' })}
-          />
-          {errors.stock && <p className="text-sm text-red-500 mt-1">{errors.stock.message as string}</p>}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="status" className="block text-sm font-medium mb-1">Statut</label>
-        <Select defaultValue="available" onValueChange={(value) => setValue('status', value)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Choisir un statut" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="available">Disponible</SelectItem>
-            <SelectItem value="sold_out">Épuisé</SelectItem>
-            <SelectItem value="archived">Archivé</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium mb-1">Description</label>
-        <Textarea
-          id="description"
-          rows={4}
-          {...register('description')}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="image" className="block text-sm font-medium mb-1">Image</label>
-        <Input
-          id="image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageUpload}
-          disabled={uploading}
-        />
-        <input type="hidden" {...register('image_url')} value={imageUrl} />
-        {imageUrl && (
-          <div className="mt-2">
-            <img src={imageUrl} alt="Aperçu" className="w-32 h-32 object-cover rounded-md" />
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="name">Nom de l'article</Label>
+            <Input
+              id="name"
+              {...register('name', { required: "Le nom est requis" })}
+              placeholder="Nom de l'article"
+              error={errors.name?.message}
+            />
+            {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
-        )}
+          
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              {...register('description')}
+              placeholder="Description de l'article"
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="price">Prix (€)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                {...register('price', { 
+                  required: "Le prix est requis",
+                  min: { value: 0, message: "Le prix doit être positif" }
+                })}
+              />
+              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
+            </div>
+            
+            <div>
+              <Label htmlFor="original_price">Prix original (€)</Label>
+              <Input
+                id="original_price"
+                type="number"
+                step="0.01"
+                {...register('original_price')}
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="stock">Quantité en stock</Label>
+              <Input
+                id="stock"
+                type="number"
+                {...register('stock', { 
+                  required: "Le stock est requis",
+                  min: { value: 0, message: "Le stock doit être positif" }
+                })}
+              />
+              {errors.stock && <p className="text-sm text-red-500">{errors.stock.message}</p>}
+            </div>
+            
+            <div>
+              <Label htmlFor="status">Statut</Label>
+              <Select
+                onValueChange={(value) => setValue('status', value as ShopItemStatus)}
+                defaultValue="available"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Disponible</SelectItem>
+                  <SelectItem value="sold_out">Épuisé</SelectItem>
+                  <SelectItem value="archived">Archivé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="image">Image de l'article</Label>
+            <div className="flex items-center justify-center border-2 border-dashed rounded-md p-4 h-64">
+              {imagePreview ? (
+                <div className="relative w-full h-full">
+                  <img 
+                    src={imagePreview} 
+                    alt="Aperçu" 
+                    className="object-contain w-full h-full"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-0 right-0"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                    }}
+                  >
+                    Supprimer
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">
+                    JPG, PNG ou GIF jusqu'à 10MB
+                  </p>
+                  <label htmlFor="image-upload" className="cursor-pointer">
+                    <Button type="button" variant="outline">Choisir une image</Button>
+                    <input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="clothes_id">ID vêtement associé (optionnel)</Label>
+            <Input
+              id="clothes_id"
+              {...register('clothes_id')}
+              placeholder="ID de vêtement si applicable"
+            />
+          </div>
+        </div>
       </div>
-
+      
       <div className="flex justify-end">
         <Button 
           type="submit" 
-          disabled={isSubmitting || createShopItem.isPending || uploading}
+          disabled={addItemMutation.isPending}
+          className="w-full md:w-auto"
         >
-          {isSubmitting || createShopItem.isPending ? 'En cours...' : 'Ajouter l\'article'}
+          {addItemMutation.isPending ? (
+            <>
+              <LoadingSpinner size="sm" className="mr-2" />
+              Création en cours...
+            </>
+          ) : (
+            'Ajouter l\'article'
+          )}
         </Button>
       </div>
     </form>
   );
-};
+}

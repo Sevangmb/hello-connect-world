@@ -1,45 +1,55 @@
 
-import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
-import { eventBus } from "@/core/event-bus/EventBus";
-import { ModuleInitializer } from "@/services/modules/ModuleInitializer";
-import { moduleOptimizer } from "@/services/performance/ModuleOptimizer";
+import { eventBus } from '@/core/event-bus/EventBus';
+import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 
-/**
- * Application initializer - bootstraps the app services
- */
 export class AppInitializer {
-  private moduleInitializer: ModuleInitializer = new ModuleInitializer();
-  private hasInitialized: boolean = false;
-
   /**
    * Initialize the application
    */
-  async initializeApp(): Promise<boolean> {
-    if (this.hasInitialized) {
-      return true;
-    }
-
+  async initializeApp(): Promise<void> {
+    console.log('Initializing application...');
+    
     try {
-      // Initialize event bus
-      eventBus.initialize();
+      // Initialiser le bus d'événements
+      this.initializeEventBus();
       
-      // Initialize modules
-      await this.moduleInitializer.initializeModules();
+      // Précharger les modules communs
+      this.preloadModules();
       
-      // Preload common modules
-      moduleOptimizer.preloadCommonModules();
+      // Initialiser le coordinateur de menu
+      this.initializeMenuCoordinator();
       
-      // Initialize menu system
-      moduleMenuCoordinator.initializeMenu();
-
-      this.hasInitialized = true;
-      return true;
+      console.log('Application initialized successfully');
     } catch (error) {
-      console.error('Error initializing app:', error);
-      this.hasInitialized = false;
-      return false;
+      console.error('Error initializing application:', error);
+      throw error;
     }
   }
+  
+  /**
+   * Initialize event bus
+   */
+  private initializeEventBus(): void {
+    console.log('Initializing event bus...');
+    eventBus.subscribe('app:initialized', () => {
+      console.log('Application initialization event received');
+    });
+  }
+  
+  /**
+   * Preload modules
+   */
+  private preloadModules(): void {
+    console.log('Preloading common modules...');
+    moduleOptimizer.preloadPriorityModules();
+  }
+  
+  /**
+   * Initialize menu coordinator
+   */
+  private initializeMenuCoordinator(): void {
+    console.log('Initializing menu coordinator...');
+    moduleMenuCoordinator.refreshMenuItems();
+  }
 }
-
-export const appInitializer = new AppInitializer();

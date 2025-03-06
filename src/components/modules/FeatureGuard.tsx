@@ -1,33 +1,43 @@
 
 import React from 'react';
-import { ModuleUnavailable } from './ModuleUnavailable';
 import { useModuleApi } from '@/hooks/modules/ModuleApiContext';
+import { ModuleUnavailable } from './ModuleUnavailable';
 
 interface FeatureGuardProps {
   moduleCode: string;
   featureCode: string;
-  fallback?: React.ReactNode;
   children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
+/**
+ * Feature Guard
+ * Renders children only if a specific feature is enabled
+ */
 export const FeatureGuard: React.FC<FeatureGuardProps> = ({
   moduleCode,
   featureCode,
-  fallback,
-  children
+  children,
+  fallback
 }) => {
   const { features, isInitialized } = useModuleApi();
-
+  
+  // Si les features ne sont pas encore chargées, on attend
   if (!isInitialized) {
-    return null; // Ne rien afficher pendant le chargement des modules
+    return null;
   }
-
+  
   // Vérifier si la fonctionnalité est activée
-  const isEnabled = features?.[moduleCode]?.[featureCode] === true;
-
-  if (!isEnabled) {
-    return fallback ? <>{fallback}</> : <ModuleUnavailable />;
+  const isEnabled = features?.[moduleCode]?.[featureCode];
+  
+  if (isEnabled) {
+    return <>{children}</>;
   }
-
-  return <>{children}</>;
+  
+  // Afficher un fallback ou le message par défaut
+  if (fallback) {
+    return <>{fallback}</>;
+  }
+  
+  return <ModuleUnavailable moduleCode={moduleCode} />;
 };
