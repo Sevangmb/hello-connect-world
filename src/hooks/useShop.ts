@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem } from '@/core/shop/domain/types';
@@ -67,6 +66,20 @@ export function useShop() {
       queryFn: () => getShopItems(shopId),
       enabled: !!shopId
     });
+  };
+
+  const useCreateShopItem = () => {
+    const createShopItemMutation = useMutation({
+      mutationFn: async (shopItem: Partial<ShopItem>) => {
+        return await shopService.createShopItem(shopItem);
+      }
+    });
+
+    return {
+      ...createShopItemMutation,
+      creating: createShopItemMutation.isPending,
+      execute: createShopItemMutation.mutate
+    };
   };
 
   const useAddShopItem = () => {
@@ -169,6 +182,7 @@ export function useShop() {
     getShopById,
     getShopItems,
     useShopItems,
+    useCreateShopItem,
     useAddShopItem,
     useUpdateShopItem,
     useDeleteShopItem,

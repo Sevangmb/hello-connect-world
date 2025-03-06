@@ -1,4 +1,3 @@
-
 /**
  * Types du module de boutique
  */
@@ -183,3 +182,31 @@ export interface ShopSettings {
   created_at: string;
   updated_at: string;
 }
+
+// Add type guards and mappers to handle Supabase response types
+export const isShopStatus = (status: string): status is ShopStatus => {
+  return ['pending', 'approved', 'rejected', 'suspended'].includes(status);
+};
+
+export const mapShopFromDB = (shop: any): Shop => {
+  return {
+    ...shop,
+    status: isShopStatus(shop.status) ? shop.status : 'pending'
+  };
+};
+
+export const isDeliveryOption = (option: string): option is DeliveryOption => {
+  return ['pickup', 'delivery', 'both'].includes(option);
+};
+
+export const mapDeliveryOptions = (options: string[]): DeliveryOption[] => {
+  return options.filter(isDeliveryOption);
+};
+
+export const isPaymentMethod = (method: string): method is PaymentMethod => {
+  return ['card', 'paypal', 'bank_transfer', 'cash'].includes(method);
+};
+
+export const mapPaymentMethods = (methods: string[]): PaymentMethod[] => {
+  return methods.filter(isPaymentMethod);
+};
