@@ -1,89 +1,95 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useSuitcases } from '@/hooks/useSuitcases';
-import { Plus, Loader2, Grid, List } from 'lucide-react';
-import { CreateSuitcaseDialog } from '@/components/suitcases/CreateSuitcaseDialog';
+import { PlusIcon, GridIcon, ListIcon } from 'lucide-react';
 import SuitcaseGrid from '@/components/suitcases/components/SuitcaseGrid';
+import { useSuitcases } from '@/hooks/useSuitcases';
+import CreateSuitcaseForm from '@/components/suitcases/forms/CreateSuitcaseForm';
+import EmptySuitcases from '@/components/suitcases/components/EmptySuitcases';
+import LoadingSuitcases from '@/components/suitcases/components/LoadingSuitcases';
+import SuitcaseItems from '@/components/suitcases/items/SuitcaseItems';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const Suitcases = () => {
-  const { 
-    data: suitcases, 
-    isLoading, 
-    isError 
-  } = useSuitcases();
-  
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { data: suitcasesData, isLoading, isError } = useSuitcases();
   const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string>('');
-
-  // Redirect to the detail page if a suitcase is selected
-  useEffect(() => {
-    if (selectedSuitcaseId) {
-      // Simulate navigation - in a real app, use router.push or similar
-      console.log(`Navigate to suitcase detail: ${selectedSuitcaseId}`);
-    }
-  }, [selectedSuitcaseId]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Chargement de vos valises...</p>
-      </div>
-    );
+    return <LoadingSuitcases />;
   }
 
   if (isError) {
+    return <div>Error loading suitcases</div>;
+  }
+
+  const suitcases = suitcasesData || [];
+
+  if (suitcases.length === 0 && !showCreateModal) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh]">
-        <p className="text-destructive">Une erreur est survenue lors du chargement de vos valises.</p>
-        <Button variant="outline" className="mt-4">Réessayer</Button>
-      </div>
+      <EmptySuitcases onCreateClick={() => setShowCreateModal(true)} />
+    );
+  }
+
+  if (selectedSuitcaseId) {
+    return (
+      <SuitcaseItems
+        suitcaseId={selectedSuitcaseId}
+        onBack={() => setSelectedSuitcaseId('')}
+      />
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Vos valises</h1>
-        <div className="flex gap-2">
-          <div className="bg-background border rounded-md p-1 flex">
-            <Button 
-              variant={viewMode === 'grid' ? "default" : "ghost"} 
-              size="icon" 
+    <div className="container mx-auto py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Mes valises</h1>
+        <div className="flex items-center gap-4">
+          <div className="bg-muted rounded-md flex overflow-hidden">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
               onClick={() => setViewMode('grid')}
-              className="h-8 w-8"
+              className="rounded-none"
             >
-              <Grid className="h-4 w-4" />
+              <GridIcon className="h-4 w-4" />
             </Button>
-            <Button 
-              variant={viewMode === 'list' ? "default" : "ghost"} 
-              size="icon" 
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
               onClick={() => setViewMode('list')}
-              className="h-8 w-8"
+              className="rounded-none"
             >
-              <List className="h-4 w-4" />
+              <ListIcon className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Créer une valise
+          <Button onClick={() => setShowCreateModal(true)}>
+            <PlusIcon className="mr-2 h-4 w-4" /> Nouvelle valise
           </Button>
         </div>
       </div>
 
-      {suitcases && <SuitcaseGrid
+      <SuitcaseGrid
         suitcases={suitcases}
         viewMode={viewMode}
         selectedSuitcaseId={selectedSuitcaseId}
         setSelectedSuitcaseId={setSelectedSuitcaseId}
-      />}
-
-      <CreateSuitcaseDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
       />
+
+      <Dialog
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Créer une nouvelle valise</DialogTitle>
+          </DialogHeader>
+          <CreateSuitcaseForm 
+            onSuccess={() => setShowCreateModal(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

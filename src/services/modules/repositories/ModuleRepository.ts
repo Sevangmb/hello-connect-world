@@ -86,26 +86,36 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use a simple string-based query to avoid type instantiation issues
+      // Use a simpler query to avoid deep type issues
       const { data, error } = await supabase
         .from('module_dependencies')
-        .select(`
-          id, 
-          module_id,
-          dependency_id,
-          is_required,
-          dependency:dependency_id (
-            id, 
-            name, 
-            code, 
-            status
-          )
-        `)
-        .eq('module_id', moduleId);
+        .select('id, module_id, dependency_id, is_required');
 
       if (error) throw error;
       
-      return Array.isArray(data) ? data : [];
+      const filteredData = data.filter(dep => dep.module_id === moduleId);
+      
+      // Fetch dependency details in a separate call
+      const dependencyDetails = [];
+      for (const dep of filteredData) {
+        const { data: depModule } = await supabase
+          .from('app_modules')
+          .select('id, name, code, status')
+          .eq('id', dep.dependency_id)
+          .single();
+          
+        if (depModule) {
+          dependencyDetails.push({
+            id: dep.id,
+            module_id: dep.module_id,
+            dependency_id: dep.dependency_id,
+            is_required: dep.is_required,
+            dependency: depModule
+          });
+        }
+      }
+      
+      return dependencyDetails;
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
       return [];
@@ -174,8 +184,8 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use a simpler string-based query to avoid complex type instantiation
-      const { data, error } = await supabase
+      // Simpler approach to avoid deep type issues
+      const { data: featureData, error } = await supabase
         .from('module_features')
         .select(`
           id, 
@@ -183,27 +193,30 @@ export class ModuleRepository implements IModuleRepository {
           feature_name, 
           description, 
           is_enabled,
-          module_code, 
-          app_modules!inner(
-            id, 
-            name, 
-            code, 
-            description, 
-            status
-          )
+          module_code
         `);
 
       if (error) throw error;
       
+      // Get all modules in a separate call
+      const { data: moduleData } = await supabase
+        .from('app_modules')
+        .select('id, name, code, description, status');
+      
+      if (!moduleData) return [];
+      
       // Process the data to group features by module
       const moduleMap = new Map();
       
-      for (const feature of data) {
+      for (const feature of featureData) {
         const moduleCode = feature.module_code;
+        const module = moduleData.find(m => m.code === moduleCode);
+        
+        if (!module) continue;
         
         if (!moduleMap.has(moduleCode)) {
           moduleMap.set(moduleCode, {
-            module: feature.app_modules,
+            module,
             features: []
           });
         }

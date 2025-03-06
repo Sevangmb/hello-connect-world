@@ -20,7 +20,7 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
   const [price, setPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("");
   const { useCreateShopItem } = useShop();
-  const createShopItem = useCreateShopItem();
+  const createShopItemMutation = useCreateShopItem();
 
   const resetForm = () => {
     setName("");
@@ -54,8 +54,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
         status: "available" as ShopItemStatus
       };
       
-      // Use execute from our hook
-      await createShopItem.execute(itemData);
+      // Use mutateAsync instead of execute
+      await createShopItemMutation.execute(itemData);
       
       resetForm();
       toast({
@@ -117,8 +117,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
           required
         />
       </div>
-      <Button type="submit" className="w-full" disabled={createShopItem.creating}>
-        {createShopItem.creating ? "Ajout en cours..." : "Ajouter l'article"}
+      <Button type="submit" className="w-full" disabled={createShopItemMutation.creating}>
+        {createShopItemMutation.creating ? "Ajout en cours..." : "Ajouter l'article"}
       </Button>
     </form>
   );

@@ -2,93 +2,78 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useShop } from '@/hooks/useShop';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 
 const ShopDetail = () => {
-  const { shopId } = useParams<{ shopId: string }>();
+  const { id } = useParams<{ id: string }>();
   const { useShopById } = useShop();
-  const { data: shop, isLoading, error } = useShopById(shopId || '');
-  const { toast } = useToast();
+  const { data: shop, isLoading, isError } = useShopById(id);
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return <div>Loading shop details...</div>;
   }
 
-  if (error || !shop) {
-    return <div>Une erreur est survenue lors du chargement de la boutique.</div>;
+  if (isError || !shop) {
+    return <div>Error loading shop or shop not found</div>;
   }
 
   return (
     <div className="container mx-auto py-8">
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">{shop.name}</h1>
-          <Button>Contacter le vendeur</Button>
+      <h1 className="text-3xl font-bold mb-4">{shop.name}</h1>
+      <p className="text-gray-600 mb-6">{shop.description}</p>
+      
+      {/* Shop details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Informations</h2>
+          <div className="bg-gray-50 p-4 rounded-md">
+            {shop.address && (
+              <p className="mb-2">
+                <span className="font-medium">Adresse:</span> {shop.address}
+              </p>
+            )}
+            {shop.phone && (
+              <p className="mb-2">
+                <span className="font-medium">Téléphone:</span> {shop.phone}
+              </p>
+            )}
+            {shop.website && (
+              <p className="mb-2">
+                <span className="font-medium">Site web:</span>{' '}
+                <a href={shop.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {shop.website}
+                </a>
+              </p>
+            )}
+            <p className="mb-2">
+              <span className="font-medium">Note moyenne:</span> {shop.average_rating || 'Aucune note'}
+            </p>
+          </div>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-1/3">
-            <img 
-              src={shop.image_url || "/placeholder.svg"} 
-              alt={shop.name}
-              className="w-full h-64 object-cover rounded-lg" 
-            />
-            
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold">À propos de la boutique</h3>
-              <p className="mt-2 text-gray-600">{shop.description || "Aucune description disponible."}</p>
-            </div>
-            
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold">Informations</h3>
-              <div className="mt-2 space-y-2">
-                {shop.address && (
-                  <p className="text-sm">
-                    <span className="font-medium">Adresse:</span> {shop.address}
-                  </p>
-                )}
-                {shop.phone && (
-                  <p className="text-sm">
-                    <span className="font-medium">Téléphone:</span> {shop.phone}
-                  </p>
-                )}
-                {shop.website && (
-                  <p className="text-sm">
-                    <span className="font-medium">Site web:</span> {shop.website}
-                  </p>
-                )}
-                <p className="text-sm">
-                  <span className="font-medium">Note moyenne:</span> {shop.average_rating?.toFixed(1) || "N/A"} / 5
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="w-full md:w-2/3">
-            <h2 className="text-2xl font-bold mb-4">Articles</h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* This would be populated with shop items fetched separately */}
-              <Card className="p-4 flex flex-col">
-                <div className="text-center">Aucun article disponible pour le moment.</div>
-              </Card>
-            </div>
-            
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold mb-4">Avis ({shop.rating_count || 0})</h2>
-              
-              <div>
-                {/* This would be populated with shop reviews fetched separately */}
-                <div className="text-center py-8">
-                  Aucun avis pour le moment.
-                </div>
-              </div>
-            </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Catégories</h2>
+          <div className="flex flex-wrap gap-2">
+            {shop.categories && shop.categories.length > 0 ? (
+              shop.categories.map((category, index) => (
+                <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                  {category}
+                </span>
+              ))
+            ) : (
+              <p>Aucune catégorie</p>
+            )}
           </div>
         </div>
-      </Card>
+      </div>
+      
+      {/* Shop items will be added here */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Articles</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Shop items */}
+          <p>Liste des articles à venir</p>
+        </div>
+      </div>
     </div>
   );
 };

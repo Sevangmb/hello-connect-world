@@ -1,6 +1,6 @@
 
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus } from '../domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, PaymentStatus } from '../domain/types';
 
 export class ShopService {
   private shopRepository: IShopRepository;
@@ -13,14 +13,16 @@ export class ShopService {
     return this.shopRepository.getShopByUserId(userId);
   }
 
+  async getUserShop(userId: string): Promise<Shop | null> {
+    return this.shopRepository.getShopByUserId(userId);
+  }
+
   async createShop(shopData: Partial<Shop>): Promise<Shop> {
     return this.shopRepository.createShop(shopData);
   }
 
-  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop> {
-    const result = await this.shopRepository.updateShop(shopId, shopData);
-    if (!result) throw new Error('Failed to update shop');
-    return result;
+  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop | null> {
+    return this.shopRepository.updateShop(shopId, shopData);
   }
 
   async getShopItems(shopId: string): Promise<ShopItem[]> {
@@ -35,10 +37,12 @@ export class ShopService {
     return this.shopRepository.createShopItem(item);
   }
 
-  async updateShopItem(itemId: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
-    const result = await this.shopRepository.updateShopItem(itemId, itemData);
-    if (!result) throw new Error('Failed to update shop item');
-    return result;
+  async updateShopItem(itemId: string, itemData: Partial<ShopItem>): Promise<ShopItem | null> {
+    return this.shopRepository.updateShopItem(itemId, itemData);
+  }
+
+  async deleteShopItem(itemId: string): Promise<boolean> {
+    return this.shopRepository.deleteShopItem(itemId);
   }
 
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
@@ -74,7 +78,11 @@ export class ShopService {
   }
 
   async getShopOrders(shopId: string): Promise<Order[]> {
-    return this.shopRepository.getOrdersByShopId(shopId);
+    return this.shopRepository.getShopOrders(shopId);
+  }
+
+  async getOrdersByShopId(shopId: string, status?: string): Promise<Order[]> {
+    return this.shopRepository.getOrdersByShopId(shopId, status);
   }
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
