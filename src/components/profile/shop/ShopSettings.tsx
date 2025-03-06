@@ -1,166 +1,151 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useShop } from '@/hooks/useShop';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Shop } from '@/core/shop/domain/types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { Shop, DeliveryOption, PaymentMethod } from '@/core/shop/domain/types';
+import { CheckboxGroup } from '@/components/ui/checkbox-group';
+import { Checkbox } from '@/components/ui/checkbox';
 
-const shopFormSchema = z.object({
-  name: z.string().min(2, {
-    message: "Le nom de la boutique doit contenir au moins 2 caractères.",
-  }),
-  description: z.string().optional(),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-  categories: z.string().optional(),
-});
-
-type ShopFormValues = z.infer<typeof shopFormSchema>;
-
-export function ShopSettings() {
-  const { toast } = useToast();
-  const { useUserShop } = useShop();
-  const { data: userShop, isLoading: isShopLoading } = useUserShop();
-
-  const shopData = userShop || {
-    name: '',
-    description: '',
-    address: '',
-    phone: '',
-    website: '',
-    categories: '',
-  };
-
-  const form = useForm<ShopFormValues>({
-    resolver: zodResolver(shopFormSchema),
+const ShopSettings: React.FC<{ shop: Shop }> = ({ shop }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const queryClient = useQueryClient();
+  const { register, handleSubmit, formState: { errors }, setValue, reset } = useForm({
     defaultValues: {
-      name: shopData?.name || "",
-      description: shopData?.description || "",
-      address: shopData?.address || "",
-      phone: shopData?.phone || "",
-      website: shopData?.website || "",
-      categories: shopData?.categories ? shopData.categories.join(', ') : "",
-    },
+      name: shop.name,
+      description: shop.description || '',
+      address: shop.address || '',
+      phone: shop.phone || '',
+      website: shop.website || '',
+      payment_methods: [],
+      delivery_options: [],
+      categories: shop.categories || []
+    }
   });
 
+  const { useUpdateShop } = useShop();
   const updateShopMutation = useUpdateShop();
 
-  const handleSubmit = (data: ShopFormValues) => {
-    if (!userShop?.id) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de trouver votre boutique",
-      });
-      return;
-    }
+  // Préparer les catégories pour l'affichage
+  const formattedCategories = typeof shop.categories === 'string' 
+    ? shop.categories 
+    : Array.isArray(shop.categories) 
+      ? shop.categories.join(', ') 
+      : '';
 
-    const categories = data.categories
-      ? data.categories.split(',').map(cat => cat.trim())
-      : [];
-
-    updateShopMutation.mutate({
-      id: userShop.id,
-      data: {
+  const onSubmit = async (data: any) => {
+    try {
+      // Préparer les données pour la mise à jour
+      const updateData = {
         name: data.name,
         description: data.description,
         address: data.address,
         phone: data.phone,
         website: data.website,
-        categories
-      }
-    });
+        // Convertir les catégories de chaîne séparée par des virgules en tableau
+        categories: data.categories.split(',').map((cat: string) => cat.trim())
+      };
+
+      await updateShopMutation.mutateAsync({
+        id: shop.id,
+        shop: updateData
+      });
+
+      toast.success('Paramètres de la boutique mis à jour');
+      setIsEditing(false);
+      queryClient.invalidateQueries({ queryKey: ['shop', shop.id] });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la boutique:', error);
+      toast.error('Erreur lors de la mise à jour. Veuillez réessayer.');
+    }
+  };
+
+  const handleCancel = () => {
+    reset();
+    setIsEditing(false);
   };
 
   return (
-    <div className="container max-w-3xl">
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Informations de la boutique</h3>
-          <p className="text-sm text-muted-foreground">
-            Mettez à jour les informations de votre boutique ici.
-          </p>
-        </div>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <div className="grid gap-4">
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="name" className="text-sm font-medium leading-none">
-                Nom de la boutique
-              </label>
-              <Input id="name" type="text" placeholder="Nom de la boutique" {...form.register("name")} />
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>Paramètres de la boutique</span>
+          {!isEditing ? (
+            <Button onClick={() => setIsEditing(true)}>Modifier</Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancel}>Annuler</Button>
+              <Button onClick={handleSubmit(onSubmit)}>Enregistrer</Button>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="description" className="text-sm font-medium leading-none">
-                Description
-              </label>
-              <Textarea id="description" placeholder="Description" {...form.register("description")} />
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-sm font-medium">Nom</label>
+              <Input
+                id="name"
+                disabled={!isEditing}
+                {...register('name', { required: 'Le nom est requis' })}
+              />
+              {errors.name && <p className="text-red-500 text-sm">{errors.name.message as string}</p>}
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="address" className="text-sm font-medium leading-none">
-                Adresse
-              </label>
-              <Input id="address" type="text" placeholder="Adresse" {...form.register("address")} />
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="phone" className="text-sm font-medium leading-none">
-                Téléphone
-              </label>
-              <Input id="phone" type="text" placeholder="Téléphone" {...form.register("phone")} />
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="website" className="text-sm font-medium leading-none">
-                Site web
-              </label>
-              <Input id="website" type="text" placeholder="Site web" {...form.register("website")} />
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="categories" className="text-sm font-medium leading-none">
-                Catégories (séparées par des virgules)
-              </label>
-              <Input id="categories" type="text" placeholder="Catégories" {...form.register("categories")} />
+            <div className="space-y-2">
+              <label htmlFor="address" className="block text-sm font-medium">Adresse</label>
+              <Input
+                id="address"
+                disabled={!isEditing}
+                {...register('address')}
+              />
             </div>
           </div>
-          <Button type="submit" disabled={updateShopMutation.isPending}>
-            {updateShopMutation.isPending ? "Mise à jour..." : "Mettre à jour la boutique"}
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="phone" className="block text-sm font-medium">Téléphone</label>
+              <Input
+                id="phone"
+                disabled={!isEditing}
+                {...register('phone')}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="website" className="block text-sm font-medium">Site web</label>
+              <Input
+                id="website"
+                disabled={!isEditing}
+                {...register('website')}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="description" className="block text-sm font-medium">Description</label>
+            <Textarea
+              id="description"
+              disabled={!isEditing}
+              {...register('description')}
+              rows={4}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="categories" className="block text-sm font-medium">Catégories (séparées par des virgules)</label>
+            <Input
+              id="categories"
+              disabled={!isEditing}
+              {...register('categories')}
+              defaultValue={formattedCategories}
+            />
+          </div>
         </form>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
-}
-
-const useUpdateShop = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { useShopById } = useShop();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Shop> }) => {
-      const shopApiGateway = new ShopApiGateway();
-      return await shopApiGateway.updateShop(id, data);
-    },
-    meta: {
-      onSuccess: () => {
-        toast({
-          title: "Succès",
-          description: "Boutique mise à jour avec succès.",
-        });
-        queryClient.invalidateQueries({ queryKey: ["userShop"] });
-      },
-      onError: (error: any) => {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: error.message || "Erreur lors de la mise à jour de la boutique",
-        });
-      },
-    }
-  });
 };
+
+export default ShopSettings;

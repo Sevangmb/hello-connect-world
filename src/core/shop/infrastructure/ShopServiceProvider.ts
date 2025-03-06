@@ -1,13 +1,18 @@
 
 import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-let shopServiceInstance: ShopService | null = null;
+// Instance du repository
+const shopRepository: IShopRepository = new ShopRepository();
 
-export const getShopServiceInstance = (): ShopService => {
-  if (!shopServiceInstance) {
-    const shopRepository = new ShopRepository();
-    shopServiceInstance = new ShopService(shopRepository);
-  }
-  return shopServiceInstance;
+// Instance du service
+const shopService = new ShopService(shopRepository);
+
+// Exporter le service pour qu'il soit utilisé dans l'application
+export { shopService };
+
+// Fonction pour obtenir le service si nécessaire dans d'autres parties de l'application
+export const getShopService = (): ShopService => {
+  return shopService;
 };

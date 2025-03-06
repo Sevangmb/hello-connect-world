@@ -1,30 +1,45 @@
 
-import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
-import { eventBus } from '@/core/event-bus/EventBus';
+import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
+import { eventBus } from "@/core/event-bus/EventBus";
+import { ModuleInitializer } from "@/services/modules/ModuleInitializer";
+import { moduleOptimizer } from "@/services/performance/ModuleOptimizer";
 
 /**
- * Initialise les services de l'application
+ * Application initializer - bootstraps the app services
  */
 export class AppInitializer {
-  private moduleInitializer = new ModuleInitializer();
+  private moduleInitializer: ModuleInitializer = new ModuleInitializer();
+  private hasInitialized: boolean = false;
 
-  async initialize() {
-    console.log('Initialisation de l\'application...');
-    
-    // Initialiser les modules
-    await this.initializeModules();
-    
-    // Publier un événement d'initialisation terminée
-    eventBus.publish('app:initialized', {
-      timestamp: Date.now()
-    });
-    
-    console.log('Initialisation de l\'application terminée');
-  }
+  /**
+   * Initialize the application
+   */
+  async initializeApp(): Promise<boolean> {
+    if (this.hasInitialized) {
+      return true;
+    }
 
-  private async initializeModules() {
-    console.log('Initialisation des modules...');
-    await this.moduleInitializer.initialize();
-    console.log('Modules initialisés avec succès');
+    try {
+      // Initialize event bus
+      eventBus.initialize();
+      
+      // Initialize modules
+      await this.moduleInitializer.initializeModules();
+      
+      // Preload common modules
+      moduleOptimizer.preloadCommonModules();
+      
+      // Initialize menu system
+      moduleMenuCoordinator.initializeMenu();
+
+      this.hasInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      this.hasInitialized = false;
+      return false;
+    }
   }
 }
+
+export const appInitializer = new AppInitializer();
