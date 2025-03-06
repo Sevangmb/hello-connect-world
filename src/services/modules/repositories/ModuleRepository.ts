@@ -86,11 +86,11 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use Edge Function
-      const { data, error } = await supabase.functions.invoke(
-        'get-module-dependencies', 
-        { body: { module_id: moduleId } }
-      );
+      // Use Edge Function or direct query instead of infinite type instantiation
+      const { data, error } = await supabase
+        .from('module_dependencies_view')
+        .select('*')
+        .eq('module_id', moduleId);
 
       if (error) throw error;
       
@@ -164,15 +164,36 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use Edge Function
-      const { data, error } = await supabase.functions.invoke(
-        'get-modules-with-features'
-      );
+      // Use direct query instead of edge function to avoid infinite type instantiation
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*, app_modules!inner(*)');
 
       if (error) throw error;
       
-      // Ensure we return an array
-      return Array.isArray(data) ? data : [];
+      // Process the data to group features by module
+      const moduleMap = new Map();
+      
+      for (const feature of data) {
+        const moduleCode = feature.module_code;
+        
+        if (!moduleMap.has(moduleCode)) {
+          moduleMap.set(moduleCode, {
+            module: feature.app_modules,
+            features: []
+          });
+        }
+        
+        moduleMap.get(moduleCode).features.push({
+          id: feature.id,
+          feature_code: feature.feature_code,
+          feature_name: feature.feature_name,
+          description: feature.description,
+          is_enabled: feature.is_enabled
+        });
+      }
+      
+      return Array.from(moduleMap.values());
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];

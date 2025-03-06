@@ -1,40 +1,68 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
 import { 
   Shop, 
   ShopItem, 
-  ShopReview, 
-  ShopSettings, 
   ShopStatus, 
-  ShopItemStatus,
-  Order,
+  ShopItemStatus, 
+  Order, 
+  OrderItem, 
+  ShopReview,
+  ShopSettings,
   CartItem,
   DbCartItem,
-  DbOrder,
-  OrderItem
+  PaymentMethod,
+  DeliveryOption,
+  OrderStatus,
+  PaymentStatus,
+  DbOrder
 } from '../domain/types';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
 export class ShopRepository implements IShopRepository {
   /**
    * Create a new shop
    */
-  async createShop(shopData: Shop): Promise<Shop> {
+  async createShop(shopData: Partial<Shop>): Promise<Shop> {
     try {
-      // Type assertion to make TypeScript happy
-      const shopToCreate = {
-        ...shopData,
-        name: shopData.name || '',  // Ensure required fields are present
-        user_id: shopData.user_id || ''
-      };
+      // Ensure required fields are present
+      if (!shopData.name || !shopData.user_id) {
+        throw new Error('Shop name and user_id are required');
+      }
 
       const { data, error } = await supabase
         .from('shops')
-        .insert(shopToCreate)
-        .select()
+        .insert({
+          name: shopData.name,
+          description: shopData.description || '',
+          user_id: shopData.user_id,
+          image_url: shopData.image_url,
+          address: shopData.address,
+          phone: shopData.phone,
+          website: shopData.website,
+          status: shopData.status || 'pending',
+          categories: shopData.categories || [],
+          average_rating: 0,
+          latitude: shopData.latitude,
+          longitude: shopData.longitude
+        })
+        .select('*')
         .single();
 
       if (error) throw error;
+      
+      // Create default shop settings
+      await this.createShopSettings({
+        shop_id: data.id,
+        delivery_options: ['pickup', 'delivery', 'both'],
+        payment_methods: ['card', 'paypal', 'bank_transfer', 'cash'],
+        auto_accept_orders: false,
+        notification_preferences: {
+          email: true,
+          app: true
+        }
+      });
+      
       return data as Shop;
     } catch (error) {
       console.error('Error creating shop:', error);
@@ -43,15 +71,18 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Update shop data
+   * Update an existing shop
    */
   async updateShop(shopId: string, updates: Partial<Shop>): Promise<Shop> {
     try {
       const { data, error } = await supabase
         .from('shops')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', shopId)
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -63,46 +94,28 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Delete shop
+   * Get a shop by its ID
    */
-  async deleteShop(shopId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shops')
-        .delete()
-        .eq('id', shopId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error(`Error deleting shop ${shopId}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Get shop by ID
-   */
-  async getShopById(shopId: string): Promise<Shop | null> {
+  async getShopById(id: string): Promise<Shop> {
     try {
       const { data, error } = await supabase
         .from('shops')
         .select('*, profiles(username, full_name)')
-        .eq('id', shopId)
+        .eq('id', id)
         .single();
 
       if (error) throw error;
       return data as Shop;
     } catch (error) {
-      console.error(`Error fetching shop by ID ${shopId}:`, error);
-      return null;
+      console.error(`Error fetching shop by id ${id}:`, error);
+      throw error;
     }
   }
 
   /**
-   * Get shop by user ID
+   * Get a shop by user ID
    */
-  async getShopByUserId(userId: string): Promise<Shop | null> {
+  async getShopByUserId(userId: string): Promise<Shop> {
     try {
       const { data, error } = await supabase
         .from('shops')
@@ -114,7 +127,7 @@ export class ShopRepository implements IShopRepository {
       return data as Shop;
     } catch (error) {
       console.error(`Error fetching shop for user ${userId}:`, error);
-      return null;
+      throw error;
     }
   }
 
@@ -132,14 +145,14 @@ export class ShopRepository implements IShopRepository {
       return data as Shop[];
     } catch (error) {
       console.error('Error fetching all shops:', error);
-      return [];
+      throw error;
     }
   }
 
   /**
    * Get shops by user ID
    */
-  async getUserShops(userId: string): Promise<Shop[]> {
+  async getShopsByUserId(userId: string): Promise<Shop[]> {
     try {
       const { data, error } = await supabase
         .from('shops')
@@ -151,36 +164,94 @@ export class ShopRepository implements IShopRepository {
       return data as Shop[];
     } catch (error) {
       console.error(`Error fetching shops for user ${userId}:`, error);
-      return [];
+      throw error;
     }
   }
 
   /**
-   * Create a shop item
+   * Delete a shop by ID
    */
-  async createShopItem(item: ShopItem): Promise<ShopItem> {
+  async deleteShop(id: string): Promise<boolean> {
     try {
-      // Ensure required fields are present
-      const itemToCreate = {
-        ...item,
-        clothes_id: item.clothes_id || '00000000-0000-0000-0000-000000000000', // Default UUID if not provided
-        shop_id: item.shop_id,
-        price: item.price,
-        name: item.name,
-        description: item.description || '',
-        image_url: item.image_url || '',
-        stock: item.stock,
-        status: item.status
+      // Delete shop settings first due to foreign key constraints
+      await supabase
+        .from('shop_settings')
+        .delete()
+        .eq('shop_id', id);
+        
+      // Delete shop items
+      await supabase
+        .from('shop_items')
+        .delete()
+        .eq('shop_id', id);
+        
+      // Delete the shop
+      const { error } = await supabase
+        .from('shops')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error deleting shop ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update shop status
+   */
+  async updateShopStatus(shopId: string, status: ShopStatus): Promise<Shop> {
+    try {
+      const { data, error } = await supabase
+        .from('shops')
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', shopId)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
+    } catch (error) {
+      console.error(`Error updating shop status for ${shopId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new shop item
+   */
+  async createShopItem(itemData: Partial<ShopItem>): Promise<ShopItem> {
+    try {
+      // Ensure required fields
+      if (!itemData.shop_id || !itemData.name || !itemData.price) {
+        throw new Error('Shop ID, name, and price are required for shop items');
+      }
+
+      const shopItem = {
+        shop_id: itemData.shop_id,
+        name: itemData.name,
+        description: itemData.description || '',
+        image_url: itemData.image_url || '',
+        price: itemData.price,
+        original_price: itemData.original_price,
+        stock: itemData.stock || 0,
+        status: itemData.status || 'available',
+        clothes_id: itemData.clothes_id
       };
 
       const { data, error } = await supabase
         .from('shop_items')
-        .insert(itemToCreate)
-        .select()
+        .insert(shopItem)
+        .select('*, shop:shops(name)')
         .single();
 
       if (error) throw error;
-      return data as ShopItem;
+      return data as unknown as ShopItem;
     } catch (error) {
       console.error('Error creating shop item:', error);
       throw error;
@@ -188,19 +259,97 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Update shop item
+   * Get a shop item by ID
+   */
+  async getShopItemById(itemId: string): Promise<ShopItem> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .select('*, shop:shops(name)')
+        .eq('id', itemId)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as ShopItem;
+    } catch (error) {
+      console.error(`Error fetching shop item ${itemId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all items for a shop
+   */
+  async getShopItems(shopId: string): Promise<ShopItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .select('*, shop:shops(name)')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as unknown as ShopItem[];
+    } catch (error) {
+      console.error(`Error fetching items for shop ${shopId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get shop items by shop ID
+   */
+  async getShopItemsByShopId(shopId: string): Promise<ShopItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .select('*, shop:shops(name)')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as unknown as ShopItem[];
+    } catch (error) {
+      console.error(`Error fetching items for shop ${shopId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all shop items
+   */
+  async getAllShopItems(): Promise<ShopItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .select('*, shop:shops(name)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as unknown as ShopItem[];
+    } catch (error) {
+      console.error('Error fetching all shop items:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a shop item
    */
   async updateShopItem(itemId: string, updates: Partial<ShopItem>): Promise<ShopItem> {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', itemId)
-        .select()
+        .select('*, shop:shops(name)')
         .single();
 
       if (error) throw error;
-      return data as ShopItem;
+      return data as unknown as ShopItem;
     } catch (error) {
       console.error(`Error updating shop item ${itemId}:`, error);
       throw error;
@@ -208,7 +357,7 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Delete shop item
+   * Delete a shop item
    */
   async deleteShopItem(itemId: string): Promise<boolean> {
     try {
@@ -221,75 +370,6 @@ export class ShopRepository implements IShopRepository {
       return true;
     } catch (error) {
       console.error(`Error deleting shop item ${itemId}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Get shop item by ID
-   */
-  async getShopItemById(itemId: string): Promise<ShopItem | null> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select('*, shop:shops(name)')
-        .eq('id', itemId)
-        .single();
-
-      if (error) throw error;
-      return data as unknown as ShopItem;
-    } catch (error) {
-      console.error(`Error fetching shop item by ID ${itemId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Get items by shop ID
-   */
-  async getShopItems(shopId: string): Promise<ShopItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select('*')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as ShopItem[];
-    } catch (error) {
-      console.error(`Error fetching items for shop ${shopId}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Bulk create shop items
-   */
-  async bulkCreateShopItems(items: ShopItem[]): Promise<ShopItem[]> {
-    try {
-      // Ensure required fields are present for all items
-      const itemsToCreate = items.map(item => ({
-        ...item,
-        clothes_id: item.clothes_id || '00000000-0000-0000-0000-000000000000',
-        shop_id: item.shop_id,
-        price: item.price,
-        name: item.name,
-        description: item.description || '',
-        image_url: item.image_url || '',
-        stock: item.stock,
-        status: item.status
-      }));
-
-      const { data, error } = await supabase
-        .from('shop_items')
-        .insert(itemsToCreate)
-        .select();
-
-      if (error) throw error;
-      return data as ShopItem[];
-    } catch (error) {
-      console.error('Error bulk creating shop items:', error);
       throw error;
     }
   }
@@ -297,20 +377,28 @@ export class ShopRepository implements IShopRepository {
   /**
    * Create a shop review
    */
-  async createShopReview(review: ShopReview): Promise<ShopReview> {
+  async createShopReview(reviewData: Partial<ShopReview>): Promise<ShopReview> {
     try {
+      if (!reviewData.shop_id || !reviewData.user_id || !reviewData.rating) {
+        throw new Error('Shop ID, user ID, and rating are required for reviews');
+      }
+
       const { data, error } = await supabase
         .from('shop_reviews')
         .insert({
-          shop_id: review.shop_id,
-          user_id: review.user_id,
-          rating: review.rating,
-          comment: review.comment
+          shop_id: reviewData.shop_id,
+          user_id: reviewData.user_id,
+          rating: reviewData.rating,
+          comment: reviewData.comment
         })
-        .select()
+        .select('*, profiles(username, full_name)')
         .single();
 
       if (error) throw error;
+      
+      // Update shop average rating
+      await this.updateShopAverageRating(reviewData.shop_id);
+      
       return data as ShopReview;
     } catch (error) {
       console.error('Error creating shop review:', error);
@@ -319,45 +407,7 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Update shop review
-   */
-  async updateShopReview(reviewId: string, updates: Partial<ShopReview>): Promise<ShopReview> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_reviews')
-        .update(updates)
-        .eq('id', reviewId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ShopReview;
-    } catch (error) {
-      console.error(`Error updating shop review ${reviewId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete shop review
-   */
-  async deleteShopReview(reviewId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('shop_reviews')
-        .delete()
-        .eq('id', reviewId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error(`Error deleting shop review ${reviewId}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Get shop reviews by shop ID
+   * Get reviews for a shop
    */
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
     try {
@@ -371,25 +421,131 @@ export class ShopRepository implements IShopRepository {
       return data as ShopReview[];
     } catch (error) {
       console.error(`Error fetching reviews for shop ${shopId}:`, error);
-      return [];
+      throw error;
+    }
+  }
+
+  /**
+   * Update a shop review
+   */
+  async updateShopReview(reviewId: string, updates: Partial<ShopReview>): Promise<ShopReview> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_reviews')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reviewId)
+        .select('*, profiles(username, full_name)')
+        .single();
+
+      if (error) throw error;
+      
+      if (updates.rating && data.shop_id) {
+        await this.updateShopAverageRating(data.shop_id);
+      }
+      
+      return data as ShopReview;
+    } catch (error) {
+      console.error(`Error updating shop review ${reviewId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a shop review
+   */
+  async deleteShopReview(reviewId: string): Promise<boolean> {
+    try {
+      // Get shop_id before deleting for updating rating
+      const { data: review } = await supabase
+        .from('shop_reviews')
+        .select('shop_id')
+        .eq('id', reviewId)
+        .single();
+        
+      const { error } = await supabase
+        .from('shop_reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+      
+      if (review?.shop_id) {
+        await this.updateShopAverageRating(review.shop_id);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting shop review ${reviewId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a shop's average rating
+   */
+  private async updateShopAverageRating(shopId: string): Promise<void> {
+    try {
+      // Get all reviews for this shop
+      const { data: reviews, error } = await supabase
+        .from('shop_reviews')
+        .select('rating')
+        .eq('shop_id', shopId);
+
+      if (error) throw error;
+      
+      if (!reviews || reviews.length === 0) {
+        // No reviews, set average to 0
+        await supabase
+          .from('shops')
+          .update({ 
+            average_rating: 0,
+            rating_count: 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', shopId);
+        return;
+      }
+      
+      // Calculate average
+      const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+      const average = sum / reviews.length;
+      
+      // Update shop
+      await supabase
+        .from('shops')
+        .update({ 
+          average_rating: average,
+          rating_count: reviews.length,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', shopId);
+    } catch (error) {
+      console.error(`Error updating average rating for shop ${shopId}:`, error);
     }
   }
 
   /**
    * Create shop settings
    */
-  async createShopSettings(settings: ShopSettings): Promise<ShopSettings> {
+  async createShopSettings(settingsData: Partial<ShopSettings>): Promise<ShopSettings> {
     try {
+      if (!settingsData.shop_id) {
+        throw new Error('Shop ID is required for settings');
+      }
+
       const { data, error } = await supabase
         .from('shop_settings')
         .insert({
-          shop_id: settings.shop_id,
-          delivery_options: settings.delivery_options,
-          payment_methods: settings.payment_methods,
-          auto_accept_orders: settings.auto_accept_orders,
-          notification_preferences: settings.notification_preferences
+          shop_id: settingsData.shop_id,
+          delivery_options: settingsData.delivery_options || ['pickup', 'delivery', 'both'],
+          payment_methods: settingsData.payment_methods || ['card', 'paypal', 'bank_transfer', 'cash'],
+          auto_accept_orders: settingsData.auto_accept_orders || false,
+          notification_preferences: settingsData.notification_preferences || { email: true, app: true }
         })
-        .select()
+        .select('*')
         .single();
 
       if (error) throw error;
@@ -401,29 +557,9 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Update shop settings
-   */
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_settings')
-        .update(settings)
-        .eq('shop_id', shopId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as ShopSettings;
-    } catch (error) {
-      console.error(`Error updating settings for shop ${shopId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Get shop settings
    */
-  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
+  async getShopSettings(shopId: string): Promise<ShopSettings> {
     try {
       const { data, error } = await supabase
         .from('shop_settings')
@@ -435,132 +571,73 @@ export class ShopRepository implements IShopRepository {
       return data as ShopSettings;
     } catch (error) {
       console.error(`Error fetching settings for shop ${shopId}:`, error);
-      return null;
+      throw error;
     }
   }
 
   /**
-   * Get user cart items
+   * Update shop settings
    */
-  async getUserCartItems(userId: string): Promise<CartItem[]> {
+  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
     try {
       const { data, error } = await supabase
-        .from('cart_items')
-        .select(`
-          *,
-          shop_items(id, name, price, image_url),
-          shop:shop_items(shop_id:shop_id)
-        `)
-        .eq('user_id', userId);
+        .from('shop_settings')
+        .update({
+          ...settings,
+          updated_at: new Date().toISOString()
+        })
+        .eq('shop_id', shopId)
+        .select('*')
+        .single();
 
       if (error) throw error;
-
-      // Map to CartItem with correct structure
-      const cartItems: CartItem[] = data.map(item => ({
-        id: item.id,
-        user_id: item.user_id,
-        shop_id: item.shop_items.shop_id || '',
-        shop_item_id: item.shop_item_id,
-        quantity: item.quantity,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        shop_items: {
-          id: item.shop_items.id,
-          name: item.shop_items.name,
-          price: item.shop_items.price,
-          image_url: item.shop_items.image_url
-        },
-        shop: {
-          id: '', // Will be populated later
-          name: '' // Will be populated later
-        }
-      }));
-
-      // Fetch shop details for each cart item
-      for (const item of cartItems) {
-        const { data: shopData, error: shopError } = await supabase
-          .from('shops')
-          .select('id, name')
-          .eq('id', item.shop_id)
-          .single();
-        
-        if (!shopError && shopData) {
-          item.shop.id = shopData.id;
-          item.shop.name = shopData.name;
-        }
-      }
-
-      return cartItems;
+      return data as ShopSettings;
     } catch (error) {
-      console.error(`Error fetching cart items for user ${userId}:`, error);
-      return [];
+      console.error(`Error updating settings for shop ${shopId}:`, error);
+      throw error;
     }
   }
 
   /**
-   * Add item to cart
+   * Add item to user's cart
    */
-  async addToCart(userId: string, shopItemId: string, quantity: number = 1): Promise<boolean> {
+  async addToCart(userId: string, shopItemId: string, quantity: number): Promise<boolean> {
     try {
-      // Check if the item is already in cart
-      const { data: existingItem, error: fetchError } = await supabase
+      // Check if item already in cart
+      const { data: existingItems } = await supabase
         .from('cart_items')
         .select('*')
         .eq('user_id', userId)
         .eq('shop_item_id', shopItemId)
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // Real error, not just "no rows returned"
-        throw fetchError;
-      }
-
-      if (existingItem) {
-        // Update quantity if already in cart
-        const newQuantity = existingItem.quantity + quantity;
-        const { error: updateError } = await supabase
+        .maybeSingle();
+        
+      if (existingItems) {
+        // Update quantity
+        const newQuantity = existingItems.quantity + quantity;
+        
+        const { error } = await supabase
           .from('cart_items')
           .update({ quantity: newQuantity, updated_at: new Date().toISOString() })
-          .eq('id', existingItem.id);
-
-        if (updateError) throw updateError;
+          .eq('id', existingItems.id);
+          
+        if (error) throw error;
       } else {
-        // Add new item to cart
-        const cartItem: DbCartItem = {
-          user_id: userId,
-          shop_item_id: shopItemId,
-          quantity: quantity
-        };
-
-        const { error: insertError } = await supabase
+        // Add new item
+        const { error } = await supabase
           .from('cart_items')
-          .insert(cartItem);
-
-        if (insertError) throw insertError;
+          .insert({
+            user_id: userId,
+            shop_item_id: shopItemId,
+            quantity: quantity
+          });
+          
+        if (error) throw error;
       }
-
+      
       return true;
     } catch (error) {
       console.error('Error adding item to cart:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Update cart item quantity
-   */
-  async updateCartItemQuantity(cartItemId: string, quantity: number): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity, updated_at: new Date().toISOString() })
-        .eq('id', cartItemId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error(`Error updating cart item ${cartItemId}:`, error);
-      return false;
+      throw error;
     }
   }
 
@@ -578,14 +655,96 @@ export class ShopRepository implements IShopRepository {
       return true;
     } catch (error) {
       console.error(`Error removing item ${cartItemId} from cart:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Clear user cart
+   * Get user's cart items
    */
-  async clearUserCart(userId: string): Promise<boolean> {
+  async getCartItems(userId: string): Promise<CartItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select(`
+          *,
+          shop_items (id, name, price, image_url),
+          shop_id:shop_items(shop_id)
+        `)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      // Transform data to match CartItem interface
+      const cartItems: CartItem[] = data.map(item => {
+        return {
+          id: item.id,
+          user_id: item.user_id,
+          shop_id: item.shop_id?.shop_id || "",
+          shop_item_id: item.shop_item_id,
+          quantity: item.quantity,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          shop_items: {
+            id: item.shop_items.id,
+            name: item.shop_items.name,
+            price: item.shop_items.price,
+            image_url: item.shop_items.image_url
+          },
+          shop: {
+            id: item.shop_id?.shop_id || "",
+            name: ""  // We'll need to fetch shop names in a separate query
+          }
+        };
+      });
+      
+      // Get shop details for each cart item
+      for (const item of cartItems) {
+        if (item.shop_id) {
+          const { data: shopData } = await supabase
+            .from('shops')
+            .select('name')
+            .eq('id', item.shop_id)
+            .single();
+            
+          if (shopData) {
+            item.shop.name = shopData.name;
+          }
+        }
+      }
+      
+      return cartItems;
+    } catch (error) {
+      console.error(`Error fetching cart for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update cart item quantity
+   */
+  async updateCartItemQuantity(cartItemId: string, quantity: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ 
+          quantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cartItemId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error updating quantity for cart item ${cartItemId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear user's cart
+   */
+  async clearCart(userId: string): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('cart_items')
@@ -596,257 +755,74 @@ export class ShopRepository implements IShopRepository {
       return true;
     } catch (error) {
       console.error(`Error clearing cart for user ${userId}:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Get user orders
+   * Create a new order
    */
-  async getUserOrders(userId: string): Promise<Order[]> {
+  async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`*`)
-        .eq('customer_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Map database records to Order objects
-      const orders: Order[] = data.map(record => ({
-        id: record.id,
-        shop_id: record.seller_id || '', // Map DB field to our domain model
-        customer_id: record.buyer_id || record.customer_id,
-        status: record.status,
-        total_amount: record.total_amount,
-        delivery_fee: record.shipping_fee || 0, // Map DB field to our domain model
-        payment_status: record.payment_status,
-        payment_method: record.payment_method,
-        delivery_address: record.shipping_address || {}, // Map DB field to our domain model
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-        items: []
-      }));
-
-      // Fetch order items for each order
-      for (const order of orders) {
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id);
-
-        if (!itemsError && itemsData) {
-          order.items = itemsData as OrderItem[];
-        }
+      if (!orderData.customer_id || !orderData.shop_id || !orderData.total_amount) {
+        throw new Error('Customer ID, shop ID, and total amount are required for orders');
       }
 
-      return orders;
-    } catch (error) {
-      console.error(`Error fetching orders for user ${userId}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Get shop orders
-   */
-  async getShopOrders(shopId: string): Promise<Order[]> {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`*`)
-        .eq('seller_id', shopId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Map database records to Order objects
-      const orders: Order[] = data.map(record => ({
-        id: record.id,
-        shop_id: record.seller_id || '', // Map DB field to our domain model
-        customer_id: record.buyer_id || record.customer_id,
-        status: record.status,
-        total_amount: record.total_amount,
-        delivery_fee: record.shipping_fee || 0, // Map DB field to our domain model
-        payment_status: record.payment_status,
-        payment_method: record.payment_method,
-        delivery_address: record.shipping_address || {}, // Map DB field to our domain model
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-        items: []
-      }));
-
-      // Fetch order items for each order
-      for (const order of orders) {
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id);
-
-        if (!itemsError && itemsData) {
-          order.items = itemsData as OrderItem[];
-        }
-      }
-
-      return orders;
-    } catch (error) {
-      console.error(`Error fetching orders for shop ${shopId}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Get all orders
-   */
-  async getAllOrders(): Promise<Order[]> {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`*`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Map database records to Order objects
-      const orders: Order[] = data.map(record => ({
-        id: record.id,
-        shop_id: record.seller_id || '', // Map DB field to our domain model
-        customer_id: record.buyer_id || record.customer_id,
-        status: record.status,
-        total_amount: record.total_amount,
-        delivery_fee: record.shipping_fee || 0, // Map DB field to our domain model
-        payment_status: record.payment_status,
-        payment_method: record.payment_method,
-        delivery_address: record.shipping_address || {}, // Map DB field to our domain model
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-        items: []
-      }));
-
-      // Fetch order items for each order
-      for (const order of orders) {
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select('*')
-          .eq('order_id', order.id);
-
-        if (!itemsError && itemsData) {
-          order.items = itemsData as OrderItem[];
-        }
-      }
-
-      return orders;
-    } catch (error) {
-      console.error('Error fetching all orders:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get order by ID
-   */
-  async getOrderById(orderId: string): Promise<Order | null> {
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`*`)
-        .eq('id', orderId)
-        .single();
-
-      if (error) throw error;
-
-      // Map database record to Order object
-      const order: Order = {
-        id: data.id,
-        shop_id: data.seller_id || '', // Map DB field to our domain model
-        customer_id: data.buyer_id || data.customer_id,
-        status: data.status,
-        total_amount: data.total_amount,
-        delivery_fee: data.shipping_fee || 0, // Map DB field to our domain model
-        payment_status: data.payment_status,
-        payment_method: data.payment_method,
-        delivery_address: data.shipping_address || {}, // Map DB field to our domain model
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        items: []
-      };
-
-      // Fetch order items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select('*')
-        .eq('order_id', order.id);
-
-      if (!itemsError && itemsData) {
-        order.items = itemsData as OrderItem[];
-      }
-
-      return order;
-    } catch (error) {
-      console.error(`Error fetching order ${orderId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Create order
-   */
-  async createOrder(orderData: Order): Promise<Order> {
-    try {
-      // Map Order to database format
-      const dbOrder: Partial<DbOrder> = {
+      // Prepare order data
+      const orderToInsert: Partial<DbOrder> = {
         buyer_id: orderData.customer_id,
-        seller_id: orderData.shop_id,
-        status: orderData.status,
+        seller_id: (await this.getShopById(orderData.shop_id)).user_id,
+        status: orderData.status || 'pending',
         total_amount: orderData.total_amount,
-        shipping_fee: orderData.delivery_fee,
-        payment_status: orderData.payment_status,
-        payment_method: orderData.payment_method,
-        shipping_address: orderData.delivery_address
+        delivery_fee: orderData.delivery_fee || 0,
+        payment_status: orderData.payment_status || 'pending',
+        payment_method: orderData.payment_method || '',
+        delivery_address: orderData.delivery_address ? JSON.stringify(orderData.delivery_address) : null,
+        shipping_required: orderData.delivery_address ? true : false,
+        transaction_type: 'p2p'
       };
 
-      // Create order
-      const { data: orderResult, error: orderError } = await supabase
+      // Insert order
+      const { data, error } = await supabase
         .from('orders')
-        .insert(dbOrder)
-        .select()
+        .insert(orderToInsert)
+        .select('*')
         .single();
 
-      if (orderError) throw orderError;
-
-      // Create order items
+      if (error) throw error;
+      
+      // Insert order items if provided
       if (orderData.items && orderData.items.length > 0) {
         const orderItems = orderData.items.map(item => ({
-          order_id: orderResult.id,
+          order_id: data.id,
           shop_item_id: item.shop_item_id,
           price_at_time: item.price_at_time,
           quantity: item.quantity
         }));
-
-        const { error: itemsError } = await supabase
+        
+        await supabase
           .from('order_items')
           .insert(orderItems);
-
-        if (itemsError) throw itemsError;
       }
 
-      // Return created order
+      // Transform data to match Order interface
       const createdOrder: Order = {
-        id: orderResult.id,
-        shop_id: orderResult.seller_id || '',
-        customer_id: orderResult.buyer_id,
-        status: orderResult.status,
-        total_amount: orderResult.total_amount,
-        delivery_fee: orderResult.shipping_fee || 0,
-        payment_status: orderResult.payment_status,
-        payment_method: orderResult.payment_method,
-        delivery_address: orderResult.shipping_address || {},
-        created_at: orderResult.created_at,
-        updated_at: orderResult.updated_at,
-        items: orderData.items || []
+        id: data.id,
+        shop_id: orderData.shop_id,
+        customer_id: orderData.customer_id,
+        status: data.status as OrderStatus,
+        total_amount: data.total_amount,
+        delivery_fee: data.delivery_fee || 0,
+        payment_status: data.payment_status as PaymentStatus,
+        payment_method: data.payment_method,
+        delivery_address: orderData.delivery_address as any,
+        created_at: data.created_at,
+        updated_at: data.updated_at || data.created_at,
+        items: orderData.items || [],
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id
       };
-
+      
       return createdOrder;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -855,97 +831,338 @@ export class ShopRepository implements IShopRepository {
   }
 
   /**
-   * Update order status
+   * Get an order by ID
    */
-  async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
+  async getOrderById(orderId: string): Promise<Order> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', orderId);
+        .select('*')
+        .eq('id', orderId)
+        .single();
 
       if (error) throw error;
-      return true;
+      
+      // Get order items
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('*, shop_items:shop_items(name, price, clothes:clothes(name))')
+        .eq('order_id', orderId);
+      
+      // Transform DB order to Order interface
+      const order: Order = {
+        id: data.id,
+        shop_id: data.shop_id || "",
+        customer_id: data.buyer_id,
+        status: data.status as OrderStatus,
+        total_amount: data.total_amount,
+        delivery_fee: data.delivery_fee || 0,
+        payment_status: data.payment_status as PaymentStatus,
+        payment_method: data.payment_method,
+        delivery_address: typeof data.delivery_address === 'string' ? 
+          JSON.parse(data.delivery_address) : data.delivery_address,
+        created_at: data.created_at,
+        updated_at: data.updated_at || data.created_at,
+        items: orderItems.map(item => ({
+          id: item.id,
+          order_id: item.order_id,
+          shop_item_id: item.shop_item_id,
+          price_at_time: item.price_at_time,
+          quantity: item.quantity,
+          created_at: item.created_at,
+          name: item.shop_items?.clothes?.name || item.shop_items?.name || ""
+        })),
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id
+      };
+      
+      return order;
+    } catch (error) {
+      console.error(`Error fetching order ${orderId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get orders for a customer
+   */
+  async getCustomerOrders(customerId: string): Promise<Order[]> {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('buyer_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform data to match Order interface
+      const orders: Order[] = await Promise.all(data.map(async (order) => {
+        // Get order items
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('*, shop_items:shop_items(name, price, clothes:clothes(name))')
+          .eq('order_id', order.id);
+        
+        return {
+          id: order.id,
+          shop_id: order.shop_id || "",
+          customer_id: order.buyer_id,
+          status: order.status as OrderStatus,
+          total_amount: order.total_amount,
+          delivery_fee: order.delivery_fee || 0,
+          payment_status: order.payment_status as PaymentStatus,
+          payment_method: order.payment_method,
+          delivery_address: typeof order.delivery_address === 'string' ? 
+            JSON.parse(order.delivery_address) : order.delivery_address,
+          created_at: order.created_at,
+          updated_at: order.updated_at || order.created_at,
+          items: orderItems.map(item => ({
+            id: item.id,
+            order_id: item.order_id,
+            shop_item_id: item.shop_item_id,
+            price_at_time: item.price_at_time,
+            quantity: item.quantity,
+            created_at: item.created_at,
+            name: item.shop_items?.clothes?.name || item.shop_items?.name || ""
+          })),
+          buyer_id: order.buyer_id,
+          seller_id: order.seller_id
+        };
+      }));
+      
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders for customer ${customerId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get orders for a shop
+   */
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Transform data to match Order interface
+      const orders: Order[] = await Promise.all(data.map(async (order) => {
+        // Get order items
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('*, shop_items:shop_items(name, price, clothes:clothes(name))')
+          .eq('order_id', order.id);
+        
+        return {
+          id: order.id,
+          shop_id: order.shop_id || "",
+          customer_id: order.buyer_id,
+          status: order.status as OrderStatus,
+          total_amount: order.total_amount,
+          delivery_fee: order.delivery_fee || 0,
+          payment_status: order.payment_status as PaymentStatus,
+          payment_method: order.payment_method,
+          delivery_address: typeof order.delivery_address === 'string' ? 
+            JSON.parse(order.delivery_address) : order.delivery_address,
+          created_at: order.created_at,
+          updated_at: order.updated_at || order.created_at,
+          items: orderItems.map(item => ({
+            id: item.id,
+            order_id: item.order_id,
+            shop_item_id: item.shop_item_id,
+            price_at_time: item.price_at_time,
+            quantity: item.quantity,
+            created_at: item.created_at,
+            name: item.shop_items?.clothes?.name || item.shop_items?.name || ""
+          })),
+          buyer_id: order.buyer_id,
+          seller_id: order.seller_id
+        };
+      }));
+      
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders for shop ${shopId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update order status
+   */
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      
+      // Get order items
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('*, shop_items:shop_items(name, price, clothes:clothes(name))')
+        .eq('order_id', orderId);
+      
+      // Transform data to match Order interface
+      const updatedOrder: Order = {
+        id: data.id,
+        shop_id: data.shop_id || "",
+        customer_id: data.buyer_id,
+        status: data.status as OrderStatus,
+        total_amount: data.total_amount,
+        delivery_fee: data.delivery_fee || 0,
+        payment_status: data.payment_status as PaymentStatus,
+        payment_method: data.payment_method,
+        delivery_address: typeof data.delivery_address === 'string' ? 
+          JSON.parse(data.delivery_address) : data.delivery_address,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        items: orderItems.map(item => ({
+          id: item.id,
+          order_id: item.order_id,
+          shop_item_id: item.shop_item_id,
+          price_at_time: item.price_at_time,
+          quantity: item.quantity,
+          created_at: item.created_at,
+          name: item.shop_items?.clothes?.name || item.shop_items?.name || ""
+        })),
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id
+      };
+      
+      return updatedOrder;
     } catch (error) {
       console.error(`Error updating status for order ${orderId}:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
    * Update payment status
    */
-  async updatePaymentStatus(orderId: string, paymentStatus: string): Promise<boolean> {
+  async updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus): Promise<Order> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .update({ payment_status: paymentStatus, updated_at: new Date().toISOString() })
-        .eq('id', orderId);
+        .update({
+          payment_status: paymentStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+        .select('*')
+        .single();
 
       if (error) throw error;
-      return true;
+      
+      // Get order items
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('*, shop_items:shop_items(name, price, clothes:clothes(name))')
+        .eq('order_id', orderId);
+      
+      // Transform data to match Order interface
+      const updatedOrder: Order = {
+        id: data.id,
+        shop_id: data.shop_id || "",
+        customer_id: data.buyer_id,
+        status: data.status as OrderStatus,
+        total_amount: data.total_amount,
+        delivery_fee: data.delivery_fee || 0,
+        payment_status: data.payment_status as PaymentStatus,
+        payment_method: data.payment_method,
+        delivery_address: typeof data.delivery_address === 'string' ? 
+          JSON.parse(data.delivery_address) : data.delivery_address,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        items: orderItems.map(item => ({
+          id: item.id,
+          order_id: item.order_id,
+          shop_item_id: item.shop_item_id,
+          price_at_time: item.price_at_time,
+          quantity: item.quantity,
+          created_at: item.created_at,
+          name: item.shop_items?.clothes?.name || item.shop_items?.name || ""
+        })),
+        buyer_id: data.buyer_id,
+        seller_id: data.seller_id
+      };
+      
+      return updatedOrder;
     } catch (error) {
       console.error(`Error updating payment status for order ${orderId}:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Add shop to favorites
-   */
-  async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_favorite_shops')
-        .insert({ user_id: userId, shop_id: shopId });
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error(`Error adding shop ${shopId} to favorites:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Remove shop from favorites
-   */
-  async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('user_favorite_shops')
-        .delete()
-        .eq('user_id', userId)
-        .eq('shop_id', shopId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error(`Error removing shop ${shopId} from favorites:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Check if a shop is favorited by a user
+   * Check if a shop is favorited by user
    */
   async isShopFavorited(shopId: string, userId: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
         .from('user_favorite_shops')
         .select('*')
-        .eq('user_id', userId)
         .eq('shop_id', shopId)
-        .single();
+        .eq('user_id', userId)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // Not "no rows returned"
-        throw error;
-      }
-
+      if (error) throw error;
       return !!data;
     } catch (error) {
-      console.error(`Error checking if shop ${shopId} is favorited:`, error);
+      console.error(`Error checking if shop ${shopId} is favorited by user ${userId}:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Add shop to user's favorites
+   */
+  async addShopToFavorites(shopId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('user_favorite_shops')
+        .insert({
+          shop_id: shopId,
+          user_id: userId
+        });
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error adding shop ${shopId} to favorites for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Remove shop from user's favorites
+   */
+  async removeShopFromFavorites(shopId: string, userId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('user_favorite_shops')
+        .delete()
+        .eq('shop_id', shopId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error removing shop ${shopId} from favorites for user ${userId}:`, error);
+      throw error;
     }
   }
 
@@ -956,86 +1173,26 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('user_favorite_shops')
-        .select('shop_id, shops:shop_id(*, profiles(username, full_name))')
+        .select('shop_id')
         .eq('user_id', userId);
 
       if (error) throw error;
       
-      // Extract shop data
-      const shops = data.map(item => item.shops as Shop);
-      return shops;
+      if (data.length === 0) return [];
+      
+      const shopIds = data.map(item => item.shop_id);
+      
+      const { data: shops, error: shopsError } = await supabase
+        .from('shops')
+        .select('*, profiles(username, full_name)')
+        .in('id', shopIds);
+        
+      if (shopsError) throw shopsError;
+      
+      return shops as Shop[];
     } catch (error) {
       console.error(`Error fetching favorite shops for user ${userId}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Bulk create items for existing shops
-   */
-  async bulkCreateItemsForExistingShops(items: ShopItem[]): Promise<ShopItem[]> {
-    try {
-      // Ensure required fields are present for all items
-      const itemsToCreate = items.map(item => ({
-        ...item,
-        clothes_id: item.clothes_id || '00000000-0000-0000-0000-000000000000',
-        shop_id: item.shop_id,
-        price: item.price,
-        name: item.name,
-        description: item.description || '',
-        image_url: item.image_url || '',
-        stock: item.stock,
-        status: item.status
-      }));
-
-      const { data, error } = await supabase
-        .from('shop_items')
-        .insert(itemsToCreate)
-        .select();
-
-      if (error) throw error;
-      return data as ShopItem[];
-    } catch (error) {
-      console.error('Error bulk creating shop items:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Get shops by status
-   */
-  async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .eq('status', status)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Shop[];
-    } catch (error) {
-      console.error(`Error fetching shops with status ${status}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Search shops by term
-   */
-  async searchShops(term: string): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .or(`name.ilike.%${term}%, description.ilike.%${term}%`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Shop[];
-    } catch (error) {
-      console.error(`Error searching shops with term "${term}":`, error);
-      return [];
     }
   }
 }
