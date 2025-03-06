@@ -1,404 +1,254 @@
-import { useState } from "react";
-import { useClothes } from "@/hooks/useClothes";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Save, Search } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClothesGrid } from "@/components/clothes/ClothesGrid";
+import { useClothes, ClothesFilters } from "@/hooks/useClothes";
+import { useOutfits } from "@/hooks/useOutfits";
+import { OutfitCategory, OutfitSeason, OutfitStatus } from '@/core/outfits/domain/types';
 
-export const CreateOutfit = () => {
+const CATEGORIES = [
+  "casual",
+  "formal",
+  "sporty",
+  "work",
+  "party",
+];
+
+const SEASONS = [
+  "all",
+  "spring",
+  "summer",
+  "autumn",
+  "winter",
+];
+
+const STATUSES = [
+  "published",
+  "draft",
+  "private",
+];
+
+const CreateOutfit = () => {
+  const router = useRouter();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedTop, setSelectedTop] = useState<string | null>(null);
-  const [selectedBottom, setSelectedBottom] = useState<string | null>(null);
-  const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<"tops" | "bottoms" | "shoes" | null>(null);
+  const { createOutfit } = useOutfits();
 
-  const [topSource, setTopSource] = useState<"mine" | "friends">("mine");
-  const [bottomSource, setBottomSource] = useState<"mine" | "friends">("mine");
-  const [shoesSource, setShoesSource] = useState<"mine" | "friends">("mine");
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [topId, setTopId] = useState<string | null>(null);
+  const [bottomId, setBottomId] = useState<string | null>(null);
+  const [shoesId, setShoesId] = useState<string | null>(null);
+  const [category, setCategory] = useState<OutfitCategory>('casual');
+  const [season, setSeason] = useState<OutfitSeason>('all');
+  const [status, setStatus] = useState<OutfitStatus>('published');
 
-  const { data: tops, isLoading: topsLoading } = useClothes({ 
+  const [searchTop, setSearchTop] = useState('');
+  const [searchBottom, setSearchBottom] = useState('');
+  const [searchShoes, setSearchShoes] = useState('');
+
+  // Fix the clothing filter objects to use the updated ClothesFilters interface
+  const topFilters = {
     category: "Hauts",
-    source: topSource,
-    search: activeSection === "tops" ? searchQuery : undefined
-  });
-  const { data: bottoms, isLoading: bottomsLoading } = useClothes({ 
-    category: "Bas",
-    source: bottomSource,
-    search: activeSection === "bottoms" ? searchQuery : undefined
-  });
-  const { data: shoes, isLoading: shoesLoading } = useClothes({ 
-    category: "Chaussures",
-    source: shoesSource,
-    search: activeSection === "shoes" ? searchQuery : undefined
-  });
+    search: searchTop
+  };
 
-  const handleSave = async () => {
-    console.log("Saving outfit with values:", {
-      name,
-      description,
-      top_id: selectedTop,
-      bottom_id: selectedBottom,
-      shoes_id: selectedShoes
-    });
+  const bottomFilters = {
+    category: "Bas",
+    search: searchBottom
+  };
+
+  const shoesFilters = {
+    category: "Chaussures",
+    search: searchShoes
+  };
+
+  const { clothes: tops } = useClothes(topFilters);
+  const { clothes: bottoms } = useClothes(bottomFilters);
+  const { clothes: shoes } = useClothes(shoesFilters);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     if (!name) {
       toast({
-        variant: "destructive",
         title: "Erreur",
-        description: "Veuillez donner un nom à votre tenue",
+        description: "Le nom de la tenue est obligatoire.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!selectedTop && !selectedBottom && !selectedShoes) {
+    if (!topId || !bottomId || !shoesId) {
       toast({
-        variant: "destructive",
         title: "Erreur",
-        description: "Veuillez sélectionner au moins un vêtement pour votre tenue",
+        description: "Veuillez sélectionner un haut, un bas et des chaussures.",
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      setIsSaving(true);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("Utilisateur non connecté");
-      }
-
-      const { error } = await supabase.from("outfits").insert({
+      const newOutfit = await createOutfit({
         name,
-        description: description || null,
-        top_id: selectedTop,
-        bottom_id: selectedBottom,
-        shoes_id: selectedShoes,
-        user_id: user.id,
+        description,
+        top_id: topId,
+        bottom_id: bottomId,
+        shoes_id: shoesId,
+        category,
+        season,
+        status,
       });
 
-      if (error) {
-        console.error("Error inserting outfit:", error);
-        throw error;
+      if (newOutfit) {
+        toast({
+          title: "Tenue créée",
+          description: "La tenue a été créée avec succès.",
+        });
+        router.push('/profile/outfits');
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la création de la tenue.",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "Tenue enregistrée",
-        description: "Votre tenue a été enregistrée avec succès",
-      });
-
-      // Reset form
-      setName("");
-      setDescription("");
-      setSelectedTop(null);
-      setSelectedBottom(null);
-      setSelectedShoes(null);
-
-      queryClient.invalidateQueries({ queryKey: ["outfits"] });
     } catch (error: any) {
-      console.error("Error saving outfit:", error);
       toast({
-        variant: "destructive",
         title: "Erreur",
-        description: "Impossible d'enregistrer la tenue",
+        description: error.message || "Une erreur s'est produite lors de la création de la tenue.",
+        variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
-
-  const handleSearch = (section: "tops" | "bottoms" | "shoes") => {
-    setActiveSection(section);
-    setIsSearchOpen(true);
-  };
-
-  const handleSelectItem = (id: string) => {
-    console.log("Selecting item:", { section: activeSection, id });
-    switch (activeSection) {
-      case "tops":
-        setSelectedTop(id);
-        break;
-      case "bottoms":
-        setSelectedBottom(id);
-        break;
-      case "shoes":
-        setSelectedShoes(id);
-        break;
-    }
-    setIsSearchOpen(false);
-    setSearchQuery("");
-  };
-
-  const ClothingSection = ({ 
-    title, 
-    items, 
-    selectedId, 
-    onSelect,
-    source,
-    onSourceChange,
-    section,
-  }: { 
-    title: string;
-    items: any[];
-    selectedId: string | null;
-    onSelect: (id: string) => void;
-    source: "mine" | "friends";
-    onSourceChange: (value: "mine" | "friends") => void;
-    section: "tops" | "bottoms" | "shoes";
-  }) => {
-    const selectedItem = items.find(item => item.id === selectedId);
-    
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-medium text-lg">{title}</h3>
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleSearch(section)}
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Rechercher
-            </Button>
-            <RadioGroup 
-              value={source} 
-              onValueChange={(value: "mine" | "friends") => onSourceChange(value)}
-              className="flex space-x-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="mine" id={`mine-${title}`} />
-                <Label htmlFor={`mine-${title}`}>Mes vêtements</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="friends" id={`friends-${title}`} />
-                <Label htmlFor={`friends-${title}`}>Vêtements de mes amis</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
-
-        {selectedItem ? (
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {selectedItem.image_url && (
-                  <img
-                    src={selectedItem.image_url}
-                    alt={selectedItem.name}
-                    className="w-20 h-20 object-contain rounded-md"
-                  />
-                )}
-                <div>
-                  <p className="font-medium">{selectedItem.name}</p>
-                  {selectedItem.description && (
-                    <p className="text-sm text-gray-500">{selectedItem.description}</p>
-                  )}
-                </div>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onSelect("")}
-              >
-                Changer
-              </Button>
-            </div>
-          </div>
-        ) : items && items.length > 0 ? (
-          <div className="relative px-12">
-            <Carousel opts={{ align: "center" }}>
-              <CarouselContent>
-                {items.map((item) => (
-                  <CarouselItem key={item.id} className="basis-full">
-                    <div
-                      className="p-4 border rounded-lg cursor-pointer transition-colors hover:bg-muted"
-                      onClick={() => onSelect(item.id)}
-                    >
-                      {item.image_url && (
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="w-full h-32 object-contain rounded-md mb-2"
-                        />
-                      )}
-                      <p className="font-medium text-center">{item.name}</p>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="absolute -left-2 top-1/2 -translate-y-1/2">
-                <CarouselPrevious />
-              </div>
-              <div className="absolute -right-2 top-1/2 -translate-y-1/2">
-                <CarouselNext />
-              </div>
-            </Carousel>
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-center py-8">
-            Aucun vêtement trouvé dans cette catégorie
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  const isLoading = topsLoading || bottomsLoading || shoesLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">Créer une nouvelle tenue</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
           <Label htmlFor="name">Nom de la tenue</Label>
           <Input
+            type="text"
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ma tenue d'été"
+            required
           />
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description">Description (optionnelle)</Label>
+        <div>
+          <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Une description de votre tenue..."
           />
         </div>
-      </div>
 
-      <div className="space-y-6">
-        <ClothingSection
-          title="Hauts"
-          items={tops || []}
-          selectedId={selectedTop}
-          onSelect={(id) => {
-            console.log("Selecting top:", id);
-            setSelectedTop(id);
-          }}
-          source={topSource}
-          onSourceChange={setTopSource}
-          section="tops"
-        />
-        <ClothingSection
-          title="Bas"
-          items={bottoms || []}
-          selectedId={selectedBottom}
-          onSelect={(id) => {
-            console.log("Selecting bottom:", id);
-            setSelectedBottom(id);
-          }}
-          source={bottomSource}
-          onSourceChange={setBottomSource}
-          section="bottoms"
-        />
-        <ClothingSection
-          title="Chaussures"
-          items={shoes || []}
-          selectedId={selectedShoes}
-          onSelect={(id) => {
-            console.log("Selecting shoes:", id);
-            setSelectedShoes(id);
-          }}
-          source={shoesSource}
-          onSourceChange={setShoesSource}
-          section="shoes"
-        />
-      </div>
+        <div>
+          <Label>Catégorie</Label>
+          <Select value={category} onValueChange={(value) => setCategory(value as OutfitCategory)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionner une catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <CommandDialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <CommandInput 
-          placeholder="Rechercher un vêtement..." 
-          value={searchQuery}
-          onValueChange={setSearchQuery}
-        />
-        <CommandList>
-          <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
-          <CommandGroup>
-            {activeSection === "tops" && tops?.map((item) => (
-              <CommandItem
-                key={item.id}
-                value={item.name}
-                onSelect={() => handleSelectItem(item.id)}
-              >
-                {item.name}
-              </CommandItem>
-            ))}
-            {activeSection === "bottoms" && bottoms?.map((item) => (
-              <CommandItem
-                key={item.id}
-                value={item.name}
-                onSelect={() => handleSelectItem(item.id)}
-              >
-                {item.name}
-              </CommandItem>
-            ))}
-            {activeSection === "shoes" && shoes?.map((item) => (
-              <CommandItem
-                key={item.id}
-                value={item.name}
-                onSelect={() => handleSelectItem(item.id)}
-              >
-                {item.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+        <div>
+          <Label>Saison</Label>
+          <Select value={season} onValueChange={(value) => setSeason(value as OutfitSeason)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionner une saison" />
+            </SelectTrigger>
+            <SelectContent>
+              {SEASONS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Enregistrement...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4 mr-2" />
-              Enregistrer la tenue
-            </>
-          )}
-        </Button>
-      </div>
+        <div>
+          <Label>Statut</Label>
+          <Select value={status} onValueChange={(value) => setStatus(value as OutfitStatus)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sélectionner un statut" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Haut</Label>
+          <Input
+            type="text"
+            placeholder="Rechercher un haut..."
+            value={searchTop}
+            onChange={(e) => setSearchTop(e.target.value)}
+          />
+          <ClothesGrid
+            clothes={tops}
+            selectedId={topId}
+            onSelect={(id) => setTopId(id)}
+            category="Hauts"
+          />
+        </div>
+
+        <div>
+          <Label>Bas</Label>
+          <Input
+            type="text"
+            placeholder="Rechercher un bas..."
+            value={searchBottom}
+            onChange={(e) => setSearchBottom(e.target.value)}
+          />
+          <ClothesGrid
+            clothes={bottoms}
+            selectedId={bottomId}
+            onSelect={(id) => setBottomId(id)}
+            category="Bas"
+          />
+        </div>
+
+        <div>
+          <Label>Chaussures</Label>
+          <Input
+            type="text"
+            placeholder="Rechercher des chaussures..."
+            value={searchShoes}
+            onChange={(e) => setSearchShoes(e.target.value)}
+          />
+          <ClothesGrid
+            clothes={shoes}
+            selectedId={shoesId}
+            onSelect={(id) => setShoesId(id)}
+            category="Chaussures"
+          />
+        </div>
+
+        <Button type="submit">Créer la tenue</Button>
+      </form>
     </div>
   );
 };
+
+export default CreateOutfit;

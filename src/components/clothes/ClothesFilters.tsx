@@ -14,7 +14,8 @@ const CATEGORIES = [
   "Accessoires",
 ];
 
-const SUBCATEGORIES = {
+// Define subcategories as a Record<string, string[]> to allow string indexing
+const SUBCATEGORIES: Record<string, string[]> = {
   "Hauts": ["T-shirt", "Chemise", "Pull", "Sweat", "Top"],
   "Bas": ["Pantalon", "Jean", "Short", "Jupe"],
   "Robes": ["Robe courte", "Robe longue", "Robe de soirée"],
@@ -72,7 +73,7 @@ export const ClothesFiltersComponent = ({ filters, onFiltersChange }: ClothesFil
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toutes les sous-catégories</SelectItem>
-              {SUBCATEGORIES[filters.category].map((subcategory) => (
+              {filters.category && SUBCATEGORIES[filters.category]?.map((subcategory) => (
                 <SelectItem key={subcategory} value={subcategory}>
                   {subcategory}
                 </SelectItem>

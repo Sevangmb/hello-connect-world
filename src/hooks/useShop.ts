@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Shop, ShopItem, ShopSettings, ShopStatus, ShopItemStatus } from '@/core/shop/domain/types';
@@ -62,40 +61,40 @@ export const useShop = () => {
     }
   };
 
-  const createShop = async (shopData: Partial<Shop>): Promise<Shop> => {
-    setLoading(true);
+  const createShop = async (shopData: Partial<Shop>): Promise<Shop | null> => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('User not authenticated');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User must be authenticated to create a shop');
+      }
 
-      const newShop = {
-        user_id: userData.user.id,
-        status: 'pending' as ShopStatus,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        ...shopData
+      const shop = {
+        user_id: user.id,
+        name: shopData.name || 'New Shop',
+        status: shopData.status || 'pending',
+        description: shopData.description || '',
+        image_url: shopData.image_url,
+        address: shopData.address,
+        phone: shopData.phone,
+        website: shopData.website,
+        categories: shopData.categories,
+        latitude: shopData.latitude,
+        longitude: shopData.longitude,
+        opening_hours: shopData.opening_hours,
       };
 
       const { data, error } = await supabase
         .from('shops')
-        .insert([newShop])
+        .insert(shop)
         .select()
         .single();
 
       if (error) throw error;
       
-      const shopWithTypedStatus = {
-        ...data,
-        status: data.status as ShopStatus
-      };
-      
-      setShop(shopWithTypedStatus);
-      return shopWithTypedStatus;
+      return data as unknown as Shop;
     } catch (error) {
       console.error('Error creating shop:', error);
-      throw error;
-    } finally {
-      setLoading(false);
+      return null;
     }
   };
 
@@ -129,40 +128,39 @@ export const useShop = () => {
     }
   };
 
-  const createShopItem = async (item: Partial<ShopItem>): Promise<ShopItem> => {
-    setLoading(true);
+  const createShopItem = async (itemData: Partial<ShopItem>): Promise<ShopItem | null> => {
     try {
-      const newItem = {
-        status: 'available' as ShopItemStatus,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        ...item
+      const item = {
+        shop_id: itemData.shop_id,
+        name: itemData.name || 'New Item',
+        description: itemData.description || '',
+        price: itemData.price || 0,
+        stock: itemData.stock || 0,
+        status: itemData.status || 'available',
+        clothes_id: itemData.clothes_id,
+        image_url: itemData.image_url,
+        original_price: itemData.original_price
       };
+
+      if (!item.shop_id) {
+        throw new Error('Shop ID is required');
+      }
 
       const { data, error } = await supabase
         .from('shop_items')
-        .insert([newItem])
+        .insert(item)
         .select()
         .single();
 
       if (error) throw error;
       
-      const itemWithTypedStatus = {
-        ...data,
-        status: data.status as ShopItemStatus
-      };
-      
-      setShopItems(prevItems => [...prevItems, itemWithTypedStatus]);
-      return itemWithTypedStatus;
+      return data as unknown as ShopItem;
     } catch (error) {
       console.error('Error creating shop item:', error);
-      throw error;
-    } finally {
-      setLoading(false);
+      return null;
     }
   };
 
-  // useCreateShop hook
   const useCreateShop = () => {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -185,7 +183,6 @@ export const useShop = () => {
     return { execute, creating, error };
   };
 
-  // useCreateShopItem hook
   const useCreateShopItem = () => {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -208,7 +205,6 @@ export const useShop = () => {
     return { execute, creating, error };
   };
 
-  // useUserShop hook
   const useUserShop = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -233,7 +229,6 @@ export const useShop = () => {
     return { userShop, loading, error, fetchUserShop };
   };
 
-  // useShopById hook
   const useShopById = (shopId: string) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -270,7 +265,6 @@ export const useShop = () => {
     return { shop: shopData, loading, error, fetchShop };
   };
 
-  // useUpdateShopSettings hook
   const useUpdateShopSettings = () => {
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState<Error | null>(null);
@@ -279,7 +273,6 @@ export const useShop = () => {
       setUpdating(true);
       setError(null);
       try {
-        // First check if settings exist
         const { data: existingSettings, error: checkError } = await supabase
           .from('shop_settings')
           .select('*')
@@ -290,7 +283,6 @@ export const useShop = () => {
 
         let result;
         if (existingSettings) {
-          // Update existing settings
           const { data, error } = await supabase
             .from('shop_settings')
             .update({
@@ -304,7 +296,6 @@ export const useShop = () => {
           if (error) throw error;
           result = data;
         } else {
-          // Create new settings
           const newSettings = {
             shop_id: shopId,
             created_at: new Date().toISOString(),
@@ -335,7 +326,6 @@ export const useShop = () => {
     return { updateSettings, updating, error };
   };
 
-  // useIsShopFavorited hook
   const useIsShopFavorited = (shopId: string) => {
     const [isFavorited, setIsFavorited] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -377,7 +367,6 @@ export const useShop = () => {
         if (!userData.user) throw new Error('User not authenticated');
 
         if (isFavorited) {
-          // Remove from favorites
           const { error } = await supabase
             .from('user_favorite_shops')
             .delete()
@@ -388,7 +377,6 @@ export const useShop = () => {
           setIsFavorited(false);
           return false;
         } else {
-          // Add to favorites
           const { error } = await supabase
             .from('user_favorite_shops')
             .insert([

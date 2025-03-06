@@ -1,10 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, ShopStatus, ShopItemStatus, PaymentStatus } from '../domain/types';
-
-type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
-type Json = { [key: string]: JsonValue };
+import { Shop, ShopItem, ShopItemStatus, ShopReview, ShopSettings, Order, DeliveryOption, PaymentMethod } from '@/core/shop/domain/types';
+import type { Json } from '@/integrations/supabase/types';
 
 export class ShopRepository implements IShopRepository {
   async createShop(shop: Partial<Shop>): Promise<Shop> {
@@ -137,6 +134,39 @@ export class ShopRepository implements IShopRepository {
       return (data || []).map(shop => this.mapDbShopToShop(shop));
     } catch (error) {
       console.error(`Error fetching shops with status ${status}:`, error);
+      return [];
+    }
+  }
+
+  public async createShops(shops: Partial<Shop>[]): Promise<Shop[]> {
+    try {
+      // Ensure all required properties are present for each shop
+      const validShops = shops.map(shop => ({
+        name: shop.name || 'New Shop',
+        user_id: shop.user_id || '',
+        status: shop.status || 'pending',
+        description: shop.description || '',
+        image_url: shop.image_url,
+        address: shop.address,
+        phone: shop.phone,
+        website: shop.website,
+        categories: shop.categories,
+        average_rating: shop.average_rating || 0,
+        rating_count: shop.rating_count || 0,
+        latitude: shop.latitude,
+        longitude: shop.longitude,
+        opening_hours: shop.opening_hours
+      }));
+
+      const { data, error } = await supabase
+        .from('shops')
+        .insert(validShops)
+        .select();
+
+      if (error) throw error;
+      return (data as Shop[]) || [];
+    } catch (error) {
+      console.error('Error creating shops:', error);
       return [];
     }
   }
@@ -335,12 +365,21 @@ export class ShopRepository implements IShopRepository {
         .select('*')
         .eq('shop_id', shopId)
         .single();
+
+      if (error) throw error;
       
-      if (error && error.code !== 'PGRST116') throw error;
+      // Convert string arrays to typed arrays
+      if (data) {
+        return {
+          ...data,
+          delivery_options: data.delivery_options as unknown as DeliveryOption[],
+          payment_methods: data.payment_methods as unknown as PaymentMethod[]
+        };
+      }
       
-      return data || null;
+      return null;
     } catch (error) {
-      console.error(`Error fetching settings for shop ${shopId}:`, error);
+      console.error('Error fetching shop settings:', error);
       return null;
     }
   }
@@ -719,6 +758,41 @@ export class ShopRepository implements IShopRepository {
     } catch (error) {
       console.error('Error adding multiple shop items:', error);
       throw error;
+    }
+  }
+
+  async updateShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]> {
+    try {
+      const results: ShopItem[] = [];
+      
+      // Process each item individually to ensure all required fields
+      for (const item of items) {
+        if (!item.id) continue;
+        
+        const updateData: any = { ...item };
+        delete updateData.id; // Remove id from update data
+        
+        const { data, error } = await supabase
+          .from('shop_items')
+          .update(updateData)
+          .eq('id', item.id)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error(`Error updating shop item ${item.id}:`, error);
+          continue;
+        }
+        
+        if (data) {
+          results.push(data as ShopItem);
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('Error updating shop items:', error);
+      return [];
     }
   }
 

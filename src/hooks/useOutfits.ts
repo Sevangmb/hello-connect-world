@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Outfit, OutfitStatus, OutfitCategory, OutfitSeason } from '@/core/outfits/domain/types';
@@ -10,7 +9,7 @@ interface UseOutfitsReturn {
   fetchUserOutfits: (userId: string) => Promise<Outfit[]>;
   fetchOutfitById: (id: string) => Promise<Outfit | null>;
   createOutfit: (outfitData: Partial<Outfit>) => Promise<Outfit | null>;
-  updateOutfit: (id: string, outfitData: Partial<Outfit>) => Promise<Outfit | null>;
+  updateOutfit: (id: string, updates: Partial<Outfit>) => Promise<Outfit | null>;
   deleteOutfit: (id: string) => Promise<boolean>;
   fetchOutfits: () => Promise<Outfit[]>;
 }
@@ -91,73 +90,56 @@ export const useOutfits = (): UseOutfitsReturn => {
   };
 
   const createOutfit = async (outfitData: Partial<Outfit>): Promise<Outfit | null> => {
-    setLoading(true);
-    setError(null);
     try {
-      const newOutfit = {
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+      const outfit = {
+        user_id: (await supabase.auth.getUser()).data.user?.id,
         name: outfitData.name || 'New Outfit',
-        status: outfitData.status || 'draft',
+        status: outfitData.status || 'published',
         category: outfitData.category || 'casual',
         season: outfitData.season || 'all',
+        description: outfitData.description || '',
+        top_id: outfitData.top_id,
+        bottom_id: outfitData.bottom_id,
+        shoes_id: outfitData.shoes_id,
         is_favorite: outfitData.is_favorite || false,
         likes_count: outfitData.likes_count || 0,
-        comments_count: outfitData.comments_count || 0,
-        ...outfitData
+        comments_count: outfitData.comments_count || 0
       };
+
+      if (!outfit.user_id) {
+        throw new Error('User must be authenticated to create an outfit');
+      }
 
       const { data, error } = await supabase
         .from('outfits')
-        .insert([newOutfit])
+        .insert(outfit)
         .select()
         .single();
 
       if (error) throw error;
       
-      const mappedOutfit = mapDbOutfitToOutfit(data);
-      setOutfits(prevOutfits => [mappedOutfit, ...prevOutfits]);
-      return mappedOutfit;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
+      return data as unknown as Outfit;
+    } catch (error) {
+      console.error('Error creating outfit:', error);
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
-  const updateOutfit = async (id: string, outfitData: Partial<Outfit>): Promise<Outfit | null> => {
-    setLoading(true);
-    setError(null);
+  const updateOutfit = async (id: string, updates: Partial<Outfit>): Promise<Outfit | null> => {
     try {
       const { data, error } = await supabase
         .from('outfits')
-        .update({
-          ...outfitData,
-          updated_at: new Date().toISOString()
-        })
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
       
-      const mappedOutfit = mapDbOutfitToOutfit(data);
-      
-      setOutfits(prevOutfits => 
-        prevOutfits.map(outfit => 
-          outfit.id === id ? mappedOutfit : outfit
-        )
-      );
-      
-      return mappedOutfit;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
+      return data as unknown as Outfit;
+    } catch (error) {
+      console.error('Error updating outfit:', error);
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -196,7 +178,6 @@ export const useOutfits = (): UseOutfitsReturn => {
   };
 };
 
-// Helper function to map database outfit to domain outfit
 function mapDbOutfitToOutfit(data: any): Outfit {
   return {
     ...data,

@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -153,6 +152,27 @@ export class ModuleRepository implements IModuleRepository {
     } catch (error) {
       console.error(`Error fetching usage stats for module ${moduleId}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Get modules with features
+   */
+  public async getModulesWithFeatures(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select(`
+          *,
+          module_features(*)
+        `)
+        .order('priority', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching modules with features:', error);
+      return [];
     }
   }
 }

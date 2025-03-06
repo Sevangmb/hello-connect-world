@@ -1,126 +1,149 @@
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Category } from "@/components/admin/settings/categories/useCategoryForm";
+import { useCategories } from "@/hooks/useCategories";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Shop } from "@/core/shop/domain/types";
+import { useCreateShop } from "@/hooks/useShop";
+import { useAuth } from "@/modules/auth";
 
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useShop } from '@/hooks/useShop';
-import { Shop } from '@/core/shop/domain/types';
-import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+interface CreateShopFormProps {
+  onSuccess?: () => void;
+}
 
-export const CreateShopForm: React.FC = () => {
+export function CreateShopForm({ onSuccess }: CreateShopFormProps) {
+  const { toast } = useToast();
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { useCreateShop } = useShop();
-  const createShopMutation = useCreateShop();
-  
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: {
-      name: '',
-      description: '',
-      address: '',
-      phone: '',
-      website: '',
-      image_url: ''
-    }
-  });
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
 
-  const onSubmit = async (data: any) => {
-    if (!user?.id) return;
-    
-    const shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'> = {
-      user_id: user.id,
-      name: data.name,
-      description: data.description,
-      address: data.address,
-      phone: data.phone,
-      website: data.website,
-      image_url: data.image_url,
-      status: 'pending',
-      average_rating: 0,
-    };
+  const useCreateShopResult = useCreateShop();
+
+  const categoryOptions = categories ? categories.map((category: Category) => ({
+    label: category.name,
+    value: category.id,
+  })) : [];
+
+  const handleCategoryChange = (values: string[]) => {
+    setSelectedCategories(values);
+  };
+
+  // Replace mutateAsync with execute and isPending with creating
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
     try {
-      await createShopMutation.mutateAsync(shopData);
-      navigate('/profile/shop');
-    } catch (error) {
-      console.error('Error creating shop:', error);
+      if (!user) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour créer une boutique",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const shopData: Partial<Shop> = {
+        name,
+        description,
+        user_id: user.id,
+        address,
+        phone,
+        website,
+        categories: selectedCategories,
+        status: "pending",
+      };
+      
+      // Use execute instead of mutateAsync
+      await useCreateShopResult.execute(shopData);
+      
+      toast({
+        title: "Boutique créée",
+        description: "Votre boutique a été créée avec succès et est en attente de validation"
+      });
+      
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur s'est produite lors de la création de la boutique",
+        variant: "destructive"
+      });
     }
   };
 
+  // Change isPending to creating in button
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Your Shop</CardTitle>
-      </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Shop Name</Label>
-            <Input
-              id="name"
-              {...register('name', { required: 'Shop name is required' })}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...register('description', { required: 'Description is required' })}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-500">{errors.description.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              {...register('address')}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              {...register('phone')}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              {...register('website')}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input
-              id="image_url"
-              {...register('image_url')}
-            />
-          </div>
-        </CardContent>
-        
-        <CardFooter>
-          <Button type="submit" disabled={createShopMutation.isPending}>
-            {createShopMutation.isPending ? 'Creating...' : 'Create Shop'}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">Nom de la boutique</Label>
+        <Input
+          type="text"
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="address">Adresse</Label>
+        <Input
+          type="text"
+          id="address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="phone">Téléphone</Label>
+        <Input
+          type="tel"
+          id="phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="website">Site web</Label>
+        <Input
+          type="url"
+          id="website"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label>Catégories</Label>
+        <MultiSelect
+          options={categoryOptions}
+          value={selectedCategories}
+          onChange={handleCategoryChange}
+          isLoading={categoriesLoading}
+          error={categoriesError}
+        />
+      </div>
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={useCreateShopResult.creating || !name}>
+        {useCreateShopResult.creating ? "Création en cours..." : "Créer ma boutique"}
+      </Button>
+    </form>
   );
-};
-
-export default CreateShopForm;
+}

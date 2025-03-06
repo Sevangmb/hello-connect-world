@@ -107,47 +107,50 @@ export class OutfitRepository implements IOutfitRepository {
     }
   }
 
-  async likeOutfit(outfitId: string, userId: string): Promise<boolean> {
+  public async likeOutfit(outfitId: string, userId: string): Promise<boolean> {
     try {
-      // First, check if the user already liked this outfit
+      // First check if the user has already liked this outfit
       const { data: existingLike, error: checkError } = await supabase
         .from('outfit_likes')
-        .select('*')
+        .select('id')
         .eq('outfit_id', outfitId)
         .eq('user_id', userId)
         .single();
-      
+
       if (checkError && checkError.code !== 'PGRST116') {
-        // PGRST116 is the error code for "no rows returned"
-        throw checkError;
+        console.error('Error checking like status:', checkError);
+        return false;
       }
-      
+
+      // If the user has already liked this outfit, return true
       if (existingLike) {
-        // User already liked this outfit
         return true;
       }
-      
-      // Add the like
+
+      // Insert the new like
       const { error: insertError } = await supabase
         .from('outfit_likes')
-        .insert([
-          {
-            outfit_id: outfitId,
-            user_id: userId,
-            created_at: new Date().toISOString()
-          }
-        ]);
-      
-      if (insertError) throw insertError;
-      
-      // Increment the likes count
-      await supabase.rpc('increment_outfit_likes', {
-        outfit_id: outfitId
-      });
-      
+        .insert({
+          outfit_id: outfitId,
+          user_id: userId
+        });
+
+      if (insertError) {
+        console.error('Error liking outfit:', insertError);
+        return false;
+      }
+
+      // Increment the likes count on the outfit
+      try {
+        await supabase.rpc('increment_outfit_likes', { outfit_id: outfitId });
+      } catch (error) {
+        console.error('Error incrementing likes count:', error);
+        // Don't fail the operation if this fails
+      }
+
       return true;
     } catch (error) {
-      console.error(`Error liking outfit ${outfitId} by user ${userId}:`, error);
+      console.error('Error liking outfit:', error);
       return false;
     }
   }

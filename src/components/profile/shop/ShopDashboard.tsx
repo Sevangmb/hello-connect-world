@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -18,7 +17,7 @@ const ShopDashboard: React.FC = () => {
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const { toast } = useToast();
   const { useUserShop } = useShop();
-  const { data: shop, isLoading } = useUserShop();
+  const { userShop, loading, error, fetchUserShop } = useUserShop();
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -32,7 +31,7 @@ const ShopDashboard: React.FC = () => {
     });
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -40,7 +39,18 @@ const ShopDashboard: React.FC = () => {
     );
   }
 
-  if (!shop) {
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <h2 className="text-2xl font-bold mb-4">Une erreur s'est produite</h2>
+        <p className="mb-6 text-muted-foreground">
+          Veuillez réessayer plus tard.
+        </p>
+      </div>
+    );
+  }
+
+  if (!userShop) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <h2 className="text-2xl font-bold mb-4">Vous n'avez pas encore de boutique</h2>
@@ -80,24 +90,24 @@ const ShopDashboard: React.FC = () => {
 
         <TabsContent value="items">
           <Card>
-            <ShopItemsList shopId={shop.id} />
+            <ShopItemsList shopId={userShop.id} />
           </Card>
         </TabsContent>
 
         <TabsContent value="orders">
           <Card>
-            <ShopOrdersList shopId={shop.id} />
+            <ShopOrdersList shopId={userShop.id} />
           </Card>
         </TabsContent>
 
         <TabsContent value="reviews">
           <Card>
-            <ShopReviewsList shopId={shop.id} />
+            <ShopReviewsList shopId={userShop.id} />
           </Card>
         </TabsContent>
 
         <TabsContent value="settings">
-          <ShopSettings shopId={shop.id} />
+          <ShopSettings shopId={userShop.id} />
         </TabsContent>
       </Tabs>
 
@@ -106,7 +116,7 @@ const ShopDashboard: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Ajouter un article</DialogTitle>
           </DialogHeader>
-          <AddItemForm shopId={shop.id} onSuccess={handleAddItemSuccess} />
+          <AddItemForm shopId={userShop.id} onSuccess={handleAddItemSuccess} />
         </DialogContent>
       </Dialog>
     </div>
