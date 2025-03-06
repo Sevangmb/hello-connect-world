@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SuitcaseCard } from './SuitcaseCard';
+import { SuitcaseListItem } from './SuitcaseListItem';
 import { SuitcaseGridProps } from '../types';
 
 export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({ 
@@ -10,10 +10,11 @@ export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {suitcases.map((suitcase) => (
-        <SuitcaseCard
+        <SuitcaseListItem
           key={suitcase.id}
           suitcase={suitcase}
-          onClick={() => onSelectSuitcase(suitcase.id)}
+          onSelect={onSelectSuitcase}
+          onClick={() => {}} // Provide an empty function to satisfy the type
         />
       ))}
     </div>

@@ -7,16 +7,15 @@ import { Suitcase } from '@/hooks/useSuitcases';
 export interface SuitcaseListItemProps {
   suitcase: Suitcase;
   onSelect: (id: string) => void;
-  onClick?: () => void; // Add onClick prop to match usage in SuitcaseGrid
+  onClick?: () => void; // Add onClick prop as optional
 }
 
 export const SuitcaseListItem = ({ suitcase, onSelect, onClick }: SuitcaseListItemProps) => {
   const handleClick = () => {
     if (onClick) {
       onClick();
-    } else {
-      onSelect(suitcase.id);
     }
+    onSelect(suitcase.id);
   };
 
   return (

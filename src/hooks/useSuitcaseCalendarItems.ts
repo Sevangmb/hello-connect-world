@@ -1,93 +1,74 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Suitcase, SuitcaseStatus } from './useSuitcases';
+import { SuitcaseCalendarItem } from '@/components/suitcases/utils/types';
 
-export interface SuitcaseCalendarItem {
-  id: string;
-  suitcase_id: string;
-  date: string;
-  created_at: string;
-  updated_at: string;
-  status: SuitcaseStatus;
-  name?: string;
-  description?: string;
-}
-
-export const useSuitcaseCalendarItems = (suitcaseId: string | undefined) => {
-  const { toast } = useToast();
+export const useSuitcaseCalendarItems = (suitcaseId: string, dateFilter?: string) => {
   const [items, setItems] = useState<SuitcaseCalendarItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchItems = async () => {
-    if (!suitcaseId) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase
-        .from('suitcase_calendar_items')
-        .select('*')
-        .eq('suitcase_id', suitcaseId)
-        .neq('status', 'deleted') // Filter out deleted items
-        .order('date', { ascending: true });
-      
-      if (error) throw error;
-      
-      setItems(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les éléments du calendrier',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        setLoading(true);
+        let query = supabase
+          .from('suitcase_items')
+          .select(`
+            id, 
+            suitcase_id, 
+            clothes_id, 
+            quantity,
+            created_at,
+            clothes (
+              id, 
+              name, 
+              image_url, 
+              category
+            )
+          `)
+          .eq('suitcase_id', suitcaseId);
+        
+        // Add date filter if provided
+        if (dateFilter) {
+          // This assumes there's a date column or we need to join with a table that has dates
+          // Adjust based on your actual schema
+          query = query.eq('date', dateFilter);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        // Map the data to SuitcaseCalendarItem structure
+        const mappedItems = data.map(item => ({
+          id: item.id,
+          suitcase_id: item.suitcase_id,
+          clothes_id: item.clothes_id,
+          quantity: item.quantity,
+          created_at: item.created_at,
+          date: dateFilter || new Date().toISOString().split('T')[0], // Use dateFilter or today
+          clothes: item.clothes
+        }));
+        
+        setItems(mappedItems);
+      } catch (err) {
+        console.error('Error fetching suitcase calendar items:', err);
+        setError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (suitcaseId) {
       fetchItems();
     }
-  }, [suitcaseId]);
+  }, [suitcaseId, dateFilter]);
 
-  // Get items for a specific date
-  const getItemsForDate = (date: string): SuitcaseCalendarItem[] => {
-    return items.filter(item => item.date === date);
-  };
-
-  return {
-    items,
-    loading,
-    error,
-    fetchItems,
-    getItemsForDate
-  };
+  return { items, loading, error };
 };
 
-// Add a convenience hook for getting items for a specific date
-export const useSuitcaseCalendarItemsForDate = (suitcaseId: string | undefined, date: string) => {
-  const { items, loading, error } = useSuitcaseCalendarItems(suitcaseId);
-  const [dateItems, setDateItems] = useState<SuitcaseCalendarItem[]>([]);
-
-  useEffect(() => {
-    if (!date) {
-      setDateItems([]);
-      return;
-    }
-    
-    const filteredItems = items.filter(item => item.date === date);
-    setDateItems(filteredItems);
-  }, [items, date]);
-
-  return {
-    items: dateItems,
-    loading,
-    error
-  };
+// Add a specialized hook for fetching items by date
+export const useSuitcaseCalendarItemsForDate = (suitcaseId: string, date: string) => {
+  return useSuitcaseCalendarItems(suitcaseId, date);
 };

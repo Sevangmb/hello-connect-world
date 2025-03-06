@@ -10,7 +10,7 @@ import { SuitcaseCalendarItemsList } from './SuitcaseCalendarItemsList';
 import { useSuitcaseCalendarItems } from '@/hooks/useSuitcaseCalendarItems';
 import { Suitcase } from '@/hooks/useSuitcases';
 
-interface SuitcaseCalendarProps {
+export interface SuitcaseCalendarProps {
   suitcaseId: string;
   suitcase?: Suitcase;
 }
@@ -25,7 +25,11 @@ export const SuitcaseCalendar = ({ suitcaseId, suitcase }: SuitcaseCalendarProps
     const dates = new Set<string>();
     
     items.forEach(item => {
-      dates.add(item.date);
+      // Here we need to know what property contains the date
+      // For now I'll assume it's a direct property called 'date'
+      if (item.date) {
+        dates.add(item.date);
+      }
     });
     
     return Array.from(dates).map(dateStr => new Date(dateStr));

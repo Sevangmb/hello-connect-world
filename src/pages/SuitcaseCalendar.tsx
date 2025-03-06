@@ -1,20 +1,40 @@
 
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { SuitcaseCalendar } from "@/components/suitcases/components/SuitcaseCalendar";
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { SuitcaseCalendar } from '@/components/suitcases/components/SuitcaseCalendar';
+import { useSuitcases } from '@/hooks/useSuitcases';
+import { Card } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
 const SuitcaseCalendarPage = () => {
-  return (
-    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <Header />
-      <MainSidebar />
-      <main className="pt-24 px-4 md:pl-72 pb-10">
-        <div className="max-w-7xl mx-auto">
-          <SuitcaseCalendar />
+  const { id } = useParams<{ id: string }>();
+  const { getSuitcaseById, loading } = useSuitcases();
+  
+  const suitcase = id ? getSuitcaseById(id) : null;
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!suitcase || !id) {
+    return (
+      <Card className="p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-bold">Valise non trouvée</h2>
+          <p className="text-muted-foreground mt-2">La valise que vous recherchez n'existe pas ou a été supprimée.</p>
         </div>
-      </main>
-      <BottomNav />
+      </Card>
+    );
+  }
+  
+  return (
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6">Calendrier: {suitcase.name}</h1>
+      <SuitcaseCalendar suitcaseId={id} suitcase={suitcase} />
     </div>
   );
 };

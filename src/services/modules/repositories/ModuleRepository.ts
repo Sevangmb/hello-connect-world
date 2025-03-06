@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -203,7 +202,7 @@ export class ModuleRepository implements IModuleRepository {
       if (featureError) return [];
       
       // Map modules to features
-      const resultMap = new Map<string, any>();
+      const resultMap = new Map();
       
       moduleData.forEach(module => {
         resultMap.set(module.code, {

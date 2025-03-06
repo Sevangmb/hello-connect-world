@@ -1,139 +1,134 @@
 
 import React, { useState } from 'react';
-import { Dialog } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { useSuitcases } from '@/hooks/useSuitcases';
-import { CreateSuitcaseFormProps } from '@/components/suitcases/types';
-
-// Importations correctes des composants
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
-import { SuitcaseHeader } from '@/components/suitcases/components/SuitcaseHeader';
-import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
+import { CreateSuitcaseDialog } from '@/components/suitcases/CreateSuitcaseDialog';
 import { SuitcaseFilters } from '@/components/suitcases/components/SuitcaseFilters';
+import { SuitcaseViewToggle } from '@/components/suitcases/components/SuitcaseViewToggle';
 import { EmptySuitcases } from '@/components/suitcases/components/EmptySuitcases';
-import { SuitcaseItems } from '@/components/suitcases/items/SuitcaseItems';
-import { CreateSuitcaseForm } from '@/components/suitcases/forms/CreateSuitcaseForm';
+import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
+import { useToast } from '@/hooks/use-toast';
 
 const Suitcases = () => {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
   const { 
     suitcases, 
     loading, 
-    createSuitcase
+    error, 
+    filters,
+    applyFilters,
+    createSuitcase 
   } = useSuitcases();
 
-  const handleCreateSuitcase = async (formData: any) => {
-    await createSuitcase(formData);
-    setIsCreateDialogOpen(false);
+  const filteredSuitcases = React.useMemo(() => {
+    return suitcases.filter(suitcase => 
+      suitcase.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (suitcase.description && suitcase.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [suitcases, searchQuery]);
+
+  const handleSelectSuitcase = (id: string) => {
+    navigate(`/suitcase/${id}`);
   };
 
-  const handleSelectSuitcase = (suitcaseId: string) => {
-    setSelectedSuitcaseId(suitcaseId);
-  };
-
-  const handleBack = () => {
-    setSelectedSuitcaseId(null);
-  };
-
-  const handleRefresh = () => {
-    // Rafraîchir les données
-    console.log('Refreshing suitcases data');
-  };
-
-  // Filtres et statuts fictifs pour les props de SuitcaseFilters
-  const filters = {
-    status: 'all',
-    search: '',
-    date: null
-  };
-
-  const statusLabels = {
-    all: 'Toutes',
-    active: 'Actives',
-    archived: 'Archivées',
-    completed: 'Terminées'
+  const handleCreateSuitcase = async (data: any) => {
+    try {
+      await createSuitcase(data);
+      setIsDialogOpen(false);
+      toast({
+        title: "Valise créée",
+        description: "Votre valise a été créée avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la valise",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleStatusChange = (status: string) => {
-    console.log('Status changed to:', status);
+    applyFilters({ ...filters, status });
   };
 
   const handleClearSearch = () => {
-    console.log('Search cleared');
+    setSearchQuery('');
   };
 
-  if (loading) {
-    return <LoadingSuitcases />;
-  }
-
-  if (selectedSuitcaseId) {
-    return (
-      <SuitcaseItems 
-        suitcaseId={selectedSuitcaseId} 
-        onBack={handleBack} 
-      />
-    );
-  }
-
-  if (suitcases && suitcases.length === 0) {
-    return (
-      <>
-        <EmptySuitcases onCreateClick={() => setIsCreateDialogOpen(true)} />
-
-        <Dialog 
-          open={isCreateDialogOpen} 
-          onOpenChange={setIsCreateDialogOpen}
-        >
-          <CreateSuitcaseForm 
-            onSubmit={handleCreateSuitcase}
-            onSuccess={() => setIsCreateDialogOpen(false)}
-            isLoading={false}
-          />
-        </Dialog>
-      </>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <SuitcaseHeader onRefresh={handleRefresh} />
-      
-      <div className="flex justify-between items-center mb-8">
-        <SuitcaseFilters 
-          filters={filters}
-          statusLabels={statusLabels}
-          onStatusChange={handleStatusChange}
-          onClearSearch={handleClearSearch}
-        />
-        
-        <Button 
-          onClick={() => setIsCreateDialogOpen(true)}
-          className="flex items-center"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Créer une valise
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold">Mes Valises</h1>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle Valise
         </Button>
       </div>
 
-      {suitcases && (
-        <SuitcaseGrid 
-          suitcases={suitcases}
-          onSelectSuitcase={handleSelectSuitcase}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Rechercher une valise..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={handleClearSearch}
+            >
+              &times;
+            </button>
+          )}
+        </div>
+        <SuitcaseFilters 
+          filters={filters}
+          statusLabels={{
+            all: 'Toutes',
+            active: 'Actives',
+            archived: 'Archivées',
+            completed: 'Terminées'
+          }}
+          onStatusChange={handleStatusChange}
+          onClearSearch={handleClearSearch}
         />
-      )}
+        <SuitcaseViewToggle view={viewMode} onViewChange={setViewMode} />
+      </div>
 
-      <Dialog 
-        open={isCreateDialogOpen} 
-        onOpenChange={setIsCreateDialogOpen}
-      >
-        <CreateSuitcaseForm 
-          onSubmit={handleCreateSuitcase}
-          onSuccess={() => setIsCreateDialogOpen(false)}
-          isLoading={false}
-        />
-      </Dialog>
+      <Card className="p-6">
+        {loading ? (
+          <LoadingSuitcases />
+        ) : error ? (
+          <div className="text-center py-8 text-red-500">
+            Erreur lors du chargement des valises
+          </div>
+        ) : filteredSuitcases.length === 0 ? (
+          <EmptySuitcases onCreateClick={() => setIsDialogOpen(true)} />
+        ) : (
+          <SuitcaseGrid
+            suitcases={filteredSuitcases}
+            onSelectSuitcase={handleSelectSuitcase}
+          />
+        )}
+      </Card>
+
+      <CreateSuitcaseDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSubmit={handleCreateSuitcase}
+      />
     </div>
   );
 };
