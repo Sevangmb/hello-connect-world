@@ -1,53 +1,35 @@
+import React from 'react';
+import { useClothes } from '@/hooks/useClothes';
+import { Loader2 } from 'lucide-react';
 
-import { Loader2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useClothes } from "@/hooks/useClothes";
-import { useSuitcaseItems } from "@/hooks/useSuitcaseItems";
-import { SuitcaseItemsList } from "../components/SuitcaseItemsList";
-import { SuitcaseItemsHeader } from "./SuitcaseItemsHeader";
-import { SuitcaseItemsEmpty } from "./SuitcaseItemsEmpty";
+export const SuitcaseItems = () => {
+  // Use the hook with properly defined filters
+  const { clothes, loading } = useClothes({});
 
-interface SuitcaseItemsProps {
-  suitcaseId: string;
-}
-
-export const SuitcaseItems = ({ suitcaseId }: SuitcaseItemsProps) => {
-  const { data: items, isLoading: isLoadingItems } = useSuitcaseItems(suitcaseId);
-  const { data: clothes } = useClothes({ source: "mine" });
-  const queryClient = useQueryClient();
-
-  if (isLoadingItems) {
+  if (loading) {
     return (
-      <div className="flex justify-center py-4">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin" />
       </div>
     );
   }
 
-  const addedClothesIds = new Set(items?.map(item => item.clothes_id));
-  const availableClothes = clothes?.filter(cloth => !addedClothesIds.has(cloth.id)) || [];
+  if (!clothes?.length) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        Aucun vêtement trouvé
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <SuitcaseItemsHeader 
-        suitcaseId={suitcaseId}
-        itemsCount={items?.length || 0}
-        availableClothes={availableClothes}
-      />
-
-      {items && items.length > 0 ? (
-        <div className="space-y-4">
-          <SuitcaseItemsList
-            items={items}
-            suitcaseId={suitcaseId}
-          />
-        </div>
-      ) : (
-        <SuitcaseItemsEmpty
-          suitcaseId={suitcaseId}
-          availableClothes={availableClothes}
-        />
-      )}
+    <div>
+      <h2>Suitcase Items</h2>
+      <ul>
+        {clothes.map((cloth) => (
+          <li key={cloth.id}>{cloth.name}</li>
+        ))}
+      </ul>
     </div>
   );
 };

@@ -1,126 +1,94 @@
-import React, { useState } from 'react';
+
+import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShopItemsList } from "./ShopItemsList";
 import { ShopOrdersList } from "./ShopOrdersList";
-import ShopReviewsList from "./ShopReviewsList";
+import { ShopReviewsList } from "./ShopReviewsList";
+import { CreateShopForm } from "./CreateShopForm";
 import { Button } from "@/components/ui/button";
-import { Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { AddItemForm } from './AddItemForm';
-import { useShop } from '@/hooks/useShop';
-import ShopSettings from './ShopSettings';
+import { BuildingStorefront, Settings } from "lucide-react";
+import { useUserShop } from "@/hooks/useShop";
+import { ShopSettings } from "./ShopSettings";
 
-const ShopDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('items');
-  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
-  const { toast } = useToast();
-  const { useUserShop } = useShop();
-  const { userShop, loading, error, fetchUserShop } = useUserShop();
+export function ShopDashboard() {
+  const userShop = useUserShop();
+  
+  useEffect(() => {
+    userShop.fetchUserShop().catch(console.error);
+  }, []);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  const handleAddItemSuccess = () => {
-    setIsAddItemDialogOpen(false);
-    toast({
-      title: "Article ajouté",
-      description: "L'article a été ajouté à votre boutique avec succès.",
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (userShop.loading) {
+    return <div>Chargement de votre boutique...</div>;
   }
 
-  if (error) {
+  if (!userShop.userShop) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <h2 className="text-2xl font-bold mb-4">Une erreur s'est produite</h2>
-        <p className="mb-6 text-muted-foreground">
-          Veuillez réessayer plus tard.
-        </p>
-      </div>
-    );
-  }
-
-  if (!userShop) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <h2 className="text-2xl font-bold mb-4">Vous n'avez pas encore de boutique</h2>
-        <p className="mb-6 text-muted-foreground">
-          Créez votre boutique pour commencer à vendre vos articles.
-        </p>
-        <Button>Créer ma boutique</Button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Créer votre boutique</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CreateShopForm onSuccess={() => userShop.fetchUserShop()} />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <div className="flex justify-between items-center mb-4">
-          <TabsList className="flex space-x-4 border-b">
-            <TabsTrigger value="items" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
-              Articles
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
-              Commandes
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
-              Avis
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[state=active]:border-primary data-[state=active]:font-medium transition">
-              Paramètres
-            </TabsTrigger>
-          </TabsList>
-          {activeTab === 'items' && (
-            <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter
-            </Button>
-          )}
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">{userShop.userShop.name}</h1>
+        <Button variant="outline">
+          <Settings className="mr-2 h-4 w-4" />
+          Paramètres
+        </Button>
+      </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Tableau de bord de la boutique</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <BuildingStorefront className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <h3 className="mt-2 font-semibold">Articles</h3>
+                  <p className="text-3xl font-bold">0</p>
+                </div>
+              </CardContent>
+            </Card>
+            {/* More stats cards can go here */}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="items">
+        <TabsList className="w-full">
+          <TabsTrigger value="items" className="flex-1">Articles</TabsTrigger>
+          <TabsTrigger value="orders" className="flex-1">Commandes</TabsTrigger>
+          <TabsTrigger value="reviews" className="flex-1">Avis</TabsTrigger>
+          <TabsTrigger value="settings" className="flex-1">Paramètres</TabsTrigger>
+        </TabsList>
+        
         <TabsContent value="items">
-          <Card>
-            <ShopItemsList shopId={userShop.id} />
-          </Card>
+          <ShopItemsList shopId={userShop.userShop.id} />
         </TabsContent>
-
+        
         <TabsContent value="orders">
-          <Card>
-            <ShopOrdersList shopId={userShop.id} />
-          </Card>
+          <ShopOrdersList shopId={userShop.userShop.id} />
         </TabsContent>
-
+        
         <TabsContent value="reviews">
-          <Card>
-            <ShopReviewsList shopId={userShop.id} />
-          </Card>
+          <ShopReviewsList shopId={userShop.userShop.id} />
         </TabsContent>
-
+        
         <TabsContent value="settings">
-          <ShopSettings shopId={userShop.id} />
+          <ShopSettings shopId={userShop.userShop.id} />
         </TabsContent>
       </Tabs>
-
-      <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Ajouter un article</DialogTitle>
-          </DialogHeader>
-          <AddItemForm shopId={userShop.id} onSuccess={handleAddItemSuccess} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
-};
-
-export default ShopDashboard;
+}

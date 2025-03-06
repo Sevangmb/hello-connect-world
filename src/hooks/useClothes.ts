@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -11,6 +12,8 @@ export interface ClothesFilters {
   showArchived?: boolean;
   needsAlteration?: boolean;
   isForSale?: boolean;
+  source?: string;
+  // Add any other properties used in filters
 }
 
 export const useClothes = (initialFilters: ClothesFilters = {}) => {
@@ -20,14 +23,14 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
   const [filters, setFilters] = useState<ClothesFilters>(initialFilters);
 
   useEffect(() => {
-    fetchData();
+    fetchClothes();
   }, [filters]);
 
-  const fetchData = async () => {
+  const fetchClothes = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchClothes(filters);
+      const data = await fetchClothesData(filters);
       setClothes(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch clothes');
@@ -45,7 +48,7 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
 };
 
 // Update fetchClothes function to use proper query limiting and pagination
-const fetchClothes = async (filters: ClothesFilters = {}) => {
+const fetchClothesData = async (filters: ClothesFilters = {}) => {
   try {
     let query = supabase
       .from('clothes')

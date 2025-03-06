@@ -1,15 +1,15 @@
+
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Clothes } from "@/core/clothes/domain/types";
 import { ShopItem, ShopItemStatus } from "@/core/shop/domain/types";
 import { useCreateShopItem } from "@/hooks/useShop";
 
 interface AddItemFormProps {
   shopId?: string;
-  selectedCloth?: Clothes;
+  selectedCloth?: any;
   onSuccess?: () => void;
 }
 
@@ -19,7 +19,7 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
   const [description, setDescription] = useState<string>(selectedCloth?.description || "");
   const [price, setPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("");
-  const useCreateShopItem = useCreateShopItem();
+  const createShopItem = useCreateShopItem();
 
   const resetForm = () => {
     setName("");
@@ -28,7 +28,6 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
     setStock("");
   };
 
-  // Replace mutateAsync with execute in the handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -55,7 +54,7 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
       };
       
       // Use execute instead of mutateAsync
-      await useCreateShopItem.execute(itemData);
+      await createShopItem.execute(itemData);
       
       resetForm();
       toast({
@@ -117,8 +116,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
           required
         />
       </div>
-      <Button type="submit" className="w-full">
-        Ajouter l'article
+      <Button type="submit" className="w-full" disabled={createShopItem.creating}>
+        {createShopItem.creating ? "Ajout en cours..." : "Ajouter l'article"}
       </Button>
     </form>
   );

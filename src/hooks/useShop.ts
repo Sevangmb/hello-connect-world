@@ -1,6 +1,296 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Shop, ShopItem, ShopSettings, ShopStatus, ShopItemStatus } from '@/core/shop/domain/types';
+import { Shop, ShopItem, ShopSettings, ShopStatus, ShopItemStatus, PaymentMethod, DeliveryOption } from '@/core/shop/domain/types';
+
+export const useCreateShop = () => {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const execute = async (shopData: Partial<Shop>): Promise<Shop> => {
+    setCreating(true);
+    setError(null);
+    try {
+      if (!shopData.name || !shopData.user_id) {
+        throw new Error('Name and user_id are required');
+      }
+
+      const { data, error } = await supabase
+        .from('shops')
+        .insert({
+          name: shopData.name,
+          user_id: shopData.user_id,
+          description: shopData.description || '',
+          status: shopData.status || 'pending',
+          image_url: shopData.image_url,
+          address: shopData.address,
+          phone: shopData.phone,
+          website: shopData.website,
+          categories: shopData.categories || [],
+          latitude: shopData.latitude,
+          longitude: shopData.longitude,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as Shop;
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return { execute, creating, error };
+};
+
+export const useCreateShopItem = () => {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const execute = async (itemData: Partial<ShopItem>): Promise<ShopItem> => {
+    setCreating(true);
+    setError(null);
+    try {
+      if (!itemData.shop_id || !itemData.price) {
+        throw new Error('Shop ID and price are required');
+      }
+
+      const { data, error } = await supabase
+        .from('shop_items')
+        .insert({
+          shop_id: itemData.shop_id,
+          name: itemData.name || 'Unnamed item',
+          description: itemData.description || '',
+          image_url: itemData.image_url,
+          price: itemData.price,
+          original_price: itemData.original_price,
+          stock: itemData.stock || 1,
+          status: itemData.status || 'available',
+          clothes_id: itemData.clothes_id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as ShopItem;
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return { execute, creating, error };
+};
+
+export const useUserShop = () => {
+  const [userShop, setUserShop] = useState<Shop | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchUserShop = async (): Promise<Shop> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      const shop = data as Shop;
+      setUserShop(shop);
+      return shop;
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { userShop, loading, error, fetchUserShop };
+};
+
+export const useShopById = () => {
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchShop = async (id: string): Promise<Shop> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      const shopData = data as Shop;
+      setShop(shopData);
+      return shopData;
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { shop, loading, error, fetchShop };
+};
+
+export const useUpdateShopSettings = () => {
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const updateSettings = async (
+    shopId: string, 
+    settings: Partial<ShopSettings>
+  ): Promise<ShopSettings> => {
+    setUpdating(true);
+    setError(null);
+    try {
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('shop_settings')
+        .select('*')
+        .eq('shop_id', shopId)
+        .single();
+      
+      let result;
+      
+      if (fetchError && fetchError.code === 'PGRST116') {
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .insert({
+            shop_id: shopId,
+            delivery_options: settings.delivery_options || ['pickup', 'delivery', 'both'],
+            payment_methods: settings.payment_methods || ['card', 'paypal', 'bank_transfer', 'cash'],
+            auto_accept_orders: settings.auto_accept_orders !== undefined ? settings.auto_accept_orders : false,
+            notification_preferences: settings.notification_preferences || { email: true, app: true },
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        result = data;
+      } else {
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .update({
+            delivery_options: settings.delivery_options || existingSettings.delivery_options,
+            payment_methods: settings.payment_methods || existingSettings.payment_methods,
+            auto_accept_orders: settings.auto_accept_orders !== undefined 
+              ? settings.auto_accept_orders 
+              : existingSettings.auto_accept_orders,
+            notification_preferences: settings.notification_preferences || existingSettings.notification_preferences,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('shop_id', shopId)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        result = data;
+      }
+      
+      return result as ShopSettings;
+    } catch (err: any) {
+      setError(err);
+      throw err;
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return { updateSettings, updating, error };
+};
+
+export const useIsShopFavorited = (shopId: string) => {
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const checkFavorite = async (): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return false;
+
+      const { data, error } = await supabase
+        .from('user_favorite_shops')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .eq('shop_id', shopId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      const result = !!data;
+      setIsFavorited(result);
+      return result;
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFavorite = async (): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('User not authenticated');
+
+      if (isFavorited) {
+        const { error } = await supabase
+          .from('user_favorite_shops')
+          .delete()
+          .eq('user_id', userData.user.id)
+          .eq('shop_id', shopId);
+
+        if (error) throw error;
+        setIsFavorited(false);
+        return false;
+      } else {
+        const { error } = await supabase
+          .from('user_favorite_shops')
+          .insert([
+            {
+              user_id: userData.user.id,
+              shop_id: shopId,
+              created_at: new Date().toISOString()
+            }
+          ]);
+
+        if (error) throw error;
+        setIsFavorited(true);
+        return true;
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      return isFavorited;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { isFavorited, loading, error, checkFavorite, toggleFavorite };
+};
 
 export const useShop = () => {
   const [shop, setShop] = useState<Shop>({} as Shop);
@@ -159,248 +449,6 @@ export const useShop = () => {
       console.error('Error creating shop item:', error);
       return null;
     }
-  };
-
-  const useCreateShop = () => {
-    const [creating, setCreating] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-
-    const execute = async (shopData: Partial<Shop>): Promise<Shop | null> => {
-      setCreating(true);
-      setError(null);
-      try {
-        const result = await createShop(shopData);
-        return result;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return null;
-      } finally {
-        setCreating(false);
-      }
-    };
-
-    return { execute, creating, error };
-  };
-
-  const useCreateShopItem = () => {
-    const [creating, setCreating] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-
-    const execute = async (itemData: Partial<ShopItem>): Promise<ShopItem | null> => {
-      setCreating(true);
-      setError(null);
-      try {
-        const result = await createShopItem(itemData);
-        return result;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return null;
-      } finally {
-        setCreating(false);
-      }
-    };
-
-    return { execute, creating, error };
-  };
-
-  const useUserShop = () => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-    const [userShop, setUserShop] = useState<Shop | null>(null);
-
-    const fetchUserShop = async (): Promise<Shop | null> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const result = await fetchShopByUserId();
-        setUserShop(result);
-        return result;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return { userShop, loading, error, fetchUserShop };
-  };
-
-  const useShopById = (shopId: string) => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-    const [shopData, setShopData] = useState<Shop | null>(null);
-
-    const fetchShop = async (): Promise<Shop | null> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error } = await supabase
-          .from('shops')
-          .select('*')
-          .eq('id', shopId)
-          .single();
-
-        if (error) throw error;
-        
-        const shopWithTypedStatus = {
-          ...data,
-          status: data.status as ShopStatus
-        };
-        
-        setShopData(shopWithTypedStatus);
-        return shopWithTypedStatus;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return { shop: shopData, loading, error, fetchShop };
-  };
-
-  const useUpdateShopSettings = () => {
-    const [updating, setUpdating] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-
-    const updateSettings = async (shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> => {
-      setUpdating(true);
-      setError(null);
-      try {
-        const { data: existingSettings, error: checkError } = await supabase
-          .from('shop_settings')
-          .select('*')
-          .eq('shop_id', shopId)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-        let result;
-        if (existingSettings) {
-          const { data, error } = await supabase
-            .from('shop_settings')
-            .update({
-              ...settings,
-              updated_at: new Date().toISOString()
-            })
-            .eq('shop_id', shopId)
-            .select()
-            .single();
-
-          if (error) throw error;
-          result = data;
-        } else {
-          const newSettings = {
-            shop_id: shopId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            ...settings
-          };
-
-          const { data, error } = await supabase
-            .from('shop_settings')
-            .insert([newSettings])
-            .select()
-            .single();
-
-          if (error) throw error;
-          result = data;
-        }
-
-        return result;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return null;
-      } finally {
-        setUpdating(false);
-      }
-    };
-
-    return { updateSettings, updating, error };
-  };
-
-  const useIsShopFavorited = (shopId: string) => {
-    const [isFavorited, setIsFavorited] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
-
-    const checkFavorite = async (): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) return false;
-
-        const { data, error } = await supabase
-          .from('user_favorite_shops')
-          .select('*')
-          .eq('user_id', userData.user.id)
-          .eq('shop_id', shopId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
-        
-        const result = !!data;
-        setIsFavorited(result);
-        return result;
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const toggleFavorite = async (): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        if (!userData.user) throw new Error('User not authenticated');
-
-        if (isFavorited) {
-          const { error } = await supabase
-            .from('user_favorite_shops')
-            .delete()
-            .eq('user_id', userData.user.id)
-            .eq('shop_id', shopId);
-
-          if (error) throw error;
-          setIsFavorited(false);
-          return false;
-        } else {
-          const { error } = await supabase
-            .from('user_favorite_shops')
-            .insert([
-              {
-                user_id: userData.user.id,
-                shop_id: shopId,
-                created_at: new Date().toISOString()
-              }
-            ]);
-
-          if (error) throw error;
-          setIsFavorited(true);
-          return true;
-        }
-      } catch (err) {
-        const error = err as Error;
-        setError(error);
-        return isFavorited;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return { isFavorited, loading, error, checkFavorite, toggleFavorite };
   };
 
   return {
