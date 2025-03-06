@@ -2,17 +2,20 @@
 export interface SuitcaseCardProps {
   suitcase: any;
   isSelected?: boolean;
-  onSelect?: () => void;
+  onClick?: () => void;
+  onSelect?: () => void; // Adding for compatibility
 }
 
 export interface SuitcaseListItemProps {
   suitcase: any;
   isSelected?: boolean;
-  onSelect?: () => void;
+  onClick?: () => void;
+  onSelect?: () => void; // Adding for compatibility
 }
 
 export interface CreateSuitcaseFormProps {
   onSubmit: (values: any) => Promise<void>;
+  onSuccess?: () => void;
   isLoading?: boolean;
 }
 

@@ -60,6 +60,10 @@ export const CreateSuitcaseDialog = () => {
     }
   };
 
+  const handleSuccess = () => {
+    setOpen(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -75,7 +79,11 @@ export const CreateSuitcaseDialog = () => {
             Remplissez les champs ci-dessous pour créer une nouvelle valise
           </DialogDescription>
         </DialogHeader>
-        <CreateSuitcaseForm onSubmit={handleSubmit} isLoading={isLoading} />
+        <CreateSuitcaseForm 
+          onSubmit={handleSubmit} 
+          isLoading={isLoading}
+          onSuccess={handleSuccess}
+        />
       </DialogContent>
     </Dialog>
   );

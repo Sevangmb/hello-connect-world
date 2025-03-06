@@ -3,18 +3,6 @@ import React from 'react';
 import SuitcaseCard from './SuitcaseCard';
 import SuitcaseListItem from './SuitcaseListItem';
 
-interface SuitcaseCardProps {
-  suitcase: any;
-  isSelected: boolean;
-  onSelect: () => void;
-}
-
-interface SuitcaseListItemProps {
-  suitcase: any;
-  isSelected: boolean;
-  onSelect: () => void;
-}
-
 interface SuitcaseGridProps {
   suitcases: any[];
   viewMode: 'grid' | 'list';
@@ -40,7 +28,7 @@ export function SuitcaseGrid({
             <SuitcaseCard
               key={suitcase.id}
               suitcase={suitcase}
-              onSelect={() => setSelectedSuitcaseId(suitcase.id)}
+              onClick={() => setSelectedSuitcaseId(suitcase.id)}
               isSelected={selectedSuitcaseId === suitcase.id}
             />
           ))}
@@ -51,7 +39,7 @@ export function SuitcaseGrid({
             <SuitcaseListItem
               key={suitcase.id}
               suitcase={suitcase}
-              onSelect={() => setSelectedSuitcaseId(suitcase.id)}
+              onClick={() => setSelectedSuitcaseId(suitcase.id)}
               isSelected={selectedSuitcaseId === suitcase.id}
             />
           ))}

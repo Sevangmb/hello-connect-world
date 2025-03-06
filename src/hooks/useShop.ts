@@ -1,6 +1,7 @@
+
 import { useCallback } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem } from '@/core/shop/domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem, OrderStatus } from '@/core/shop/domain/types';
 import { shopService } from '@/core/shop/infrastructure/ShopServiceProvider';
 import { useAuth } from './useAuth';
 
@@ -149,16 +150,25 @@ export function useShop() {
   };
 
   // Order methods
-  const getOrdersByShopId = async (shopId: string, status?: string) => {
-    return await shopService.getOrdersByShopId(shopId, status);
+  const getOrdersByShopId = async (shopId: string, status?: OrderStatus) => {
+    if (shopService.getOrdersByShopId) {
+      return await shopService.getOrdersByShopId(shopId, status);
+    }
+    return [];
   };
 
-  const getUserOrders = async (userId: string, status?: string) => {
-    return await shopService.getUserOrders(userId, status);
+  const getUserOrders = async (userId: string, status?: OrderStatus) => {
+    if (shopService.getUserOrders) {
+      return await shopService.getUserOrders(userId, status);
+    }
+    return [];
   };
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
-    return await shopService.updateOrderStatus(orderId, status);
+  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    if (shopService.updateOrderStatus) {
+      return await shopService.updateOrderStatus(orderId, status);
+    }
+    return false;
   };
 
   // Cart methods

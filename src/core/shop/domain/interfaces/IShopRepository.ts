@@ -1,5 +1,5 @@
 
-import { Shop, ShopItem, ShopReview, ShopSettings, Order } from '../types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem, OrderStatus, PaymentStatus } from '../types';
 
 export interface IShopRepository {
   // Shop CRUD operations
@@ -55,12 +55,12 @@ export interface IShopRepository {
   getRelatedShops(shopId: string, limit?: number): Promise<Shop[]>;
   
   // Order operations
-  getUserOrders(userId: string, status?: string): Promise<Order[]>;
+  getUserOrders(userId: string, status?: OrderStatus): Promise<Order[]>;
   getSellerOrders(userId: string): Promise<Order[]>;
-  getOrdersByShopId(shopId: string, status?: string): Promise<Order[]>;
+  getOrdersByShopId(shopId: string, status?: OrderStatus): Promise<Order[]>;
   getShopOrders(shopId: string): Promise<Order[]>;
-  updateOrderStatus(orderId: string, status: string): Promise<boolean>;
-  updatePaymentStatus(orderId: string, paymentStatus: string): Promise<boolean>;
+  updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
+  updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus): Promise<boolean>;
   createOrder(orderData: Partial<Order>): Promise<Order>;
   
   // Cart operations

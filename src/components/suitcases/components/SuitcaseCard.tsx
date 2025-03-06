@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Briefcase } from 'lucide-react';
+import { SuitcaseCardProps } from '../types';
 
-interface SuitcaseCardProps {
-  suitcase: any;
-  isSelected?: boolean;
-  onClick?: () => void;
-}
-
-const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected = false, onClick }) => {
+const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ 
+  suitcase, 
+  isSelected = false, 
+  onClick,
+  onSelect 
+}) => {
   const { name, start_date, end_date, status } = suitcase;
   
   // Format dates nicely
@@ -32,10 +33,16 @@ const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected = fals
     }
   };
 
+  const handleClick = () => {
+    // Support both onClick and onSelect for backward compatibility
+    if (onClick) onClick();
+    if (onSelect) onSelect();
+  };
+
   return (
     <Card 
       className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
@@ -57,8 +64,6 @@ const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected = fals
             <Badge variant="outline" className={getStatusColor(status)}>
               {status === 'active' ? 'Active' : status === 'archived' ? 'Archivée' : 'Planifiée'}
             </Badge>
-            
-            {/* You could add an item count here if available */}
           </div>
         </div>
       </CardContent>

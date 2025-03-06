@@ -86,7 +86,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Simple query to fetch dependencies
+      // Simple approach to avoid type instantiation depth errors
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');

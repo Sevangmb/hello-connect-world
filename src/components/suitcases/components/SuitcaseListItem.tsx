@@ -1,15 +1,16 @@
 
 import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, Calendar } from 'lucide-react';
+import { SuitcaseListItemProps } from '../types';
 
-interface SuitcaseListItemProps {
-  suitcase: any;
-  isSelected?: boolean;
-  onClick?: () => void;
-}
-
-const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({ suitcase, isSelected = false, onClick }) => {
+const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({ 
+  suitcase, 
+  isSelected = false, 
+  onClick,
+  onSelect 
+}) => {
   const { name, start_date, end_date, status } = suitcase;
   
   // Format dates nicely
@@ -32,29 +33,40 @@ const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({ suitcase, isSelecte
     }
   };
 
+  const handleClick = () => {
+    // Support both onClick and onSelect for backward compatibility
+    if (onClick) onClick();
+    if (onSelect) onSelect();
+  };
+
   return (
-    <div 
-      className={`border rounded-md p-4 flex items-center justify-between transition-all hover:shadow-sm cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}`}
-      onClick={onClick}
+    <Card 
+      className={`w-full transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      onClick={handleClick}
     >
-      <div className="flex items-center space-x-4">
-        <Briefcase className="h-5 w-5 text-muted-foreground" />
-        <div>
-          <h3 className="font-medium">{name}</h3>
-          {(start_date || end_date) && (
-            <div className="text-sm text-muted-foreground">
-              {start_date && formatDate(start_date)}
-              {start_date && end_date && ' - '}
-              {end_date && formatDate(end_date)}
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <Briefcase className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div>
+              <h3 className="font-medium">{name}</h3>
+              {(start_date || end_date) && (
+                <div className="text-sm text-muted-foreground flex items-center mt-1">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  {start_date && formatDate(start_date)}
+                  {start_date && end_date && ' - '}
+                  {end_date && formatDate(end_date)}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          
+          <Badge variant="outline" className={getStatusColor(status)}>
+            {status === 'active' ? 'Active' : status === 'archived' ? 'Archivée' : 'Planifiée'}
+          </Badge>
         </div>
-      </div>
-      
-      <Badge variant="outline" className={getStatusColor(status)}>
-        {status === 'active' ? 'Active' : status === 'archived' ? 'Archivée' : 'Planifiée'}
-      </Badge>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
