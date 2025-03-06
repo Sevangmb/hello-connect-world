@@ -1,10 +1,10 @@
 
-import { ShopRepository } from './ShopRepository';
 import { ShopService } from '../application/ShopService';
+import { ShopRepository } from './ShopRepository';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-// Create and export the repository instance
-export const shopRepository: IShopRepository = new ShopRepository();
+// Create a repository instance
+const shopRepository: IShopRepository = new ShopRepository();
 
-// Create and export the service instance
+// Create and export a service instance
 export const shopService = new ShopService(shopRepository);

@@ -12,6 +12,7 @@ export const useShop = () => {
   const [shopItems, setShopItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const fetchShopByUserId = async (): Promise<Shop> => {
     if (!user?.id) throw new Error('User not logged in');
@@ -70,10 +71,8 @@ export const useShop = () => {
   };
 
   // Add useCreateShop hook for CreateShopForm component
-  const useCreateShop = () => {
-    const { toast } = useToast();
-    
-    return useMutation({
+  const useCreateShop = () => {    
+    const mutation = useMutation({
       mutationFn: (shopData: Partial<Shop>) => shopService.createShop(shopData),
       onSuccess: () => {
         toast({
@@ -90,13 +89,16 @@ export const useShop = () => {
         });
       },
     });
+    
+    return {
+      execute: mutation.mutateAsync,
+      creating: mutation.isPending
+    };
   };
 
   // Add useCreateShopItem hook for AddItemForm component
-  const useCreateShopItem = () => {
-    const { toast } = useToast();
-    
-    return useMutation({
+  const useCreateShopItem = () => {    
+    const mutation = useMutation({
       mutationFn: (itemData: Partial<ShopItem>) => shopService.createShopItem(itemData),
       onSuccess: () => {
         toast({
@@ -115,6 +117,11 @@ export const useShop = () => {
         });
       },
     });
+    
+    return {
+      execute: mutation.mutateAsync,
+      creating: mutation.isPending
+    };
   };
 
   return {

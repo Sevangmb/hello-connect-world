@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ShopItem, ShopItemStatus } from "@/core/shop/domain/types";
-import { useCreateShopItem } from "@/hooks/useShop";
+import { useShop } from "@/hooks/useShop";
 
 interface AddItemFormProps {
   shopId?: string;
@@ -19,6 +19,7 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
   const [description, setDescription] = useState<string>(selectedCloth?.description || "");
   const [price, setPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("");
+  const { useCreateShopItem } = useShop();
   const createShopItem = useCreateShopItem();
 
   const resetForm = () => {
@@ -53,7 +54,7 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
         status: "available" as ShopItemStatus
       };
       
-      // Use execute instead of mutateAsync
+      // Use execute from our hook
       await createShopItem.execute(itemData);
       
       resetForm();

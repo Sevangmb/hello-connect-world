@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Shop } from "@/core/shop/domain/types";
-import { useCreateShop } from "@/hooks/useShop";
+import { useShop } from "@/hooks/useShop";
 import { supabase } from "@/integrations/supabase/client";
 
 // Create a simple MultiSelect component since we don't have the one from import
@@ -35,6 +35,7 @@ function MultiSelect({ options, selected, onChange }: any) {
 
 export function CreateShopForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
+  const { useCreateShop } = useShop();
   const createShop = useCreateShop();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

@@ -1,99 +1,89 @@
 
-import { useState } from "react";
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { useSuitcases, SuitcaseFilters } from "@/hooks/useSuitcases";
-import { SuitcaseHeader } from "@/components/suitcases/components/SuitcaseHeader";
-import { SuitcaseSearchBar } from "@/components/suitcases/components/SuitcaseSearchBar";
-import { SuitcaseFilters as SuitcaseFiltersComponent } from "@/components/suitcases/components/SuitcaseFilters";
-import { SuitcaseViewToggle } from "@/components/suitcases/components/SuitcaseViewToggle";
-import { SuitcaseGrid } from "@/components/suitcases/components/SuitcaseGrid";
-import { EmptySuitcases } from "@/components/suitcases/components/EmptySuitcases";
-import { LoadingSuitcases } from "@/components/suitcases/components/LoadingSuitcases";
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { useSuitcases } from '@/hooks/useSuitcases';
+import { Plus, Loader2, Grid, List } from 'lucide-react';
+import { CreateSuitcaseDialog } from '@/components/suitcases/CreateSuitcaseDialog';
+import SuitcaseGrid from '@/components/suitcases/components/SuitcaseGrid';  // Fix this import
 
 const Suitcases = () => {
-  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string>();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [filters, setFilters] = useState<SuitcaseFilters>({
-    status: "active"
-  });
-  const { data: suitcases, isLoading, refetch } = useSuitcases(filters);
+  const { 
+    suitcases, 
+    isLoading, 
+    isError 
+  } = useSuitcases();
+  
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string>('');
 
-  const handleStatusChange = (status: string) => {
-    setFilters(prev => ({ ...prev, status: status as SuitcaseFilters['status'] }));
-    setSelectedSuitcaseId(undefined);
-  };
+  // Redirect to the detail page if a suitcase is selected
+  useEffect(() => {
+    if (selectedSuitcaseId) {
+      // Simulate navigation - in a real app, use router.push or similar
+      console.log(`Navigate to suitcase detail: ${selectedSuitcaseId}`);
+    }
+  }, [selectedSuitcaseId]);
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters(prev => ({ ...prev, search: event.target.value || undefined }));
-  };
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Chargement de vos valises...</p>
+      </div>
+    );
+  }
 
-  const clearSearch = () => {
-    setFilters(prev => ({ ...prev, search: undefined }));
-  };
-
-  const resetFilters = () => {
-    setFilters({ status: "active" });
-  };
-
-  const statusLabels = {
-    active: { label: "Actives", color: "bg-emerald-500" },
-    archived: { label: "Archivées", color: "bg-amber-500" },
-    deleted: { label: "Supprimées", color: "bg-rose-500" },
-    all: { label: "Toutes", color: "bg-blue-500" },
-  };
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <p className="text-destructive">Une erreur est survenue lors du chargement de vos valises.</p>
+        <Button variant="outline" className="mt-4">Réessayer</Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <Header />
-      <MainSidebar />
-      
-      <main className="pt-24 px-4 md:pl-72 pb-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <SuitcaseHeader onRefresh={refetch} />
-
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
-              <SuitcaseSearchBar 
-                search={filters.search || ""}
-                onSearchChange={handleSearchChange}
-                onClearSearch={clearSearch}
-              />
-              
-              <SuitcaseFiltersComponent
-                filters={filters}
-                statusLabels={statusLabels}
-                onStatusChange={handleStatusChange}
-                onClearSearch={clearSearch}
-              />
-              
-              <SuitcaseViewToggle 
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-              />
-            </div>
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Vos valises</h1>
+        <div className="flex gap-2">
+          <div className="bg-background border rounded-md p-1 flex">
+            <Button 
+              variant={viewMode === 'grid' ? "default" : "ghost"} 
+              size="icon" 
+              onClick={() => setViewMode('grid')}
+              className="h-8 w-8"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === 'list' ? "default" : "ghost"} 
+              size="icon" 
+              onClick={() => setViewMode('list')}
+              className="h-8 w-8"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
-
-          {isLoading ? (
-            <LoadingSuitcases />
-          ) : !suitcases?.length ? (
-            <EmptySuitcases 
-              filters={filters}
-              resetFilters={resetFilters}
-            />
-          ) : (
-            <SuitcaseGrid
-              suitcases={suitcases}
-              viewMode={viewMode}
-              selectedSuitcaseId={selectedSuitcaseId}
-              setSelectedSuitcaseId={setSelectedSuitcaseId}
-            />
-          )}
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Créer une valise
+          </Button>
         </div>
-      </main>
-      
-      <BottomNav />
+      </div>
+
+      <SuitcaseGrid
+        suitcases={suitcases}
+        viewMode={viewMode}
+        selectedSuitcaseId={selectedSuitcaseId}
+        setSelectedSuitcaseId={setSelectedSuitcaseId}
+      />
+
+      <CreateSuitcaseDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
     </div>
   );
 };

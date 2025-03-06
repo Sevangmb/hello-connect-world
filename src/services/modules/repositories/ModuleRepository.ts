@@ -86,15 +86,14 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use Edge Function or direct query instead of infinite type instantiation
+      // Use a simpler query to avoid infinite type instantiation
       const { data, error } = await supabase
-        .from('module_dependencies_view')
-        .select('*')
+        .from('module_dependencies')
+        .select('*, dependency:dependency_id(id, name, code, status)')
         .eq('module_id', moduleId);
 
       if (error) throw error;
       
-      // Ensure we return an array (handle the possibility of undefined or non-array)
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
@@ -164,10 +163,18 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use direct query instead of edge function to avoid infinite type instantiation
+      // Use direct query with simpler relations to avoid infinite type instantiation
       const { data, error } = await supabase
         .from('module_features')
-        .select('*, app_modules!inner(*)');
+        .select(`
+          id, 
+          feature_code, 
+          feature_name, 
+          description, 
+          is_enabled,
+          module_code, 
+          app_modules!inner(id, name, code, description, status)
+        `);
 
       if (error) throw error;
       
