@@ -1,19 +1,21 @@
 
 import React from 'react';
-import { useSuitcases } from '@/hooks/useSuitcases';
+import { useSuitcase } from '@/hooks/useSuitcase';
 import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 import { Loader2 } from 'lucide-react';
-import { useParams } from 'react-router-dom';
 
-export const SuitcaseItems = () => {
-  const { id } = useParams<{ id: string }>();
-  const { getSuitcaseById, loading: suitcaseLoading } = useSuitcases();
-  const { items, loading: itemsLoading } = useSuitcaseItems(id || '');
+interface SuitcaseItemsProps {
+  suitcaseId: string;
+  onBack?: () => void;
+}
+
+export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId, onBack }) => {
+  const { data: suitcase, isLoading: suitcaseLoading } = useSuitcase(suitcaseId);
+  const { data: suitcaseItems, isLoading: itemsLoading } = useSuitcaseItems(suitcaseId);
   
-  const suitcase = id ? getSuitcaseById(id) : null;
-  const loading = suitcaseLoading || itemsLoading;
+  const isLoading = suitcaseLoading || itemsLoading;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
         <Loader2 className="w-6 h-6 animate-spin" />
@@ -21,30 +23,44 @@ export const SuitcaseItems = () => {
     );
   }
 
-  if (!suitcase) {
+  if (!suitcaseItems?.length) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Valise introuvable
-      </div>
-    );
-  }
-
-  if (!items?.length) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Aucun vêtement dans cette valise
+        Aucun vêtement trouvé dans cette valise
       </div>
     );
   }
 
   return (
     <div>
-      {items.map((item) => (
-        <div key={item.id} className="p-3 border rounded-md mb-2">
-          <div className="font-medium">{item.clothes?.name || 'Vêtement sans nom'}</div>
-          <div className="text-sm text-gray-500">Quantité: {item.quantity}</div>
-        </div>
-      ))}
+      <h2 className="text-xl font-bold mb-4">{suitcase?.name}</h2>
+      <div className="space-y-2">
+        {suitcaseItems.map((item) => (
+          <div key={item.id} className="flex items-center justify-between p-2 bg-card rounded-md border">
+            <div className="flex items-center">
+              {item.clothes?.image_url && (
+                <img 
+                  src={item.clothes.image_url} 
+                  alt={item.clothes?.name} 
+                  className="w-10 h-10 object-cover rounded-md mr-3"
+                />
+              )}
+              <div>
+                <p className="font-medium">{item.clothes?.name || 'Vêtement inconnu'}</p>
+                <p className="text-sm text-muted-foreground">Quantité: {item.quantity}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="mt-4 px-4 py-2 text-sm bg-secondary text-secondary-foreground rounded-md"
+        >
+          Retour à la valise
+        </button>
+      )}
     </div>
   );
-};
+}

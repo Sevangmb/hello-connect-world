@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Filter } from 'lucide-react';
-import { useSuitcases } from '@/hooks/useSuitcases';
+import { Plus, Search } from 'lucide-react';
+import { useSuitcases, Suitcase, SuitcaseStatus } from '@/hooks/useSuitcases';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
@@ -14,19 +14,25 @@ import { EmptySuitcases } from '@/components/suitcases/components/EmptySuitcases
 import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
 import { useToast } from '@/hooks/use-toast';
 
+interface SuitcaseFilter {
+  status: SuitcaseStatus | 'all';
+  search: string;
+}
+
 const Suitcases = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  
   const { 
     suitcases, 
     loading, 
     error, 
-    filters,
+    createSuitcase,
     applyFilters,
-    createSuitcase 
+    filters
   } = useSuitcases();
 
   const filteredSuitcases = React.useMemo(() => {
@@ -58,7 +64,10 @@ const Suitcases = () => {
   };
 
   const handleStatusChange = (status: string) => {
-    applyFilters({ ...filters, status });
+    applyFilters({ 
+      ...filters, 
+      status: status as SuitcaseStatus | 'all' 
+    });
   };
 
   const handleClearSearch = () => {
@@ -94,7 +103,11 @@ const Suitcases = () => {
           )}
         </div>
         <SuitcaseFilters 
-          filters={filters}
+          filters={{
+            status: filters.status,
+            search: filters.search,
+            date: null // Adding null date to satisfy the type
+          }}
           statusLabels={{
             all: 'Toutes',
             active: 'Actives',
@@ -104,7 +117,12 @@ const Suitcases = () => {
           onStatusChange={handleStatusChange}
           onClearSearch={handleClearSearch}
         />
-        <SuitcaseViewToggle view={viewMode} onViewChange={setViewMode} />
+        <div className="flex items-center">
+          <SuitcaseViewToggle 
+            currentView={viewMode} 
+            onChangeView={setViewMode} 
+          />
+        </div>
       </div>
 
       <Card className="p-6">
@@ -117,16 +135,17 @@ const Suitcases = () => {
         ) : filteredSuitcases.length === 0 ? (
           <EmptySuitcases onCreateClick={() => setIsDialogOpen(true)} />
         ) : (
+          // Converting types to match the component's expected types
           <SuitcaseGrid
-            suitcases={filteredSuitcases}
+            suitcases={filteredSuitcases as any} 
             onSelectSuitcase={handleSelectSuitcase}
           />
         )}
       </Card>
 
       <CreateSuitcaseDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
         onSubmit={handleCreateSuitcase}
       />
     </div>

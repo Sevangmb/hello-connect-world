@@ -14,7 +14,6 @@ export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({
           key={suitcase.id}
           suitcase={suitcase}
           onSelect={onSelectSuitcase}
-          onClick={() => {}} // Provide an empty function to satisfy the type
         />
       ))}
     </div>

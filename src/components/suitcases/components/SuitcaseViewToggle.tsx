@@ -1,44 +1,34 @@
 
-import { Button } from "@/components/ui/button";
-import { LayoutGrid, GripVertical, CalendarDays } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Grid, List } from 'lucide-react';
 
-interface SuitcaseViewToggleProps {
-  viewMode: "grid" | "list";
-  setViewMode: (mode: "grid" | "list") => void;
+export interface SuitcaseViewToggleProps {
+  currentView: 'grid' | 'list';
+  onChangeView: (view: 'grid' | 'list') => void;
 }
 
-export const SuitcaseViewToggle = ({
-  viewMode,
-  setViewMode,
+export const SuitcaseViewToggle = ({ 
+  currentView, 
+  onChangeView 
 }: SuitcaseViewToggleProps) => {
-  const navigate = useNavigate();
-
   return (
-    <div className="flex gap-2 justify-end">
+    <div className="flex">
       <Button
-        variant={viewMode === "grid" ? "default" : "outline"}
+        variant={currentView === 'grid' ? 'default' : 'ghost'}
         size="icon"
-        onClick={() => setViewMode("grid")}
-        title="Vue en grille"
+        onClick={() => onChangeView('grid')}
+        className="rounded-r-none"
       >
-        <LayoutGrid className="h-4 w-4" />
+        <Grid className="h-4 w-4" />
       </Button>
       <Button
-        variant={viewMode === "list" ? "default" : "outline"}
+        variant={currentView === 'list' ? 'default' : 'ghost'}
         size="icon"
-        onClick={() => setViewMode("list")}
-        title="Vue en liste"
+        onClick={() => onChangeView('list')}
+        className="rounded-l-none"
       >
-        <GripVertical className="h-4 w-4" />
-      </Button>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => navigate("/suitcase-calendar")}
-        title="Vue calendrier"
-      >
-        <CalendarDays className="h-4 w-4" />
+        <List className="h-4 w-4" />
       </Button>
     </div>
   );
