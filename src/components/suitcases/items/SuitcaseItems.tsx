@@ -1,35 +1,79 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useClothes } from '@/hooks/useClothes';
-import { Loader2 } from 'lucide-react';
+import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
+import SuitcaseItemsEmpty from './SuitcaseItemsEmpty';
+import SuitcaseItemsHeader from './SuitcaseItemsHeader';
 
-export const SuitcaseItems = () => {
-  // Use the hook with properly defined filters
-  const { clothes, loading } = useClothes({});
+interface SuitcaseItemsProps {
+  suitcaseId: string;
+}
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
+export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const { clothes } = useClothes();
+  const { items, fetchItems, removeItem } = useSuitcaseItems(suitcaseId);
+  
+  useEffect(() => {
+    const loadItems = async () => {
+      setIsLoading(true);
+      await fetchItems();
+      setIsLoading(false);
+    };
+    
+    loadItems();
+  }, [suitcaseId, fetchItems]);
+  
+  const handleRemoveItem = async (itemId: string) => {
+    await removeItem(itemId);
+  };
+  
+  // If there are no items, show empty state
+  if (!isLoading && items.length === 0) {
+    return <SuitcaseItemsEmpty suitcaseId={suitcaseId} />;
   }
-
-  if (!clothes?.length) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Aucun vêtement trouvé
-      </div>
-    );
-  }
-
+  
   return (
-    <div>
-      <h2>Suitcase Items</h2>
-      <ul>
-        {clothes.map((cloth) => (
-          <li key={cloth.id}>{cloth.name}</li>
-        ))}
-      </ul>
+    <div className="space-y-3">
+      <SuitcaseItemsHeader count={items.length} isLoading={isLoading} />
+      
+      {isLoading ? (
+        <div className="animate-pulse space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-12 bg-muted rounded-md" />
+          ))}
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((item) => {
+            const clothe = clothes.find(c => c.id === item.clothes_id);
+            return clothe ? (
+              <li key={item.id} className="flex items-center justify-between p-2 border rounded-md">
+                <div className="flex items-center gap-2">
+                  {clothe.image_url && (
+                    <div className="h-8 w-8 rounded-md overflow-hidden">
+                      <img 
+                        src={clothe.image_url} 
+                        alt={clothe.name || 'Vêtement'} 
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium">{clothe.name || clothe.category}</span>
+                </div>
+                <button 
+                  onClick={() => handleRemoveItem(item.id)}
+                  className="text-xs text-red-500 hover:text-red-700"
+                >
+                  Retirer
+                </button>
+              </li>
+            ) : null;
+          })}
+        </ul>
+      )}
     </div>
   );
 };
+
+export default SuitcaseItems;

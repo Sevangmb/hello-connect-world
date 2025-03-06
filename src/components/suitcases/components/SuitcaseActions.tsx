@@ -7,9 +7,13 @@ import SuitcaseSuggestionsDialog from './SuitcaseSuggestionsDialog';
 
 interface SuitcaseActionsProps {
   suitcaseId: string;
-  onAddItems: () => void;
+  onAddItems?: () => void;
   onViewCalendar?: () => void;
   showCalendarButton?: boolean;
+  isSelected?: boolean;
+  onSelect?: (id: string | undefined) => void;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
@@ -21,7 +25,7 @@ const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
   const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
   const {
     suggestions,
-    loading: isGettingSuggestions,
+    loading,
     getSuggestions,
     addSuggestedItems,
     aiExplanation
@@ -51,9 +55,9 @@ const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
         <Button
           variant="secondary"
           onClick={handleGetSuggestions}
-          disabled={isGettingSuggestions}
+          disabled={loading}
         >
-          {isGettingSuggestions ? (
+          {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Obtention...
@@ -81,7 +85,7 @@ const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
         open={showSuggestionsDialog}
         onOpenChange={setShowSuggestionsDialog}
         suggestions={suggestions}
-        isLoading={isGettingSuggestions}
+        isLoading={loading}
         onAddSuggestions={handleAddSuggestions}
         isAdding={false}
         aiExplanation={aiExplanation}

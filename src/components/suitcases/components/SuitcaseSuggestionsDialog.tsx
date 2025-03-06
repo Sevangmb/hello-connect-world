@@ -1,18 +1,17 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
 
 interface SuitcaseSuggestionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   suggestions: any[];
   isLoading: boolean;
-  onAddSuggestions: () => void;
+  onAddSuggestions: () => Promise<void>;
   isAdding: boolean;
-  aiExplanation?: string;
+  aiExplanation: string;
   suitcaseId: string;
 }
 
@@ -24,76 +23,79 @@ const SuitcaseSuggestionsDialog: React.FC<SuitcaseSuggestionsDialogProps> = ({
   onAddSuggestions,
   isAdding,
   aiExplanation,
-  suitcaseId
+  suitcaseId,
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[80vh]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Suggestions pour votre valise</DialogTitle>
+          <DialogTitle>Suggestions de l'IA</DialogTitle>
         </DialogHeader>
         
         {isLoading ? (
-          <div className="flex justify-center items-center p-8">
-            <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="flex flex-col items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-center text-sm text-muted-foreground">
+              L'IA est en train d'analyser votre valise et de générer des suggestions...
+            </p>
           </div>
         ) : (
-          <>
+          <div className="space-y-4">
             {aiExplanation && (
-              <Card className="mb-4 bg-muted/50">
-                <CardContent className="pt-4">
-                  <p className="text-sm">{aiExplanation}</p>
-                </CardContent>
-              </Card>
+              <div className="bg-muted p-4 rounded-md text-sm">
+                <p className="font-medium mb-1">Explication:</p>
+                <p>{aiExplanation}</p>
+              </div>
             )}
             
             {suggestions.length > 0 ? (
-              <>
-                <div className="grid gap-2 mb-4">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium">
+                  {suggestions.length} vêtements suggérés:
+                </h3>
+                <ul className="space-y-1">
                   {suggestions.map((item, index) => (
-                    <Card key={index} className="p-3">
-                      <div className="flex items-center gap-3">
-                        {item.image_url && (
-                          <img 
-                            src={item.image_url} 
-                            alt={item.name} 
-                            className="w-12 h-12 object-cover rounded"
-                          />
-                        )}
-                        <div>
-                          <div className="font-medium">{item.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.category} {item.subcategory ? `- ${item.subcategory}` : ''}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
+                    <li key={item.id || index} className="text-sm flex items-center gap-2">
+                      <span className="w-4 h-4 flex items-center justify-center bg-primary/10 text-primary rounded-full text-xs">
+                        {index + 1}
+                      </span>
+                      <span>
+                        {item.name || `${item.category || 'Vêtement'} ${item.color || ''}`}
+                      </span>
+                    </li>
                   ))}
-                </div>
-                
-                <div className="flex justify-end gap-2">
-                  <Button
-                    onClick={onAddSuggestions}
-                    disabled={isAdding}
-                  >
-                    {isAdding ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Ajout en cours...
-                      </>
-                    ) : (
-                      "Ajouter ces vêtements"
-                    )}
-                  </Button>
-                </div>
-              </>
+                </ul>
+              </div>
             ) : (
-              <p className="text-center py-4 text-muted-foreground">
-                Aucune suggestion disponible pour cette valise.
+              <p className="text-center text-sm text-muted-foreground py-4">
+                Aucune suggestion n'a été trouvée pour cette valise.
               </p>
             )}
-          </>
+          </div>
         )}
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Annuler
+          </Button>
+          
+          <Button
+            onClick={onAddSuggestions}
+            disabled={isAdding || isLoading || suggestions.length === 0}
+          >
+            {isAdding ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Ajout en cours...
+              </>
+            ) : (
+              'Ajouter les suggestions'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -10,7 +10,7 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
   const [isAddingSuggestions, setIsAddingSuggestions] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<string>('');
   const { toast } = useToast();
-  const { clothes } = useClothes({ source: 'personal' });
+  const { clothes } = useClothes();
 
   const getSuggestions = async () => {
     try {
@@ -31,8 +31,9 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
           suitcaseId,
           startDate: suitcase.start_date,
           endDate: suitcase.end_date,
-          destination: suitcase.destination,
-          purpose: suitcase.purpose
+          // Only pass these if they exist
+          ...(suitcase.destination && { destination: suitcase.destination }),
+          ...(suitcase.purpose && { purpose: suitcase.purpose })
         }
       });
       

@@ -86,13 +86,16 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use the correct approach for calling an RPC function
-      const { data, error } = await supabase
-        .rpc('get_module_dependencies', { module_id_param: moduleId });
+      // Use function call with correct parameter format
+      const { data, error } = await supabase.functions.invoke(
+        'get-module-dependencies', 
+        { body: { module_id: moduleId } }
+      );
 
       if (error) throw error;
-      // Ensure we return an array (handle the possibility of undefined)
-      return data || [];
+      
+      // Ensure we return an array (handle the possibility of undefined or non-array)
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
       return [];
@@ -161,13 +164,15 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use the correct approach for calling an RPC function
-      const { data, error } = await supabase
-        .rpc('get_modules_with_features');
+      // Use functions.invoke instead of rpc
+      const { data, error } = await supabase.functions.invoke(
+        'get-modules-with-features'
+      );
 
       if (error) throw error;
-      // Ensure we return an array (handle the possibility of undefined)
-      return data || [];
+      
+      // Ensure we return an array
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];
