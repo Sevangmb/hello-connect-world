@@ -197,8 +197,12 @@ export const useUserOrders = (userId?: string, status?: OrderStatus) => {
     queryKey: ['user-orders', userId, status],
     queryFn: async () => {
       if (!userId) return [];
-      // Use getOrdersByUserId instead of getUserOrders
-      return await shopService.getOrdersByUserId(userId, status);
+      try {
+        return await shopService.getOrdersByUserId(userId, status);
+      } catch (error) {
+        handleServiceError(error, `Failed to fetch orders for user ID ${userId}`);
+        return [];
+      }
     },
     enabled: !!userId
   });

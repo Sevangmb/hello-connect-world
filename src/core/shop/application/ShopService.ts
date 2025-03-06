@@ -1,4 +1,3 @@
-
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
 import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, PaymentStatus } from '../domain/types';
 
@@ -86,8 +85,7 @@ export class ShopService {
   }
 
   async getOrdersByUserId(userId: string, status?: OrderStatus): Promise<Order[]> {
-    // Use this method instead of getUserOrders
-    return this.shopRepository.getUserOrders(userId, status);
+    return this.shopRepository.getOrdersByUserId(userId, status);
   }
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
@@ -111,7 +109,6 @@ export class ShopService {
   }
 
   async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
-    // We can reuse toggle as it will handle removal if already favorited
     return this.shopRepository.toggleShopFavorite(shopId, userId);
   }
 

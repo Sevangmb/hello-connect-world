@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -86,40 +85,36 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Improved approach to avoid type instantiation depth errors
+      // Fetch dependencies without nesting to avoid type instantiation depth errors
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
-        .select('id, module_id, dependency_id, is_required');
+        .select('id, module_id, dependency_id, is_required')
+        .eq('module_id', moduleId);
 
       if (error) throw error;
       
-      // Filter dependencies manually
-      const filteredData = dependencyRecords.filter(dep => dep.module_id === moduleId);
-      
-      // Build a simpler query for dependency modules to avoid nesting issues
+      // Build dependencies array with separate queries to avoid nesting
       const dependencies = [];
       
-      // Get info for each dependency
-      for (const dep of filteredData) {
-        try {
-          const { data: moduleInfo } = await supabase
-            .from('app_modules')
-            .select('id, name, code, status')
-            .eq('id', dep.dependency_id)
-            .single();
-            
-          if (moduleInfo) {
-            dependencies.push({
-              id: dep.id,
-              module_id: dep.module_id,
-              dependency_id: dep.dependency_id,
-              is_required: dep.is_required,
-              dependency: moduleInfo
-            });
-          }
-        } catch (err) {
-          console.error(`Error fetching dependency module ${dep.dependency_id}:`, err);
+      for (const dep of dependencyRecords) {
+        const { data: moduleInfo, error: moduleError } = await supabase
+          .from('app_modules')
+          .select('id, name, code, status')
+          .eq('id', dep.dependency_id)
+          .single();
+          
+        if (moduleError) {
+          console.error(`Error fetching dependency module ${dep.dependency_id}:`, moduleError);
+          continue;
         }
+        
+        dependencies.push({
+          id: dep.id,
+          module_id: dep.module_id,
+          dependency_id: dep.dependency_id,
+          is_required: dep.is_required,
+          dependency: moduleInfo
+        });
       }
       
       return dependencies;
