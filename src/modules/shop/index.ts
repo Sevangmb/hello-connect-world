@@ -1,5 +1,8 @@
 
-import { ShopItems } from '@/components/shop/ShopItems';
-import { ShopItemCard } from '@/components/shop/components/ShopItemCard';
+// Use correct import statement
+import { default as ShopItems } from "@/components/shop/ShopItems";
 
-export { ShopItems, ShopItemCard };
+// Export components
+export {
+  ShopItems
+};

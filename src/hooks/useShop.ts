@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { useAuth } from '@/core/auth/infrastructure/AuthProvider';
 
 export const useShop = () => {
   const shopService = getShopService();
@@ -19,11 +20,16 @@ export const useShop = () => {
 
   // Get shop by user ID (current user's shop)
   const useUserShop = () => {
+    const { user } = useAuth();
+    
     return useQuery({
-      queryKey: ['user', 'shop'],
+      queryKey: ['user-shop'],
       queryFn: async () => {
-        return await shopService.getUserShop();
-      }
+        if (!user) throw new Error('User not authenticated');
+        const shop = await shopService.getShopByUserId(user.id);
+        return shop;
+      },
+      enabled: !!user
     });
   };
 
@@ -83,8 +89,6 @@ export const useShop = () => {
         return await shopService.updateShopItem(itemId, data);
       },
       onSuccess: (_, variables) => {
-        // We need to invalidate the shop items query, but we don't have the shop ID here
-        // So we invalidate all shop items queries
         queryClient.invalidateQueries({ queryKey: ['shop', 'items'] });
       }
     });
@@ -110,7 +114,6 @@ export const useShop = () => {
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop', 'reviews', variables.shop_id] });
-        // Also invalidate the shop query to update the average rating
         queryClient.invalidateQueries({ queryKey: ['shop', variables.shop_id] });
       }
     });
@@ -122,7 +125,6 @@ export const useShop = () => {
       queryKey: ['shop', 'orders', shopId],
       queryFn: async () => {
         try {
-          // Implement getOrders in ShopService if needed
           return await shopService.getOrdersByShop(shopId);
         } catch (error) {
           console.error('Error fetching shop orders:', error);
@@ -138,7 +140,6 @@ export const useShop = () => {
       queryKey: ['customer', 'orders', customerId],
       queryFn: async () => {
         try {
-          // Implement getOrdersByCustomer in ShopService if needed
           return await shopService.getOrdersByCustomer(customerId);
         } catch (error) {
           console.error('Error fetching customer orders:', error);
@@ -163,15 +164,14 @@ export const useShop = () => {
 
   // Update order status
   const useUpdateOrderStatus = () => {
+    const queryClient = useQueryClient();
+    
     return useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-        return await shopService.updateOrderStatus(orderId, status);
+      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+        return await shopService.updateOrderStatus(orderId, status as OrderStatus);
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
-        // Also invalidate shop orders and customer orders
-        queryClient.invalidateQueries({ queryKey: ['shop', 'orders'] });
-        queryClient.invalidateQueries({ queryKey: ['customer', 'orders'] });
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
       }
     });
   };
@@ -183,7 +183,6 @@ export const useShop = () => {
       queryFn: async () => {
         if (!shopId) return false;
         try {
-          // Implement isShopFavorited in ShopService if needed
           return await shopService.isShopFavorited(shopId);
         } catch (error) {
           console.error('Error checking if shop is favorited:', error);
@@ -199,10 +198,8 @@ export const useShop = () => {
       mutationFn: async (shopId: string) => {
         const isFavorited = await shopService.isShopFavorited(shopId);
         if (isFavorited) {
-          // Implement removeShopFromFavorites in ShopService if needed
           return await shopService.removeShopFromFavorites(shopId);
         } else {
-          // Implement addShopToFavorites in ShopService if needed
           return await shopService.addShopToFavorites(shopId);
         }
       },
@@ -218,7 +215,6 @@ export const useShop = () => {
       queryKey: ['favorite', 'shops'],
       queryFn: async () => {
         try {
-          // Implement getFavoriteShops in ShopService if needed
           return await shopService.getFavoriteShops();
         } catch (error) {
           console.error('Error fetching favorite shops:', error);

@@ -15,7 +15,7 @@ export const useModuleApiCore = () => {
   const [loading, setLoading] = useState(true);
   const [internalModules, setInternalModules] = useState<AppModule[]>([]);
   const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
-  const { sortModulesByPriority } = useModulePriority();
+  const modulePriority = useModulePriority();
   
   // Fetch modules and features
   const { 
@@ -55,8 +55,7 @@ export const useModuleApiCore = () => {
   ) => {
     try {
       // Call feature status update
-      // This is a simplified implementation
-      console.log(`Updating feature ${featureCode} for module ${moduleCode} to ${isEnabled}`);
+      await updateFeatureStatusAsync(moduleCode, featureCode, isEnabled);
       
       // Update local state
       setFeatures(prev => ({
@@ -102,9 +101,9 @@ export const useModuleApiCore = () => {
   // Update internal state when modules or features change
   useEffect(() => {
     if (modules && modules.length > 0) {
-      setInternalModules(sortModulesByPriority(modules));
+      setInternalModules(modulePriority.sortModulesByPriority ? modulePriority.sortModulesByPriority(modules) : modules);
     }
-  }, [modules, sortModulesByPriority]);
+  }, [modules, modulePriority]);
   
   useEffect(() => {
     if (featuresData) {
@@ -126,13 +125,7 @@ export const useModuleApiCore = () => {
     isInitialized,
     updateModuleStatus,
     updateFeatureStatus,
-    refreshModules: () => {
-      queryClient.invalidateQueries({ queryKey: ['modules'] });
-      queryClient.invalidateQueries({ queryKey: ['module-features'] });
-      return refreshModules();
-    },
-    refreshFeatures: () => {
-      return refreshFeatures();
-    }
+    refreshModules,
+    refreshFeatures
   };
 };

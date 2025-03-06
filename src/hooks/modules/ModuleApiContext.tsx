@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useModuleApiCore } from './hooks/useModuleApiCore';
 import { ModuleStatus, AppModule } from './types';
@@ -82,8 +81,20 @@ export const ModuleApiProvider = ({ children }: ModuleApiProviderProps) => {
     getFeatureEnabledStatus: (moduleCode: string, featureCode: string) => {
       return moduleApiCore.features?.[moduleCode]?.[featureCode] || false;
     },
-    refreshModules: moduleApiCore.refreshModules || (async () => []),
-    refreshFeatures: async () => moduleApiCore.features || {}
+    refreshModules: async (force?: boolean) => {
+      const result = await moduleApiCore.refreshModules();
+      return result.data || [];
+    },
+    refreshFeatures: async (force?: boolean) => {
+      const result = await moduleApiCore.refreshFeatures();
+      return result.data || {};
+    },
+    updateModuleStatus: moduleApiCore.updateModuleStatus,
+    updateFeatureStatus: moduleApiCore.updateFeatureStatus,
+    loading: moduleApiCore.loading,
+    error: moduleApiCore.error,
+    isInitialized: moduleApiCore.isInitialized,
+    modules: moduleApiCore.modules
   };
   
   return (

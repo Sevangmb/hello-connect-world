@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
-import { moduleInitializer } from '@/services/modules/ModuleInitializer';
+import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AppInitializerProps {
@@ -11,6 +11,7 @@ interface AppInitializerProps {
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const moduleInitializer = new ModuleInitializer();
 
   useEffect(() => {
     const initializeApp = async () => {
