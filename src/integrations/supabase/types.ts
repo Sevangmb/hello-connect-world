@@ -81,6 +81,7 @@ export type Database = {
           id: string
           quantity: number
           shop_item_id: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -88,6 +89,7 @@ export type Database = {
           id?: string
           quantity?: number
           shop_item_id: string
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -95,6 +97,7 @@ export type Database = {
           id?: string
           quantity?: number
           shop_item_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -1355,6 +1358,45 @@ export type Database = {
           },
         ]
       }
+      outfit_items: {
+        Row: {
+          clothes_id: string
+          created_at: string
+          id: string
+          outfit_id: string
+          position: number
+        }
+        Insert: {
+          clothes_id: string
+          created_at?: string
+          id?: string
+          outfit_id: string
+          position?: number
+        }
+        Update: {
+          clothes_id?: string
+          created_at?: string
+          id?: string
+          outfit_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_items_clothes_id_fkey"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outfit_items_outfit_id_fkey"
+            columns: ["outfit_id"]
+            isOneToOne: false
+            referencedRelation: "outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outfit_likes: {
         Row: {
           created_at: string
@@ -1464,33 +1506,51 @@ export type Database = {
       outfits: {
         Row: {
           bottom_id: string | null
+          category: string
+          comments_count: number
           created_at: string
           description: string | null
           id: string
+          is_favorite: boolean
+          likes_count: number
           name: string
+          season: string
           shoes_id: string | null
+          status: string
           top_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           bottom_id?: string | null
+          category?: string
+          comments_count?: number
           created_at?: string
           description?: string | null
           id?: string
+          is_favorite?: boolean
+          likes_count?: number
           name: string
+          season?: string
           shoes_id?: string | null
+          status?: string
           top_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           bottom_id?: string | null
+          category?: string
+          comments_count?: number
           created_at?: string
           description?: string | null
           id?: string
+          is_favorite?: boolean
+          likes_count?: number
           name?: string
+          season?: string
           shoes_id?: string | null
+          status?: string
           top_id?: string | null
           updated_at?: string
           user_id?: string
@@ -2829,6 +2889,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      decrement_outfit_likes: {
+        Args: {
+          outfit_id: string
+        }
+        Returns: undefined
+      }
       delete_suitcase_items: {
         Args: {
           suitcase_id_param: string
@@ -2844,6 +2910,12 @@ export type Database = {
       increment_module_usage: {
         Args: {
           module_code: string
+        }
+        Returns: undefined
+      }
+      increment_outfit_likes: {
+        Args: {
+          outfit_id: string
         }
         Returns: undefined
       }

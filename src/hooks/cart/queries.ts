@@ -12,44 +12,43 @@ export const useCartQuery = (userId: string | null) => {
       const { data, error } = await supabase
         .from('cart_items')
         .select(`
-          id,
-          quantity,
+          *,
           shop_items (
             id,
             name,
-            description,
             price,
             image_url,
-            stock,
             shop_id
+          ),
+          shop: shop_items (
+            id,
+            name
           )
         `)
         .eq('user_id', userId);
       
       if (error) {
-        console.error('Erreur lors de la récupération du panier:', error);
+        console.error('Error fetching cart:', error);
         throw error;
       }
       
-      // Transformer les données pour correspondre au type CartItem
-      return (data as any[]).map(item => ({
+      return data.map(item => ({
         id: item.id,
         user_id: userId,
-        shop_id: item.shop_items.shop_id,
-        item_id: item.shop_items.id,
+        shop_id: item.shop_items?.shop_id,
+        shop_item_id: item.shop_items?.id,
         quantity: item.quantity,
-        created_at: item.created_at || new Date().toISOString(),
-        updated_at: item.updated_at || new Date().toISOString(),
+        created_at: item.created_at,
+        updated_at: item.updated_at,
         shop_items: {
-          id: item.shop_items.id,
-          name: item.shop_items.name,
-          price: item.shop_items.price,
-          image_url: item.shop_items.image_url,
-          shop_id: item.shop_items.shop_id
+          id: item.shop_items?.id,
+          name: item.shop_items?.name,
+          price: item.shop_items?.price,
+          image_url: item.shop_items?.image_url
         },
         shop: {
-          id: item.shop_items.shop_id,
-          name: ""  // Ce champ sera rempli ultérieurement si nécessaire
+          id: item.shop_items?.shop_id,
+          name: item.shop?.name || ""
         }
       })) as CartItem[];
     },
