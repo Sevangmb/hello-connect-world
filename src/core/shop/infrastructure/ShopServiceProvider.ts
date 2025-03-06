@@ -1,17 +1,12 @@
 
 import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-// Singleton instance
 let shopServiceInstance: ShopService | null = null;
 
-// Create and export the shop repository instance
-export const shopRepository: IShopRepository = new ShopRepository();
-
-// Get shop service instance or create one if it doesn't exist
-export const getShopService = (): ShopService => {
+export const getShopServiceInstance = (): ShopService => {
   if (!shopServiceInstance) {
+    const shopRepository = new ShopRepository();
     shopServiceInstance = new ShopService(shopRepository);
   }
   return shopServiceInstance;

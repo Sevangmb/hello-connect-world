@@ -1,148 +1,122 @@
 
 import { ModuleService } from '@/services/modules/ModuleService';
-import { ShopService } from '@/core/shop/application/ShopService';
-import { ShopRepository } from '@/core/shop/infrastructure/ShopRepository';
+import { getShopServiceInstance } from '@/core/shop/infrastructure/ShopServiceProvider';
 import { 
-  Shop, 
-  ShopItem, 
-  ShopReview, 
-  Order, 
-  ShopItemStatus, 
-  ShopStatus,
-  PaymentMethod,
-  OrderStatus,
-  PaymentStatus
+  Shop, ShopItem, ShopStatus, ShopItemStatus, 
+  Order, OrderStatus, PaymentStatus, ShopReview
 } from '@/core/shop/domain/types';
 
 export class ShopApiGateway {
-  private shopService: ShopService;
+  private moduleService: ModuleService;
+  private shopService: any; // Nous utilisons any temporairement pour éviter les erreurs de type
 
   constructor() {
-    const shopRepository = new ShopRepository();
-    this.shopService = new ShopService(shopRepository);
+    this.moduleService = new ModuleService();
+    this.shopService = getShopServiceInstance();
   }
 
-  async getShopById(shopId: string): Promise<Shop | null> {
-    return this.shopService.getShopById(shopId);
+  // Get a shop by ID
+  async getShopById(id: string): Promise<Shop | null> {
+    return this.shopService.getShopById(id);
   }
 
+  // Get a shop by user ID
   async getUserShop(userId: string): Promise<Shop | null> {
-    return this.shopService.getUserShop(userId);
+    return this.shopService.getShopByUserId(userId);
   }
 
+  // Get all shops
   async getShops(): Promise<Shop[]> {
-    if (typeof this.shopService.getShops === 'function') {
-      return this.shopService.getShops();
-    }
-    return [];
+    return this.shopService.getAllShops();
   }
 
+  // Create a new shop
+  async createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop | null> {
+    return this.shopService.createShop(shop);
+  }
+
+  // Update a shop
+  async updateShop(id: string, shop: Partial<Shop>): Promise<Shop | null> {
+    return this.shopService.updateShop(id, shop);
+  }
+
+  // Get shops by status
   async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
-    if (typeof this.shopService.getShopsByStatus === 'function') {
-      return this.shopService.getShopsByStatus(status);
-    }
-    return [];
+    return this.shopService.getShopsByStatus(status);
   }
 
-  async createShop(userId: string, shop: Partial<Shop>): Promise<Shop | null> {
-    return this.shopService.createShop(userId, shop);
+  // Add items to a shop
+  async createShopItem(shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<ShopItem[]> {
+    return this.shopService.addShopItems(shopId, items);
   }
 
-  async updateShop(id: string, data: Partial<Shop>): Promise<Shop | null> {
-    return this.shopService.updateShop(id, data);
+  // Get shop items
+  async getShopItemsById(shopId: string): Promise<ShopItem[]> {
+    return this.shopService.getShopItems(shopId);
   }
 
-  async updateShopItemStatus(itemId: string, status: ShopItemStatus): Promise<boolean> {
-    if (typeof this.shopService.updateShopItemStatus === 'function') {
-      return this.shopService.updateShopItemStatus(itemId, status);
-    }
-    return false;
+  // Update shop item
+  async updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem | null> {
+    return this.shopService.updateShopItem(id, item);
   }
 
+  // Update shop item status
+  async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<ShopItem | null> {
+    return this.shopService.updateShopItemStatus(id, status);
+  }
+
+  // Get shop item by ID
+  async getShopItemById(id: string): Promise<ShopItem | null> {
+    return this.shopService.getShopItemById(id);
+  }
+
+  // Get shop reviews
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    if (typeof this.shopService.getShopReviews === 'function') {
-      return this.shopService.getShopReviews(shopId);
-    }
-    return [];
+    return this.shopService.getShopReviews(shopId);
   }
 
-  async createReview(userId: string, shopId: string, review: Partial<ShopReview>): Promise<ShopReview | null> {
-    if (typeof this.shopService.createShopReview === 'function') {
-      return this.shopService.createShopReview(userId, shopId, review);
-    }
-    return null;
+  // Add a review to a shop
+  async addShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview | null> {
+    return this.shopService.createShopReview(review);
   }
 
-  async getOrdersByShop(shopId: string): Promise<Order[]> {
-    if (typeof this.shopService.getOrdersByShop === 'function') {
-      return this.shopService.getOrdersByShop(shopId);
-    }
-    return [];
+  // Get orders for a shop
+  async getOrdersForShop(shopId: string): Promise<Order[]> {
+    return this.shopService.getOrdersByShop(shopId);
   }
 
-  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    if (typeof this.shopService.getOrdersByCustomer === 'function') {
-      return this.shopService.getOrdersByCustomer(customerId);
-    }
-    return [];
+  // Get orders for a customer
+  async getOrdersForCustomer(customerId: string): Promise<Order[]> {
+    return this.shopService.getOrdersByCustomer(customerId);
   }
 
-  async getOrderById(orderId: string): Promise<Order | null> {
-    if (typeof this.shopService.getOrderById === 'function') {
-      return this.shopService.getOrderById(orderId);
-    }
-    return null;
+  // Get an order by ID
+  async getOrderById(id: string): Promise<Order | null> {
+    return this.shopService.getOrderById(id);
   }
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
-    if (typeof this.shopService.updateOrderStatus === 'function') {
-      return this.shopService.updateOrderStatus(orderId, status);
-    }
-    return false;
+  // Update order status
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null> {
+    return this.shopService.updateOrderStatus(id, status);
   }
 
-  async getShopSettings(shopId: string): Promise<any> {
-    if (typeof this.shopService.getShopSettings === 'function') {
-      return this.shopService.getShopSettings(shopId);
-    }
-    return null;
-  }
-
-  async updateShopSettings(shopId: string, settings: any): Promise<boolean> {
-    if (typeof this.shopService.updateShopSettings === 'function') {
-      return this.shopService.updateShopSettings(shopId, settings);
-    }
-    return false;
-  }
-
-  async getFavoriteShops(userId: string): Promise<Shop[]> {
-    if (typeof this.shopService.getFavoriteShops === 'function') {
-      return this.shopService.getFavoriteShops(userId);
-    }
-    return [];
-  }
-
+  // Check if a user has favorited a shop
   async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
-    if (typeof this.shopService.isShopFavorited === 'function') {
-      return this.shopService.isShopFavorited(userId, shopId);
-    }
-    return false;
+    return this.shopService.isShopFavorited(userId, shopId);
   }
 
+  // Add a shop to favorites
   async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
-    if (typeof this.shopService.addShopToFavorites === 'function') {
-      return this.shopService.addShopToFavorites(userId, shopId);
-    }
-    return false;
+    return this.shopService.addShopToFavorites(userId, shopId);
   }
 
+  // Remove a shop from favorites
   async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
-    if (typeof this.shopService.removeShopFromFavorites === 'function') {
-      return this.shopService.removeShopFromFavorites(userId, shopId);
-    }
-    return false;
+    return this.shopService.removeShopFromFavorites(userId, shopId);
+  }
+
+  // Get user's favorite shops
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
+    return this.shopService.getFavoriteShops(userId);
   }
 }
-
-// Export a singleton instance
-export const shopApiGateway = new ShopApiGateway();

@@ -1,99 +1,137 @@
 
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { AddItemForm } from './AddItemForm';
 import { ShopItemsList } from './ShopItemsList';
 import { ShopOrdersList } from './ShopOrdersList';
-import ShopReviewsList from './ShopReviewsList';
-import { AddItemForm } from './AddItemForm';
+import { ShopReviewsList } from './ShopReviewsList';
+import { ShopSettings } from './ShopSettings';
 import { useShop } from '@/hooks/useShop';
 
-export default function ShopDashboard() {
+export function ShopDashboard() {
   const { toast } = useToast();
   const { useUserShop } = useShop();
   const { data: shop, isLoading, error } = useUserShop();
-  
-  const [activeTab, setActiveTab] = useState('items');
-  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [isAddingItem, setIsAddingItem] = useState(false);
 
   if (isLoading) {
-    return <div>Loading shop information...</div>;
+    return <div className="flex justify-center p-8">Chargement de votre boutique...</div>;
   }
 
   if (error) {
-    return <div>Error loading shop: {error.message}</div>;
+    return (
+      <Alert variant="destructive" className="my-4">
+        <AlertTitle>Erreur</AlertTitle>
+        <AlertDescription>
+          Impossible de charger les informations de votre boutique.
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   if (!shop) {
     return (
-      <div className="max-w-4xl mx-auto p-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>No Shop Found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>You don't have a shop yet. Create one to start selling.</p>
-            <Button className="mt-4">Create Shop</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Alert variant="default" className="my-4">
+        <AlertTitle>Aucune boutique</AlertTitle>
+        <AlertDescription>
+          Vous n'avez pas encore de boutique. Créez-en une pour commencer à vendre.
+        </AlertDescription>
+      </Alert>
     );
   }
 
+  const handleTabChange = (index: number) => {
+    setActiveTab(index);
+  };
+
+  const handleAddItemClick = () => {
+    setIsAddingItem(true);
+  };
+
+  const handleAddItemSuccess = () => {
+    setIsAddingItem(false);
+    toast({
+      title: "Succès",
+      description: "Votre article a été ajouté avec succès.",
+    });
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">{shop.name} Dashboard</h1>
-        <p className="text-muted-foreground">{shop.description}</p>
-      </header>
+    <div className="container mx-auto p-4">
+      <Card className="w-full mb-6">
+        <CardHeader>
+          <CardTitle>{shop.name}</CardTitle>
+          <CardDescription>{shop.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm font-medium">Adresse</p>
+              <p className="text-sm text-muted-foreground">{shop.address || 'Non renseignée'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Téléphone</p>
+              <p className="text-sm text-muted-foreground">{shop.phone || 'Non renseigné'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Site web</p>
+              <p className="text-sm text-muted-foreground">{shop.website || 'Non renseigné'}</p>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <div className="flex gap-2">
+            <Button onClick={() => handleTabChange(4)}>Gérer la boutique</Button>
+            <Button onClick={handleAddItemClick} variant="outline">Ajouter un article</Button>
+          </div>
+        </CardFooter>
+      </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="items">Items</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-          
-          {activeTab === 'items' && (
-            <Button onClick={() => setIsAddItemDialogOpen(true)}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add New Item
-            </Button>
-          )}
-        </div>
+      {isAddingItem && (
+        <Card className="w-full mb-6">
+          <CardHeader>
+            <CardTitle>Ajouter un nouvel article</CardTitle>
+            <CardDescription>Remplissez les informations pour ajouter un nouvel article à votre boutique.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AddItemForm shop={shop} onSuccess={handleAddItemSuccess} />
+          </CardContent>
+          <CardFooter>
+            <Button variant="ghost" onClick={() => setIsAddingItem(false)}>Annuler</Button>
+          </CardFooter>
+        </Card>
+      )}
 
-        <TabsContent value="items">
+      <Tabs selectedIndex={activeTab} onSelect={handleTabChange}>
+        <TabList className="flex border-b mb-4">
+          <Tab className="px-4 py-2 cursor-pointer" selectedClassName="border-b-2 border-primary">Articles</Tab>
+          <Tab className="px-4 py-2 cursor-pointer" selectedClassName="border-b-2 border-primary">Commandes</Tab>
+          <Tab className="px-4 py-2 cursor-pointer" selectedClassName="border-b-2 border-primary">Avis</Tab>
+          <Tab className="px-4 py-2 cursor-pointer" selectedClassName="border-b-2 border-primary">Ventes</Tab>
+          <Tab className="px-4 py-2 cursor-pointer" selectedClassName="border-b-2 border-primary">Paramètres</Tab>
+        </TabList>
+
+        <TabPanel>
           <ShopItemsList shopId={shop.id} />
-        </TabsContent>
-        
-        <TabsContent value="orders">
+        </TabPanel>
+        <TabPanel>
           <ShopOrdersList shopId={shop.id} />
-        </TabsContent>
-        
-        <TabsContent value="reviews">
+        </TabPanel>
+        <TabPanel>
           <ShopReviewsList shopId={shop.id} />
-        </TabsContent>
+        </TabPanel>
+        <TabPanel>
+          <div>Rapport des ventes</div>
+        </TabPanel>
+        <TabPanel>
+          <ShopSettings />
+        </TabPanel>
       </Tabs>
-
-      <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <AddItemForm 
-            shopId={shop.id} 
-            onSuccess={() => {
-              setIsAddItemDialogOpen(false);
-              toast({
-                title: "Item Added",
-                description: "Your item has been added to your shop.",
-              });
-            }} 
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

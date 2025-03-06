@@ -3,38 +3,28 @@ import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
 import { eventBus } from '@/core/event-bus/EventBus';
 
 /**
- * Initializes the application
+ * Initialise les services de l'application
  */
 export class AppInitializer {
-  private moduleInitializer: ModuleInitializer;
+  private moduleInitializer = new ModuleInitializer();
 
-  constructor() {
-    // Initialize event bus
-    this.moduleInitializer = new ModuleInitializer();
+  async initialize() {
+    console.log('Initialisation de l\'application...');
+    
+    // Initialiser les modules
+    await this.initializeModules();
+    
+    // Publier un événement d'initialisation terminée
+    eventBus.publish('app:initialized', {
+      timestamp: Date.now()
+    });
+    
+    console.log('Initialisation de l\'application terminée');
   }
 
-  /**
-   * Initialize the application
-   * This is called at startup
-   */
-  async initialize(): Promise<void> {
-    console.log('Initializing application...');
-    try {
-      // Initialize modules
-      await this.initializeModules();
-      
-      console.log('Application initialized successfully');
-    } catch (error) {
-      console.error('Error initializing application:', error);
-    }
-  }
-
-  /**
-   * Initialize all modules
-   */
-  private async initializeModules(): Promise<void> {
-    console.log('Initializing modules...');
-    const modules = await this.moduleInitializer.initializeModules();
-    console.log(`Initialized ${modules.length} modules`);
+  private async initializeModules() {
+    console.log('Initialisation des modules...');
+    await this.moduleInitializer.initialize();
+    console.log('Modules initialisés avec succès');
   }
 }

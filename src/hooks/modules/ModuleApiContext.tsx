@@ -30,7 +30,7 @@ export function useModuleApi() {
   return useContext(ModuleApiContext);
 }
 
-// Alias for backward compatibility
+// Alias for backward compatibility - export both to support existing code
 export const useModuleApiContext = useModuleApi;
 
 // Function to fetch all modules

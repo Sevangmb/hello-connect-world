@@ -1,246 +1,325 @@
-import { useState, useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { shopApiGateway } from '@/services/api-gateway/ShopApiGateway';
-import { Shop, ShopItem, Order, ShopStatus, OrderStatus, PaymentStatus } from '@/core/shop/domain/types';
-import { useAuth } from './useAuth';
+
+import { useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from './use-toast';
+import { Shop, ShopItem, ShopItemStatus, Order, OrderStatus } from '@/core/shop/domain/types';
+import { ShopApiGateway } from '@/services/api-gateway/ShopApiGateway';
+import { useAuth } from '@/modules/auth/hooks/useAuth';
 
 export const useShop = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { auth } = useAuth();
-  
-  const getCurrentUserId = useCallback(() => {
-    return auth?.user?.id || '';
-  }, [auth?.user?.id]);
+  const shopApiGateway = useMemo(() => new ShopApiGateway(), []);
 
-  // Get shop by ID
+  // Hook pour récupérer la boutique d'un utilisateur
+  const useUserShop = () => {
+    return useQuery({
+      queryKey: ['userShop', user?.id],
+      queryFn: async () => {
+        if (!user?.id) return null;
+        try {
+          return await shopApiGateway.getUserShop(user.id);
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de récupérer les informations de votre boutique",
+          });
+          throw error;
+        }
+      },
+      enabled: !!user?.id,
+    });
+  };
+
+  // Hook pour récupérer une boutique par son ID
   const useShopById = (shopId?: string) => {
     return useQuery({
       queryKey: ['shop', shopId],
       queryFn: async () => {
-        if (!shopId) return null;
-        return shopApiGateway.getShopById(shopId);
+        if (!shopId) throw new Error('ID de boutique non fourni');
+        try {
+          return await shopApiGateway.getShopById(shopId);
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de récupérer les informations de la boutique",
+          });
+          throw error;
+        }
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
-  
-  // Get current user's shop
-  const useUserShop = () => {
-    return useQuery({
-      queryKey: ['user-shop', getCurrentUserId()],
-      queryFn: async () => {
-        if (!getCurrentUserId()) return null;
-        return shopApiGateway.getShopByUserId(getCurrentUserId());
-      },
-      enabled: !!getCurrentUserId()
-    });
-  };
-  
-  // Get shops by status
-  const useShopsByStatus = (status: ShopStatus) => {
-    return useQuery({
-      queryKey: ['shops', 'status', status],
-      queryFn: () => shopApiGateway.getShopsByStatus(status)
-    });
-  };
-  
-  // Create a new shop
+
+  // Mutation pour créer une boutique
   const useCreateShop = () => {
     return useMutation({
-      mutationFn: async (shopData: Omit<Shop, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'average_rating'>) => {
-        if (!getCurrentUserId()) throw new Error('User not authenticated');
-        return shopApiGateway.createShop({
-          ...shopData,
-          user_id: getCurrentUserId(),
-          average_rating: 0
-        });
+      mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => {
+        if (!user?.id) throw new Error('Utilisateur non connecté');
+        return await shopApiGateway.createShop({ ...shopData, user_id: user.id });
       },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
-        queryClient.invalidateQueries({ queryKey: ['shops'] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['userShop'] });
+          toast({
+            title: "Succès",
+            description: "Votre boutique a été créée avec succès",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible de créer votre boutique",
+          });
+        }
       }
     });
   };
-  
-  // Update an existing shop
-  const useUpdateShop = () => {
-    return useMutation({
-      mutationFn: async ({ id, data }: { id: string; data: Partial<Shop> }) => {
-        return shopApiGateway.updateShop(id, data);
-      },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', variables.id] });
-        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
-        queryClient.invalidateQueries({ queryKey: ['shops'] });
-      }
-    });
-  };
-  
-  // Add shop items
+
+  // Mutation pour ajouter des articles à une boutique
   const useAddShopItems = () => {
     return useMutation({
-      mutationFn: async ({ shopId, items }: { shopId: string; items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[] }) => {
-        return shopApiGateway.addShopItems(shopId, items);
+      mutationFn: async ({ shopId, items }: { shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[] }) => {
+        return await shopApiGateway.createShopItem(shopId, items);
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shopId] });
+      meta: {
+        onSuccess: (_, variables) => {
+          queryClient.invalidateQueries({ queryKey: ['shopItems', variables.shopId] });
+          toast({
+            title: "Succès",
+            description: "Articles ajoutés avec succès",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible d'ajouter les articles",
+          });
+        }
       }
     });
   };
-  
-  // Update shop item
+
+  // Mutation pour mettre à jour un article
   const useUpdateShopItem = () => {
     return useMutation({
-      mutationFn: async ({ itemId, data }: { itemId: string; data: Partial<ShopItem> }) => {
-        return shopApiGateway.updateShopItem(itemId, data);
+      mutationFn: async ({ id, data }: { id: string, data: Partial<ShopItem> }) => {
+        return await shopApiGateway.updateShop(id, data);
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop-item', variables.itemId] });
-        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['shopItems'] });
+          toast({
+            title: "Succès",
+            description: "Article mis à jour avec succès",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible de mettre à jour l'article",
+          });
+        }
       }
     });
   };
-  
-  // Update shop item status
+
+  // Mutation pour mettre à jour le statut d'un article
   const useUpdateShopItemStatus = () => {
     return useMutation({
-      mutationFn: async ({ itemId, status }: { itemId: string; status: ShopItemStatus }) => {
-        return shopApiGateway.updateShopItemStatus(itemId, status);
+      mutationFn: async ({ id, status }: { id: string, status: ShopItemStatus }) => {
+        return await shopApiGateway.updateShopItemStatus(id, status);
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop-item', variables.itemId] });
-        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['shopItems'] });
+          toast({
+            title: "Succès",
+            description: "Statut de l'article mis à jour",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible de mettre à jour le statut",
+          });
+        }
       }
     });
   };
-  
-  // Get shop items for a shop
+
+  // Hook pour récupérer les articles d'une boutique
   const useShopItems = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shop-items', shopId],
+      queryKey: ['shopItems', shopId],
       queryFn: async () => {
-        if (!shopId) return [];
-        return shopApiGateway.getShopItems(shopId);
+        if (!shopId) throw new Error('ID de boutique non fourni');
+        return await shopApiGateway.getShopItemsById(shopId);
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
-  
-  // Get a specific shop item
-  const useShopItem = (itemId?: string) => {
+
+  // Hook pour récupérer un article par son ID
+  const useShopItemById = (itemId?: string) => {
     return useQuery({
-      queryKey: ['shop-item', itemId],
+      queryKey: ['shopItem', itemId],
       queryFn: async () => {
-        if (!itemId) return null;
-        return shopApiGateway.getShopItemById(itemId);
+        if (!itemId) throw new Error('ID d\'article non fourni');
+        return await shopApiGateway.getShopItemById(itemId);
       },
-      enabled: !!itemId
+      enabled: !!itemId,
     });
   };
-  
-  // Get shop orders
+
+  // Hook pour récupérer les commandes d'une boutique
   const useShopOrders = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shop-orders', shopId],
+      queryKey: ['shopOrders', shopId],
       queryFn: async () => {
-        if (!shopId) return [];
-        return shopApiGateway.getShopOrders(shopId);
+        if (!shopId) throw new Error('ID de boutique non fourni');
+        return await shopApiGateway.getOrdersForShop(shopId);
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
-  
-  // Update order status
+
+  // Mutation pour mettre à jour le statut d'une commande
   const useUpdateOrderStatus = () => {
     return useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-        return shopApiGateway.updateOrderStatus(orderId, status);
+      mutationFn: async ({ id, status }: { id: string, status: OrderStatus }) => {
+        return await shopApiGateway.updateOrderStatus(id, status);
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['order', variables.orderId] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['shopOrders'] });
+          toast({
+            title: "Succès",
+            description: "Statut de la commande mis à jour",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible de mettre à jour le statut",
+          });
+        }
       }
     });
   };
 
-  // Get shop reviews
-  const useShopReviews = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop-reviews', shopId],
-      queryFn: async () => {
-        if (!shopId) return [];
-        return shopApiGateway.getShopReviews(shopId);
-      },
-      enabled: !!shopId
-    });
-  };
-  
-  // Check if a shop is favorited
+  // Hook pour vérifier si une boutique est dans les favoris
   const useIsShopFavorited = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shop-favorited', shopId, getCurrentUserId()],
+      queryKey: ['isFavorite', shopId, user?.id],
       queryFn: async () => {
-        if (!shopId || !getCurrentUserId()) return false;
-        return shopApiGateway.isShopFavorited(getCurrentUserId(), shopId);
+        if (!shopId || !user?.id) return false;
+        return await shopApiGateway.isShopFavorited(user.id, shopId);
       },
-      enabled: !!shopId && !!getCurrentUserId()
+      enabled: !!shopId && !!user?.id,
     });
   };
-  
-  // Get favorite shops
+
+  // Hook pour récupérer les boutiques favorites
   const useFavoriteShops = () => {
     return useQuery({
-      queryKey: ['favorite-shops', getCurrentUserId()],
+      queryKey: ['favoriteShops', user?.id],
       queryFn: async () => {
-        if (!getCurrentUserId()) return [];
-        return shopApiGateway.getFavoriteShops(getCurrentUserId());
+        if (!user?.id) return [];
+        return await shopApiGateway.getFavoriteShops(user.id);
       },
-      enabled: !!getCurrentUserId()
+      enabled: !!user?.id,
     });
   };
 
-  // Create a shop item
-  const useCreateShopItem = () => {
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-      mutationFn: async ({ shopId, item }: { 
-        shopId: string, 
-        item: Omit<ShopItem, "id" | "created_at" | "updated_at"> 
-      }) => {
-        const result = await shopApiGateway.createShopItem(shopId, item);
-        return result;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
-      }
-    });
-  };
-
-  // Add a shop to favorites
+  // Mutation pour ajouter une boutique aux favoris
   const useFavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!getCurrentUserId()) throw new Error('User not authenticated');
-        return shopApiGateway.addShopToFavorites(getCurrentUserId(), shopId);
+        if (!user?.id) throw new Error('Utilisateur non connecté');
+        return await shopApiGateway.addShopToFavorites(user.id, shopId);
       },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
-        queryClient.invalidateQueries({ queryKey: ['shop-favorited'] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['isFavorite'] });
+          queryClient.invalidateQueries({ queryKey: ['favoriteShops'] });
+          toast({
+            title: "Succès",
+            description: "Boutique ajoutée aux favoris",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible d'ajouter aux favoris",
+          });
+        }
       }
     });
   };
-  
-  // Remove a shop from favorites
+
+  // Mutation pour retirer une boutique des favoris
   const useUnfavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!getCurrentUserId()) throw new Error('User not authenticated');
-        return shopApiGateway.removeShopFromFavorites(getCurrentUserId(), shopId);
+        if (!user?.id) throw new Error('Utilisateur non connecté');
+        return await shopApiGateway.removeShopFromFavorites(user.id, shopId);
       },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
-        queryClient.invalidateQueries({ queryKey: ['shop-favorited'] });
+      meta: {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['isFavorite'] });
+          queryClient.invalidateQueries({ queryKey: ['favoriteShops'] });
+          toast({
+            title: "Succès",
+            description: "Boutique retirée des favoris",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible de retirer des favoris",
+          });
+        }
+      }
+    });
+  };
+
+  // Créer un hook pour ajouter un nouvel article
+  const useCreateShopItem = () => {
+    return useMutation({
+      mutationFn: async ({ shopId, item }: { shopId: string, item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> }) => {
+        // Assurer que l'item a bien un shop_id
+        const itemWithShopId = {
+          ...item,
+          shop_id: shopId
+        };
+        return await shopApiGateway.createShopItem(shopId, [itemWithShopId]);
+      },
+      meta: {
+        onSuccess: (_, variables) => {
+          queryClient.invalidateQueries({ queryKey: ['shopItems', variables.shopId] });
+          toast({
+            title: "Succès",
+            description: "Article ajouté avec succès",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: error.message || "Impossible d'ajouter l'article",
+          });
+        }
       }
     });
   };
@@ -249,20 +328,17 @@ export const useShop = () => {
     useShopById,
     useUserShop,
     useCreateShop,
-    useUpdateShop,
-    useShopsByStatus,
+    useShopItems,
+    useShopItemById,
     useAddShopItems,
-    useCreateShopItem,
     useUpdateShopItem,
     useUpdateShopItemStatus,
-    useShopItems,
-    useShopItem,
     useShopOrders,
     useUpdateOrderStatus,
-    useShopReviews,
     useIsShopFavorited,
     useFavoriteShops,
     useFavoriteShop,
-    useUnfavoriteShop
+    useUnfavoriteShop,
+    useCreateShopItem
   };
 };

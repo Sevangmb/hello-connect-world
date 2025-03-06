@@ -1,3 +1,4 @@
+
 /**
  * Core functionality for modules system
  * This file contains the main hook for modules management

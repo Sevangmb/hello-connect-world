@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,27 +35,21 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const useCreateShopItemMutation = () => {
-  const { useCreateShopItem } = useShop(); // Ensure this hook is properly implemented
-  return useCreateShopItem ? useCreateShopItem() : {
-    mutate: (data: { shopId: string, item: Omit<ShopItem, "id" | "created_at" | "updated_at"> }) => {
-      console.error("useCreateShopItem hook is not available");
-    },
-    isLoading: false,
-    isError: false,
-    error: null
-  };
-};
-
 interface AddItemFormProps {
   shop: { id: string } | undefined;
+  onSuccess?: () => void;
 }
 
-export function AddItemForm({ shop }: AddItemFormProps) {
+export function AddItemForm({ shop, onSuccess }: AddItemFormProps) {
   const { toast } = useToast();
+  const { useCreateShopItem } = useShop();
+  
+  const createShopItemMutation = useCreateShopItem();
+
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -69,8 +64,6 @@ export function AddItemForm({ shop }: AddItemFormProps) {
     },
   });
 
-  const createShopItemMutation = useCreateShopItemMutation();
-
   const onSubmit: SubmitHandler<FormValues> = (values) => {
     if (!shop?.id) {
       toast({
@@ -81,23 +74,27 @@ export function AddItemForm({ shop }: AddItemFormProps) {
       return;
     }
 
+    // Préparer l'objet item avec les bonnes propriétés pour correspondre au type attendu
     createShopItemMutation.mutate({
-      shopId: shop?.id || '',  // Use shopId, not shop_id
+      shopId: shop.id,
       item: {
         name: values.name,
-        description: values.description,
+        description: values.description || '',
         price: Number(values.price),
         original_price: values.originalPrice ? Number(values.originalPrice) : undefined,
         stock: Number(values.stock),
-        image_url: values.imageUrl,
+        image_url: values.imageUrl || '',
         status: 'available' as ShopItemStatus,
-        clothes_id: values.clothesId
+        clothes_id: values.clothesId || undefined,
+        shop_id: shop.id  // Crucial! Ajout du shop_id à l'item
       }
-    });
-
-    toast({
-      title: 'Succès',
-      description: 'Article ajouté avec succès.',
+    }, {
+      onSuccess: () => {
+        reset();
+        if (onSuccess) {
+          onSuccess();
+        }
+      }
     });
   };
 
@@ -152,8 +149,8 @@ export function AddItemForm({ shop }: AddItemFormProps) {
           <p className="text-red-500 text-sm">{errors.clothesId.message}</p>
         )}
       </div>
-      <Button type="submit" disabled={createShopItemMutation.isLoading}>
-        {createShopItemMutation.isLoading ? 'Ajout en cours...' : 'Ajouter l\'article'}
+      <Button type="submit" disabled={createShopItemMutation.isPending}>
+        {createShopItemMutation.isPending ? 'Ajout en cours...' : 'Ajouter l\'article'}
       </Button>
     </form>
   );
