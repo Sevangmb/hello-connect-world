@@ -12,7 +12,7 @@ export default function AdminModules() {
   const { modules } = useModules();
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="w-full p-4">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Tableau de bord des modules - colonne gauche */}
         <div className="lg:col-span-1 space-y-6">
@@ -21,7 +21,7 @@ export default function AdminModules() {
 
         {/* Contenu principal - colonne droite */}
         <div className="lg:col-span-3">
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -33,18 +33,18 @@ export default function AdminModules() {
                 <ModuleStatusSummary modules={modules} compact className="mt-2 sm:mt-0" />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <Tabs defaultValue="modules" className="w-full">
-                <TabsList className="mb-4">
+                <TabsList className="mx-6 my-4">
                   <TabsTrigger value="modules">Modules</TabsTrigger>
                   <TabsTrigger value="features">Fonctionnalités</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="modules">
+                <TabsContent value="modules" className="mt-0">
                   <ModulesList />
                 </TabsContent>
 
-                <TabsContent value="features">
+                <TabsContent value="features" className="mt-0">
                   <ModuleFeatures />
                 </TabsContent>
               </Tabs>

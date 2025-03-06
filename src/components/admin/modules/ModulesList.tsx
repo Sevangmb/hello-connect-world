@@ -1,8 +1,7 @@
 
 import React, { useState } from "react";
-import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModulesHeader } from "./components/ModulesHeader";
-import { ModulesFooter } from "./components/ModulesFooter";
 import { ModulesTable } from "./components/ModulesTable";
 import { ModulesLoadingSkeleton } from "./components/ModulesLoadingSkeleton";
 import { useModulesList } from "./hooks/useModulesList";
@@ -49,7 +48,7 @@ export const ModulesList: React.FC = () => {
   }
 
   return (
-    <Card className="border shadow-sm">
+    <Card className="border shadow-sm w-full">
       <CardHeader className="pb-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
@@ -90,7 +89,7 @@ export const ModulesList: React.FC = () => {
         onRefresh={handleRefresh}
       />
       
-      <div className="px-6 pb-4">
+      <div className="px-6 pb-6">
         <ModulesTable
           modules={modules}
           dependencies={dependencies}
@@ -101,17 +100,29 @@ export const ModulesList: React.FC = () => {
           getModuleStatus={getModuleStatus}
           isLoading={isLoading || saving}
         />
+        
+        {hasPendingChanges && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={saveChanges}
+              disabled={saving || !hasPendingChanges}
+              className={`px-4 py-2 rounded-md text-white font-medium 
+                ${saving 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-primary hover:bg-primary/90'
+                }`}
+            >
+              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mt-2 text-sm text-destructive">
+            Erreur: {error}
+          </div>
+        )}
       </div>
-      
-      <CardFooter>
-        <ModulesFooter
-          moduleCount={modules.length}
-          hasPendingChanges={hasPendingChanges}
-          saving={saving}
-          onSave={saveChanges}
-          error={error}
-        />
-      </CardFooter>
     </Card>
   );
 };
