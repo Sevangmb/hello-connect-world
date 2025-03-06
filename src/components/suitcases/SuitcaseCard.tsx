@@ -1,45 +1,27 @@
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Briefcase, Calendar, ArrowRightCircle } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { SuitcaseActions } from './components/SuitcaseActions';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Briefcase } from 'lucide-react';
 
 interface SuitcaseCardProps {
-  suitcase: {
-    id: string;
-    name: string;
-    status: string;
-    start_date: string | null;
-    end_date: string | null;
-    item_count?: number;
-  };
+  suitcase: any;
   isSelected?: boolean;
-  onSelect?: () => void;
+  onClick?: () => void;
 }
 
-const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected, onSelect }) => {
-  const formatDateRange = () => {
-    if (!suitcase.start_date && !suitcase.end_date) {
-      return "Aucune date définie";
-    }
-
-    if (suitcase.start_date && !suitcase.end_date) {
-      return `À partir du ${format(new Date(suitcase.start_date), 'dd MMMM yyyy', { locale: fr })}`;
-    }
-
-    if (!suitcase.start_date && suitcase.end_date) {
-      return `Jusqu'au ${format(new Date(suitcase.end_date), 'dd MMMM yyyy', { locale: fr })}`;
-    }
-
-    return `${format(new Date(suitcase.start_date!), 'dd MMM', { locale: fr })} - ${format(new Date(suitcase.end_date!), 'dd MMM yyyy', { locale: fr })}`;
+const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected = false, onClick }) => {
+  const { name, start_date, end_date, status } = suitcase;
+  
+  // Format dates nicely
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString();
   };
-
-  const getStatusColor = () => {
-    switch (suitcase.status) {
+  
+  // Determine status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'archived':
@@ -51,58 +33,36 @@ const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, isSelected, onSel
     }
   };
 
-  const getStatusLabel = () => {
-    switch (suitcase.status) {
-      case 'active':
-        return 'Active';
-      case 'archived':
-        return 'Archivée';
-      case 'planned':
-        return 'Planifiée';
-      default:
-        return 'Indéfini';
-    }
-  };
-
   return (
     <Card 
-      className={`overflow-hidden transition-all hover:shadow-md ${isSelected ? 'border-primary ring-2 ring-primary/20' : ''}`}
-      onClick={onSelect}
+      className={`transition-all hover:shadow-md cursor-pointer ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      onClick={onClick}
     >
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-muted-foreground" />
-            <span className="truncate max-w-[180px]">{suitcase.name}</span>
-          </div>
-          <Badge className={getStatusColor()}>{getStatusLabel()}</Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="text-sm text-muted-foreground flex items-center gap-2 mb-2">
-          <Calendar className="h-4 w-4" />
-          <span>{formatDateRange()}</span>
+        <div className="flex justify-between items-start">
+          <h3 className="font-medium text-lg truncate">{name}</h3>
+          <Briefcase className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {suitcase.item_count || 0} article{(suitcase.item_count !== 1) ? 's' : ''}
-          </span>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {(start_date || end_date) && (
+            <div className="text-sm text-muted-foreground">
+              {start_date && formatDate(start_date)}
+              {start_date && end_date && ' - '}
+              {end_date && formatDate(end_date)}
+            </div>
+          )}
+          
+          <div className="flex justify-between">
+            <Badge variant="outline" className={getStatusColor(status)}>
+              {status === 'active' ? 'Active' : status === 'archived' ? 'Archivée' : 'Planifiée'}
+            </Badge>
+            
+            {/* You could add an item count here if available */}
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-2 flex justify-between">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={(e) => {
-            e.stopPropagation();
-            // Navigate logic here
-          }}
-          className="text-primary"
-        >
-          Voir <ArrowRightCircle className="ml-1 h-4 w-4" />
-        </Button>
-        <SuitcaseActions suitcaseId={suitcase.id} />
-      </CardFooter>
     </Card>
   );
 };

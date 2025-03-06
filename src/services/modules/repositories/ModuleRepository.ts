@@ -86,10 +86,21 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use a simpler query to avoid infinite type instantiation
+      // Use a simple string-based query to avoid type instantiation issues
       const { data, error } = await supabase
         .from('module_dependencies')
-        .select('*, dependency:dependency_id(id, name, code, status)')
+        .select(`
+          id, 
+          module_id,
+          dependency_id,
+          is_required,
+          dependency:dependency_id (
+            id, 
+            name, 
+            code, 
+            status
+          )
+        `)
         .eq('module_id', moduleId);
 
       if (error) throw error;
@@ -163,7 +174,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use direct query with simpler relations to avoid infinite type instantiation
+      // Use a simpler string-based query to avoid complex type instantiation
       const { data, error } = await supabase
         .from('module_features')
         .select(`
@@ -173,7 +184,13 @@ export class ModuleRepository implements IModuleRepository {
           description, 
           is_enabled,
           module_code, 
-          app_modules!inner(id, name, code, description, status)
+          app_modules!inner(
+            id, 
+            name, 
+            code, 
+            description, 
+            status
+          )
         `);
 
       if (error) throw error;

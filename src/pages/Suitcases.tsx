@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { useSuitcases } from '@/hooks/useSuitcases';
 import { Plus, Loader2, Grid, List } from 'lucide-react';
 import { CreateSuitcaseDialog } from '@/components/suitcases/CreateSuitcaseDialog';
-import SuitcaseGrid from '@/components/suitcases/components/SuitcaseGrid';  // Fix this import
+import SuitcaseGrid from '@/components/suitcases/components/SuitcaseGrid';
 
 const Suitcases = () => {
   const { 
-    suitcases, 
+    data: suitcases, 
     isLoading, 
     isError 
   } = useSuitcases();
@@ -73,12 +73,12 @@ const Suitcases = () => {
         </div>
       </div>
 
-      <SuitcaseGrid
+      {suitcases && <SuitcaseGrid
         suitcases={suitcases}
         viewMode={viewMode}
         selectedSuitcaseId={selectedSuitcaseId}
         setSelectedSuitcaseId={setSelectedSuitcaseId}
-      />
+      />}
 
       <CreateSuitcaseDialog
         open={isCreateDialogOpen}
