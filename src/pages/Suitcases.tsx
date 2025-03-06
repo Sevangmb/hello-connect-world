@@ -1,98 +1,82 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlusIcon, GridIcon, ListIcon } from 'lucide-react';
-import { useSuitcases } from '@/hooks/useSuitcases';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CreateSuitcaseForm } from '@/components/suitcases/forms/CreateSuitcaseForm';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { EmptySuitcases } from '@/components/suitcases/components/EmptySuitcases';
 import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
 import { SuitcaseItems } from '@/components/suitcases/items/SuitcaseItems';
 import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
-
-// Creating interfaces for all components that have prop errors
-interface EmptySuitcasesProps {
-  onCreateClick: () => void;
-}
-
-interface SuitcaseItemsProps {
-  suitcaseId: string;
-  onBack: () => void;
-}
-
-interface CreateSuitcaseFormProps {
-  onSuccess: () => void;
-}
-
-// Create or modify the existing interfaces to match the component requirements
-declare module '@/components/suitcases/components/EmptySuitcases' {
-  export const EmptySuitcases: React.FC<EmptySuitcasesProps>;
-}
-
-declare module '@/components/suitcases/items/SuitcaseItems' {
-  export const SuitcaseItems: React.FC<SuitcaseItemsProps>;
-}
-
-declare module '@/components/suitcases/forms/CreateSuitcaseForm' {
-  export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps>;
-}
+import { CreateSuitcaseForm } from '@/components/suitcases/forms/CreateSuitcaseForm';
 
 const Suitcases = () => {
-  const { data, isLoading, isError } = useSuitcases();
-  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [suitcases, setSuitcases] = useState([]);
+  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState('');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [open, setOpen] = useState(false);
+
+  // Mock data loading
+  React.useEffect(() => {
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+
+  const handleCreateSuitcase = () => {
+    setShowCreateDialog(true);
+  };
+
+  const handleCreateSuccess = () => {
+    setShowCreateDialog(false);
+    // Refresh suitcases list
+  };
+
+  const handleBackFromItems = () => {
+    setSelectedSuitcaseId('');
+  };
 
   if (isLoading) {
     return <LoadingSuitcases />;
   }
 
-  if (isError) {
-    return <div>Error loading suitcases</div>;
-  }
-
-  const suitcases = data || [];
-
-  if (suitcases.length === 0 && !open) {
+  if (suitcases.length === 0) {
     return (
-      <EmptySuitcases onCreateClick={() => setOpen(true)} />
+      <EmptySuitcases onCreateClick={handleCreateSuitcase} />
     );
   }
 
   if (selectedSuitcaseId) {
     return (
-      <SuitcaseItems
-        suitcaseId={selectedSuitcaseId}
-        onBack={() => setSelectedSuitcaseId('')}
+      <SuitcaseItems 
+        suitcaseId={selectedSuitcaseId} 
+        onBack={handleBackFromItems} 
       />
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Mes valises</h1>
-        <div className="flex items-center gap-4">
-          <div className="bg-muted rounded-md flex overflow-hidden">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-              className="rounded-none"
-            >
-              <GridIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="rounded-none"
-            >
-              <ListIcon className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button onClick={() => setOpen(true)}>
-            <PlusIcon className="mr-2 h-4 w-4" /> Nouvelle valise
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Mes Valises</h1>
+        <div className="flex space-x-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            onClick={() => setViewMode('grid')}
+            size="sm"
+          >
+            Grille
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            onClick={() => setViewMode('list')}
+            size="sm"
+          >
+            Liste
+          </Button>
+          <Button onClick={handleCreateSuitcase}>
+            Nouvelle valise
           </Button>
         </div>
       </div>
@@ -104,12 +88,9 @@ const Suitcases = () => {
         setSelectedSuitcaseId={setSelectedSuitcaseId}
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Créer une nouvelle valise</DialogTitle>
-          </DialogHeader>
-          <CreateSuitcaseForm onSuccess={() => setOpen(false)} />
+          <CreateSuitcaseForm onSuccess={handleCreateSuccess} />
         </DialogContent>
       </Dialog>
     </div>

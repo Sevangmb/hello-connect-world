@@ -86,7 +86,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Simplified query to avoid deep type instantiation
+      // Simple query to fetch dependencies
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');
@@ -96,9 +96,10 @@ export class ModuleRepository implements IModuleRepository {
       // Filter dependencies manually
       const filteredData = dependencyRecords.filter(dep => dep.module_id === moduleId);
       
-      // Get full dependency information
+      // Results array
       const dependencies = [];
       
+      // Get info for each dependency
       for (const dep of filteredData) {
         const { data: moduleInfo, error: moduleError } = await supabase
           .from('app_modules')
@@ -186,21 +187,21 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Get modules first
+      // Get modules
       const { data: moduleData, error: moduleError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
       
       if (moduleError || !moduleData) return [];
       
-      // Then get features separately
+      // Get features
       const { data: featureData, error: featureError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
         
       if (featureError) return [];
       
-      // Map modules to their features
+      // Map modules to features
       const resultMap = new Map();
       
       moduleData.forEach(module => {
@@ -210,7 +211,7 @@ export class ModuleRepository implements IModuleRepository {
         });
       });
       
-      // Add features to their modules
+      // Add features to modules
       if (featureData) {
         featureData.forEach(feature => {
           const moduleCode = feature.module_code;

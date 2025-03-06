@@ -1,43 +1,25 @@
 
-import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
-import { CreateSuitcaseDialog } from "@/components/suitcases/CreateSuitcaseDialog";
-import { SuitcaseFilters } from "@/hooks/useSuitcases";
+import React from 'react';
+import { Button } from '@/components/ui/button';
 
-interface EmptySuitcasesProps {
-  filters: SuitcaseFilters;
-  resetFilters: () => void;
+export interface EmptySuitcasesProps {
+  onCreateClick: () => void;
 }
 
-export const EmptySuitcases = ({
-  filters,
-  resetFilters,
-}: EmptySuitcasesProps) => {
+export function EmptySuitcases({ onCreateClick }: EmptySuitcasesProps) {
   return (
-    <div className="text-center py-16 bg-white rounded-lg shadow-sm border">
-      <div className="max-w-md mx-auto">
-        <div className="flex justify-center mb-4">
-          <div className="bg-primary/10 p-3 rounded-full">
-            <Filter className="h-8 w-8 text-primary" />
-          </div>
-        </div>
-        <h3 className="text-lg font-semibold mb-2">Aucune valise trouvée</h3>
-        <p className="text-muted-foreground mb-6">
-          {filters.status !== "active" || filters.search 
-            ? "Aucune valise ne correspond à vos critères de recherche." 
-            : "Vous n'avez pas encore créé de valise."}
-        </p>
-        {filters.status !== "active" || filters.search ? (
-          <Button 
-            variant="outline" 
-            onClick={resetFilters}
-          >
-            Réinitialiser les filtres
-          </Button>
-        ) : (
-          <CreateSuitcaseDialog />
-        )}
-      </div>
+    <div className="flex flex-col items-center justify-center h-[50vh] space-y-4 text-center">
+      <div className="text-4xl mb-2">🧳</div>
+      <h2 className="text-2xl font-semibold">Vous n'avez pas encore de valise</h2>
+      <p className="text-muted-foreground max-w-md">
+        Créez votre première valise pour commencer à organiser vos voyages.
+      </p>
+      <Button 
+        onClick={onCreateClick}
+        className="mt-4"
+      >
+        Créer ma première valise
+      </Button>
     </div>
   );
-};
+}

@@ -3,6 +3,18 @@ import React from 'react';
 import SuitcaseCard from './SuitcaseCard';
 import SuitcaseListItem from './SuitcaseListItem';
 
+interface SuitcaseCardProps {
+  suitcase: any;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
+interface SuitcaseListItemProps {
+  suitcase: any;
+  isSelected: boolean;
+  onSelect: () => void;
+}
+
 interface SuitcaseGridProps {
   suitcases: any[];
   viewMode: 'grid' | 'list';

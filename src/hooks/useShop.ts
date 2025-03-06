@@ -1,270 +1,184 @@
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem } from '@/core/shop/domain/types';
 import { shopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { Shop, ShopItem, ShopReview, Order, CartItem, DbCartItem, ShopSettings, OrderStatus, PaymentStatus } from '@/core/shop/domain/types';
-import { useState } from 'react';
-import { useToast } from './use-toast';
+import { useAuth } from './useAuth';
 
-/**
- * Custom hook for shop functionality
- */
-export const useShop = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+export function useShop() {
+  const { user } = useAuth();
 
-  /**
-   * Get user's shop
-   */
+  // UseUserShop hook
   const useUserShop = (userId?: string) => {
-    const [userShop, setUserShop] = useState<Shop | null>(null);
+    const fetchUserShop = async () => {
+      if (!userId) return null;
+      return await shopService.getShopByUserId(userId);
+    };
 
-    const query = useQuery({
+    return useQuery({
       queryKey: ['user-shop', userId],
-      queryFn: async () => {
-        if (!userId) return null;
-        const shopData = await shopService.getShopByUserId(userId);
-        setUserShop(shopData);
-        return shopData;
-      },
-      enabled: !!userId,
+      queryFn: fetchUserShop,
+      enabled: !!userId
     });
-
-    return {
-      ...query,
-      getUserShop: async (userId: string) => shopService.getShopByUserId(userId)
-    };
   };
 
-  /**
-   * Create a shop
-   */
+  // Get shop by ID
+  const getShopById = async (shopId: string) => {
+    return await shopService.getShopById(shopId);
+  };
+
+  // User shop mutations
   const useCreateShop = () => {
-    const [creating, setCreating] = useState(false);
-
-    const mutation = useMutation({
+    const createShopMutation = useMutation({
       mutationFn: async (shopData: Partial<Shop>) => {
-        setCreating(true);
-        try {
-          const result = await shopService.createShop(shopData);
-          return result;
-        } finally {
-          setCreating(false);
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
-        toast({
-          title: 'Boutique créée',
-          description: 'Votre boutique a été créée avec succès.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error creating shop:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de la création de votre boutique.',
-          variant: 'destructive',
-        });
+        return await shopService.createShop(shopData);
       },
     });
 
     return {
-      ...mutation,
-      creating,
-      execute: mutation.mutate
+      ...createShopMutation,
+      creating: createShopMutation.isPending,
+      execute: createShopMutation.mutate
     };
   };
 
-  /**
-   * Update a shop
-   */
   const useUpdateShop = () => {
-    const mutation = useMutation({
-      mutationFn: async ({ id, shopData }: { id: string; shopData: Partial<Shop> }) => {
-        return await shopService.updateShop(id, shopData);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
-        toast({
-          title: 'Boutique mise à jour',
-          description: 'Votre boutique a été mise à jour avec succès.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error updating shop:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de la mise à jour de votre boutique.',
-          variant: 'destructive',
-        });
-      },
-    });
-
-    return mutation;
-  };
-
-  /**
-   * Create a shop item
-   */
-  const useCreateShopItem = () => {
-    const [creating, setCreating] = useState(false);
-
-    const mutation = useMutation({
-      mutationFn: async (itemData: Partial<ShopItem>) => {
-        setCreating(true);
-        try {
-          const result = await shopService.createShopItem(itemData);
-          return result;
-        } finally {
-          setCreating(false);
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
-        toast({
-          title: 'Article ajouté',
-          description: 'Votre article a été ajouté avec succès.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error creating shop item:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de l\'ajout de votre article.',
-          variant: 'destructive',
-        });
+    const updateShopMutation = useMutation({
+      mutationFn: async ({ shopId, shopData }: { shopId: string; shopData: Partial<Shop> }) => {
+        return await shopService.updateShop(shopId, shopData);
       },
     });
 
     return {
-      ...mutation,
-      creating,
-      execute: mutation.mutate
+      ...updateShopMutation,
+      updating: updateShopMutation.isPending,
+      execute: updateShopMutation.mutate
     };
   };
 
-  /**
-   * Delete a shop item
-   */
-  const useDeleteShopItem = () => {
-    const mutation = useMutation({
-      mutationFn: async (id: string) => {
-        return await shopService.deleteShopItem(id);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
-        toast({
-          title: 'Article supprimé',
-          description: 'L\'article a été supprimé avec succès.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error deleting shop item:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de la suppression de l\'article.',
-          variant: 'destructive',
-        });
-      },
-    });
-
-    return mutation;
+  // Shop items methods
+  const getShopItems = async (shopId: string) => {
+    return await shopService.getShopItems(shopId);
   };
 
-  /**
-   * Fetch shop items
-   */
-  const useShopItems = (shopId?: string) => {
+  const useShopItems = (shopId: string) => {
     return useQuery({
       queryKey: ['shop-items', shopId],
-      queryFn: async () => {
-        if (!shopId) return [];
-        return await shopService.getShopItems(shopId);
-      },
-      enabled: !!shopId,
+      queryFn: () => getShopItems(shopId),
+      enabled: !!shopId
     });
   };
 
-  /**
-   * Fetch shop orders
-   */
-  const useShopOrders = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop-orders', shopId],
-      queryFn: async () => {
-        if (!shopId) return [];
-        return await shopService.getOrdersByShopId(shopId);
-      },
-      enabled: !!shopId,
-    });
-  };
-
-  /**
-   * Update order status
-   */
-  const useUpdateOrderStatus = () => {
-    const mutation = useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-        return await shopService.updateOrderStatus(orderId, status);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
-        toast({
-          title: 'Statut mis à jour',
-          description: 'Le statut de la commande a été mis à jour avec succès.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error updating order status:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de la mise à jour du statut.',
-          variant: 'destructive',
-        });
-      },
+  const useAddShopItem = () => {
+    const addItemMutation = useMutation({
+      mutationFn: async (shopItem: Partial<ShopItem>) => {
+        return await shopService.createShopItem(shopItem);
+      }
     });
 
-    return mutation;
+    return {
+      ...addItemMutation,
+      creating: addItemMutation.isPending,
+      execute: addItemMutation.mutate
+    };
   };
 
-  /**
-   * Add to cart
-   */
+  const useUpdateShopItem = () => {
+    const updateItemMutation = useMutation({
+      mutationFn: async ({ itemId, itemData }: { itemId: string, itemData: Partial<ShopItem> }) => {
+        return await shopService.updateShopItem(itemId, itemData);
+      }
+    });
+
+    return {
+      ...updateItemMutation,
+      updating: updateItemMutation.isPending
+    };
+  };
+
+  const useDeleteShopItem = () => {
+    const deleteItemMutation = useMutation({
+      mutationFn: async (itemId: string) => {
+        return await shopService.deleteShopItem(itemId);
+      }
+    });
+
+    return {
+      ...deleteItemMutation,
+      deleting: deleteItemMutation.isPending
+    };
+  };
+
+  // Shop reviews methods
+  const getShopReviews = async (shopId: string) => {
+    return await shopService.getShopReviews(shopId);
+  };
+
+  const useAddShopReview = () => {
+    const addReviewMutation = useMutation({
+      mutationFn: async (review: Partial<ShopReview>) => {
+        return await shopService.createShopReview(review);
+      }
+    });
+
+    return {
+      ...addReviewMutation
+    };
+  };
+
+  // Shop settings methods
+  const getShopSettings = async (shopId: string) => {
+    return await shopService.getShopSettings(shopId);
+  };
+
+  const updateShopSettings = async (shopId: string, settings: Partial<ShopSettings>) => {
+    return await shopService.updateShopSettings(shopId, settings);
+  };
+
+  // Order methods
+  const getOrdersByShopId = async (shopId: string, status?: string) => {
+    return await shopService.getOrdersByShopId(shopId, status);
+  };
+
+  const getUserOrders = async (userId: string, status?: string) => {
+    return await shopService.getUserOrders(userId, status);
+  };
+
+  const updateOrderStatus = async (orderId: string, status: string) => {
+    return await shopService.updateOrderStatus(orderId, status);
+  };
+
+  // Cart methods
   const useAddToCart = () => {
-    const mutation = useMutation({
-      mutationFn: async (cartItem: DbCartItem) => {
-        return await shopService.addToCart(cartItem);
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['cart-items'] });
-        toast({
-          title: 'Article ajouté',
-          description: 'L\'article a été ajouté à votre panier.',
-        });
-      },
-      onError: (error) => {
-        console.error('Error adding to cart:', error);
-        toast({
-          title: 'Erreur',
-          description: 'Une erreur est survenue lors de l\'ajout au panier.',
-          variant: 'destructive',
-        });
-      },
+    const addToCartMutation = useMutation({
+      mutationFn: async (params: { userId: string, shopItemId: string, quantity: number }) => {
+        const { userId, shopItemId, quantity } = params;
+        return await shopService.addToCart(userId, shopItemId, quantity);
+      }
     });
 
-    return mutation;
+    return {
+      ...addToCartMutation
+    };
   };
 
   return {
     useUserShop,
     useCreateShop,
     useUpdateShop,
-    useCreateShopItem,
-    useDeleteShopItem,
+    getShopById,
+    getShopItems,
     useShopItems,
-    useShopOrders,
-    useUpdateOrderStatus,
-    useAddToCart,
+    useAddShopItem,
+    useUpdateShopItem,
+    useDeleteShopItem,
+    getShopReviews,
+    useAddShopReview,
+    getShopSettings,
+    updateShopSettings,
+    getOrdersByShopId,
+    getUserOrders,
+    updateOrderStatus,
+    useAddToCart
   };
-};
+}
