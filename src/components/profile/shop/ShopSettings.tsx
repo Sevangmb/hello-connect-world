@@ -1,11 +1,16 @@
+
 import { useShop } from '@/hooks/useShop';
-import { type ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
+import type { ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
+interface ShopSettingsProps {
+  shop?: ShopSettingsType;
+}
 
 export const ShopSettings = () => {
   const { shop, updateShopSettings } = useShop();
@@ -19,9 +24,10 @@ export const ShopSettings = () => {
   });
 
   const onSubmit = async (data: any) => {
+    if (!shop?.id) return;
     setIsLoading(true);
     try {
-      await updateShopSettings(shop?.id || '', {
+      await updateShopSettings(shop.id, {
         auto_accept_orders: data.autoAcceptOrders,
         notification_preferences: {
           email: data.emailNotifications,
@@ -43,12 +49,9 @@ export const ShopSettings = () => {
             <Switch
               id="autoAcceptOrders"
               checked={form.watch('autoAcceptOrders')}
-              onCheckedChange={(checked) => form.setValue('autoAcceptOrders', checked)}
+              onCheckedChange={checked => form.setValue('autoAcceptOrders', checked)}
             />
-            <label
-              htmlFor="autoAcceptOrders"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
+            <label htmlFor="autoAcceptOrders" className="text-sm font-medium">
               Accepter automatiquement les commandes
             </label>
           </div>
@@ -56,12 +59,9 @@ export const ShopSettings = () => {
             <Switch
               id="emailNotifications"
               checked={form.watch('emailNotifications')}
-              onCheckedChange={(checked) => form.setValue('emailNotifications', checked)}
+              onCheckedChange={checked => form.setValue('emailNotifications', checked)}
             />
-            <label
-              htmlFor="emailNotifications"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
+            <label htmlFor="emailNotifications" className="text-sm font-medium">
               Notifications par e-mail
             </label>
           </div>
@@ -69,24 +69,15 @@ export const ShopSettings = () => {
             <Switch
               id="appNotifications"
               checked={form.watch('appNotifications')}
-              onCheckedChange={(checked) => form.setValue('appNotifications', checked)}
+              onCheckedChange={checked => form.setValue('appNotifications', checked)}
             />
-            <label
-              htmlFor="appNotifications"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
+            <label htmlFor="appNotifications" className="text-sm font-medium">
               Notifications dans l'application
             </label>
           </div>
         </div>
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              Enregistrement...
-            </>
-          ) : (
-            'Enregistrer les modifications'
-          )}
+          {isLoading ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </Button>
       </form>
     </Form>

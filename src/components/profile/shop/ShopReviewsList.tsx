@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { useShop } from '@/hooks/useShop';
 import { ShopReview } from '@/core/shop/domain/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { StarIcon } from 'lucide-react';
 
@@ -18,11 +17,10 @@ export const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
   useEffect(() => {
     const loadReviews = async () => {
       if (!shopId) return;
-      
       setLoading(true);
       try {
         const shopReviews = await getShopReviews(shopId);
-        setReviews(shopReviews);
+        setReviews(shopReviews || []);
       } catch (error) {
         console.error('Error loading shop reviews:', error);
       } finally {
@@ -83,7 +81,6 @@ export const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <Avatar>
-                  <AvatarImage src={review.profiles?.avatar_url || ''} />
                   <AvatarFallback>
                     {(review.profiles?.username || 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>

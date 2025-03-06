@@ -1,82 +1,48 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useClothes } from '@/hooks/useClothes';
-import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 import { SuitcaseItemsEmpty } from './SuitcaseItemsEmpty';
 import { SuitcaseItemsHeader } from './SuitcaseItemsHeader';
+import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 
 interface SuitcaseItemsProps {
   suitcaseId: string;
 }
 
 export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { clothes } = useClothes();
-  const { data: items = [], refetch: refetchItems, remove: removeItem } = useSuitcaseItems(suitcaseId);
-  
-  useEffect(() => {
-    const loadItems = async () => {
-      setIsLoading(true);
-      await refetchItems();
-      setIsLoading(false);
-    };
-    
-    loadItems();
-  }, [suitcaseId, refetchItems]);
+  const { data: items, isLoading, remove } = useSuitcaseItems(suitcaseId);
 
-  const handleRemoveItem = async (itemId: string) => {
-    await removeItem(itemId);
-  };
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
-  if (!isLoading && items.length === 0) {
+  if (!items?.length) {
     return (
       <SuitcaseItemsEmpty 
-        suitcaseId={suitcaseId} 
-        availableClothes={clothes} 
+        suitcaseId={suitcaseId}
+        availableClothes={[]} 
       />
     );
   }
 
   return (
-    <div className="space-y-3">
-      <SuitcaseItemsHeader itemCount={items.length} isLoading={isLoading} />
-      
-      {isLoading ? (
-        <div className="animate-pulse space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-12 bg-muted rounded-md" />
-          ))}
-        </div>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item) => {
-            const clothe = clothes.find(c => c.id === item.clothes_id);
-            return clothe ? (
-              <li key={item.id} className="flex items-center justify-between p-2 border rounded-md">
-                <div className="flex items-center gap-2">
-                  {clothe.image_url && (
-                    <div className="h-8 w-8 rounded-md overflow-hidden">
-                      <img 
-                        src={clothe.image_url} 
-                        alt={clothe.name || 'Vêtement'} 
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <span className="text-sm font-medium">{clothe.name || clothe.category}</span>
-                </div>
-                <button 
-                  onClick={() => handleRemoveItem(item.id)}
-                  className="text-xs text-red-500 hover:text-red-700"
-                >
-                  Retirer
-                </button>
-              </li>
-            ) : null;
-          })}
-        </ul>
-      )}
+    <div>
+      <SuitcaseItemsHeader 
+        itemCount={items.length} 
+        isLoading={isLoading} 
+      />
+      <ul className="space-y-2 mt-2">
+        {items.map((item) => (
+          <li key={item.id} className="flex justify-between items-center p-2 border rounded-md">
+            <span>{item.name}</span>
+            <button 
+              onClick={() => remove && remove(item.id)}
+              className="text-red-500 text-sm"
+            >
+              Supprimer
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
