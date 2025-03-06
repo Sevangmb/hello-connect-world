@@ -1,50 +1,21 @@
 
 import React from 'react';
-import SuitcaseCard from './SuitcaseCard';
-import SuitcaseListItem from './SuitcaseListItem';
+import { SuitcaseCard } from './SuitcaseCard';
+import { SuitcaseGridProps } from '../types';
 
-interface SuitcaseGridProps {
-  suitcases: any[];
-  viewMode: 'grid' | 'list';
-  selectedSuitcaseId: string;
-  setSelectedSuitcaseId: (id: string) => void;
-}
-
-export function SuitcaseGrid({ 
+export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({ 
   suitcases, 
-  viewMode, 
-  selectedSuitcaseId, 
-  setSelectedSuitcaseId 
-}: SuitcaseGridProps) {
-  if (suitcases.length === 0) {
-    return <div className="text-center py-8">Vous n'avez pas encore de valise.</div>;
-  }
-
+  onSelectSuitcase 
+}) => {
   return (
-    <div>
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {suitcases.map((suitcase) => (
-            <SuitcaseCard
-              key={suitcase.id}
-              suitcase={suitcase}
-              onClick={() => setSelectedSuitcaseId(suitcase.id)}
-              isSelected={selectedSuitcaseId === suitcase.id}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {suitcases.map((suitcase) => (
-            <SuitcaseListItem
-              key={suitcase.id}
-              suitcase={suitcase}
-              onClick={() => setSelectedSuitcaseId(suitcase.id)}
-              isSelected={selectedSuitcaseId === suitcase.id}
-            />
-          ))}
-        </div>
-      )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {suitcases.map((suitcase) => (
+        <SuitcaseCard
+          key={suitcase.id}
+          suitcase={suitcase}
+          onClick={() => onSelectSuitcase(suitcase.id)}
+        />
+      ))}
     </div>
   );
-}
+};

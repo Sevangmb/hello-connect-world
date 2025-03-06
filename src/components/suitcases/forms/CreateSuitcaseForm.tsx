@@ -1,131 +1,103 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { CreateSuitcaseFormProps } from "../types";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { CreateSuitcaseFormProps, CreateSuitcaseData } from '../types';
 
-export const CreateSuitcaseForm = ({ onSubmit, isLoading, onSuccess }: CreateSuitcaseFormProps) => {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({ 
+  onSubmit,
+  onSuccess,
+  isLoading
+}) => {
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors } 
+  } = useForm<CreateSuitcaseData>();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit({
-      name,
-      description,
-      startDate,
-      endDate,
-    });
-    
+  const handleFormSubmit = (data: CreateSuitcaseData) => {
+    onSubmit(data);
     if (onSuccess) {
       onSuccess();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <label htmlFor="name" className="text-sm font-medium">
-          Nom de la valise
-        </label>
-        <Input
-          id="name"
-          placeholder="Vacances d'été, Voyage d'affaires..."
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Créer une valise</DialogTitle>
+        <DialogDescription>
+          Remplissez les informations pour créer une nouvelle valise.
+        </DialogDescription>
+      </DialogHeader>
 
-      <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium">
-          Description (optionnelle)
-        </label>
-        <Textarea
-          id="description"
-          placeholder="Détails sur cette valise..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-4">
         <div className="space-y-2">
-          <label htmlFor="startDate" className="text-sm font-medium">
-            Date de début
-          </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-                type="button"
-              >
-                {startDate ? (
-                  format(startDate, "dd MMMM yyyy", { locale: fr })
-                ) : (
-                  <span className="text-muted-foreground">Sélectionner...</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={setStartDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="name">Nom de la valise</Label>
+          <Input 
+            id="name"
+            placeholder="Vacances d'été..."
+            {...register('name', { required: 'Le nom est obligatoire' })}
+          />
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="endDate" className="text-sm font-medium">
-            Date de fin
-          </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal"
-                type="button"
-              >
-                {endDate ? (
-                  format(endDate, "dd MMMM yyyy", { locale: fr })
-                ) : (
-                  <span className="text-muted-foreground">Sélectionner...</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={setEndDate}
-                initialFocus
-                disabled={(date) =>
-                  startDate ? date < startDate : false
-                }
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="description">Description (optionnelle)</Label>
+          <Textarea 
+            id="description"
+            placeholder="Décrivez l'objectif de cette valise..."
+            {...register('description')}
+          />
         </div>
-      </div>
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Création en cours..." : "Créer la valise"}
-      </Button>
-    </form>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="start_date">Date de début</Label>
+            <Input 
+              id="start_date"
+              type="date"
+              {...register('start_date')}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="end_date">Date de fin</Label>
+            <Input 
+              id="end_date"
+              type="date"
+              {...register('end_date')}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSuccess}
+          >
+            Annuler
+          </Button>
+          <Button 
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Création...' : 'Créer'}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
   );
 };

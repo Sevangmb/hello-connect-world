@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -85,19 +86,26 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Fetch dependencies without nesting to avoid type instantiation depth errors
+      // Optimisation pour éviter les problèmes de type instantiation trop profond
+      // Utilisation d'une requête SQL directe avec RPC ou simplification de la requête
+      
+      // Première étape : récupérer les enregistrements de dépendances
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
-        .select('id, module_id, dependency_id, is_required')
-        .eq('module_id', moduleId);
-
+        .select('id, module_id, dependency_id, is_required');
+      
       if (error) throw error;
       
-      // Build dependencies array with separate queries to avoid nesting
+      // Filtrer côté client pour ce module spécifique
+      const filteredDependencies = dependencyRecords.filter(
+        dep => dep.module_id === moduleId
+      );
+      
+      // Seconde étape : récupérer les informations des modules de dépendance
       const dependencies = [];
       
-      for (const dep of dependencyRecords) {
-        const { data: moduleInfo, error: moduleError } = await supabase
+      for (const dep of filteredDependencies) {
+        const { data: moduleData, error: moduleError } = await supabase
           .from('app_modules')
           .select('id, name, code, status')
           .eq('id', dep.dependency_id)
@@ -113,7 +121,7 @@ export class ModuleRepository implements IModuleRepository {
           module_id: dep.module_id,
           dependency_id: dep.dependency_id,
           is_required: dep.is_required,
-          dependency: moduleInfo
+          dependency: moduleData
         });
       }
       

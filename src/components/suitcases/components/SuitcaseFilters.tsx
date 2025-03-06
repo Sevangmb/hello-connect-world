@@ -1,76 +1,70 @@
 
-import { X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { SuitcaseFilters as SuitcaseFiltersType } from "@/hooks/useSuitcases";
+import React, { useState } from 'react';
+import { Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { SuitcaseFiltersProps } from '../types';
 
-interface SuitcaseFiltersProps {
-  filters: SuitcaseFiltersType;
-  statusLabels: Record<string, { label: string; color: string }>;
-  onStatusChange: (status: string) => void;
-  onClearSearch: () => void;
-}
-
-export const SuitcaseFilters = ({
+export const SuitcaseFilters: React.FC<SuitcaseFiltersProps> = ({
   filters,
   statusLabels,
   onStatusChange,
-  onClearSearch,
-}: SuitcaseFiltersProps) => {
+  onClearSearch
+}) => {
+  const [searchTerm, setSearchTerm] = useState(filters.search);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Logique de recherche ici
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    onClearSearch();
+  };
+
   return (
-    <>
-      <Select
-        value={filters.status || "active"}
-        onValueChange={onStatusChange}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Statut" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="active">Actives</SelectItem>
-          <SelectItem value="archived">Archivées</SelectItem>
-          <SelectItem value="deleted">Supprimées</SelectItem>
-          <SelectItem value="all">Toutes</SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <div className="flex gap-2 mt-2 flex-wrap">
-        {filters.status && (
-          <Badge 
-            variant="secondary" 
-            className="flex items-center gap-1 py-1"
-          >
-            Statut: {statusLabels[filters.status as keyof typeof statusLabels]?.label || filters.status}
-            <button 
-              onClick={() => onStatusChange("active")}
-              className="ml-1 hover:bg-muted rounded-full"
+    <div className="w-full md:w-auto">
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        <form onSubmit={handleSearch} className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Rechercher une valise..."
+            className="w-full pl-8 pr-8"
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </button>
-          </Badge>
-        )}
-        
-        {filters.search && (
-          <Badge 
-            variant="secondary" 
-            className="flex items-center gap-1 py-1"
-          >
-            Recherche: {filters.search}
-            <button 
-              onClick={onClearSearch}
-              className="ml-1 hover:bg-muted rounded-full"
+          )}
+        </form>
+
+        <div className="flex space-x-1">
+          {Object.entries(statusLabels).map(([status, label]) => (
+            <button
+              key={status}
+              className={`px-3 py-1 text-sm rounded-md ${
+                filters.status === status
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              }`}
+              onClick={() => onStatusChange(status)}
             >
-              <X className="h-3 w-3" />
+              {label}
             </button>
-          </Badge>
-        )}
+          ))}
+        </div>
       </div>
-    </>
+    </div>
   );
 };

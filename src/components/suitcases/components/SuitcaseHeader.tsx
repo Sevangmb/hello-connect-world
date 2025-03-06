@@ -1,33 +1,27 @@
 
-import { CreateSuitcaseDialog } from "@/components/suitcases/CreateSuitcaseDialog";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import React from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SuitcaseHeaderProps } from '../types';
 
-interface SuitcaseHeaderProps {
-  onRefresh: () => void;
-}
-
-export const SuitcaseHeader = ({ onRefresh }: SuitcaseHeaderProps) => {
+export const SuitcaseHeader: React.FC<SuitcaseHeaderProps> = ({ onRefresh }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
       <div>
-        <h1 className="text-3xl font-bold">Mes Valises</h1>
-        <p className="text-muted-foreground mt-1">
-          Gérez vos valises et organisez vos vêtements pour chaque voyage
+        <h1 className="text-2xl font-bold mb-1">Mes Valises</h1>
+        <p className="text-muted-foreground">
+          Gérez les vêtements à emporter pour vos voyages.
         </p>
       </div>
-      
-      <div className="flex gap-2">
-        <CreateSuitcaseDialog />
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={onRefresh}
-          title="Rafraîchir"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
+
+      <Button 
+        variant="outline" 
+        onClick={onRefresh}
+        className="mt-2 sm:mt-0"
+      >
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Actualiser
+      </Button>
     </div>
   );
 };

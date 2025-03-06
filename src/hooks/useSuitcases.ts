@@ -1,97 +1,183 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Suitcase, SuitcaseStatus } from "@/components/suitcases/utils/types";
-import { useToast } from "./use-toast";
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-export type SuitcaseFilters = {
-  status?: SuitcaseStatus | 'all';
-  startDate?: Date;
-  endDate?: Date;
-  search?: string;
-  forCalendar?: boolean; // Filtre pour récupérer les valises pour le calendrier
-};
+// Interface pour le type Suitcase
+export interface Suitcase {
+  id: string;
+  name: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  user_id: string;
+  status: 'active' | 'archived' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
 
-export const useSuitcases = (filters: SuitcaseFilters = {}) => {
-  const { toast } = useToast();
+// Interface pour les données de création d'une valise
+export interface CreateSuitcaseData {
+  name: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+}
 
-  return useQuery({
-    queryKey: ["suitcases", filters],
+// Hook principal pour gérer les valises
+export const useSuitcases = () => {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+
+  // Récupération de toutes les valises de l'utilisateur
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['suitcases'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
-
-      let query = supabase
-        .from("suitcases")
-        .select("*")
-        .eq("user_id", user.id);
-
-      // Filtrer par statut si spécifié
-      if (filters.status && filters.status !== 'all') {
-        if (filters.status === 'deleted') {
-          // Pour le statut 'deleted', qui n'existe pas dans la base de données,
-          // nous allons utiliser une condition personnalisée
-          query = query.eq("status", "archived")
-                       .eq("description", "DELETED"); // Utilisation de .eq() au lieu de .is()
-        } else {
-          // Pour les autres statuts (active, archived), utiliser directement
-          query = query.eq("status", filters.status);
-        }
-      } else {
-        // Par défaut, montrer uniquement les valises actives
-        query = query.eq("status", "active");
-      }
-
-      // Si le filtre forCalendar est activé, on récupère uniquement les valises avec des dates
-      if (filters.forCalendar) {
-        query = query.not("start_date", "is", null)
-          .not("end_date", "is", null);
-      }
-
-      // Filtrer par dates si spécifiées
-      if (filters.startDate && filters.endDate) {
-        // Récupérer les valises qui chevauchent la période spécifiée
-        query = query.or(
-          `and(start_date.lte.${filters.endDate.toISOString()},end_date.gte.${filters.startDate.toISOString()}),` +
-          `and(start_date.gte.${filters.startDate.toISOString()},start_date.lte.${filters.endDate.toISOString()}),` +
-          `and(end_date.gte.${filters.startDate.toISOString()},end_date.lte.${filters.endDate.toISOString()})`
-        );
-      }
-
-      // Filtrer par recherche si spécifié
-      if (filters.search) {
-        query = query.ilike("name", `%${filters.search}%`);
-      }
-
-      // Trier par date de création (décroissant)
-      query = query.order("created_at", { ascending: false });
-
-      const { data, error } = await query;
+      const { data: suitcases, error } = await supabase
+        .from('suitcases')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger vos valises",
-        });
+        setError(error.message);
         throw error;
       }
 
-      // Si le statut est 'deleted', nous devons post-traiter les résultats
-      // pour simuler le statut 'deleted' en modifiant le status directement dans les données
-      const processedData = data.map(item => {
-        if (filters.status === 'deleted' && item.description === "DELETED") {
-          return {
-            ...item,
-            status: 'deleted' as SuitcaseStatus
-          };
-        }
-        return item;
-      });
-
-      return processedData as Suitcase[];
-    },
-    retry: 1,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+      return suitcases as Suitcase[];
+    }
   });
+
+  // Création d'une nouvelle valise
+  const mutateAsync = async (suitcaseData: CreateSuitcaseData) => {
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const { data: newSuitcase, error } = await supabase
+        .from('suitcases')
+        .insert({
+          name: suitcaseData.name,
+          description: suitcaseData.description || null,
+          start_date: suitcaseData.start_date || null,
+          end_date: suitcaseData.end_date || null,
+          user_id: userData.user.id,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        setError(error.message);
+        throw error;
+      }
+
+      // Mettre à jour le cache
+      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
+      return newSuitcase as Suitcase;
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  const createSuitcase = useMutation({
+    mutationFn: mutateAsync,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
+    }
+  });
+
+  return {
+    data,
+    isLoading,
+    isError,
+    error,
+    mutateAsync,
+    createSuitcase,
+    refetch
+  };
+};
+
+// Hook pour gérer une valise spécifique
+export const useSuitcase = (suitcaseId: string) => {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState<string | null>(null);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['suitcase', suitcaseId],
+    queryFn: async () => {
+      const { data: suitcase, error } = await supabase
+        .from('suitcases')
+        .select('*')
+        .eq('id', suitcaseId)
+        .single();
+
+      if (error) {
+        setError(error.message);
+        throw error;
+      }
+
+      return suitcase as Suitcase;
+    },
+    enabled: !!suitcaseId
+  });
+
+  // Mise à jour d'une valise
+  const updateSuitcase = useMutation({
+    mutationFn: async (updatedData: Partial<Suitcase>) => {
+      const { data: updatedSuitcase, error } = await supabase
+        .from('suitcases')
+        .update(updatedData)
+        .eq('id', suitcaseId)
+        .select()
+        .single();
+
+      if (error) {
+        setError(error.message);
+        throw error;
+      }
+
+      return updatedSuitcase as Suitcase;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suitcase', suitcaseId] });
+      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
+    }
+  });
+
+  // Suppression d'une valise
+  const deleteSuitcase = useMutation({
+    mutationFn: async () => {
+      // D'abord supprimer les éléments liés à la valise (pour respecter les contraintes de clé étrangère)
+      await supabase
+        .from('suitcase_items')
+        .delete()
+        .eq('suitcase_id', suitcaseId);
+
+      // Puis supprimer la valise elle-même
+      const { error } = await supabase
+        .from('suitcases')
+        .delete()
+        .eq('id', suitcaseId);
+
+      if (error) {
+        setError(error.message);
+        throw error;
+      }
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
+    }
+  });
+
+  return {
+    data,
+    isLoading,
+    isError,
+    error,
+    updateSuitcase,
+    deleteSuitcase
+  };
 };
