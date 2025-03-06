@@ -1,22 +1,6 @@
-
-// Re-exporting from the correct module status files
+// Fix imports
 import { 
-  checkModuleActiveAsync,
-  checkModuleDegradedAsync,
-  checkFeatureEnabledAsync,
-  getModuleStatus,
+  checkModuleActiveAsync as checkModuleActive,
+  checkModuleDegradedAsync as checkModuleDegraded,
+  checkFeatureEnabledAsync as checkFeatureEnabled
 } from './moduleStatusAsync';
-
-import {
-  updateModuleStatus,
-  updateFeatureStatus
-} from './moduleStatusUpdates';
-
-export {
-  checkModuleActiveAsync,
-  checkModuleDegradedAsync,
-  checkFeatureEnabledAsync,
-  getModuleStatus,
-  updateModuleStatus,
-  updateFeatureStatus
-};

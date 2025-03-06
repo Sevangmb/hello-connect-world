@@ -1,253 +1,204 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Outfit, OutfitComment, OutfitItem, OutfitStatus, OutfitCategory, OutfitSeason } from '@/core/outfits/domain/types';
-import { useAuth } from './useAuth';
+import { Outfit } from '@/core/outfits/domain/types';
+import { useToast } from '@/hooks/use-toast';
 
 export const useOutfits = () => {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
-  const [currentOutfit, setCurrentOutfit] = useState<Outfit | null>(null);
-  const [outfitItems, setOutfitItems] = useState<OutfitItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const { toast } = useToast();
 
-  // Fetch all outfits for the current user
-  const fetchOutfits = useCallback(async () => {
-    if (!user) return;
-    
-    setLoading(true);
+  const fetchUserOutfits = async (userId: string) => {
     try {
+      setLoading(true);
+      
       const { data, error } = await supabase
         .from('outfits')
-        .select('*, profiles(username, full_name, avatar_url)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setOutfits(data as Outfit[]);
-    } catch (error) {
-      console.error('Error fetching outfits:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  // Load a specific outfit by ID
-  const fetchOutfit = useCallback(async (outfitId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*, profiles(username, full_name, avatar_url)')
-        .eq('id', outfitId)
-        .single();
-        
-      if (error) throw error;
-      
-      setCurrentOutfit(data as Outfit);
-      return data as Outfit;
-    } catch (error) {
-      console.error(`Error fetching outfit ${outfitId}:`, error);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Get items for a specific outfit
-  const fetchOutfitItems = useCallback(async (outfitId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('outfit_items')
         .select('*')
-        .eq('outfit_id', outfitId)
-        .order('position');
-        
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
       
-      setOutfitItems(data as OutfitItem[]);
-      return data as OutfitItem[];
-    } catch (error) {
-      console.error(`Error fetching items for outfit ${outfitId}:`, error);
+      setOutfits(data || []);
+      return data || [];
+    } catch (err: any) {
+      console.error('Error fetching outfits:', err);
+      setError(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch outfits',
+        variant: 'destructive',
+      });
       return [];
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  // Create a new outfit
-  const createOutfit = useCallback(async (outfit: Partial<Outfit>) => {
-    if (!user) return null;
-    
-    setLoading(true);
+  const fetchOutfitById = async (id: string) => {
     try {
-      // Ensure required fields have values
-      const outfitData: Partial<Outfit> = {
-        user_id: user.id,
-        name: outfit.name || 'New Outfit',
-        description: outfit.description,
-        status: outfit.status || 'draft' as OutfitStatus,
-        category: outfit.category || 'casual' as OutfitCategory,
-        season: outfit.season || 'all' as OutfitSeason,
-        is_favorite: outfit.is_favorite || false,
-        top_id: outfit.top_id,
-        bottom_id: outfit.bottom_id,
-        shoes_id: outfit.shoes_id,
-        likes_count: 0,
-        comments_count: 0,
-        image_url: outfit.image_url
-      };
+      setLoading(true);
       
       const { data, error } = await supabase
         .from('outfits')
-        .insert(outfitData)
-        .select()
+        .select('*')
+        .eq('id', id)
         .single();
-        
+      
       if (error) throw error;
       
-      await fetchOutfits(); // Refresh outfits list
-      return data as Outfit;
-    } catch (error) {
-      console.error('Error creating outfit:', error);
+      return data;
+    } catch (err: any) {
+      console.error(`Error fetching outfit ${id}:`, err);
+      setError(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch outfit details',
+        variant: 'destructive',
+      });
       return null;
     } finally {
       setLoading(false);
     }
-  }, [user, fetchOutfits]);
+  };
 
-  // Update an existing outfit
-  const updateOutfit = useCallback(async (outfitId: string, updates: Partial<Outfit>) => {
-    setLoading(true);
+  const createOutfit = async (outfitData: Partial<Outfit>) => {
     try {
+      setLoading(true);
+      
+      // Ensure required fields
+      if (!outfitData.user_id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+        outfitData.user_id = user.id;
+      }
+      
+      if (!outfitData.name) {
+        outfitData.name = 'New Outfit';
+      }
+      
+      const newOutfit = {
+        ...outfitData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      const { data, error } = await supabase
+        .from('outfits')
+        .insert([newOutfit])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      setOutfits([data, ...outfits]);
+      toast({
+        title: 'Success',
+        description: 'Outfit created successfully',
+      });
+      
+      return data;
+    } catch (err: any) {
+      console.error('Error creating outfit:', err);
+      setError(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to create outfit',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOutfit = async (id: string, outfitData: Partial<Outfit>) => {
+    try {
+      setLoading(true);
+      
+      // Make sure name is provided if it's being updated
+      if (outfitData.name === '') {
+        outfitData.name = 'Unnamed Outfit';
+      }
+      
+      const updates = {
+        ...outfitData,
+        updated_at: new Date().toISOString(),
+      };
+      
       const { data, error } = await supabase
         .from('outfits')
         .update(updates)
-        .eq('id', outfitId)
+        .eq('id', id)
         .select()
         .single();
-        
+      
       if (error) throw error;
       
-      setCurrentOutfit(prev => prev?.id === outfitId ? data as Outfit : prev);
-      await fetchOutfits(); // Refresh outfits list
-      return data as Outfit;
-    } catch (error) {
-      console.error(`Error updating outfit ${outfitId}:`, error);
+      setOutfits(outfits.map(outfit => outfit.id === id ? data : outfit));
+      toast({
+        title: 'Success',
+        description: 'Outfit updated successfully',
+      });
+      
+      return data;
+    } catch (err: any) {
+      console.error(`Error updating outfit ${id}:`, err);
+      setError(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to update outfit',
+        variant: 'destructive',
+      });
       return null;
     } finally {
       setLoading(false);
     }
-  }, [fetchOutfits]);
+  };
 
-  // Delete an outfit
-  const deleteOutfit = useCallback(async (outfitId: string) => {
-    setLoading(true);
+  const deleteOutfit = async (id: string) => {
     try {
+      setLoading(true);
+      
       const { error } = await supabase
         .from('outfits')
         .delete()
-        .eq('id', outfitId);
-        
+        .eq('id', id);
+      
       if (error) throw error;
       
-      await fetchOutfits(); // Refresh outfits list
+      setOutfits(outfits.filter(outfit => outfit.id !== id));
+      toast({
+        title: 'Success',
+        description: 'Outfit deleted successfully',
+      });
+      
       return true;
-    } catch (error) {
-      console.error(`Error deleting outfit ${outfitId}:`, error);
+    } catch (err: any) {
+      console.error(`Error deleting outfit ${id}:`, err);
+      setError(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete outfit',
+        variant: 'destructive',
+      });
       return false;
     } finally {
       setLoading(false);
     }
-  }, [fetchOutfits]);
-
-  // Add an item to an outfit
-  const addOutfitItem = useCallback(async (outfitId: string, clothesId: string, position: number = 0) => {
-    setLoading(true);
-    try {
-      const item: OutfitItem = {
-        outfit_id: outfitId,
-        clothes_id: clothesId,
-        position
-      };
-      
-      const { data, error } = await supabase
-        .from('outfit_items')
-        .insert(item)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      await fetchOutfitItems(outfitId); // Refresh outfit items
-      return data as OutfitItem;
-    } catch (error) {
-      console.error(`Error adding item to outfit ${outfitId}:`, error);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchOutfitItems]);
-
-  // Remove an item from an outfit
-  const removeOutfitItem = useCallback(async (outfitId: string, clothesId: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('outfit_items')
-        .delete()
-        .eq('outfit_id', outfitId)
-        .eq('clothes_id', clothesId);
-        
-      if (error) throw error;
-      
-      await fetchOutfitItems(outfitId); // Refresh outfit items
-      return true;
-    } catch (error) {
-      console.error(`Error removing item from outfit ${outfitId}:`, error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchOutfitItems]);
-
-  // Load user's outfits
-  const loadUserOutfits = useCallback(async (userId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*, profiles(username, full_name, avatar_url)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setOutfits(data as Outfit[]);
-      return data as Outfit[];
-    } catch (error) {
-      console.error(`Error fetching outfits for user ${userId}:`, error);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  };
 
   return {
     outfits,
-    currentOutfit,
-    outfitItems,
     loading,
-    fetchOutfits,
-    fetchOutfit,
-    fetchOutfitItems,
+    error,
+    fetchUserOutfits,
+    fetchOutfitById,
     createOutfit,
     updateOutfit,
     deleteOutfit,
-    addOutfitItem,
-    removeOutfitItem,
-    loadUserOutfits
   };
 };

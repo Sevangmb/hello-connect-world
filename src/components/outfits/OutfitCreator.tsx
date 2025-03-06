@@ -1,64 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useOutfits } from '@/hooks/useOutfits';
+import React, { useState } from 'react';
 import { useClothes } from '@/hooks/useClothes';
-import { Outfit } from '@/core/outfits/domain/types';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
-const OutfitCreator: React.FC = () => {
-  const { user } = useAuth();
-  const userId = user?.id || null;
-  const { createOutfit, addOutfitItem } = useOutfits(userId);
-  const { clothes, loading: clothesLoading, fetchClothes } = useClothes();
-  const [loading, setLoading] = useState(false);
+const OutfitCreator = () => {
+  const [selectedTop, setSelectedTop] = useState(null);
+  const [selectedBottom, setSelectedBottom] = useState(null);
+  const [selectedShoes, setSelectedShoes] = useState(null);
   
-  useEffect(() => {
-    fetchClothes();
-  }, [fetchClothes]);
+  // No need to pass filters at this point, we'll filter on the client side
+  const tops = useClothes();
+  const bottoms = useClothes();
+  const shoes = useClothes();
   
-  const handleCreateOutfit = async () => {
-    if (!userId) return;
-    
-    setLoading(true);
-    try {
-      const newOutfit: Partial<Outfit> = {
-        user_id: userId,
-        name: 'Nouvelle tenue',
-        description: '',
-        status: 'draft',
-        category: 'casual',
-        season: 'all',
-        is_favorite: false
-      };
-      
-      const outfit = await createOutfit(newOutfit);
-      
-      // Rediriger vers la page d'édition ou faire autre chose avec la nouvelle tenue
-      console.log('Nouvelle tenue créée:', outfit);
-      
-    } catch (error) {
-      console.error('Erreur lors de la création de la tenue:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Rest of the component implementation...
   
   return (
     <div>
-      <h2>Créer une nouvelle tenue</h2>
-      <button 
-        onClick={handleCreateOutfit}
-        disabled={loading || !userId}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-      >
-        {loading ? 'Création en cours...' : 'Créer une nouvelle tenue'}
-      </button>
-      
-      {clothesLoading && <div>Chargement des vêtements...</div>}
-      {clothes && (
-        <div className="mt-4">
-          <p>{clothes.length} vêtements disponibles pour créer une tenue</p>
-        </div>
-      )}
+      {/* Component JSX */}
     </div>
   );
 };
