@@ -8,7 +8,9 @@ import {
   ShopItemStatus, 
   Order, 
   ShopReview,
-  RawShopItem
+  OrderItem,
+  OrderStatus,
+  PaymentStatus
 } from '@/core/shop/domain/types';
 
 export class ShopRepository implements IShopRepository {
@@ -114,15 +116,23 @@ export class ShopRepository implements IShopRepository {
   // Add shop items
   async addShopItems(shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<boolean> {
     try {
-      // Ensure all items have the shop_id property
-      const itemsWithShopId = items.map(item => ({
-        ...item,
-        shop_id: shopId,
-      }));
+      // Process each item to ensure clothes_id is handled properly
+      const processedItems = items.map(item => {
+        // Make sure each item has the shop_id property and required fields
+        return {
+          ...item,
+          shop_id: shopId,
+          // Provide sensible defaults or placeholders for required fields
+          clothes_id: item.clothes_id || '00000000-0000-0000-0000-000000000000', // Default UUID if missing
+          price: item.price || 0,
+          stock: item.stock || 0,
+          status: item.status || 'available',
+        };
+      });
       
       const { error } = await supabase
         .from('shop_items')
-        .insert(itemsWithShopId);
+        .insert(processedItems);
       
       if (error) throw error;
       return true;
@@ -214,27 +224,53 @@ export class ShopRepository implements IShopRepository {
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('shop_id', shopId);
+        .eq('seller_id', shopId);
       
       if (ordersError) throw ordersError;
       
       const orders: Order[] = [];
       
-      for (const order of ordersData) {
+      for (const orderData of ordersData) {
+        // Map the order data to match the Order type
+        const order: Order = {
+          id: orderData.id,
+          shop_id: shopId,
+          customer_id: orderData.buyer_id,
+          status: orderData.status as OrderStatus,
+          total_amount: orderData.total_amount,
+          delivery_fee: orderData.shipping_cost || 0,
+          payment_status: orderData.payment_status as PaymentStatus,
+          payment_method: orderData.payment_method || 'card',
+          delivery_address: orderData.shipping_address || { street: '', city: '', postal_code: '', country: '' },
+          created_at: orderData.created_at,
+          updated_at: orderData.updated_at || orderData.created_at,
+          items: [] // Will be filled below
+        };
+        
+        // Fetch the order items
         const { data: itemsData, error: itemsError } = await supabase
           .from('order_items')
           .select('*')
-          .eq('order_id', order.id);
+          .eq('order_id', orderData.id);
         
         if (itemsError) {
           console.error('Error fetching order items:', itemsError);
           continue;
         }
         
-        orders.push({
-          ...order,
-          items: itemsData || []
-        } as Order);
+        // Process each order item
+        const processedItems: OrderItem[] = itemsData.map(item => ({
+          id: item.id,
+          order_id: item.order_id,
+          item_id: item.shop_item_id,
+          name: '', // This field may not be in the database
+          price: item.price_at_time,
+          quantity: item.quantity,
+          shop_item_id: item.shop_item_id
+        }));
+        
+        order.items = processedItems;
+        orders.push(order);
       }
       
       return orders;
@@ -245,25 +281,39 @@ export class ShopRepository implements IShopRepository {
   }
 
   // Create an order
-  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
+  async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
     try {
       // Separate order items for insertion
-      const { items, ...orderData } = order;
+      const { items, ...order } = orderData;
+      
+      // Map the Order type to match the database schema
+      const dbOrder = {
+        seller_id: order.shop_id,
+        buyer_id: order.customer_id,
+        status: order.status,
+        total_amount: order.total_amount,
+        shipping_cost: order.delivery_fee,
+        payment_status: order.payment_status,
+        payment_method: order.payment_method,
+        shipping_address: order.delivery_address
+      };
       
       // Insert order
       const { data: orderResult, error: orderError } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert(dbOrder)
         .select()
         .single();
       
       if (orderError) throw orderError;
       
-      // Insert order items
+      // Insert order items if they exist
       if (items && items.length > 0) {
         const orderItems = items.map(item => ({
-          ...item,
-          order_id: orderResult.id
+          order_id: orderResult.id,
+          shop_item_id: item.shop_item_id || item.item_id,
+          price_at_time: item.price,
+          quantity: item.quantity
         }));
         
         const { error: itemsError } = await supabase
@@ -273,10 +323,23 @@ export class ShopRepository implements IShopRepository {
         if (itemsError) throw itemsError;
       }
       
-      return {
-        ...orderResult,
+      // Map the result back to Order type
+      const result: Order = {
+        id: orderResult.id,
+        shop_id: orderResult.seller_id,
+        customer_id: orderResult.buyer_id,
+        status: orderResult.status as OrderStatus,
+        total_amount: orderResult.total_amount,
+        delivery_fee: orderResult.shipping_cost || 0,
+        payment_status: orderResult.payment_status as PaymentStatus,
+        payment_method: orderResult.payment_method || 'card',
+        delivery_address: orderResult.shipping_address || { street: '', city: '', postal_code: '', country: '' },
+        created_at: orderResult.created_at,
+        updated_at: orderResult.updated_at || orderResult.created_at,
         items: items || []
-      } as Order;
+      };
+      
+      return result;
     } catch (error) {
       console.error('Error creating order:', error);
       return null;
@@ -284,7 +347,7 @@ export class ShopRepository implements IShopRepository {
   }
 
   // Update order status
-  async updateOrderStatus(orderId: string, status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'returned'): Promise<boolean> {
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('orders')
@@ -371,7 +434,8 @@ export class ShopRepository implements IShopRepository {
       
       if (error) throw error;
       
-      return data.map(item => item.shops) as Shop[];
+      const shops = data.map(item => item.shops);
+      return shops as Shop[];
     } catch (error) {
       console.error('Error fetching favorite shops:', error);
       return [];

@@ -51,5 +51,3 @@ export const moduleQueries = {
     }
   })
 };
-
-// No duplicate exports here - these are already exported above

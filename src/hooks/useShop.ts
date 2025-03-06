@@ -1,15 +1,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShopService } from '@/core/shop/application/ShopService';
-import { Shop, ShopItem, ShopItemStatus, ShopStatus, Order } from '@/core/shop/domain/types';
-import { useAuth } from '@/hooks/useAuth';
-
-// Initialize the shop service
-const shopService = new ShopService();
+import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { Shop, ShopItem, ShopItemStatus, ShopStatus, Order, OrderStatus, PaymentStatus } from '@/core/shop/domain/types';
+import { useAuth } from '@/modules/auth/hooks/useAuth';
 
 export const useShop = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const shopService = getShopService();
   
   // Get shop by ID
   const useShopById = (shopId?: string) => {
@@ -154,8 +152,8 @@ export const useShop = () => {
   // Update order status
   const useUpdateOrderStatus = () => {
     return useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string; status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'returned' }) => {
-        return shopService.updateOrderStatus(orderId, status as any);
+      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
+        return shopService.updateOrderStatus(orderId, status);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
@@ -200,6 +198,46 @@ export const useShop = () => {
     });
   };
 
+  // Create a shop item
+  const useCreateShopItem = () => {
+    return useMutation({
+      mutationFn: async ({ shopId, item }: { shopId: string; item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> }) => {
+        return shopService.addShopItems(shopId, [item]);
+      },
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shopId] });
+      }
+    });
+  };
+
+  // Add a shop to favorites
+  const useFavoriteShop = () => {
+    return useMutation({
+      mutationFn: async (shopId: string) => {
+        if (!user?.id) throw new Error('User not authenticated');
+        return shopService.addShopToFavorites(user.id, shopId);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+        queryClient.invalidateQueries({ queryKey: ['shop-favorited'] });
+      }
+    });
+  };
+  
+  // Remove a shop from favorites
+  const useUnfavoriteShop = () => {
+    return useMutation({
+      mutationFn: async (shopId: string) => {
+        if (!user?.id) throw new Error('User not authenticated');
+        return shopService.removeShopFromFavorites(user.id, shopId);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+        queryClient.invalidateQueries({ queryKey: ['shop-favorited'] });
+      }
+    });
+  };
+
   return {
     useShopById,
     useUserShop,
@@ -207,6 +245,7 @@ export const useShop = () => {
     useUpdateShop,
     useShopsByStatus,
     useAddShopItems,
+    useCreateShopItem,
     useUpdateShopItem,
     useUpdateShopItemStatus,
     useShopItems,
@@ -215,6 +254,8 @@ export const useShop = () => {
     useUpdateOrderStatus,
     useShopReviews,
     useIsShopFavorited,
-    useFavoriteShops
+    useFavoriteShops,
+    useFavoriteShop,
+    useUnfavoriteShop
   };
 };

@@ -1,29 +1,18 @@
 
 import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
-/**
- * Provider for the ShopService
- * This is used to create and provide an instance of the ShopService
- */
-export class ShopServiceProvider {
-  private static instance: ShopService;
+// Singleton instance
+let shopServiceInstance: ShopService | null = null;
 
-  /**
-   * Get the instance of ShopService
-   */
-  public static getInstance(): ShopService {
-    if (!ShopServiceProvider.instance) {
-      // Create the repository
-      const shopRepository = new ShopRepository();
-      
-      // Create the service with the repository
-      ShopServiceProvider.instance = new ShopService();
-    }
-    
-    return ShopServiceProvider.instance;
+// Create and export the shop repository instance
+export const shopRepository: IShopRepository = new ShopRepository();
+
+// Get shop service instance or create one if it doesn't exist
+export const getShopService = (): ShopService => {
+  if (!shopServiceInstance) {
+    shopServiceInstance = new ShopService(shopRepository);
   }
-}
-
-// Export a singleton instance
-export const shopServiceProvider = ShopServiceProvider.getInstance();
+  return shopServiceInstance;
+};

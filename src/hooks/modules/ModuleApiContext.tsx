@@ -1,117 +1,101 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { AppModule } from './types';
+import { fetchAllModules, fetchAllFeatures } from '../api/moduleSync';
 
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useModuleApiCore } from './hooks/useModuleApiCore';
-import { ModuleStatus, AppModule } from './types';
-
-// Interface pour le contexte
-interface ModuleApiContextType {
-  // Fonctions asynchrones pour les vérifications précises
-  isModuleActive: (moduleCode: string) => Promise<boolean>;
-  isModuleDegraded: (moduleCode: string) => Promise<boolean>;
-  isFeatureEnabled: (moduleCode: string, featureCode: string) => Promise<boolean>;
-  
-  // Fonctions synchrones pour les rendus React (utilisent le cache seulement)
-  getModuleActiveStatus: (moduleCode: string) => boolean;
-  getModuleDegradedStatus: (moduleCode: string) => boolean;
-  getFeatureEnabledStatus: (moduleCode: string, featureCode: string) => boolean;
-  
-  // Fonctions de rafraîchissement
-  refreshModules: (force?: boolean) => Promise<AppModule[]>;
-  refreshFeatures: (force?: boolean) => Promise<Record<string, Record<string, boolean>>>;
-  
-  // Fonctions de mise à jour
-  updateModuleStatus: (moduleId: string, status: ModuleStatus) => Promise<boolean>;
-  updateFeatureStatus: (moduleCode: string, featureCode: string, isEnabled: boolean) => Promise<boolean>;
-  
-  // État
+// Define the context type
+export interface ModuleApiContextType {
+  modules: AppModule[];
+  features: Record<string, any>;
   loading: boolean;
   error: string | null;
-  isInitialized: boolean;
-  modules: AppModule[];
+  refreshModules: () => Promise<void>;
+  refreshFeatures: () => Promise<void>;
 }
 
-// Créer le contexte avec des valeurs par défaut
+// Create the context with a default value
 const ModuleApiContext = createContext<ModuleApiContextType>({
-  isModuleActive: async () => false,
-  isModuleDegraded: async () => false,
-  isFeatureEnabled: async () => false,
-  getModuleActiveStatus: () => false,
-  getModuleDegradedStatus: () => false,
-  getFeatureEnabledStatus: () => false,
-  refreshModules: async () => [],
-  refreshFeatures: async () => ({}),
-  updateModuleStatus: async () => false,
-  updateFeatureStatus: async () => false,
-  loading: true,
+  modules: [],
+  features: {},
+  loading: false,
   error: null,
-  isInitialized: false,
-  modules: []
+  refreshModules: async () => {},
+  refreshFeatures: async () => {},
 });
 
-// Props pour le provider
-interface ModuleApiProviderProps {
-  children: ReactNode;
+// Custom hook to use the module API context
+export function useModuleApi() {
+  return useContext(ModuleApiContext);
 }
 
-// Provider pour le contexte
-export const ModuleApiProvider = ({ children }: ModuleApiProviderProps) => {
-  const moduleApiCore = useModuleApiCore();
-  
-  // Complete the context with missing methods
-  const moduleApi: ModuleApiContextType = {
-    ...moduleApiCore,
-    isModuleActive: async (moduleCode: string) => {
-      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
-      return module?.status === 'active';
-    },
-    isModuleDegraded: async (moduleCode: string) => {
-      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
-      return module?.status === 'degraded';
-    },
-    isFeatureEnabled: async (moduleCode: string, featureCode: string) => {
-      return moduleApiCore.features?.[moduleCode]?.[featureCode] || false;
-    },
-    getModuleActiveStatus: (moduleCode: string) => {
-      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
-      return module?.status === 'active';
-    },
-    getModuleDegradedStatus: (moduleCode: string) => {
-      const module = moduleApiCore.modules.find(m => m.code === moduleCode);
-      return module?.status === 'degraded';
-    },
-    getFeatureEnabledStatus: (moduleCode: string, featureCode: string) => {
-      return moduleApiCore.features?.[moduleCode]?.[featureCode] || false;
-    },
-    refreshModules: async (force?: boolean) => {
-      const result = await moduleApiCore.refreshModules();
-      return result.data || [];
-    },
-    refreshFeatures: async (force?: boolean) => {
-      const result = await moduleApiCore.refreshFeatures();
-      return result.data || {};
-    },
-    updateModuleStatus: moduleApiCore.updateModuleStatus,
-    updateFeatureStatus: moduleApiCore.updateFeatureStatus,
-    loading: moduleApiCore.loading,
-    error: moduleApiCore.error ? moduleApiCore.error.toString() : null,
-    isInitialized: moduleApiCore.isInitialized,
-    modules: moduleApiCore.modules
+// Provider component to wrap the app and provide the context
+export function ModuleApiContextProvider({ children }: { children: React.ReactNode }) {
+  const [modules, setModules] = useState<AppModule[]>([]);
+  const [features, setFeatures] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Function to handle errors
+  const handleError = (err: unknown) => {
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+    console.error('Module API error:', errorMessage);
+    setError(errorMessage);
   };
-  
+
+  // Fetch modules from the API
+  const fetchModules = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fetchedModules = await fetchAllModules();
+      setModules(fetchedModules);
+      setError(null);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch features from the API
+  const fetchFeatures = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fetchedFeatures = await fetchAllFeatures();
+      setFeatures(fetchedFeatures);
+      setError(null);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Refresh modules and features
+  const refreshModules = useCallback(async () => {
+    await fetchModules();
+  }, [fetchModules]);
+
+  const refreshFeatures = useCallback(async () => {
+    await fetchFeatures();
+  }, [fetchFeatures]);
+
+  // Load modules and features on component mount
+  useEffect(() => {
+    fetchModules();
+    fetchFeatures();
+  }, [fetchModules, fetchFeatures]);
+
   return (
-    <ModuleApiContext.Provider value={moduleApi}>
+    <ModuleApiContext.Provider
+      value={{
+        modules,
+        features,
+        loading,
+        error,
+        refreshModules,
+        refreshFeatures,
+      }}
+    >
       {children}
     </ModuleApiContext.Provider>
   );
-};
-
-// Hook pour utiliser le contexte
-export const useModuleApiContext = () => {
-  const context = useContext(ModuleApiContext);
-  
-  if (context === undefined) {
-    throw new Error('useModuleApiContext doit être utilisé à l\'intérieur d\'un ModuleApiProvider');
-  }
-  
-  return context;
-};
+}

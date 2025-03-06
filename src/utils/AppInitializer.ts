@@ -1,66 +1,40 @@
 
-import { EventBus } from '@/core/event-bus/EventBus';
-import { moduleInitializer } from '@/services/modules/ModuleInitializer';
-import { supabase } from '@/integrations/supabase/client';
+import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
+import { eventBus } from '@/core/event-bus/EventBus';
 
 /**
- * Class that initializes the application
+ * Initializes the application
  */
 export class AppInitializer {
-  private static instance: AppInitializer;
-  private eventBus: EventBus;
-  private isInitialized = false;
+  private moduleInitializer: ModuleInitializer;
 
-  private constructor() {
-    this.eventBus = new EventBus();
-  }
-
-  /**
-   * Get the instance of AppInitializer
-   */
-  public static getInstance(): AppInitializer {
-    if (!AppInitializer.instance) {
-      AppInitializer.instance = new AppInitializer();
-    }
-    return AppInitializer.instance;
+  constructor() {
+    // Initialize event bus
+    this.moduleInitializer = new ModuleInitializer();
   }
 
   /**
    * Initialize the application
+   * This is called at startup
    */
-  public async initialize(): Promise<boolean> {
-    if (this.isInitialized) return true;
-    
+  async initialize(): Promise<void> {
+    console.log('Initializing application...');
     try {
       // Initialize modules
-      const modulesInitialized = await moduleInitializer.initializeModules();
+      await this.initializeModules();
       
-      if (modulesInitialized) {
-        this.isInitialized = true;
-        return true;
-      }
-      
-      return false;
+      console.log('Application initialized successfully');
     } catch (error) {
       console.error('Error initializing application:', error);
-      return false;
     }
   }
-  
+
   /**
-   * Check if the application is initialized
+   * Initialize all modules
    */
-  public isApplicationInitialized(): boolean {
-    return this.isInitialized;
-  }
-  
-  /**
-   * Get the event bus
-   */
-  public getEventBus(): EventBus {
-    return this.eventBus;
+  private async initializeModules(): Promise<void> {
+    console.log('Initializing modules...');
+    const modules = await this.moduleInitializer.initializeModules();
+    console.log(`Initialized ${modules.length} modules`);
   }
 }
-
-// Export the instance
-export const appInitializer = AppInitializer.getInstance();

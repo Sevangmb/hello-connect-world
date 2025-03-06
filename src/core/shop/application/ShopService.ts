@@ -1,17 +1,15 @@
-// Update only the methods that were causing type errors
 
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
 import { 
   Shop, 
   ShopItem, 
-  ShopReview, 
   ShopStatus, 
+  ShopItemStatus, 
   Order, 
-  OrderStatus, 
-  PaymentStatus, 
-  ShopSettings,
-  ShopItemStatus
+  ShopReview,
+  OrderStatus,
+  PaymentStatus
 } from '../domain/types';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
 export class ShopService {
   private shopRepository: IShopRepository;
@@ -20,10 +18,7 @@ export class ShopService {
     this.shopRepository = shopRepository;
   }
 
-  async getShops(): Promise<Shop[]> {
-    return this.shopRepository.getShops();
-  }
-
+  // Shop operations
   async getShopById(id: string): Promise<Shop | null> {
     return this.shopRepository.getShopById(id);
   }
@@ -32,16 +27,21 @@ export class ShopService {
     return this.shopRepository.getShopByUserId(userId);
   }
 
+  async createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop | null> {
+    return this.shopRepository.createShop(shop);
+  }
+
+  async updateShop(id: string, shop: Partial<Shop>): Promise<Shop | null> {
+    return this.shopRepository.updateShop(id, shop);
+  }
+
   async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
-    return this.shopRepository.getShopsByStatus(status.toString());
+    return this.shopRepository.getShopsByStatus(status);
   }
 
-  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> {
-    return this.shopRepository.createShop(shopData);
-  }
-
-  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop> {
-    return this.shopRepository.updateShop(id, shopData);
+  // Shop items operations
+  async addShopItems(shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<boolean> {
+    return this.shopRepository.addShopItems(shopId, items);
   }
 
   async getShopItems(shopId: string): Promise<ShopItem[]> {
@@ -52,67 +52,51 @@ export class ShopService {
     return this.shopRepository.getShopItemById(id);
   }
 
-  async createShopItem(itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
-    return this.shopRepository.createShopItem(itemData);
+  async updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem | null> {
+    return this.shopRepository.updateShopItem(id, item);
   }
 
-  async updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
-    return this.shopRepository.updateShopItem(id, itemData);
-  }
-
-  // Fix return type for updateShopItemStatus
   async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean> {
-    const result = await this.shopRepository.updateShopItemStatus(id, status);
-    return !!result;
+    return this.shopRepository.updateShopItemStatus(id, status);
   }
 
-  async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    return this.shopRepository.getShopReviews(shopId);
+  // Order operations
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    return this.shopRepository.getShopOrders(shopId);
   }
 
-  async createShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview> {
-    return this.shopRepository.createShopReview(review);
-  }
-
-  // Add missing methods for orders
-  async getOrdersByShop(shopId: string): Promise<Order[]> {
-    return this.shopRepository.getOrdersByShop(shopId);
-  }
-
-  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    return this.shopRepository.getOrdersByCustomer(customerId);
-  }
-
-  async getOrderById(id: string): Promise<Order | null> {
-    return this.shopRepository.getOrderById(id);
+  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
+    return this.shopRepository.createOrder(order);
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
     return this.shopRepository.updateOrderStatus(orderId, status);
   }
 
-  // Add missing methods for favorites
-  async isShopFavorited(shopId: string): Promise<boolean> {
-    return this.shopRepository.isShopFavorited(shopId);
+  // Favorites operations
+  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
+    return this.shopRepository.isShopFavorited(userId, shopId);
   }
 
-  async addShopToFavorites(shopId: string): Promise<boolean> {
-    return this.shopRepository.addShopToFavorites(shopId);
+  async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
+    return this.shopRepository.addShopToFavorites(userId, shopId);
   }
 
-  async removeShopFromFavorites(shopId: string): Promise<boolean> {
-    return this.shopRepository.removeShopFromFavorites(shopId);
+  async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
+    return this.shopRepository.removeShopFromFavorites(userId, shopId);
   }
 
-  async getFavoriteShops(): Promise<Shop[]> {
-    return this.shopRepository.getFavoriteShops();
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
+    return this.shopRepository.getFavoriteShops(userId);
   }
 
-  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
-    return this.shopRepository.getShopSettings(shopId);
+  // Shop reviews
+  async getShopReviews(shopId: string): Promise<ShopReview[]> {
+    return this.shopRepository.getShopReviews(shopId);
   }
 
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
-    return this.shopRepository.updateShopSettings(shopId, settings);
+  // Cart operations
+  async addToCart(userId: string, itemId: string, quantity: number): Promise<boolean> {
+    return this.shopRepository.addToCart(userId, itemId, quantity);
   }
 }

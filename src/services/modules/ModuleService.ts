@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleRepository } from './repositories/ModuleRepository';
 
@@ -119,8 +120,9 @@ export class ModuleService {
   /**
    * Initialize all modules
    */
-  async initializeModules(): Promise<boolean> {
-    // Implementation logic
-    return true;
+  async initializeModules(): Promise<AppModule[]> {
+    // Get all active modules
+    const modules = await this.getActiveModules();
+    return modules;
   }
 }

@@ -1,21 +1,12 @@
-
+import { ShopService } from '@/core/shop/application/ShopService';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { BaseApiGateway } from './BaseApiGateway';
-import { 
-  Shop, 
-  ShopItem, 
-  ShopReview, 
-  ShopStatus, 
-  ShopItemStatus, 
-  OrderStatus, 
-  Order 
-} from '@/core/shop/domain/types';
 
-/**
- * Shop API Gateway for accessing shop-related functionality
- */
-export class ShopApiGateway extends BaseApiGateway {
-  private shopService = getShopService();
+export class ShopApiGateway {
+  private shopService: ShopService;
+
+  constructor() {
+    this.shopService = getShopService();
+  }
 
   /**
    * Get shop by ID
