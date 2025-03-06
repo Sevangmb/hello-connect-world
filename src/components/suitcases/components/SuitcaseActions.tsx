@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, Loader2, Plus } from 'lucide-react';
+import { Calendar, Loader2, Plus, Archive, Scissors } from 'lucide-react';
 import { useSuitcaseSuggestions } from '../hooks/suitcase-suggestions/useSuitcaseSuggestions';
 import { SuitcaseSuggestionsDialog } from './SuitcaseSuggestionsDialog';
 
@@ -16,7 +15,6 @@ interface SuitcaseActionsProps {
   endDate?: Date;
 }
 
-// Export as named export, not default
 export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
   suitcaseId,
   onAddItems,

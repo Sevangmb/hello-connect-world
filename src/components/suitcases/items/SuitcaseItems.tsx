@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useClothes } from '@/hooks/useClothes';
 import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
 import { SuitcaseItemsEmpty } from './SuitcaseItemsEmpty';
@@ -12,30 +13,34 @@ interface SuitcaseItemsProps {
 export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { clothes } = useClothes();
-  const { data: items = [], refetch: fetchItems, remove: removeItem } = useSuitcaseItems(suitcaseId);
+  const { data: items = [], refetch: refetchItems, remove: removeItem } = useSuitcaseItems(suitcaseId);
   
   useEffect(() => {
     const loadItems = async () => {
       setIsLoading(true);
-      await fetchItems();
+      await refetchItems();
       setIsLoading(false);
     };
     
     loadItems();
-  }, [suitcaseId, fetchItems]);
-  
+  }, [suitcaseId, refetchItems]);
+
   const handleRemoveItem = async (itemId: string) => {
     await removeItem(itemId);
   };
-  
-  // If there are no items, show empty state
+
   if (!isLoading && items.length === 0) {
-    return <SuitcaseItemsEmpty suitcaseId={suitcaseId} />;
+    return (
+      <SuitcaseItemsEmpty 
+        suitcaseId={suitcaseId} 
+        availableClothes={clothes} 
+      />
+    );
   }
-  
+
   return (
     <div className="space-y-3">
-      <SuitcaseItemsHeader count={items.length} isLoading={isLoading} />
+      <SuitcaseItemsHeader itemCount={items.length} isLoading={isLoading} />
       
       {isLoading ? (
         <div className="animate-pulse space-y-2">
