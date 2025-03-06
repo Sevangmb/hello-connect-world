@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { SuitcaseCard } from './SuitcaseCard';
-import { SuitcaseListItem } from './SuitcaseListItem';
+import SuitcaseCard from './SuitcaseCard';
+import SuitcaseListItem from './SuitcaseListItem';
 
 interface SuitcaseGridProps {
   suitcases: any[];

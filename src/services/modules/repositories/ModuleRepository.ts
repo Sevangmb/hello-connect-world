@@ -86,26 +86,27 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Fetch dependencies in a way that avoids deep type instantiation
+      // Simplified query to avoid deep type instantiation
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');
 
       if (error) throw error;
       
-      // Filter dependencies manually to avoid complex query
+      // Filter dependencies manually
       const filteredData = dependencyRecords.filter(dep => dep.module_id === moduleId);
       
       // Get full dependency information
       const dependencies = [];
+      
       for (const dep of filteredData) {
-        const { data: moduleInfo } = await supabase
+        const { data: moduleInfo, error: moduleError } = await supabase
           .from('app_modules')
           .select('id, name, code, status')
           .eq('id', dep.dependency_id)
           .single();
           
-        if (moduleInfo) {
+        if (!moduleError && moduleInfo) {
           dependencies.push({
             id: dep.id,
             module_id: dep.module_id,
@@ -185,46 +186,47 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Simplified approach to avoid deep type issues
+      // Get modules first
       const { data: moduleData, error: moduleError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
       
-      if (moduleError) throw moduleError;
-      if (!moduleData) return [];
+      if (moduleError || !moduleData) return [];
       
-      // Get features separately
+      // Then get features separately
       const { data: featureData, error: featureError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
         
-      if (featureError) throw featureError;
+      if (featureError) return [];
       
-      // Group the features by module
-      const moduleMap = new Map();
+      // Map modules to their features
+      const resultMap = new Map();
       
-      for (const module of moduleData) {
-        moduleMap.set(module.code, {
+      moduleData.forEach(module => {
+        resultMap.set(module.code, {
           module,
           features: []
         });
+      });
+      
+      // Add features to their modules
+      if (featureData) {
+        featureData.forEach(feature => {
+          const moduleCode = feature.module_code;
+          if (resultMap.has(moduleCode)) {
+            resultMap.get(moduleCode).features.push({
+              id: feature.id,
+              feature_code: feature.feature_code,
+              feature_name: feature.feature_name,
+              description: feature.description,
+              is_enabled: feature.is_enabled
+            });
+          }
+        });
       }
       
-      // Add features to the appropriate modules
-      for (const feature of featureData) {
-        const moduleCode = feature.module_code;
-        if (moduleMap.has(moduleCode)) {
-          moduleMap.get(moduleCode).features.push({
-            id: feature.id,
-            feature_code: feature.feature_code,
-            feature_name: feature.feature_name,
-            description: feature.description,
-            is_enabled: feature.is_enabled
-          });
-        }
-      }
-      
-      return Array.from(moduleMap.values());
+      return Array.from(resultMap.values());
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];
