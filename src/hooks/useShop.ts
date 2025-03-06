@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shop, ShopItem, ShopStatus, ShopItemStatus } from '@/core/shop/domain/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,42 @@ export const useShop = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Get shop by ID
+  const createShop = async (shopData: Partial<Shop>): Promise<Shop | null> => {
+    const { data, error } = await supabase
+      .from('shops')
+      .insert([{
+        name: shopData.name || '',
+        user_id: shopData.user_id || '',
+        status: shopData.status || 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...shopData
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
+  const createShopItem = async (item: Partial<ShopItem>): Promise<ShopItem | null> => {
+    const { data, error } = await supabase
+      .from('shop_items')
+      .insert([{
+        clothes_id: item.clothes_id || '',
+        shop_id: item.shop_id || '',
+        price: item.price || 0,
+        ...item,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
   const useShopById = (shopId?: string) => {
     return useQuery({
       queryKey: ['shop', shopId],
@@ -27,7 +61,6 @@ export const useShop = () => {
     });
   };
 
-  // Get user's shop
   const useUserShop = () => {
     return useQuery({
       queryKey: ['user-shop', user?.id],
@@ -49,7 +82,6 @@ export const useShop = () => {
     });
   };
 
-  // Create shop
   const useCreateShop = () => {
     return useMutation({
       mutationFn: async (shopData: Partial<Shop>) => {
@@ -74,7 +106,6 @@ export const useShop = () => {
     });
   };
 
-  // Update shop
   const useUpdateShop = () => {
     return useMutation({
       mutationFn: async ({ id, shopData }: { id: string; shopData: Partial<Shop> }) => {
@@ -98,7 +129,6 @@ export const useShop = () => {
     });
   };
 
-  // Get shop items
   const useShopItems = (shopId?: string) => {
     return useQuery({
       queryKey: ['shop-items', shopId],
@@ -118,7 +148,6 @@ export const useShop = () => {
     });
   };
 
-  // Create shop item
   const useCreateShopItem = () => {
     return useMutation({
       mutationFn: async (itemData: Partial<ShopItem>) => {
@@ -141,7 +170,6 @@ export const useShop = () => {
     });
   };
 
-  // Update shop item
   const useUpdateShopItem = () => {
     return useMutation({
       mutationFn: async ({ id, itemData }: { id: string; itemData: Partial<ShopItem> }) => {
@@ -164,7 +192,6 @@ export const useShop = () => {
     });
   };
 
-  // Delete shop item
   const useDeleteShopItem = () => {
     return useMutation({
       mutationFn: async ({ id, shopId }: { id: string; shopId: string }) => {
@@ -182,7 +209,6 @@ export const useShop = () => {
     });
   };
 
-  // Add to favorites
   const useAddToFavorites = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
@@ -206,7 +232,6 @@ export const useShop = () => {
     });
   };
 
-  // Remove from favorites
   const useRemoveFromFavorites = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
@@ -228,7 +253,6 @@ export const useShop = () => {
     });
   };
 
-  // Check if shop is favorited
   const useIsShopFavorited = (shopId?: string) => {
     return useQuery({
       queryKey: ['is-favorited', shopId, user?.id],
@@ -249,7 +273,6 @@ export const useShop = () => {
     });
   };
 
-  // Get favorite shops
   const useFavoriteShops = () => {
     return useQuery({
       queryKey: ['favorite-shops', user?.id],
@@ -280,7 +303,6 @@ export const useShop = () => {
     });
   };
 
-  // Update shop settings
   const useUpdateShopSettings = () => {
     return useMutation({
       mutationFn: async ({ shopId, settingsData }: { shopId: string; settingsData: any }) => {
@@ -349,3 +371,5 @@ export const useShop = () => {
     useUpdateShopSettings
   };
 };
+
+export { useShop };

@@ -1,4 +1,3 @@
-
 /**
  * Types du module de boutique
  */
@@ -193,4 +192,13 @@ export interface ShopSettings {
   };
   created_at: string;
   updated_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  shop_item_id: string;
+  price_at_time: number;
+  quantity: number;
+  created_at: string;
 }

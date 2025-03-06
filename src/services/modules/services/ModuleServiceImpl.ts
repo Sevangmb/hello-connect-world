@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { IModuleService } from './IModuleService';
 import { ModuleRepository } from '../repositories/ModuleRepository';
@@ -95,10 +94,7 @@ export class ModuleServiceImpl implements IModuleService {
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     return await this.moduleRepository.getModuleDependencies(moduleId);
   }
-  
-  // These methods are not implemented in the repository but are in the interface
-  // Stubbing them to fix TypeScript errors
-  
+
   /**
    * Create module (stub)
    */
@@ -106,7 +102,7 @@ export class ModuleServiceImpl implements IModuleService {
     console.warn('createModule not implemented in repository');
     return null;
   }
-  
+
   /**
    * Update module (stub)
    */
@@ -114,12 +110,23 @@ export class ModuleServiceImpl implements IModuleService {
     console.warn('updateModule not implemented in repository');
     return null;
   }
-  
+
   /**
    * Delete module (stub)
    */
   async deleteModule(id: string): Promise<boolean> {
     console.warn('deleteModule not implemented in repository');
     return false;
+  }
+
+  async recordModuleUsage(moduleId: string, action: string): Promise<void> {
+    try {
+      await this.moduleRepository.recordModuleUsage(moduleId, {
+        action,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error recording module usage:', error);
+    }
   }
 }

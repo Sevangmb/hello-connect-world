@@ -82,3 +82,6 @@ export class ModuleApiGateway extends BaseApiGateway {
     return await this.moduleService.updateModuleStatus(id, status);
   }
 }
+
+// Export a singleton instance
+export const moduleApiGateway = new ModuleApiGateway(new ModuleService());
