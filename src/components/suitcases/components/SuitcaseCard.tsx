@@ -1,110 +1,103 @@
 
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Suitcase } from "@/components/suitcases/utils/types";
-import { SuitcaseDates } from "./SuitcaseDates";
-import { SuitcaseItems } from "@/components/suitcases/items";
-import SuitcaseActions from "./SuitcaseActions";
+import React from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar, Suitcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { SuitcaseActions } from './SuitcaseActions';
 
 interface SuitcaseCardProps {
-  suitcase: Suitcase;
-  isSelected: boolean;
-  onSelect: (id: string | undefined) => void;
+  id: string;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  destination?: string;
+  itemCount?: number;
 }
 
-export const SuitcaseCard = ({
-  suitcase,
-  isSelected,
-  onSelect,
-}: SuitcaseCardProps) => {
-  const startDate = suitcase.start_date ? new Date(suitcase.start_date) : undefined;
-  const endDate = suitcase.end_date ? new Date(suitcase.end_date) : undefined;
+const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
+  id,
+  name,
+  description,
+  startDate,
+  endDate,
+  destination,
+  itemCount = 0
+}) => {
+  const navigate = useNavigate();
 
-  const formatDateRange = (startDate: string | null, endDate: string | null) => {
-    if (!startDate || !endDate) return "Pas de dates";
-    
-    return `${format(new Date(startDate), "d MMM", { locale: fr })} - ${format(new Date(endDate), "d MMM yyyy", { locale: fr })}`;
+  const handleViewClick = () => {
+    navigate(`/suitcases/${id}`);
+  };
+
+  const handleCalendarClick = () => {
+    navigate(`/suitcases/${id}/calendar`);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
+    } catch (e) {
+      return 'Date invalide';
+    }
   };
 
   return (
-    <Card 
-      className={`group transition-all duration-200 hover:shadow-md ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
-    >
-      <CardHeader className="pb-2">
+    <Card className="w-full">
+      <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold truncate">{suitcase.name}</CardTitle>
-          <Badge variant={suitcase.status === "active" ? "default" : suitcase.status === "archived" ? "secondary" : "destructive"}>
-            {suitcase.status === "active" ? "Active" : suitcase.status === "archived" ? "Archivée" : "Supprimée"}
-          </Badge>
+          <CardTitle className="text-lg font-medium">{name}</CardTitle>
+          <SuitcaseActions 
+            suitcaseId={id}
+            onAddItems={() => navigate(`/suitcases/${id}/add-items`)}
+            onViewCalendar={handleCalendarClick}
+          />
         </div>
-        {suitcase.description && (
-          <CardDescription className="line-clamp-2">
-            {suitcase.description}
-          </CardDescription>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
       </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="text-sm text-muted-foreground mb-4">
-          {startDate && endDate ? (
-            <div className="flex gap-1 items-center">
-              <Calendar className="w-4 h-4" />
-              <span>{formatDateRange(suitcase.start_date, suitcase.end_date)}</span>
-            </div>
-          ) : (
-            <div className="flex gap-1 items-center text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Pas de dates programmées</span>
+      <CardContent>
+        <div className="space-y-2">
+          {(startDate || endDate) && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                {startDate && formatDate(startDate)}
+                {startDate && endDate && ' - '}
+                {endDate && formatDate(endDate)}
+              </span>
             </div>
           )}
+          {destination && (
+            <div className="flex items-center gap-2">
+              <Suitcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{destination}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm font-medium">
+              {itemCount} article{itemCount !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
-        
-        {isSelected && (
-          <div className="pt-2 animate-fade-in">
-            <SuitcaseDates
-              suitcaseId={suitcase.id}
-              startDate={startDate}
-              endDate={endDate}
-            />
-          </div>
-        )}
       </CardContent>
-      
-      <CardFooter className="pt-2 flex flex-col gap-2">
-        <Button 
-          variant={isSelected ? "default" : "outline"} 
-          size="sm" 
-          className="w-full"
-          onClick={() => onSelect(isSelected ? undefined : suitcase.id)}
+      <CardFooter className="pt-0 flex justify-between gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleViewClick}
+          className="flex-1"
         >
-          {isSelected ? "Masquer les détails" : "Afficher les détails"}
+          Voir
         </Button>
-        
-        {isSelected && (
-          <div className="w-full space-y-4 pt-2 animate-fade-in">
-            <SuitcaseItems suitcaseId={suitcase.id} />
-            
-            <SuitcaseActions 
-              suitcaseId={suitcase.id}
-              onAddItems={() => {}}
-              onViewCalendar={() => {}}
-            />
-          </div>
-        )}
       </CardFooter>
     </Card>
   );
 };
+
+export default SuitcaseCard;

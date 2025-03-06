@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 
-interface SuitcaseActionsProps {
+export interface SuitcaseActionsProps {
   suitcaseId: string;
   onAddItems?: () => void;
   onViewCalendar?: () => void;

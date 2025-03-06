@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { SuitcaseItemsEmpty } from './SuitcaseItemsEmpty';
@@ -9,7 +10,10 @@ interface SuitcaseItemsProps {
 }
 
 export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
-  const { data: items, isLoading, remove } = useSuitcaseItems(suitcaseId);
+  const { data: items, isLoading, removeItem } = useSuitcaseItems(suitcaseId);
+  
+  // Initialize an empty array for available clothes
+  const availableClothes = [];
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -19,7 +23,7 @@ export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
     return (
       <SuitcaseItemsEmpty 
         suitcaseId={suitcaseId}
-        availableClothes={[]} 
+        availableClothes={availableClothes}
       />
     );
   }
@@ -35,7 +39,7 @@ export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
           <li key={item.id} className="flex justify-between items-center p-2 border rounded-md">
             <span>{item.name}</span>
             <button 
-              onClick={() => remove && remove(item.id)}
+              onClick={() => removeItem && removeItem(item.id)}
               className="text-red-500 text-sm"
             >
               Supprimer

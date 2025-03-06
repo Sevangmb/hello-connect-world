@@ -1,99 +1,99 @@
 
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { GripVertical, Search, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Suitcase } from "@/components/suitcases/utils/types";
-import { SuitcaseDates } from "./SuitcaseDates";
-import { SuitcaseItems } from "@/components/suitcases/items";
-import SuitcaseActions from "./SuitcaseActions";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Suitcase } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { SuitcaseActions } from './SuitcaseActions';
 
 interface SuitcaseListItemProps {
-  suitcase: Suitcase;
-  isSelected: boolean;
-  onSelect: (id: string | undefined) => void;
+  id: string;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  destination?: string;
+  itemCount?: number;
 }
 
-export const SuitcaseListItem = ({
-  suitcase,
-  isSelected,
-  onSelect,
-}: SuitcaseListItemProps) => {
-  const startDate = suitcase.start_date ? new Date(suitcase.start_date) : undefined;
-  const endDate = suitcase.end_date ? new Date(suitcase.end_date) : undefined;
+const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({
+  id,
+  name,
+  description,
+  startDate,
+  endDate,
+  destination,
+  itemCount = 0
+}) => {
+  const navigate = useNavigate();
 
-  const formatDateRange = (startDate: string | null, endDate: string | null) => {
-    if (!startDate || !endDate) return "Pas de dates";
-    
-    return `${format(new Date(startDate), "d MMM", { locale: fr })} - ${format(new Date(endDate), "d MMM yyyy", { locale: fr })}`;
+  const handleViewClick = () => {
+    navigate(`/suitcases/${id}`);
+  };
+
+  const handleCalendarClick = () => {
+    navigate(`/suitcases/${id}/calendar`);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
+    } catch (e) {
+      return 'Date invalide';
+    }
   };
 
   return (
-    <div 
-      className={`border rounded-md mb-3 overflow-hidden transition-all duration-200 ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
-    >
-      <div 
-        className="p-4 cursor-pointer"
-        onClick={() => onSelect(isSelected ? undefined : suitcase.id)}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <GripVertical className="text-muted-foreground h-5 w-5" />
-            <div>
-              <h3 className="font-medium">{suitcase.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                {startDate && endDate
-                  ? formatDateRange(suitcase.start_date, suitcase.end_date)
-                  : "Pas de dates programmées"}
-              </p>
+    <div className="border rounded-lg p-4 mb-3">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-medium">{name}</h3>
+          {description && (
+            <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          )}
+          <div className="space-y-1 mt-2">
+            {(startDate || endDate) && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">
+                  {startDate && formatDate(startDate)}
+                  {startDate && endDate && ' - '}
+                  {endDate && formatDate(endDate)}
+                </span>
+              </div>
+            )}
+            {destination && (
+              <div className="flex items-center gap-2">
+                <Suitcase className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{destination}</span>
+              </div>
+            )}
+            <div className="mt-2">
+              <span className="text-sm font-medium">
+                {itemCount} article{itemCount !== 1 ? 's' : ''}
+              </span>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge variant={suitcase.status === "active" ? "default" : suitcase.status === "archived" ? "secondary" : "destructive"}>
-              {suitcase.status === "active" ? "Active" : suitcase.status === "archived" ? "Archivée" : "Supprimée"}
-            </Badge>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(isSelected ? undefined : suitcase.id);
-              }}
-            >
-              {isSelected ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
-            </Button>
-          </div>
+        </div>
+        <div className="flex flex-col space-y-2">
+          <SuitcaseActions 
+            suitcaseId={id} 
+            onAddItems={() => navigate(`/suitcases/${id}/add-items`)}
+            onViewCalendar={handleCalendarClick}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleViewClick}
+          >
+            Voir
+          </Button>
         </div>
       </div>
-      
-      {isSelected && (
-        <div className="px-4 pb-4 pt-2 border-t animate-fade-in">
-          <div className="space-y-4">
-            {suitcase.description && (
-              <p className="text-sm">{suitcase.description}</p>
-            )}
-            
-            <SuitcaseDates
-              suitcaseId={suitcase.id}
-              startDate={startDate}
-              endDate={endDate}
-            />
-            
-            <SuitcaseItems suitcaseId={suitcase.id} />
-            
-            <SuitcaseActions 
-              suitcaseId={suitcase.id}
-              onAddItems={() => {}}
-              onViewCalendar={() => {}}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+export default SuitcaseListItem;

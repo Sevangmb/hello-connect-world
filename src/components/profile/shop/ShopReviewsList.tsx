@@ -1,105 +1,117 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { useShop } from '@/hooks/useShop';
 import { ShopReview } from '@/core/shop/domain/types';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
-import { StarIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useQuery } from '@tanstack/react-query';
 
-interface ShopReviewsListProps {
-  shopId: string;
-}
+export const ShopReviewsList: React.FC = () => {
+  const { shop, shopService } = useShop();
+  
+  const { data: reviews, isLoading } = useQuery({
+    queryKey: ['shop-reviews', shop?.id],
+    queryFn: () => shopService.getShopReviews(shop?.id || ''),
+    enabled: !!shop?.id
+  });
 
-export const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
-  const [reviews, setReviews] = useState<ShopReview[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { getShopReviews } = useShop();
-
-  useEffect(() => {
-    const loadReviews = async () => {
-      if (!shopId) return;
-      setLoading(true);
-      try {
-        const shopReviews = await getShopReviews(shopId);
-        setReviews(shopReviews || []);
-      } catch (error) {
-        console.error('Error loading shop reviews:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReviews();
-  }, [shopId, getShopReviews]);
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <StarIcon 
-            key={i} 
-            className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-full bg-gray-200"></div>
-              <div className="space-y-2">
-                <div className="h-4 w-40 bg-gray-200 rounded"></div>
-                <div className="h-3 w-24 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-            <div className="mt-2 h-16 bg-gray-200 rounded"></div>
-          </div>
-        ))}
-      </div>
-    );
+  if (isLoading) {
+    return <ReviewsLoadingSkeleton />;
   }
 
-  if (reviews.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-4 text-center text-muted-foreground">
-          Aucun avis pour le moment.
-        </CardContent>
-      </Card>
-    );
+  if (!reviews || reviews.length === 0) {
+    return <NoReviewsMessage />;
   }
 
   return (
     <div className="space-y-4">
-      {reviews.map((review) => (
-        <Card key={review.id}>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {(review.profiles?.username || 'U').charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{review.profiles?.username || 'Utilisateur'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-              {renderStars(review.rating)}
+      <h2 className="text-xl font-semibold">Avis des clients</h2>
+      
+      <div className="grid gap-4 md:grid-cols-2">
+        {reviews.map(review => (
+          <ReviewCard key={review.id} review={review} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ReviewCard: React.FC<{ review: ShopReview }> = ({ review }) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  const ratingStars = Array(5).fill(0).map((_, i) => (
+    <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-300"}>
+      ★
+    </span>
+  ));
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Avatar>
+              <AvatarFallback>
+                {review.profiles?.username?.charAt(0) || review.user_id.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle className="text-sm font-medium">
+                {review.profiles?.username || 'Utilisateur anonyme'}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {formatDate(review.created_at)}
+              </p>
             </div>
-            {review.comment && (
-              <p className="text-sm mt-2">{review.comment}</p>
-            )}
+          </div>
+          <div className="flex text-lg">{ratingStars}</div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {review.comment ? (
+          <p className="text-sm">{review.comment}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">Aucun commentaire</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const NoReviewsMessage: React.FC = () => (
+  <div className="text-center py-10">
+    <h3 className="text-lg font-medium">Aucun avis pour le moment</h3>
+    <p className="text-muted-foreground mt-2">
+      Les avis des clients apparaîtront ici lorsque vous en recevrez.
+    </p>
+  </div>
+);
+
+const ReviewsLoadingSkeleton: React.FC = () => (
+  <div className="space-y-4">
+    <Skeleton className="h-8 w-48" />
+    <div className="grid gap-4 md:grid-cols-2">
+      {[1, 2, 3, 4].map(i => (
+        <Card key={i}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center space-x-2">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16 mt-1" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4 mt-2" />
           </CardContent>
         </Card>
       ))}
     </div>
-  );
-};
+  </div>
+);

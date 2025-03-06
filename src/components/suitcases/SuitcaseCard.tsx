@@ -1,118 +1,160 @@
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Luggage } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import type { Suitcase } from "./utils/types";
-import { SuitcaseItems } from "./SuitcaseItems";
-import { SuitcaseDates } from "./components/SuitcaseDates";
-import SuitcaseActions from "./components/SuitcaseActions";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Calendar, Suitcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { useMutation } from '@tanstack/react-query';
+import { fr } from 'date-fns/locale';
+import { SuitcaseActions } from './components/SuitcaseActions';
+import { SuitcaseSuggestionsDialog } from './components/SuitcaseSuggestionsDialog';
 
 interface SuitcaseCardProps {
-  suitcase: Suitcase;
-  onSelect: (id: string) => void;
-  isSelected: boolean;
+  id: string;
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  destination?: string;
+  itemCount?: number;
+  onDelete?: (id: string) => void;
+  onShowSuggestions?: (id: string) => void;
 }
 
-export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardProps) => {
-  const startDate = suitcase.start_date ? new Date(suitcase.start_date) : undefined;
-  const endDate = suitcase.end_date ? new Date(suitcase.end_date) : undefined;
+const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
+  id,
+  name,
+  description,
+  startDate,
+  endDate,
+  destination,
+  itemCount = 0,
+  onDelete,
+  onShowSuggestions
+}) => {
+  const navigate = useNavigate();
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
 
-  const formatDateRange = () => {
-    if (!startDate || !endDate) return null;
-    
-    return `${format(startDate, "d MMM", { locale: fr })} - ${format(endDate, "d MMM yyyy", { locale: fr })}`;
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (onDelete) {
+        await onDelete(id);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Valise supprimée avec succès');
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors de la suppression: ${error}`);
+    }
+  });
+
+  const handleViewClick = () => {
+    navigate(`/suitcases/${id}`);
   };
 
-  const statusVariant = 
-    suitcase.status === "active" 
-      ? "default" 
-      : suitcase.status === "archived" 
-        ? "secondary" 
-        : "destructive";
+  const handleCalendarClick = () => {
+    navigate(`/suitcases/${id}/calendar`);
+  };
+
+  const handleSuggestionsClick = () => {
+    if (onShowSuggestions) {
+      onShowSuggestions(id);
+    } else {
+      setShowSuggestions(true);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
+    } catch (e) {
+      return 'Date invalide';
+    }
+  };
 
   return (
-    <Card 
-      className={`group transition-all duration-200 hover:shadow-md ${
-        isSelected ? "ring-2 ring-primary" : ""
-      }`}
-    >
-      <CardHeader className="pb-2">
+    <Card className="w-full">
+      <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="flex items-center gap-2">
-            <Luggage className="h-5 w-5 text-primary" />
-            <span className="truncate">{suitcase.name}</span>
-          </CardTitle>
-          <Badge variant={statusVariant}>
-            {suitcase.status === "active" ? "Active" : suitcase.status === "archived" ? "Archivée" : "Supprimée"}
-          </Badge>
+          <CardTitle className="text-lg font-medium">{name}</CardTitle>
+          <SuitcaseActions 
+            suitcaseId={id}
+            onAddItems={() => navigate(`/suitcases/${id}/add-items`)}
+            onViewCalendar={handleCalendarClick}
+          />
         </div>
-        
-        {suitcase.description && (
-          <CardDescription className="line-clamp-2 mt-1">
-            {suitcase.description}
-          </CardDescription>
+        {description && (
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
       </CardHeader>
-      
-      <CardContent className="pb-2">
-        <div className="text-sm text-muted-foreground mb-4">
-          {startDate && endDate ? (
-            <div className="flex gap-1 items-center">
-              <Calendar className="w-4 h-4" />
-              <span>{formatDateRange()}</span>
-            </div>
-          ) : (
-            <div className="flex gap-1 items-center text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Pas de dates programmées</span>
+      <CardContent>
+        <div className="space-y-2">
+          {(startDate || endDate) && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">
+                {startDate && formatDate(startDate)}
+                {startDate && endDate && ' - '}
+                {endDate && formatDate(endDate)}
+              </span>
             </div>
           )}
+          {destination && (
+            <div className="flex items-center gap-2">
+              <Suitcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{destination}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-sm font-medium">
+              {itemCount} article{itemCount !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
-        
-        {isSelected && (
-          <div className="pt-2 animate-fade-in">
-            <SuitcaseDates
-              suitcaseId={suitcase.id}
-              startDate={startDate}
-              endDate={endDate}
-            />
-          </div>
-        )}
       </CardContent>
-      
-      <CardFooter className="pt-2 flex flex-col gap-2">
-        <Button 
-          variant={isSelected ? "default" : "outline"} 
-          size="sm" 
-          className="w-full"
-          onClick={() => onSelect(isSelected ? "" : suitcase.id)}
+      <CardFooter className="pt-0 flex justify-between gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleViewClick}
+          className="flex-1"
         >
-          {isSelected ? "Masquer les détails" : "Afficher les détails"}
+          Voir
         </Button>
-        
-        {isSelected && (
-          <div className="w-full space-y-4 pt-2 animate-fade-in">
-            <SuitcaseItems suitcaseId={suitcase.id} />
-            
-            <SuitcaseActions 
-              suitcaseId={suitcase.id}
-              onAddItems={() => {}}  // Add appropriate handlers
-              onViewCalendar={() => {}}
-            />
-          </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSuggestionsClick}
+          className="flex-1"
+        >
+          Suggestions
+        </Button>
+        {onDelete && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}
+            className="flex-1"
+          >
+            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+          </Button>
         )}
       </CardFooter>
+      
+      {showSuggestions && (
+        <SuitcaseSuggestionsDialog
+          suitcaseId={id}
+          open={showSuggestions}
+          onOpenChange={setShowSuggestions}
+        />
+      )}
     </Card>
   );
 };
+
+export default SuitcaseCard;
