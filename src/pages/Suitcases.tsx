@@ -2,16 +2,16 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PlusIcon, GridIcon, ListIcon } from 'lucide-react';
-import SuitcaseGrid from '@/components/suitcases/components/SuitcaseGrid';
 import { useSuitcases } from '@/hooks/useSuitcases';
-import CreateSuitcaseForm from '@/components/suitcases/forms/CreateSuitcaseForm';
-import EmptySuitcases from '@/components/suitcases/components/EmptySuitcases';
-import LoadingSuitcases from '@/components/suitcases/components/LoadingSuitcases';
-import SuitcaseItems from '@/components/suitcases/items/SuitcaseItems';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CreateSuitcaseForm } from '@/components/suitcases/forms/CreateSuitcaseForm';
+import { EmptySuitcases } from '@/components/suitcases/components/EmptySuitcases';
+import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
+import { SuitcaseItems } from '@/components/suitcases/items/SuitcaseItems';
+import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
 
 const Suitcases = () => {
-  const { data: suitcasesData, isLoading, isError } = useSuitcases();
+  const { data, isLoading, isError } = useSuitcases();
   const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,7 +24,7 @@ const Suitcases = () => {
     return <div>Error loading suitcases</div>;
   }
 
-  const suitcases = suitcasesData || [];
+  const suitcases = data || [];
 
   if (suitcases.length === 0 && !showCreateModal) {
     return (
@@ -79,7 +79,7 @@ const Suitcases = () => {
 
       <Dialog
         open={showCreateModal}
-        onOpenChange={setShowCreateModal}
+        onOpenChange={(open) => setShowCreateModal(open)}
       >
         <DialogContent>
           <DialogHeader>

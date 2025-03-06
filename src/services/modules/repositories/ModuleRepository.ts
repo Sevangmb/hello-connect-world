@@ -86,36 +86,37 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use a simpler query to avoid deep type issues
-      const { data, error } = await supabase
+      // Fetch dependencies in a way that avoids deep type instantiation
+      const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');
 
       if (error) throw error;
       
-      const filteredData = data.filter(dep => dep.module_id === moduleId);
+      // Filter dependencies manually to avoid complex query
+      const filteredData = dependencyRecords.filter(dep => dep.module_id === moduleId);
       
-      // Fetch dependency details in a separate call
-      const dependencyDetails = [];
+      // Get full dependency information
+      const dependencies = [];
       for (const dep of filteredData) {
-        const { data: depModule } = await supabase
+        const { data: moduleInfo } = await supabase
           .from('app_modules')
           .select('id, name, code, status')
           .eq('id', dep.dependency_id)
           .single();
           
-        if (depModule) {
-          dependencyDetails.push({
+        if (moduleInfo) {
+          dependencies.push({
             id: dep.id,
             module_id: dep.module_id,
             dependency_id: dep.dependency_id,
             is_required: dep.is_required,
-            dependency: depModule
+            dependency: moduleInfo
           });
         }
       }
       
-      return dependencyDetails;
+      return dependencies;
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
       return [];
@@ -184,50 +185,43 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Simpler approach to avoid deep type issues
-      const { data: featureData, error } = await supabase
-        .from('module_features')
-        .select(`
-          id, 
-          feature_code, 
-          feature_name, 
-          description, 
-          is_enabled,
-          module_code
-        `);
-
-      if (error) throw error;
-      
-      // Get all modules in a separate call
-      const { data: moduleData } = await supabase
+      // Simplified approach to avoid deep type issues
+      const { data: moduleData, error: moduleError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
       
+      if (moduleError) throw moduleError;
       if (!moduleData) return [];
       
-      // Process the data to group features by module
+      // Get features separately
+      const { data: featureData, error: featureError } = await supabase
+        .from('module_features')
+        .select('id, feature_code, feature_name, description, is_enabled, module_code');
+        
+      if (featureError) throw featureError;
+      
+      // Group the features by module
       const moduleMap = new Map();
       
+      for (const module of moduleData) {
+        moduleMap.set(module.code, {
+          module,
+          features: []
+        });
+      }
+      
+      // Add features to the appropriate modules
       for (const feature of featureData) {
         const moduleCode = feature.module_code;
-        const module = moduleData.find(m => m.code === moduleCode);
-        
-        if (!module) continue;
-        
-        if (!moduleMap.has(moduleCode)) {
-          moduleMap.set(moduleCode, {
-            module,
-            features: []
+        if (moduleMap.has(moduleCode)) {
+          moduleMap.get(moduleCode).features.push({
+            id: feature.id,
+            feature_code: feature.feature_code,
+            feature_name: feature.feature_name,
+            description: feature.description,
+            is_enabled: feature.is_enabled
           });
         }
-        
-        moduleMap.get(moduleCode).features.push({
-          id: feature.id,
-          feature_code: feature.feature_code,
-          feature_name: feature.feature_name,
-          description: feature.description,
-          is_enabled: feature.is_enabled
-        });
       }
       
       return Array.from(moduleMap.values());

@@ -1,19 +1,17 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { shopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { Shop, ShopItem, Order } from '@/core/shop/domain/types';
+import { Shop, ShopItem, Order, OrderStatus } from '@/core/shop/domain/types';
 
 export function useShop() {
   /**
    * Get shop for the current user
    */
   const useUserShop = () => {
-    const getUserShop = async (userId: string) => {
-      return shopService.getShopByUserId(userId);
-    };
-
     return {
-      getUserShop,
+      getUserShop: async (userId: string) => {
+        return shopService.getShopByUserId(userId);
+      },
     };
   };
 
@@ -103,10 +101,7 @@ export function useShop() {
    */
   const useDeleteShopItem = () => {
     const mutation = useMutation({
-      mutationFn: (itemId: string) => {
-        // Return a resolved promise for now since this function isn't implemented
-        return Promise.resolve(true);
-      },
+      mutationFn: (itemId: string) => shopService.deleteShopItem(itemId),
     });
 
     return {
@@ -146,7 +141,7 @@ export function useShop() {
         orderId, status 
       }: { 
         orderId: string, 
-        status: string 
+        status: OrderStatus 
       }) => shopService.updateOrderStatus(orderId, status),
     });
 
