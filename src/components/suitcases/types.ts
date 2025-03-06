@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 
 // Interface pour la valise
@@ -6,10 +5,10 @@ export interface Suitcase {
   id: string;
   name: string;
   description?: string;
-  start_date?: string;
-  end_date?: string;
-  status: 'active' | 'archived' | 'completed';
+  start_date?: string | null;
+  end_date?: string | null;
   user_id: string;
+  status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
 }
@@ -70,4 +69,9 @@ export interface CreateSuitcaseData {
   description?: string;
   start_date?: string;
   end_date?: string;
+}
+
+export interface SuitcaseListItemProps {
+  suitcase: Suitcase;
+  onSelect: (id: string) => void;
 }
