@@ -2,14 +2,16 @@
 import React, { useEffect, useState } from 'react';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { LoadingSpinner } from './ui/loading-spinner';
+import { useAppInitializer } from '@/utils/AppInitializer';
 
 interface AppInitializerProps {
   children: React.ReactNode;
 }
 
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
-  const [initialized, setInitialized] = useState(false);
+  const { initialized, loading } = useAppInitializer();
   const [initStartTime] = useState(performance.now());
+  const [displayLoading, setDisplayLoading] = useState(true);
 
   useEffect(() => {
     // Mesurer le temps de démarrage
@@ -29,11 +31,11 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     
     // Finaliser l'initialisation après le délai minimal
     setTimeout(() => {
-      setInitialized(true);
+      setDisplayLoading(false);
     }, remainingTime);
   }, [initStartTime]);
 
-  if (!initialized) {
+  if (loading || displayLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center">
