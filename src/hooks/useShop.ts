@@ -1,254 +1,265 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Shop, ShopItem, ShopStatus, ShopItemStatus, ShopSettings } from '@/core/shop/domain/types';
-import { useToast } from './use-toast';
+import { Shop, ShopItem, ShopSettings } from '@/core/shop/domain/types';
+import { getCurrentUser } from '@/integrations/supabase/client';
 
-// Création du hook useShop avec une conversion de type correcte
-export const useShop = (userId: string | null) => {
-  const [shop, setShop] = useState<Shop | null>(null);
-  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
+// Custom hooks for shop operations
+export const useCreateShop = () => {
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [error, setError] = useState<Error | null>(null);
 
-  const fetchShopByUserId = useCallback(async () => {
-    if (!userId) return null;
-    
+  const createShop = useCallback(async (shopData: Partial<Shop>) => {
     setLoading(true);
+    setError(null);
     try {
+      const user = await getCurrentUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase
+        .from('shops')
+        .insert({
+          ...shopData,
+          user_id: user.id,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      setError(err as Error);
+      console.error('Error creating shop:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { createShop, loading, error };
+};
+
+export const useCreateShopItem = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const createShopItem = useCallback(async (itemData: Partial<ShopItem>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (!itemData.shop_id) {
+        throw new Error('Shop ID is required');
+      }
+
+      const { data, error } = await supabase
+        .from('shop_items')
+        .insert({
+          ...itemData,
+          status: 'available',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      setError(err as Error);
+      console.error('Error creating shop item:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { createShopItem, loading, error };
+};
+
+export const useUserShop = () => {
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchUserShop = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('shops')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Aucune boutique trouvée
-          return null;
-        }
-        throw error;
-      }
-      
-      // Conversion explicite du statut
-      const shopWithTypedStatus: Shop = {
-        ...data,
-        status: data.status as ShopStatus
-      };
-      
-      setShop(shopWithTypedStatus);
-      return shopWithTypedStatus;
-    } catch (error) {
-      console.error('Erreur lors du chargement de la boutique:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger la boutique"
-      });
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+      setShop(data || null);
+      return data || null;
+    } catch (err) {
+      setError(err as Error);
+      console.error('Error fetching user shop:', err);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [userId, toast]);
+  }, []);
 
-  const fetchShopItems = useCallback(async (shopId: string) => {
+  useEffect(() => {
+    fetchUserShop();
+  }, [fetchUserShop]);
+
+  return { shop, loading, error, refetch: fetchUserShop };
+};
+
+export const useShopById = (shopId: string) => {
+  const [shop, setShop] = useState<Shop | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchShop = useCallback(async () => {
+    if (!shopId) {
+      setLoading(false);
+      return null;
+    }
+
     setLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase
-        .from('shop_items')
+        .from('shops')
+        .select('*')
+        .eq('id', shopId)
+        .single();
+
+      if (error) throw error;
+      setShop(data);
+      return data;
+    } catch (err) {
+      setError(err as Error);
+      console.error(`Error fetching shop ${shopId}:`, err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    fetchShop();
+  }, [fetchShop]);
+
+  return { shop, loading, error, refetch: fetchShop };
+};
+
+export const useIsShopFavorited = (shopId: string) => {
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const checkFavoriteStatus = useCallback(async () => {
+    if (!shopId) {
+      setLoading(false);
+      return false;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        setLoading(false);
+        return false;
+      }
+
+      const { data, error } = await supabase
+        .from('user_favorite_shops')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('shop_id', shopId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setIsFavorited(!!data);
+      return !!data;
+    } catch (err) {
+      setError(err as Error);
+      console.error('Error checking if shop is favorited:', err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    checkFavoriteStatus();
+  }, [checkFavoriteStatus]);
+
+  return { isFavorited, loading, error, refetch: checkFavoriteStatus };
+};
+
+export const useUpdateShopSettings = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const updateSettings = useCallback(async (shopId: string, settings: Partial<ShopSettings>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // First check if settings exist
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('shop_settings')
         .select('*')
         .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+        .single();
 
-      if (error) throw error;
-      
-      // Conversion explicite du statut
-      const itemsWithTypedStatus: ShopItem[] = data.map(item => ({
-        ...item,
-        status: item.status as ShopItemStatus
-      }));
-      
-      setShopItems(itemsWithTypedStatus);
-      return itemsWithTypedStatus;
-    } catch (error) {
-      console.error('Erreur lors du chargement des articles:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les articles"
-      });
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
-  const createShop = useCallback(async (shopData: Partial<Shop>) => {
-    if (!userId) throw new Error("Utilisateur non connecté");
-    
-    setLoading(true);
-    try {
-      // Ajouter les valeurs par défaut
-      const newShop = {
-        user_id: userId,
-        name: shopData.name || "Ma boutique",
-        description: shopData.description || "",
-        status: shopData.status || 'pending' as ShopStatus,
-        average_rating: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        ...shopData
-      };
+      if (existingSettings) {
+        // Update existing settings
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .update({
+            ...settings,
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop_id', shopId)
+          .select()
+          .single();
 
-      // S'assurer que name est toujours défini
-      if (!newShop.name) {
-        newShop.name = "Ma boutique";
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new settings
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .insert({
+            shop_id: shopId,
+            ...settings,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
       }
-
-      const { data, error } = await supabase
-        .from('shops')
-        .insert(newShop)
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Conversion explicite du statut
-      const createdShop: Shop = {
-        ...data,
-        status: data.status as ShopStatus
-      };
-      
-      setShop(createdShop);
-      
-      toast({
-        title: "Succès",
-        description: "Boutique créée avec succès"
-      });
-      
-      return createdShop;
-    } catch (error) {
-      console.error('Erreur lors de la création de la boutique:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de créer la boutique"
-      });
-      throw error;
+    } catch (err) {
+      setError(err as Error);
+      console.error('Error updating shop settings:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, [userId, toast]);
+  }, []);
 
-  const updateShop = useCallback(async (shopId: string, updates: Partial<Shop>) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', shopId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Conversion explicite du statut
-      const updatedShop: Shop = {
-        ...data,
-        status: data.status as ShopStatus
-      };
-      
-      setShop(updatedShop);
-      
-      toast({
-        title: "Succès",
-        description: "Boutique mise à jour avec succès"
-      });
-      
-      return updatedShop;
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour de la boutique:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour la boutique"
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  const createShopItem = useCallback(async (item: Partial<ShopItem>) => {
-    if (!shop?.id) throw new Error("Aucune boutique sélectionnée");
-    
-    setLoading(true);
-    try {
-      // Ajouter les valeurs par défaut
-      const newItem = {
-        shop_id: shop.id,
-        name: item.name || "Nouvel article",
-        price: item.price || 0,
-        stock: item.stock || 1,
-        status: item.status || 'available' as ShopItemStatus,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        ...item,
-        // S'assurer que les champs requis sont présents
-        clothes_id: item.clothes_id || ''
-      };
-      
-      // S'assurer que price est toujours défini
-      if (!newItem.price) {
-        newItem.price = 0;
-      }
-
-      const { data, error } = await supabase
-        .from('shop_items')
-        .insert(newItem)
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Conversion explicite du statut
-      const createdItem: ShopItem = {
-        ...data,
-        status: data.status as ShopItemStatus
-      };
-      
-      setShopItems(prev => [...prev, createdItem]);
-      
-      toast({
-        title: "Succès",
-        description: "Article ajouté avec succès"
-      });
-      
-      return createdItem;
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'article:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'ajouter l'article"
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [shop, toast]);
-
-  return {
-    shop,
-    shopItems,
-    loading,
-    fetchShopByUserId,
-    fetchShopItems,
-    createShop,
-    updateShop,
-    createShopItem
-  };
+  return { updateSettings, loading, error };
 };

@@ -61,6 +61,13 @@ export class FeatureRepository {
       return [];
     }
   }
+  
+  /**
+   * Get features by module - alias for getModuleFeatures for consistency
+   */
+  async getFeaturesByModule(moduleCode: string) {
+    return this.getModuleFeatures(moduleCode);
+  }
 
   /**
    * Get all features

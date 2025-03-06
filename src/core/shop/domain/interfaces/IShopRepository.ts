@@ -1,41 +1,49 @@
 
-import { Shop, ShopItem, ShopItemStatus, CartItem, Order, OrderStatus, ShopReview } from '../types';
+import { Shop, ShopItem, Order, ShopReview, ShopSettings, ShopStatus, OrderStatus } from '../types';
 
 export interface IShopRepository {
-  // Opérations pour les boutiques
+  // Shop methods
   getShopById(id: string): Promise<Shop | null>;
+  getShopByUserId(userId: string): Promise<Shop | null>; // Added
   getUserShops(userId: string): Promise<Shop[]>;
-  getShopsByStatus(status: string): Promise<Shop[]>;
-  createShop(shop: Partial<Shop>): Promise<Shop>;
+  getShopsByStatus(status: ShopStatus): Promise<Shop[]>;
+  getAllShops(): Promise<Shop[]>;
+  createShop(shopData: Partial<Shop>): Promise<Shop>;
   updateShop(id: string, shopData: Partial<Shop>): Promise<Shop>;
   deleteShop(id: string): Promise<boolean>;
   
-  // Opérations pour les articles de boutique
+  // Shop items methods
   getShopItemById(id: string): Promise<ShopItem | null>;
-  getShopItems(shopId: string): Promise<ShopItem[]>;
-  getAllShopItems(limit?: number): Promise<ShopItem[]>;
-  createShopItem(item: Partial<ShopItem>): Promise<ShopItem>;
+  getShopItems(filters?: any): Promise<ShopItem[]>;
+  getShopItemsByShopId(shopId: string): Promise<ShopItem[]>; // Added
+  getAllShopItems(): Promise<ShopItem[]>;
+  createShopItem(itemData: Partial<ShopItem>): Promise<ShopItem>;
   updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem>;
-  updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean>;
   deleteShopItem(id: string): Promise<boolean>;
-  addShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]>;
-  
-  // Opérations pour le panier
-  getCartItems(userId: string): Promise<CartItem[]>;
-  addToCart(userId: string, shopItemId: string, quantity?: number): Promise<CartItem>;
-  updateCartItemQuantity(id: string, quantity: number): Promise<CartItem>;
-  removeFromCart(id: string): Promise<boolean>;
-  getCartTotal(userId: string): Promise<number>;
-  
-  // Opérations pour les commandes
-  createOrder(order: Partial<Order>): Promise<Order>;
+
+  // Shop reviews methods
+  getShopReviewById(id: string): Promise<ShopReview | null>;
+  getShopReviewsByShopId(shopId: string): Promise<ShopReview[]>; // Added
+  getShopReviews(filters?: any): Promise<ShopReview[]>;
+  createShopReview(reviewData: Partial<ShopReview>): Promise<ShopReview>;
+  updateShopReview(id: string, reviewData: Partial<ShopReview>): Promise<ShopReview>;
+  deleteShopReview(id: string): Promise<boolean>;
+
+  // Shop settings methods
+  getShopSettings(shopId: string): Promise<ShopSettings | null>; // Added
+  updateShopSettings(shopId: string, settingsData: Partial<ShopSettings>): Promise<ShopSettings>; // Added
+
+  // Order methods
   getOrderById(id: string): Promise<Order | null>;
-  getUserOrders(userId: string): Promise<Order[]>;
-  getShopOrders(shopId: string): Promise<Order[]>;
+  getOrdersByShopId(shopId: string): Promise<Order[]>;
+  getOrdersByCustomerId(customerId: string): Promise<Order[]>;
+  createOrder(orderData: Partial<Order>): Promise<Order>;
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
-  
-  // Opérations pour les avis
-  createShopReview(review: Partial<ShopReview>): Promise<ShopReview>;
-  getShopReviews(shopId: string): Promise<ShopReview[]>;
-  deleteReview(id: string): Promise<boolean>;
+  deleteOrder(id: string): Promise<boolean>;
+
+  // Favorites methods
+  getFavoriteShops(userId: string): Promise<Shop[]>; // Added
+  isShopFavorited(shopId: string, userId: string): Promise<boolean>; // Added
+  addShopToFavorites(shopId: string, userId: string): Promise<boolean>; // Added
+  removeShopFromFavorites(shopId: string, userId: string): Promise<boolean>; // Added
 }

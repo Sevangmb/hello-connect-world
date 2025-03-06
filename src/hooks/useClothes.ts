@@ -1,98 +1,76 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-export type ClothesFilters = {
-  category?: string;
-  subcategory?: string;
+// Define the ClothesFilters type if not already defined elsewhere
+export interface ClothesFilters {
+  category?: string | string[];
+  season?: string | string[];
+  color?: string | string[];
   search?: string;
-  sortBy?: "created_at" | "name" | "price" | "purchase_date";
-  sortOrder?: "asc" | "desc";
-  source?: "mine" | "friends";
-  showArchived?: boolean;
-  needsAlteration?: boolean;
-  isForSale?: boolean;
-  shopId?: string;
-};
+  // Add other filter properties as needed
+}
 
-export const useClothes = (filters: ClothesFilters = {}) => {
-  return useQuery({
-    queryKey: ["clothes", filters],
-    queryFn: async () => {
-      console.log("Fetching clothes with filters:", filters);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated");
+export const useClothes = () => {
+  const [clothes, setClothes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-      let query = supabase
-        .from("clothes")
-        .select("*"); // Sélectionner tous les champs
+  const fetchClothes = useCallback(async (filters?: ClothesFilters) => {
+    setLoading(true);
+    setError(null);
+    try {
+      let query = supabase.from('clothes').select('*');
 
-      if (filters.category) {
-        const formattedCategory = filters.category.charAt(0).toUpperCase() + filters.category.slice(1).toLowerCase();
-        query = query.eq("category", formattedCategory);
-      }
-
-      if (filters.subcategory) {
-        query = query.eq("subcategory", filters.subcategory);
-      }
-
-      if (filters.search) {
-        query = query.ilike("name", `%${filters.search}%`);
-      }
-
-      if (filters.source === "mine") {
-        query = query.eq("user_id", user.id);
-      } else if (filters.source === "friends") {
-        const { data: friendships } = await supabase
-          .from("friendships")
-          .select("friend_id, user_id")
-          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-          .eq("status", "accepted");
-
-        if (friendships) {
-          const friendIds = friendships.map(f => 
-            f.user_id === user.id ? f.friend_id : f.user_id
-          );
-          query = query.in("user_id", friendIds);
+      // Apply filters
+      if (filters) {
+        if (filters.category) {
+          if (Array.isArray(filters.category)) {
+            query = query.in('category', filters.category);
+          } else {
+            query = query.eq('category', filters.category);
+          }
         }
-      }
-
-      if (filters.showArchived !== undefined) {
-        query = query.eq("archived", filters.showArchived);
-      } else {
-        query = query.eq("archived", false);
-      }
-
-      if (filters.needsAlteration !== undefined) {
-        query = query.eq("needs_alteration", filters.needsAlteration);
-      }
-
-      if (filters.isForSale !== undefined) {
-        query = query.eq("is_for_sale", filters.isForSale);
-      }
-
-      if (filters.shopId) {
-        query = query.eq("shop_id", filters.shopId);
-      }
-
-      if (filters.sortBy) {
-        query = query.order(filters.sortBy, { 
-          ascending: filters.sortOrder === "asc" 
-        });
-      } else {
-        query = query.order("created_at", { ascending: false });
+        
+        if (filters.season) {
+          if (Array.isArray(filters.season)) {
+            query = query.in('season', filters.season);
+          } else {
+            query = query.eq('season', filters.season);
+          }
+        }
+        
+        if (filters.color) {
+          if (Array.isArray(filters.color)) {
+            query = query.in('color', filters.color);
+          } else {
+            query = query.eq('color', filters.color);
+          }
+        }
+        
+        if (filters.search) {
+          query = query.ilike('name', `%${filters.search}%`);
+        }
       }
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error("Error fetching clothes:", error);
-        throw error;
-      }
+      if (error) throw error;
+      setClothes(data || []);
+      return data || [];
+    } catch (err) {
+      setError(err);
+      console.error('Error fetching clothes:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      console.log("Fetched clothes:", data);
-      return data;
-    },
-  });
+  return {
+    clothes,
+    loading,
+    error,
+    fetchClothes
+  };
 };

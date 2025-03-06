@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOutfits } from '@/hooks/useOutfits';
@@ -9,8 +8,12 @@ const OutfitCreator: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id || null;
   const { createOutfit, addOutfitItem } = useOutfits(userId);
-  const clothesQuery = useClothes(userId);
+  const { clothes, loading: clothesLoading, fetchClothes } = useClothes();
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    fetchClothes();
+  }, [fetchClothes]);
   
   const handleCreateOutfit = async () => {
     if (!userId) return;
@@ -50,11 +53,10 @@ const OutfitCreator: React.FC = () => {
         {loading ? 'Création en cours...' : 'Créer une nouvelle tenue'}
       </button>
       
-      {clothesQuery.isLoading && <div>Chargement des vêtements...</div>}
-      {clothesQuery.isError && <div>Erreur lors du chargement des vêtements</div>}
-      {clothesQuery.data && (
+      {clothesLoading && <div>Chargement des vêtements...</div>}
+      {clothes && (
         <div className="mt-4">
-          <p>{clothesQuery.data.length} vêtements disponibles pour créer une tenue</p>
+          <p>{clothes.length} vêtements disponibles pour créer une tenue</p>
         </div>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useOutfits } from '@/hooks/useOutfits';
@@ -10,14 +9,12 @@ import { useNavigate } from 'react-router-dom';
 const OutfitsList: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id || null;
-  const { outfits, loading, fetchOutfits } = useOutfits(userId);
+  const { outfits, loading: outfitsLoading, fetchOutfits } = useOutfits();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (userId) {
-      fetchOutfits();
-    }
-  }, [userId, fetchOutfits]);
+    fetchOutfits();
+  }, [fetchOutfits]);
 
   const handleEditOutfit = (outfitId: string) => {
     navigate(`/outfits/edit/${outfitId}`);
@@ -27,7 +24,7 @@ const OutfitsList: React.FC = () => {
     navigate(`/outfits/${outfitId}`);
   };
 
-  if (loading) {
+  if (outfitsLoading) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Mes tenues</h1>
