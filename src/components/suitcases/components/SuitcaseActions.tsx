@@ -1,97 +1,94 @@
 
-import React from "react";
-import { HelpCircle, Loader2, Package, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useDeleteSuitcase } from "../hooks/useDeleteSuitcase";
-import { useSuitcaseSuggestions } from "../hooks/suitcase-suggestions/useSuitcaseSuggestions";
-import { SuitcaseSuggestionsDialog } from "./SuitcaseSuggestionsDialog";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Loader2, Plus } from 'lucide-react';
+import { useSuitcaseSuggestions } from '../hooks/suitcase-suggestions/useSuitcaseSuggestions';
+import SuitcaseSuggestionsDialog from './SuitcaseSuggestionsDialog';
 
 interface SuitcaseActionsProps {
   suitcaseId: string;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-  startDate?: Date;
-  endDate?: Date;
+  onAddItems: () => void;
+  onViewCalendar?: () => void;
+  showCalendarButton?: boolean;
 }
 
-export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
+const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
   suitcaseId,
-  isSelected,
-  onSelect,
-  startDate,
-  endDate,
-}: SuitcaseActionsProps) => {
-  const { isDeleting, deleteSuitcase } = useDeleteSuitcase();
+  onAddItems,
+  onViewCalendar,
+  showCalendarButton = true,
+}) => {
+  const [showSuggestionsDialog, setShowSuggestionsDialog] = useState(false);
   const {
-    isGettingSuggestions,
-    isAddingSuggestions,
-    suggestedClothes,
-    showSuggestionsDialog,
-    setShowSuggestionsDialog,
-    aiExplanation,
+    suggestions,
+    loading: isGettingSuggestions,
     getSuggestions,
-    addSuggestedClothes,
+    addSuggestedItems,
+    aiExplanation
   } = useSuitcaseSuggestions(suitcaseId);
 
-  const isDisabled = isDeleting || isGettingSuggestions || isAddingSuggestions;
-
-  const handleDeleteSuitcase = () => {
-    deleteSuitcase(suitcaseId);
+  const handleGetSuggestions = async () => {
+    await getSuggestions();
+    setShowSuggestionsDialog(true);
   };
 
-  const handleGetSuggestions = () => {
-    if (startDate && endDate) {
-      getSuggestions(startDate, endDate);
-    }
+  const handleAddSuggestions = async () => {
+    await addSuggestedItems();
+    setShowSuggestionsDialog(false);
   };
 
   return (
     <>
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button
-            variant={isSelected ? "default" : "outline"}
-            onClick={() => onSelect(suitcaseId)}
-            disabled={isDisabled}
-          >
-            <Package className="mr-2 h-4 w-4" />
-            {isSelected ? "Masquer les vêtements" : "Voir les vêtements"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleGetSuggestions}
-            disabled={isDisabled || !startDate || !endDate}
-          >
-            {isGettingSuggestions ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <HelpCircle className="mr-2 h-4 w-4" />
-            )}
-            {isGettingSuggestions ? "Chargement..." : "Demander à l'IA"}
-          </Button>
-        </div>
+      <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
-          size="icon"
-          onClick={handleDeleteSuitcase}
-          disabled={isDisabled}
+          onClick={onAddItems}
         >
-          {isDeleting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter des vêtements
+        </Button>
+        
+        <Button
+          variant="secondary"
+          onClick={handleGetSuggestions}
+          disabled={isGettingSuggestions}
+        >
+          {isGettingSuggestions ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Obtention...
+            </>
           ) : (
-            <Trash2 className="h-4 w-4" />
+            <>
+              <Plus className="mr-2 h-4 w-4" />
+              Suggestions IA
+            </>
           )}
         </Button>
+        
+        {showCalendarButton && onViewCalendar && (
+          <Button
+            variant="outline"
+            onClick={onViewCalendar}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            Calendrier
+          </Button>
+        )}
       </div>
-
+      
       <SuitcaseSuggestionsDialog
         open={showSuggestionsDialog}
         onOpenChange={setShowSuggestionsDialog}
-        suggestedClothes={suggestedClothes}
+        suggestions={suggestions}
+        isLoading={isGettingSuggestions}
+        onAddSuggestions={handleAddSuggestions}
+        isAdding={false}
         aiExplanation={aiExplanation}
-        onAddSuggestions={addSuggestedClothes}
-        isLoading={isAddingSuggestions}
+        suitcaseId={suitcaseId}
       />
     </>
   );
 };
+
+export default SuitcaseActions;

@@ -1,270 +1,367 @@
 
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { CheckboxGroup, CheckboxItem } from '@/components/ui/checkbox-group';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useShop } from '@/hooks/useShop';
-import { DeliveryOption, PaymentMethod, ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
+import { useToast } from '@/hooks/use-toast';
+import { ShopSettings as ShopSettingsType, DeliveryOption, PaymentMethod } from '@/core/shop/domain/types';
+import { Loader2 } from 'lucide-react';
 
-interface ShopSettingsProps {
-  shopId: string;
-}
-
-export function ShopSettings({ shopId }: ShopSettingsProps) {
+export function ShopSettings() {
   const { toast } = useToast();
-  const { fetchShopSettings, updateShopSettings } = useShop();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { 
+    shop, 
+    loading,
+    fetchShopByUserId,
+    updateShopSettings: updateSettings 
+  } = useShop();
+
   const [settings, setSettings] = useState<ShopSettingsType | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm({
-    defaultValues: {
-      delivery_options: [] as string[],
-      payment_methods: [] as string[],
-      auto_accept_orders: false,
-      notification_email: true,
-      notification_app: true
-    }
-  });
-
+  // Fetch shop and settings
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setIsLoading(true);
-        const shopSettings = await fetchShopSettings(shopId);
-        
-        if (shopSettings) {
-          setSettings(shopSettings);
-          
-          form.reset({
-            delivery_options: shopSettings.delivery_options.map(option => option as unknown as string),
-            payment_methods: shopSettings.payment_methods.map(method => method as unknown as string),
-            auto_accept_orders: shopSettings.auto_accept_orders,
-            notification_email: shopSettings.notification_preferences.email,
-            notification_app: shopSettings.notification_preferences.app
-          });
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to load shop settings'));
-      } finally {
-        setIsLoading(false);
-      }
+    const loadData = async () => {
+      await fetchShopByUserId();
     };
+    
+    loadData();
+  }, [fetchShopByUserId]);
 
-    loadSettings();
-  }, [shopId, fetchShopSettings, form]);
-
-  const onSubmit = async (data: any) => {
-    try {
-      await updateShopSettings(shopId, {
-        delivery_options: data.delivery_options as unknown as DeliveryOption[],
-        payment_methods: data.payment_methods as unknown as PaymentMethod[],
-        auto_accept_orders: data.auto_accept_orders,
+  // Set initial settings when shop is loaded
+  useEffect(() => {
+    if (shop && shop.settings) {
+      setSettings(shop.settings);
+    } else if (shop && !shop.settings) {
+      // Create default settings object if none exists
+      setSettings({
+        id: '',
+        shop_id: shop.id,
+        delivery_options: ['pickup', 'delivery'] as DeliveryOption[],
+        payment_methods: ['card', 'paypal'] as PaymentMethod[],
+        auto_accept_orders: false,
         notification_preferences: {
-          email: data.notification_email,
-          app: data.notification_app
-        }
+          email: true,
+          app: true,
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
+    }
+  }, [shop]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!shop || !settings) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      await updateSettings(shop.id, settings);
       
       toast({
-        title: 'Settings updated',
-        description: 'Your shop settings have been successfully updated.',
+        title: "Paramètres mis à jour",
+        description: "Les paramètres de votre boutique ont été mis à jour avec succès",
       });
-    } catch (err) {
+    } catch (error) {
+      console.error("Error updating shop settings:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to update settings. Please try again.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour les paramètres",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  const handleDeliveryOptionChange = (option: DeliveryOption, checked: boolean) => {
+    if (!settings) return;
+    
+    setSettings(prev => {
+      if (!prev) return prev;
+      
+      const newOptions = checked 
+        ? [...prev.delivery_options, option] 
+        : prev.delivery_options.filter(opt => opt !== option);
+      
+      return {
+        ...prev,
+        delivery_options: newOptions as DeliveryOption[]
+      };
+    });
+  };
+
+  const handlePaymentMethodChange = (method: PaymentMethod, checked: boolean) => {
+    if (!settings) return;
+    
+    setSettings(prev => {
+      if (!prev) return prev;
+      
+      const newMethods = checked 
+        ? [...prev.payment_methods, method] 
+        : prev.payment_methods.filter(m => m !== method);
+      
+      return {
+        ...prev,
+        payment_methods: newMethods as PaymentMethod[]
+      };
+    });
+  };
+
+  const handleAutoAcceptChange = (checked: boolean) => {
+    if (!settings) return;
+    
+    setSettings(prev => {
+      if (!prev) return prev;
+      
+      return {
+        ...prev,
+        auto_accept_orders: checked
+      };
+    });
+  };
+
+  const handleNotificationChange = (key: 'email' | 'app', checked: boolean) => {
+    if (!settings) return;
+    
+    setSettings(prev => {
+      if (!prev) return prev;
+      
+      return {
+        ...prev,
+        notification_preferences: {
+          ...prev.notification_preferences,
+          [key]: checked
+        }
+      };
+    });
+  };
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  if (error) {
+  if (!shop) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Error</CardTitle>
-          <CardDescription>Failed to load shop settings</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-destructive">{error.message}</p>
-          <Button 
-            variant="outline" 
-            onClick={() => window.location.reload()}
-            className="mt-4"
-          >
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="text-center p-12">
+        <h2 className="text-2xl font-bold mb-4">Aucune boutique trouvée</h2>
+        <p className="text-muted-foreground mb-6">
+          Vous devez d'abord créer une boutique pour accéder aux paramètres.
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Shop Settings</CardTitle>
-        <CardDescription>
-          Configure your shop's delivery options, payment methods, and notification preferences
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="delivery_options"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Delivery Options</FormLabel>
-                  <FormControl>
-                    <CheckboxGroup 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                      className="flex flex-col space-y-3"
-                    >
-                      <CheckboxItem value="pickup">Pickup</CheckboxItem>
-                      <CheckboxItem value="delivery">Delivery</CheckboxItem>
-                      <CheckboxItem value="both">Both</CheckboxItem>
-                    </CheckboxGroup>
-                  </FormControl>
-                  <FormDescription>
-                    Select the delivery options your shop will offer
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold mb-2">Paramètres de la boutique</h1>
+        <p className="text-muted-foreground">
+          Configurez les options de votre boutique pour une meilleure expérience client.
+        </p>
+      </div>
 
-            <FormField
-              control={form.control}
-              name="payment_methods"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Methods</FormLabel>
-                  <FormControl>
-                    <CheckboxGroup 
-                      value={field.value} 
-                      onValueChange={field.onChange}
-                      className="flex flex-col space-y-3"
-                    >
-                      <CheckboxItem value="card">Card</CheckboxItem>
-                      <CheckboxItem value="paypal">PayPal</CheckboxItem>
-                      <CheckboxItem value="bank_transfer">Bank Transfer</CheckboxItem>
-                      <CheckboxItem value="cash">Cash</CheckboxItem>
-                    </CheckboxGroup>
-                  </FormControl>
-                  <FormDescription>
-                    Select the payment methods your shop will accept
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="auto_accept_orders"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Auto-Accept Orders</FormLabel>
-                    <FormDescription>
-                      Automatically accept new orders without manual approval
-                    </FormDescription>
+      {settings && (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Tabs defaultValue="delivery" className="w-full">
+            <TabsList className="grid grid-cols-3 mb-6">
+              <TabsTrigger value="delivery">Livraison</TabsTrigger>
+              <TabsTrigger value="payment">Paiement</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="delivery" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Options de livraison</CardTitle>
+                  <CardDescription>
+                    Définissez les modes de livraison que vous proposez à vos clients.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="pickup"
+                        checked={settings.delivery_options.includes('pickup')}
+                        onCheckedChange={(checked) => 
+                          handleDeliveryOptionChange('pickup', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="pickup">Retrait en boutique</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="delivery"
+                        checked={settings.delivery_options.includes('delivery')}
+                        onCheckedChange={(checked) => 
+                          handleDeliveryOptionChange('delivery', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="delivery">Livraison à domicile</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="both"
+                        checked={settings.delivery_options.includes('both')}
+                        onCheckedChange={(checked) => 
+                          handleDeliveryOptionChange('both', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="both">Les deux options</Label>
+                    </div>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notification_email"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Email Notifications</FormLabel>
-                    <FormDescription>
-                      Receive notifications via email
-                    </FormDescription>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="payment" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Méthodes de paiement</CardTitle>
+                  <CardDescription>
+                    Choisissez les modes de paiement acceptés dans votre boutique.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="card"
+                        checked={settings.payment_methods.includes('card')}
+                        onCheckedChange={(checked) => 
+                          handlePaymentMethodChange('card', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="card">Carte bancaire</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="paypal"
+                        checked={settings.payment_methods.includes('paypal')}
+                        onCheckedChange={(checked) => 
+                          handlePaymentMethodChange('paypal', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="paypal">PayPal</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="bank_transfer"
+                        checked={settings.payment_methods.includes('bank_transfer')}
+                        onCheckedChange={(checked) => 
+                          handlePaymentMethodChange('bank_transfer', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="bank_transfer">Virement bancaire</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="cash"
+                        checked={settings.payment_methods.includes('cash')}
+                        onCheckedChange={(checked) => 
+                          handlePaymentMethodChange('cash', checked as boolean)
+                        }
+                      />
+                      <Label htmlFor="cash">Espèces (à la livraison)</Label>
+                    </div>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notification_app"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">App Notifications</FormLabel>
-                    <FormDescription>
-                      Receive in-app notifications
-                    </FormDescription>
+                  
+                  <div className="pt-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="auto_accept"
+                        checked={settings.auto_accept_orders}
+                        onCheckedChange={handleAutoAcceptChange}
+                      />
+                      <Label htmlFor="auto_accept">Acceptation automatique des commandes</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Les commandes seront automatiquement acceptées sans validation manuelle.
+                    </p>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <Button type="submit" className="w-full sm:w-auto">
-              {form.formState.isSubmitting ? (
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="notifications" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Préférences de notification</CardTitle>
+                  <CardDescription>
+                    Configurez comment vous souhaitez être notifié des événements de votre boutique.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="notify_email"
+                        checked={settings.notification_preferences.email}
+                        onCheckedChange={(checked) => 
+                          handleNotificationChange('email', checked)
+                        }
+                      />
+                      <Label htmlFor="notify_email">Notifications par email</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground ml-8">
+                      Recevez des emails pour les nouvelles commandes, messages et avis.
+                    </p>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="notify_app"
+                        checked={settings.notification_preferences.app}
+                        onCheckedChange={(checked) => 
+                          handleNotificationChange('app', checked)
+                        }
+                      />
+                      <Label htmlFor="notify_app">Notifications dans l'application</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground ml-8">
+                      Recevez des notifications dans l'application pour toutes les activités.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Enregistrement...
                 </>
               ) : (
-                'Save Settings'
+                "Enregistrer les modifications"
               )}
             </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
+
+export default ShopSettings;

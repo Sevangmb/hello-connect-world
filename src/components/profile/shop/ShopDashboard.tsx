@@ -1,55 +1,48 @@
 
 import React, { useEffect } from 'react';
-import { useShop } from '@/hooks/useShop';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useUserShop } from '@/hooks/useShop';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useShop } from '@/hooks/useShop';
+import ShopSettings from './ShopSettings';
 import ShopReviewsList from './ShopReviewsList';
 import { ShopItemsList } from './ShopItemsList';
-import { ShopSettings } from './ShopSettings';
-import { useToast } from '@/hooks/use-toast';
+import { ShopOrdersList } from './ShopOrdersList';
+import { Store } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
-export const ShopDashboard = () => {
-  const { userShop, loading, error, fetchUserShop } = useUserShop();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    fetchUserShop();
-  }, [fetchUserShop]);
+const ShopDashboard = () => {
+  const { shop, loading, fetchShopByUserId } = useShop();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (error) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to load shop data',
-        variant: 'destructive',
-      });
-    }
-  }, [error, toast]);
+    fetchShopByUserId();
+  }, [fetchShopByUserId]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <div className="flex justify-center items-center p-12">Chargement...</div>;
   }
 
-  if (!userShop) {
+  if (!shop) {
     return (
-      <div className="container mx-auto p-4">
-        <Card>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <Card className="text-center p-8">
           <CardHeader>
-            <CardTitle>Create Your Shop</CardTitle>
+            <div className="mx-auto bg-primary/10 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+              <Store className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle>Vous n'avez pas de boutique</CardTitle>
+            <CardDescription>
+              Créez votre propre boutique pour vendre vos vêtements
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">You don't have a shop yet. Create one to start selling your items.</p>
-            <Link to="/create-shop">
-              <Button>Create Shop</Button>
-            </Link>
+            <Button
+              onClick={() => navigate('/create-shop')}
+              className="mt-4"
+            >
+              Créer une boutique
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -57,49 +50,38 @@ export const ShopDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{userShop.name}</h1>
-          <p className="text-muted-foreground">{userShop.description}</p>
-        </div>
-        
-        <div className="flex gap-2 mt-4 md:mt-0">
-          <Link to={`/shops/${userShop.id}`}>
-            <Button variant="outline">View Public Page</Button>
-          </Link>
-          <Link to="/add-shop-item">
-            <Button>Add Item</Button>
-          </Link>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">{shop.name}</h1>
+        <p className="text-muted-foreground">{shop.description}</p>
       </div>
 
-      <Tabs defaultValue="items">
-        <TabsList className="mb-4">
-          <TabsTrigger value="items">Items</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid grid-cols-4 mb-8">
+          <TabsTrigger value="products">Produits</TabsTrigger>
+          <TabsTrigger value="orders">Commandes</TabsTrigger>
+          <TabsTrigger value="reviews">Avis</TabsTrigger>
+          <TabsTrigger value="settings">Paramètres</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="items">
-          <ShopItemsList shopId={userShop.id} />
+        <TabsContent value="products" className="space-y-4">
+          <ShopItemsList shopId={shop.id} />
         </TabsContent>
 
-        <TabsContent value="reviews">
-          <Card>
-            <CardHeader>
-              <CardTitle>Shop Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ShopReviewsList shopId={userShop.id} />
-            </CardContent>
-          </Card>
+        <TabsContent value="orders" className="space-y-4">
+          <ShopOrdersList shopId={shop.id} />
         </TabsContent>
 
-        <TabsContent value="settings">
-          <ShopSettings shopId={userShop.id} />
+        <TabsContent value="reviews" className="space-y-4">
+          <ShopReviewsList shopId={shop.id} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <ShopSettings />
         </TabsContent>
       </Tabs>
     </div>
   );
 };
+
+export default ShopDashboard;

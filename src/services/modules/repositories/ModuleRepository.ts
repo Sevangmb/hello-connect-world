@@ -86,11 +86,12 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use direct SQL query instead of complex nested selection
+      // Use the correct approach for calling an RPC function
       const { data, error } = await supabase
         .rpc('get_module_dependencies', { module_id_param: moduleId });
 
       if (error) throw error;
+      // Ensure we return an array (handle the possibility of undefined)
       return data || [];
     } catch (error) {
       console.error(`Error fetching dependencies for module ${moduleId}:`, error);
@@ -160,11 +161,12 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Simplify query to avoid deep nesting
+      // Use the correct approach for calling an RPC function
       const { data, error } = await supabase
         .rpc('get_modules_with_features');
 
       if (error) throw error;
+      // Ensure we return an array (handle the possibility of undefined)
       return data || [];
     } catch (error) {
       console.error('Error fetching modules with features:', error);

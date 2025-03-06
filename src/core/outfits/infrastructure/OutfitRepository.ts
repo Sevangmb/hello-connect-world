@@ -1,8 +1,7 @@
-
+// Import the correct types
 import { supabase } from '@/integrations/supabase/client';
-import { Outfit, OutfitComment, OutfitItem, OutfitStatus, OutfitCategory, OutfitSeason } from '@/core/outfits/domain/types';
-import { IOutfitRepository } from '@/core/outfits/domain/interfaces/IOutfitRepository';
-import { InfraOutfitItem } from './types';
+import { IOutfitRepository } from '../domain/interfaces/IOutfitRepository';
+import { Outfit, OutfitItem, OutfitComment, OutfitStatus, OutfitCategory, OutfitSeason } from '../domain/types';
 
 export class OutfitRepository implements IOutfitRepository {
   async createOutfit(outfitData: Partial<Outfit>): Promise<Outfit> {
@@ -11,17 +10,19 @@ export class OutfitRepository implements IOutfitRepository {
         .from('outfits')
         .insert([
           {
-            name: outfitData.name,
             user_id: outfitData.user_id,
+            name: outfitData.name,
+            description: outfitData.description,
             top_id: outfitData.top_id,
             bottom_id: outfitData.bottom_id,
             shoes_id: outfitData.shoes_id,
             status: outfitData.status,
-            season: outfitData.season,
             category: outfitData.category,
-            likes_count: outfitData.likes_count || 0,
-            comments_count: outfitData.comments_count || 0,
-            is_favorite: outfitData.is_favorite || false
+            season: outfitData.season,
+            is_favorite: outfitData.is_favorite,
+            likes_count: 0,
+            comments_count: 0,
+            image_url: outfitData.image_url,
           },
         ])
         .select()
@@ -32,44 +33,82 @@ export class OutfitRepository implements IOutfitRepository {
         throw error;
       }
 
-      // Type cast to ensure it matches Outfit type
-      return data as unknown as Outfit;
+      return data as Outfit;
     } catch (error) {
       console.error('Error creating outfit:', error);
       throw error;
     }
   }
 
-  async updateOutfit(id: string, outfitData: Partial<Outfit>): Promise<Outfit> {
+  async getOutfitById(id: string): Promise<Outfit | null> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error(`Error fetching outfit by ID ${id}:`, error);
+        return null;
+      }
+
+      return data as Outfit;
+    } catch (error) {
+      console.error(`Error fetching outfit by ID ${id}:`, error);
+      return null;
+    }
+  }
+
+  async getUserOutfits(userId: string): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error(`Error fetching outfits for user ${userId}:`, error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error(`Error fetching outfits for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  public async updateOutfit(id: string, outfitData: Partial<Outfit>): Promise<Outfit> {
     try {
       const { data, error } = await supabase
         .from('outfits')
         .update({
-          name: outfitData.name,
-          user_id: outfitData.user_id,
-          top_id: outfitData.top_id,
-          bottom_id: outfitData.bottom_id,
-          shoes_id: outfitData.shoes_id,
-          status: outfitData.status,
-          season: outfitData.season,
-          category: outfitData.category,
-          likes_count: outfitData.likes_count,
-          comments_count: outfitData.comments_count,
-          is_favorite: outfitData.is_favorite,
+          ...outfitData,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select()
         .single();
-
-      if (error) {
-        console.error('Error updating outfit:', error);
-        throw error;
-      }
-
-      return data as unknown as Outfit;
+      
+      if (error) throw error;
+      return data as Outfit;
     } catch (error) {
-      console.error('Error updating outfit:', error);
+      console.error(`Error updating outfit ${id}:`, error);
       throw error;
     }
   }
@@ -82,309 +121,70 @@ export class OutfitRepository implements IOutfitRepository {
         .eq('id', id);
 
       if (error) {
-        console.error('Error deleting outfit:', error);
-        throw error;
+        console.error(`Error deleting outfit ${id}:`, error);
+        return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error deleting outfit:', error);
+      console.error(`Error deleting outfit ${id}:`, error);
       return false;
-    }
-  }
-
-  async getOutfitById(id: string): Promise<Outfit | null> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching outfit:', error);
-        return null;
-      }
-
-      return data as unknown as Outfit;
-    } catch (error) {
-      console.error('Error fetching outfit:', error);
-      return null;
-    }
-  }
-
-  async getUserOutfits(userId: string): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Error fetching outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching outfits:', error);
-      return [];
-    }
-  }
-
-  async getAllOutfits(): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*');
-
-      if (error) {
-        console.error('Error fetching outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching outfits:', error);
-      return [];
-    }
-  }
-
-  async addOutfitItem(outfitItem: OutfitItem): Promise<OutfitItem> {
-    try {
-      const { data, error } = await supabase
-        .from('outfit_items')
-        .insert([
-          {
-            outfit_id: outfitItem.outfit_id,
-            clothes_id: outfitItem.clothes_id,
-            position: outfitItem.position || 0
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding outfit item:', error);
-        throw error;
-      }
-
-      return data as unknown as OutfitItem;
-    } catch (error) {
-      console.error('Error adding outfit item:', error);
-      throw error;
-    }
-  }
-
-  async removeOutfitItem(itemId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('outfit_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) {
-        console.error('Error removing outfit item:', error);
-        throw error;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error removing outfit item:', error);
-      return false;
-    }
-  }
-
-  async getOutfitItems(outfitId: string): Promise<OutfitItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfit_items')
-        .select('*')
-        .eq('outfit_id', outfitId);
-
-      if (error) {
-        console.error('Error fetching outfit items:', error);
-        return [];
-      }
-
-      return data as unknown as OutfitItem[];
-    } catch (error) {
-      console.error('Error fetching outfit items:', error);
-      return [];
-    }
-  }
-
-  async getOutfitsByUserId(userId: string): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Error fetching outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching outfits:', error);
-      return [];
-    }
-  }
-
-  async getPublicOutfits(): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('status', 'published');
-
-      if (error) {
-        console.error('Error fetching public outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching public outfits:', error);
-      return [];
-    }
-  }
-
-  async getTrendingOutfits(): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('status', 'published')
-        .order('likes_count', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error fetching trending outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching trending outfits:', error);
-      return [];
-    }
-  }
-
-  async getSimilarOutfits(outfitId: string): Promise<Outfit[]> {
-    try {
-      // Basic implementation - can be improved with more sophisticated similarity logic
-      const outfit = await this.getOutfitById(outfitId);
-      if (!outfit) return [];
-
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .neq('id', outfitId)
-        .eq('category', outfit.category)
-        .limit(5);
-
-      if (error) {
-        console.error('Error fetching similar outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error fetching similar outfits:', error);
-      return [];
-    }
-  }
-
-  async searchOutfits(query: string): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .ilike('name', `%${query}%`);
-
-      if (error) {
-        console.error('Error searching outfits:', error);
-        return [];
-      }
-
-      return data as unknown as Outfit[];
-    } catch (error) {
-      console.error('Error searching outfits:', error);
-      return [];
     }
   }
 
   async likeOutfit(outfitId: string, userId: string): Promise<boolean> {
     try {
-      // First, check if the user has already liked the outfit
-      const { data: existingLike, error: checkError } = await supabase
+      const { data: existingLike, error: selectError } = await supabase
         .from('outfit_likes')
         .select('*')
         .eq('outfit_id', outfitId)
         .eq('user_id', userId)
         .single();
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
+      if (selectError && selectError.message !== 'No rows found') {
+        console.error('Error checking existing like:', selectError);
+        return false;
       }
 
       if (existingLike) {
-        return true; // Already liked
+        console.log('Outfit already liked by user.');
+        return true;
       }
 
-      // Add a new like record
       const { error: insertError } = await supabase
         .from('outfit_likes')
-        .insert([
-          { outfit_id: outfitId, user_id: userId }
-        ]);
+        .insert([{ outfit_id: outfitId, user_id: userId }]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error liking outfit:', insertError);
+        return false;
+      }
 
-      // Update the likes count
-      const { error: updateError } = await supabase
-        .from('outfits')
-        .update({ 
-          likes_count: supabase.rpc('increment', { row_id: outfitId, table: 'outfits', column: 'likes_count' })
-        })
-        .eq('id', outfitId);
-
-      if (updateError) throw updateError;
-      
+      await this.incrementLikes(outfitId);
       return true;
     } catch (error) {
-      console.error(`Error liking outfit ${outfitId}:`, error);
+      console.error('Error liking outfit:', error);
       return false;
     }
   }
 
   async unlikeOutfit(outfitId: string, userId: string): Promise<boolean> {
     try {
-      // Remove the like record
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('outfit_likes')
         .delete()
         .eq('outfit_id', outfitId)
         .eq('user_id', userId);
 
-      if (deleteError) throw deleteError;
+      if (error) {
+        console.error('Error unliking outfit:', error);
+        return false;
+      }
 
-      // Update the likes count
-      const { error: updateError } = await supabase
-        .from('outfits')
-        .update({ 
-          likes_count: supabase.rpc('decrement', { row_id: outfitId, table: 'outfits', column: 'likes_count' })
-        })
-        .eq('id', outfitId);
-
-      if (updateError) throw updateError;
-      
+      await this.decrementLikes(outfitId);
       return true;
     } catch (error) {
-      console.error(`Error unliking outfit ${outfitId}:`, error);
+      console.error('Error unliking outfit:', error);
       return false;
     }
   }
@@ -398,14 +198,280 @@ export class OutfitRepository implements IOutfitRepository {
         .eq('user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      if (error && error.message !== 'No rows found') {
+        console.error('Error checking if user liked outfit:', error);
+        return false;
       }
 
       return !!data;
     } catch (error) {
-      console.error(`Error checking if user ${userId} liked outfit ${outfitId}:`, error);
+      console.error('Error checking if user liked outfit:', error);
       return false;
+    }
+  }
+
+  public async incrementLikes(outfitId: string): Promise<boolean> {
+    try {
+      // Use rpc for incrementing likes
+      const { error } = await supabase.rpc('increment_outfit_likes', { outfit_id: outfitId });
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error incrementing likes for outfit ${outfitId}:`, error);
+      return false;
+    }
+  }
+
+  public async decrementLikes(outfitId: string): Promise<boolean> {
+    try {
+      // Use rpc for decrementing likes
+      const { error } = await supabase.rpc('decrement_outfit_likes', { outfit_id: outfitId });
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error decrementing likes for outfit ${outfitId}:`, error);
+      return false;
+    }
+  }
+
+  public async addOutfitItem(outfitItem: OutfitItem): Promise<OutfitItem> {
+    try {
+      const { data, error } = await supabase
+        .from('outfit_items')
+        .insert({
+          outfit_id: outfitItem.outfit_id,
+          clothes_id: outfitItem.clothes_id,
+          position: outfitItem.position
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as OutfitItem;
+    } catch (error) {
+      console.error(`Error adding item to outfit ${outfitItem.outfit_id}:`, error);
+      throw error;
+    }
+  }
+
+  public async removeOutfitItem(itemId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('outfit_items')
+        .delete()
+        .eq('id', itemId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error(`Error removing outfit item ${itemId}:`, error);
+      return false;
+    }
+  }
+
+  async getOutfitItems(outfitId: string): Promise<OutfitItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfit_items')
+        .select('*')
+        .eq('outfit_id', outfitId)
+        .order('position');
+
+      if (error) {
+        console.error(`Error fetching outfit items for outfit ${outfitId}:`, error);
+        return [];
+      }
+
+      return data as OutfitItem[];
+    } catch (error) {
+      console.error(`Error fetching outfit items for outfit ${outfitId}:`, error);
+      return [];
+    }
+  }
+
+  async getFeaturedOutfits(): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'public')
+        .order('likes_count', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching featured outfits:', error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error('Error fetching featured outfits:', error);
+      return [];
+    }
+  }
+
+  public async getTrendingOutfits(): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'public')
+        .order('likes_count', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data as Outfit[];
+    } catch (error) {
+      console.error('Error fetching trending outfits:', error);
+      return [];
+    }
+  }
+
+  public async getSimilarOutfits(outfitId: string): Promise<Outfit[]> {
+    try {
+      const outfit = await this.getOutfitById(outfitId);
+      if (!outfit) throw new Error('Outfit not found');
+      
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('category', outfit.category)
+        .eq('status', 'public')
+        .neq('id', outfitId)
+        .limit(6);
+      
+      if (error) throw error;
+      return data as Outfit[];
+    } catch (error) {
+      console.error(`Error fetching similar outfits for ${outfitId}:`, error);
+      return [];
+    }
+  }
+
+  async searchOutfits(query: string): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .textSearch('name', query, {
+          type: 'websearch',
+          config: 'english',
+        });
+
+      if (error) {
+        console.error(`Error searching outfits with query ${query}:`, error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error(`Error searching outfits with query ${query}:`, error);
+      return [];
+    }
+  }
+
+  async getAllOutfits(): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching all outfits:', error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error('Error fetching all outfits:', error);
+      return [];
+    }
+  }
+
+  async getOutfitsByUserId(userId: string): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error(`Error fetching outfits for user ID ${userId}:`, error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error(`Error fetching outfits for user ID ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getPublicOutfits(): Promise<Outfit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('outfits')
+        .select(`
+          *,
+          profiles (
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'public');
+
+      if (error) {
+        console.error('Error fetching public outfits:', error);
+        return [];
+      }
+
+      return data as Outfit[];
+    } catch (error) {
+      console.error('Error fetching public outfits:', error);
+      return [];
     }
   }
 
@@ -414,7 +480,11 @@ export class OutfitRepository implements IOutfitRepository {
       const { data, error } = await supabase
         .from('outfit_comments')
         .insert([
-          { outfit_id: outfitId, user_id: userId, content }
+          {
+            outfit_id: outfitId,
+            user_id: userId,
+            content: content,
+          },
         ])
         .select(`
           *,
@@ -426,17 +496,14 @@ export class OutfitRepository implements IOutfitRepository {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding outfit comment:', error);
+        return null;
+      }
 
-      // Update comments count
-      await supabase
-        .from('outfits')
-        .update({ comments_count: supabase.rpc('increment', { row_id: outfitId, table: 'outfits', column: 'comments_count' }) })
-        .eq('id', outfitId);
-
-      return data as unknown as OutfitComment;
+      return data as OutfitComment;
     } catch (error) {
-      console.error(`Error adding comment to outfit ${outfitId}:`, error);
+      console.error('Error adding outfit comment:', error);
       return null;
     }
   }
@@ -453,35 +520,16 @@ export class OutfitRepository implements IOutfitRepository {
             avatar_url
           )
         `)
-        .eq('outfit_id', outfitId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      return data as unknown as OutfitComment[];
-    } catch (error) {
-      console.error(`Error fetching comments for outfit ${outfitId}:`, error);
-      return [];
-    }
-  }
-
-  async getFeaturedOutfits(): Promise<Outfit[]> {
-    try {
-      const { data, error } = await supabase
-        .from('outfits')
-        .select('*')
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .eq('outfit_id', outfitId);
 
       if (error) {
-        console.error('Error fetching featured outfits:', error);
+        console.error(`Error fetching comments for outfit ${outfitId}:`, error);
         return [];
       }
 
-      return data as unknown as Outfit[];
+      return data as OutfitComment[];
     } catch (error) {
-      console.error('Error fetching featured outfits:', error);
+      console.error(`Error fetching comments for outfit ${outfitId}:`, error);
       return [];
     }
   }

@@ -1,11 +1,30 @@
+
 import React from 'react';
+import { Archive, Loader2, Pencil, Scissors, Trash2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatPrice } from '@/lib/utils';
 
 export interface ClothesCardProps {
   cloth: any;
   simple?: boolean;
+  onDelete?: (id: string) => Promise<void>;
+  onArchive?: (id: string, archived: boolean) => Promise<void>;
+  onAlterationToggle?: (id: string, needsAlteration: boolean) => Promise<void>;
+  isDeleting?: boolean;
+  isUpdating?: boolean;
 }
 
-export const ClothesCard: React.FC<ClothesCardProps> = ({ cloth, simple = false }) => {
+export const ClothesCard: React.FC<ClothesCardProps> = ({ 
+  cloth, 
+  simple = false,
+  onDelete,
+  onArchive,
+  onAlterationToggle,
+  isDeleting = false,
+  isUpdating = false
+}) => {
   return (
     <Card className={cloth.archived ? "opacity-75" : ""}>
       {cloth.image_url && (
@@ -77,46 +96,49 @@ export const ClothesCard: React.FC<ClothesCardProps> = ({ cloth, simple = false 
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onAlterationToggle(cloth.id, !cloth.needs_alteration)}
-          disabled={isUpdating}
-          title={cloth.needs_alteration ? "Marquer comme retouché" : "Marquer à retoucher"}
-        >
-          <Scissors className={`h-4 w-4 ${cloth.needs_alteration ? "text-destructive" : ""}`} />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onArchive(cloth.id, !cloth.archived)}
-          disabled={isUpdating}
-          title={cloth.archived ? "Désarchiver" : "Archiver"}
-        >
-          <Archive className={`h-4 w-4 ${cloth.archived ? "text-muted-foreground" : ""}`} />
-        </Button>
-        <EditClothesDialog 
-          clothes={cloth}
-          trigger={
-            <Button variant="outline" size="icon">
-              <Pencil className="h-4 w-4" />
-            </Button>
-          }
-        />
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={() => onDelete(cloth.id)}
-          disabled={isDeleting}
-        >
-          {isDeleting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4" />
-          )}
-        </Button>
-      </CardFooter>
+      {!simple && onDelete && onArchive && onAlterationToggle && (
+        <CardFooter className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onAlterationToggle(cloth.id, !cloth.needs_alteration)}
+            disabled={isUpdating}
+            title={cloth.needs_alteration ? "Marquer comme retouché" : "Marquer à retoucher"}
+          >
+            <Scissors className={`h-4 w-4 ${cloth.needs_alteration ? "text-destructive" : ""}`} />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onArchive(cloth.id, !cloth.archived)}
+            disabled={isUpdating}
+            title={cloth.archived ? "Désarchiver" : "Archiver"}
+          >
+            <Archive className={`h-4 w-4 ${cloth.archived ? "text-muted-foreground" : ""}`} />
+          </Button>
+          {/* Assuming EditClothesDialog exists elsewhere in the codebase */}
+          {/* <EditClothesDialog 
+            clothes={cloth}
+            trigger={
+              <Button variant="outline" size="icon">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            }
+          /> */}
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => onDelete(cloth.id)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 };
