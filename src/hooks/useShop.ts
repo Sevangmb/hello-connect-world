@@ -1,21 +1,24 @@
-
+import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { Shop, ShopItem, ShopItemStatus, ShopStatus, Order, OrderStatus, PaymentStatus } from '@/core/shop/domain/types';
-import { useAuth } from '@/modules/auth/hooks/useAuth';
+import { shopApiGateway } from '@/services/api-gateway/ShopApiGateway';
+import { Shop, ShopItem, Order, ShopStatus, OrderStatus, PaymentStatus } from '@/core/shop/domain/types';
+import { useAuth } from './useAuth';
 
 export const useShop = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const shopService = getShopService();
+  const { auth } = useAuth();
   
+  const getCurrentUserId = useCallback(() => {
+    return auth?.user?.id || '';
+  }, [auth?.user?.id]);
+
   // Get shop by ID
   const useShopById = (shopId?: string) => {
     return useQuery({
       queryKey: ['shop', shopId],
       queryFn: async () => {
         if (!shopId) return null;
-        return shopService.getShopById(shopId);
+        return shopApiGateway.getShopById(shopId);
       },
       enabled: !!shopId
     });
@@ -24,22 +27,20 @@ export const useShop = () => {
   // Get current user's shop
   const useUserShop = () => {
     return useQuery({
-      queryKey: ['user-shop', user?.id],
+      queryKey: ['user-shop', getCurrentUserId()],
       queryFn: async () => {
-        if (!user?.id) return null;
-        return shopService.getShopByUserId(user.id);
+        if (!getCurrentUserId()) return null;
+        return shopApiGateway.getShopByUserId(getCurrentUserId());
       },
-      enabled: !!user?.id
+      enabled: !!getCurrentUserId()
     });
   };
   
   // Get shops by status
   const useShopsByStatus = (status: ShopStatus) => {
     return useQuery({
-      queryKey: ['shops', status],
-      queryFn: async () => {
-        return shopService.getShopsByStatus(status);
-      }
+      queryKey: ['shops', 'status', status],
+      queryFn: () => shopApiGateway.getShopsByStatus(status)
     });
   };
   
@@ -47,10 +48,10 @@ export const useShop = () => {
   const useCreateShop = () => {
     return useMutation({
       mutationFn: async (shopData: Omit<Shop, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'average_rating'>) => {
-        if (!user?.id) throw new Error('User not authenticated');
-        return shopService.createShop({
+        if (!getCurrentUserId()) throw new Error('User not authenticated');
+        return shopApiGateway.createShop({
           ...shopData,
-          user_id: user.id,
+          user_id: getCurrentUserId(),
           average_rating: 0
         });
       },
@@ -65,7 +66,7 @@ export const useShop = () => {
   const useUpdateShop = () => {
     return useMutation({
       mutationFn: async ({ id, data }: { id: string; data: Partial<Shop> }) => {
-        return shopService.updateShop(id, data);
+        return shopApiGateway.updateShop(id, data);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop', variables.id] });
@@ -79,7 +80,7 @@ export const useShop = () => {
   const useAddShopItems = () => {
     return useMutation({
       mutationFn: async ({ shopId, items }: { shopId: string; items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[] }) => {
-        return shopService.addShopItems(shopId, items);
+        return shopApiGateway.addShopItems(shopId, items);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shopId] });
@@ -91,7 +92,7 @@ export const useShop = () => {
   const useUpdateShopItem = () => {
     return useMutation({
       mutationFn: async ({ itemId, data }: { itemId: string; data: Partial<ShopItem> }) => {
-        return shopService.updateShopItem(itemId, data);
+        return shopApiGateway.updateShopItem(itemId, data);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop-item', variables.itemId] });
@@ -104,7 +105,7 @@ export const useShop = () => {
   const useUpdateShopItemStatus = () => {
     return useMutation({
       mutationFn: async ({ itemId, status }: { itemId: string; status: ShopItemStatus }) => {
-        return shopService.updateShopItemStatus(itemId, status);
+        return shopApiGateway.updateShopItemStatus(itemId, status);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop-item', variables.itemId] });
@@ -119,7 +120,7 @@ export const useShop = () => {
       queryKey: ['shop-items', shopId],
       queryFn: async () => {
         if (!shopId) return [];
-        return shopService.getShopItems(shopId);
+        return shopApiGateway.getShopItems(shopId);
       },
       enabled: !!shopId
     });
@@ -131,7 +132,7 @@ export const useShop = () => {
       queryKey: ['shop-item', itemId],
       queryFn: async () => {
         if (!itemId) return null;
-        return shopService.getShopItemById(itemId);
+        return shopApiGateway.getShopItemById(itemId);
       },
       enabled: !!itemId
     });
@@ -143,7 +144,7 @@ export const useShop = () => {
       queryKey: ['shop-orders', shopId],
       queryFn: async () => {
         if (!shopId) return [];
-        return shopService.getShopOrders(shopId);
+        return shopApiGateway.getShopOrders(shopId);
       },
       enabled: !!shopId
     });
@@ -153,7 +154,7 @@ export const useShop = () => {
   const useUpdateOrderStatus = () => {
     return useMutation({
       mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-        return shopService.updateOrderStatus(orderId, status);
+        return shopApiGateway.updateOrderStatus(orderId, status);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
@@ -168,7 +169,7 @@ export const useShop = () => {
       queryKey: ['shop-reviews', shopId],
       queryFn: async () => {
         if (!shopId) return [];
-        return shopService.getShopReviews(shopId);
+        return shopApiGateway.getShopReviews(shopId);
       },
       enabled: !!shopId
     });
@@ -177,35 +178,41 @@ export const useShop = () => {
   // Check if a shop is favorited
   const useIsShopFavorited = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shop-favorited', shopId, user?.id],
+      queryKey: ['shop-favorited', shopId, getCurrentUserId()],
       queryFn: async () => {
-        if (!shopId || !user?.id) return false;
-        return shopService.isShopFavorited(user.id, shopId);
+        if (!shopId || !getCurrentUserId()) return false;
+        return shopApiGateway.isShopFavorited(getCurrentUserId(), shopId);
       },
-      enabled: !!shopId && !!user?.id
+      enabled: !!shopId && !!getCurrentUserId()
     });
   };
   
   // Get favorite shops
   const useFavoriteShops = () => {
     return useQuery({
-      queryKey: ['favorite-shops', user?.id],
+      queryKey: ['favorite-shops', getCurrentUserId()],
       queryFn: async () => {
-        if (!user?.id) return [];
-        return shopService.getFavoriteShops(user.id);
+        if (!getCurrentUserId()) return [];
+        return shopApiGateway.getFavoriteShops(getCurrentUserId());
       },
-      enabled: !!user?.id
+      enabled: !!getCurrentUserId()
     });
   };
 
   // Create a shop item
   const useCreateShopItem = () => {
+    const queryClient = useQueryClient();
+    
     return useMutation({
-      mutationFn: async ({ shopId, item }: { shopId: string; item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> }) => {
-        return shopService.addShopItems(shopId, [item]);
+      mutationFn: async ({ shopId, item }: { 
+        shopId: string, 
+        item: Omit<ShopItem, "id" | "created_at" | "updated_at"> 
+      }) => {
+        const result = await shopApiGateway.createShopItem(shopId, item);
+        return result;
       },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shopId] });
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
       }
     });
   };
@@ -214,8 +221,8 @@ export const useShop = () => {
   const useFavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!user?.id) throw new Error('User not authenticated');
-        return shopService.addShopToFavorites(user.id, shopId);
+        if (!getCurrentUserId()) throw new Error('User not authenticated');
+        return shopApiGateway.addShopToFavorites(getCurrentUserId(), shopId);
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
@@ -228,8 +235,8 @@ export const useShop = () => {
   const useUnfavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!user?.id) throw new Error('User not authenticated');
-        return shopService.removeShopFromFavorites(user.id, shopId);
+        if (!getCurrentUserId()) throw new Error('User not authenticated');
+        return shopApiGateway.removeShopFromFavorites(getCurrentUserId(), shopId);
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });

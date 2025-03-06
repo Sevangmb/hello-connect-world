@@ -1,4 +1,3 @@
-
 /**
  * Core functionality for modules system
  * This file contains the main hook for modules management
@@ -9,7 +8,7 @@ import { useModuleDataFetcher, ConnectionStatus } from "./fetcher";
 import { useStatusManager } from "./statusManager";
 import { useModuleActive } from "./useModuleActive";
 import { useModuleEffects } from "./useModuleEffects";
-import { useModuleApiContext } from "./ModuleApiContext";
+import { useModuleApi } from "./ModuleApiContext";
 import { AppModule } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,7 +22,8 @@ const CACHE_VALIDITY = 60000; // 1 minute
  */
 export const useModuleCore = () => {
   // Récupérer l'API des modules depuis le contexte
-  const moduleApi = useModuleApiContext();
+  const moduleApi = useModuleApi();
+  
   // État local pour les modules
   const [localModules, setLocalModules] = useState<AppModule[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);

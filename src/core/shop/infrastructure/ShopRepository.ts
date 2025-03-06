@@ -1,17 +1,16 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { 
-  Shop, 
-  ShopItem, 
-  ShopStatus, 
-  ShopItemStatus, 
-  Order, 
+import {
+  Shop,
+  ShopItem,
   ShopReview,
+  Order,
   OrderItem,
-  OrderStatus,
-  PaymentStatus
-} from '@/core/shop/domain/types';
+  ShopItemStatus,
+  ShopStatus,
+  RawShopItem,
+  DbOrder
+} from '../domain/types';
 
 export class ShopRepository implements IShopRepository {
   // Get shop by ID
@@ -281,68 +280,90 @@ export class ShopRepository implements IShopRepository {
   }
 
   // Create an order
-  async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
+  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'items'>): Promise<Order | null> {
     try {
-      // Separate order items for insertion
-      const { items, ...order } = orderData;
-      
-      // Map the Order type to match the database schema
-      const dbOrder = {
-        seller_id: order.shop_id,
-        buyer_id: order.customer_id,
+      // Make sure we have a valid delivery address structure
+      const validDeliveryAddress = typeof order.delivery_address === 'object' 
+        ? order.delivery_address 
+        : { 
+            street: '',
+            city: '', 
+            postal_code: '', 
+            country: ''
+          };
+
+      // Convert any buyer_id and seller_id references
+      const orderData = {
+        buyer_id: order.customer_id,  // Map customer_id to buyer_id
+        seller_id: order.shop_id,     // Map shop_id to seller_id
         status: order.status,
         total_amount: order.total_amount,
-        shipping_cost: order.delivery_fee,
         payment_status: order.payment_status,
         payment_method: order.payment_method,
-        shipping_address: order.delivery_address
+        delivery_fee: order.delivery_fee,
+        shipping_address: validDeliveryAddress
       };
-      
-      // Insert order
-      const { data: orderResult, error: orderError } = await supabase
+
+      const { data, error } = await supabase
         .from('orders')
-        .insert(dbOrder)
+        .insert(orderData)
         .select()
         .single();
-      
-      if (orderError) throw orderError;
-      
-      // Insert order items if they exist
-      if (items && items.length > 0) {
-        const orderItems = items.map(item => ({
-          order_id: orderResult.id,
-          shop_item_id: item.shop_item_id || item.item_id,
-          price_at_time: item.price,
-          quantity: item.quantity
-        }));
-        
-        const { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItems);
-        
-        if (itemsError) throw itemsError;
-      }
-      
-      // Map the result back to Order type
-      const result: Order = {
-        id: orderResult.id,
-        shop_id: orderResult.seller_id,
-        customer_id: orderResult.buyer_id,
-        status: orderResult.status as OrderStatus,
-        total_amount: orderResult.total_amount,
-        delivery_fee: orderResult.shipping_cost || 0,
-        payment_status: orderResult.payment_status as PaymentStatus,
-        payment_method: orderResult.payment_method || 'card',
-        delivery_address: orderResult.shipping_address || { street: '', city: '', postal_code: '', country: '' },
-        created_at: orderResult.created_at,
-        updated_at: orderResult.updated_at || orderResult.created_at,
-        items: items || []
+
+      if (error) throw error;
+
+      // Map back to Order domain model
+      return {
+        id: data.id,
+        shop_id: data.seller_id,
+        customer_id: data.buyer_id,
+        status: data.status,
+        total_amount: data.total_amount,
+        delivery_fee: data.delivery_fee,
+        payment_status: data.payment_status,
+        payment_method: data.payment_method,
+        delivery_address: data.shipping_address || validDeliveryAddress,
+        created_at: data.created_at,
+        updated_at: new Date().toISOString(),
+        items: []
       };
-      
-      return result;
     } catch (error) {
       console.error('Error creating order:', error);
       return null;
+    }
+  }
+
+  // Create order items
+  async createOrderItems(orderItems: Omit<OrderItem, 'id' | 'created_at'>[]): Promise<OrderItem[]> {
+    try {
+      // Map OrderItem to database structure
+      const dbOrderItems = orderItems.map(item => ({
+        order_id: item.order_id,
+        shop_item_id: item.shop_item_id || '', // Ensure shop_item_id is provided
+        price_at_time: item.price, // Map price to price_at_time
+        quantity: item.quantity
+      }));
+
+      const { data, error } = await supabase
+        .from('order_items')
+        .insert(dbOrderItems)
+        .select();
+
+      if (error) throw error;
+
+      // Map back to OrderItem domain model
+      return data.map((item: any) => ({
+        id: item.id,
+        order_id: item.order_id,
+        shop_item_id: item.shop_item_id,
+        name: item.name || '', // May need to fetch name from shop_items
+        price: item.price_at_time,
+        quantity: item.quantity,
+        created_at: item.created_at
+      }));
+    } catch (error) {
+      console.error('Error creating order items:', error);
+      return [];
     }
   }
 

@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleRepository } from './repositories/ModuleRepository';
 
@@ -59,7 +58,8 @@ export class ModuleService {
   async initializeModule(moduleCode: string): Promise<AppModule | null> {
     console.log(`Initializing module: ${moduleCode}`);
     // Implementation will depend on specific requirements
-    return this.getModuleByCode(moduleCode);
+    const module = await this.getModuleByCode(moduleCode);
+    return module;  // Return the module, not a boolean
   }
 
   /**

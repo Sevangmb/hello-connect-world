@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AppModule } from './types';
-import { fetchAllModules, fetchAllFeatures } from '../api/moduleSync';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define the context type
 export interface ModuleApiContextType {
@@ -8,8 +9,9 @@ export interface ModuleApiContextType {
   features: Record<string, any>;
   loading: boolean;
   error: string | null;
-  refreshModules: () => Promise<void>;
+  refreshModules: (force?: boolean) => Promise<AppModule[]>;
   refreshFeatures: () => Promise<void>;
+  isInitialized: boolean;
 }
 
 // Create the context with a default value
@@ -18,8 +20,9 @@ const ModuleApiContext = createContext<ModuleApiContextType>({
   features: {},
   loading: false,
   error: null,
-  refreshModules: async () => {},
+  refreshModules: async () => [],
   refreshFeatures: async () => {},
+  isInitialized: false,
 });
 
 // Custom hook to use the module API context
@@ -27,12 +30,58 @@ export function useModuleApi() {
   return useContext(ModuleApiContext);
 }
 
+// Alias for backward compatibility
+export const useModuleApiContext = useModuleApi;
+
+// Function to fetch all modules
+export const fetchAllModules = async (): Promise<AppModule[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('app_modules')
+      .select('*')
+      .order('name');
+    
+    if (error) throw error;
+    
+    return data as AppModule[];
+  } catch (err) {
+    console.error('Error fetching modules:', err);
+    return [];
+  }
+};
+
+// Function to fetch all features
+export const fetchAllFeatures = async (): Promise<Record<string, any>> => {
+  try {
+    const { data, error } = await supabase
+      .from('module_features')
+      .select('*');
+    
+    if (error) throw error;
+    
+    // Organize by module_code
+    const features: Record<string, any> = {};
+    data.forEach(feature => {
+      if (!features[feature.module_code]) {
+        features[feature.module_code] = {};
+      }
+      features[feature.module_code][feature.feature_code] = feature.is_enabled;
+    });
+    
+    return features;
+  } catch (err) {
+    console.error('Error fetching features:', err);
+    return {};
+  }
+};
+
 // Provider component to wrap the app and provide the context
 export function ModuleApiContextProvider({ children }: { children: React.ReactNode }) {
   const [modules, setModules] = useState<AppModule[]>([]);
   const [features, setFeatures] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Function to handle errors
   const handleError = (err: unknown) => {
@@ -42,14 +91,16 @@ export function ModuleApiContextProvider({ children }: { children: React.ReactNo
   };
 
   // Fetch modules from the API
-  const fetchModules = useCallback(async () => {
+  const fetchModules = useCallback(async (force: boolean = false) => {
     setLoading(true);
     try {
       const fetchedModules = await fetchAllModules();
       setModules(fetchedModules);
       setError(null);
+      return fetchedModules;
     } catch (err) {
       handleError(err);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -62,27 +113,37 @@ export function ModuleApiContextProvider({ children }: { children: React.ReactNo
       const fetchedFeatures = await fetchAllFeatures();
       setFeatures(fetchedFeatures);
       setError(null);
+      return fetchedFeatures;
     } catch (err) {
       handleError(err);
+      return {};
     } finally {
       setLoading(false);
     }
   }, []);
 
   // Refresh modules and features
-  const refreshModules = useCallback(async () => {
-    await fetchModules();
+  const refreshModules = useCallback(async (force: boolean = false) => {
+    const modules = await fetchModules(force);
+    setIsInitialized(true);
+    return modules;
   }, [fetchModules]);
 
   const refreshFeatures = useCallback(async () => {
     await fetchFeatures();
+    return;
   }, [fetchFeatures]);
 
   // Load modules and features on component mount
   useEffect(() => {
-    fetchModules();
-    fetchFeatures();
-  }, [fetchModules, fetchFeatures]);
+    const init = async () => {
+      await refreshModules();
+      await refreshFeatures();
+      setIsInitialized(true);
+    };
+    
+    init();
+  }, [refreshModules, refreshFeatures]);
 
   return (
     <ModuleApiContext.Provider
@@ -93,6 +154,7 @@ export function ModuleApiContextProvider({ children }: { children: React.ReactNo
         error,
         refreshModules,
         refreshFeatures,
+        isInitialized,
       }}
     >
       {children}
