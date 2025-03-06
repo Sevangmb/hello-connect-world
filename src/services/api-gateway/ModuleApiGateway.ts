@@ -90,7 +90,7 @@ export class ModuleApiGateway {
   
   public async isModuleDegraded(moduleId: string): Promise<boolean> {
     try {
-      const module = await this.moduleService.getModuleById(moduleId);
+      const module = await this.moduleService.getModuleByCode(moduleId);
       return module?.status === 'degraded';
     } catch (error) {
       console.error(`Error checking if module ${moduleId} is degraded:`, error);
@@ -106,3 +106,6 @@ export class ModuleApiGateway {
     }
   }
 }
+
+// Exportation d'une instance unique
+export const moduleApiGateway = new ModuleApiGateway();

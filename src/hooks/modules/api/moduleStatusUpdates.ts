@@ -1,36 +1,17 @@
 
-import { ModuleStatus } from '../types';
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
-import { updateModuleCache } from './moduleStatusCore';
+import { ModuleStatus } from '@/hooks/modules/types';
+import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
-export const updateModuleStatus = async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
-  try {
-    if (status === 'active') {
-      return await moduleApiGateway.activateModule(moduleId);
-    } else if (status === 'inactive') {
-      return await moduleApiGateway.deactivateModule(moduleId);
-    }
-    return false;
-  } catch (error) {
-    console.error(`Error updating status for module ${moduleId}:`, error);
-    return false;
-  }
-};
+const moduleApi = new ModuleApiGateway();
 
-export const updateFeatureStatus = async (
+export async function updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+  return await moduleApi.updateModuleStatus(moduleId, status);
+}
+
+export async function updateFeatureStatus(
   moduleCode: string,
   featureCode: string,
   isEnabled: boolean
-): Promise<boolean> => {
-  try {
-    return await moduleApiGateway.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-  } catch (error) {
-    console.error(`Error updating feature ${featureCode} for module ${moduleCode}:`, error);
-    return false;
-  }
-};
-
-// Add aliases for backwards compatibility
-export const updateModuleStatusInDb = updateModuleStatus;
-export const updateFeatureStatusInDb = updateFeatureStatus;
-export const updateFeatureStatusSilent = updateFeatureStatus;
+): Promise<boolean> {
+  return await moduleApi.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+}

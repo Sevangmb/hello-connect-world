@@ -1,41 +1,18 @@
 
-import { ModuleStatus } from '../types';
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { ModuleStatus } from '@/hooks/modules/types';
+import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
-export const fetchModuleStatus = async (moduleCode: string): Promise<ModuleStatus | null> => {
-  try {
-    return await moduleApiGateway.getModuleStatus(moduleCode);
-  } catch (error) {
-    console.error(`Error fetching status for module ${moduleCode}:`, error);
-    return null;
-  }
-};
+const moduleApi = new ModuleApiGateway();
 
-export const fetchModuleActiveState = async (moduleCode: string): Promise<boolean> => {
-  try {
-    return await moduleApiGateway.isModuleActive(moduleCode);
-  } catch (error) {
-    console.error(`Error fetching active state for module ${moduleCode}:`, error);
-    return false;
-  }
-};
+export async function isModuleActive(moduleCode: string): Promise<boolean> {
+  return await moduleApi.isModuleActive(moduleCode);
+}
 
-// Add the missing functions
-export const checkModuleActiveAsync = async (moduleCode: string): Promise<boolean> => {
-  const status = await fetchModuleStatus(moduleCode);
-  return status === 'active';
-};
+export async function getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
+  const module = await moduleApi.getModuleByCode(moduleCode);
+  return module?.status || null;
+}
 
-export const checkModuleDegradedAsync = async (moduleCode: string): Promise<boolean> => {
-  const status = await fetchModuleStatus(moduleCode);
-  return status === 'degraded';
-};
-
-export const checkFeatureEnabledAsync = async (moduleCode: string, featureCode: string): Promise<boolean> => {
-  try {
-    return await moduleApiGateway.isFeatureEnabled(moduleCode, featureCode);
-  } catch (error) {
-    console.error(`Error checking if feature ${featureCode} is enabled for module ${moduleCode}:`, error);
-    return false;
-  }
-};
+export async function updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
+  return await moduleApi.updateModuleStatus(moduleId, status);
+}

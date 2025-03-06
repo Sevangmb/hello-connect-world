@@ -1,4 +1,8 @@
 
+/**
+ * Types du module de tenues
+ */
+
 export type OutfitStatus = 'draft' | 'published' | 'archived';
 export type OutfitCategory = 'casual' | 'formal' | 'sport' | 'other';
 export type OutfitSeason = 'spring' | 'summer' | 'fall' | 'winter' | 'all';
@@ -27,4 +31,21 @@ export interface Outfit {
   comments_count: number;
   created_at: string;
   updated_at: string;
+  // Champ virtuel pour l'image d'aperçu
+  image_url?: string;
 }
+
+export interface OutfitComment {
+  id: string;
+  outfit_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+}
+
