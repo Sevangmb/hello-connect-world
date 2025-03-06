@@ -60,7 +60,7 @@ export class ModuleService {
     console.log(`Initializing module: ${moduleCode}`);
     // Implementation will depend on specific requirements
     const module = await this.getModuleByCode(moduleCode);
-    return module; // Return the module instead of a boolean
+    return module;
   }
 
   /**

@@ -1,8 +1,14 @@
 
 import { Link } from "react-router-dom";
 
-export function Footer() {
+interface FooterProps {
+  show?: boolean;
+}
+
+export function Footer({ show = false }: FooterProps) {
   const currentYear = new Date().getFullYear();
+  
+  if (!show) return null;
   
   return (
     <footer className="bg-gray-100 py-6 border-t mt-auto">

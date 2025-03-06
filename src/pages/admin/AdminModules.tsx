@@ -7,13 +7,63 @@ import { ModuleFeatures } from "@/components/admin/modules/ModuleFeatures";
 import { ModuleStatusAlert } from "@/components/admin/modules/components/ModuleStatusAlert";
 import { ModuleStatusSummary } from "@/components/admin/modules/components/ModuleStatusSummary";
 import { useModules } from "@/hooks/modules";
+import { AlertTriangle, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 export default function AdminModules() {
   const { modules } = useModules();
 
+  // Calculer les statistiques des modules
+  const activeModules = modules.filter(m => m.status === 'active').length;
+  const inactiveModules = modules.filter(m => m.status === 'inactive').length;
+  const degradedModules = modules.filter(m => m.status === 'degraded').length;
+  const maintenanceModules = modules.filter(m => m.status === 'maintenance').length;
+
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-0">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Indicateurs de statut des modules */}
+        <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">Modules actifs</p>
+                <h3 className="text-2xl font-bold text-green-700">{activeModules}</h3>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-red-600">Modules inactifs</p>
+                <h3 className="text-2xl font-bold text-red-700">{inactiveModules}</h3>
+              </div>
+              <AlertCircle className="h-8 w-8 text-red-500" />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-amber-600">En dégradation</p>
+                <h3 className="text-2xl font-bold text-amber-700">{degradedModules}</h3>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-amber-500" />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">En maintenance</p>
+                <h3 className="text-2xl font-bold text-blue-700">{maintenanceModules}</h3>
+              </div>
+              <Clock className="h-8 w-8 text-blue-500" />
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Tableau de bord des modules - colonne gauche */}
         <div className="lg:col-span-1 space-y-6">
           <ModuleStatusSummary modules={modules} />

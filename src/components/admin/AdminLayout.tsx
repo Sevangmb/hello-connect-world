@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { AdminMenu } from "@/components/admin/AdminMenu";
 import { useAdminAuth } from "@/components/admin/hooks/useAdminAuth";
 import { useAdminMetrics } from "@/hooks/useAdminMetrics";
@@ -97,8 +96,6 @@ export function AdminLayout() {
           </div>
         </div>
       </div>
-      
-      <Footer />
     </div>
   );
 }
