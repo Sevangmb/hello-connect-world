@@ -28,7 +28,7 @@ export const ShopSettings: React.FC = () => {
   const onSubmit = async (data: any) => {
     if (shop) {
       updateShopMutation.mutate({
-        shopId: shop.id,
+        id: shop.id,
         data
       });
     }

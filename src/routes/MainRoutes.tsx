@@ -63,15 +63,12 @@ const LoadingFallback = () => (
 );
 
 export default function MainRoutes() {
-  const { preloadPriorityModules } = useModulePriority();
+  const priorityUtils = useModulePriority();
   
   useEffect(() => {
     // Précharger les routes
     preloadRoutes();
-    
-    // Précharger les modules prioritaires
-    preloadPriorityModules();
-  }, [preloadPriorityModules]);
+  }, []);
   
   return (
     <Suspense fallback={<LoadingFallback />}>

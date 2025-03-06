@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
-import { LoadingSpinner } from './ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface AppInitializerProps {
   children: React.ReactNode;

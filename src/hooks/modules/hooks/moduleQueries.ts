@@ -52,5 +52,4 @@ export const moduleQueries = {
   })
 };
 
-// Export the update functions
-export { updateModuleStatusAsync, updateFeatureStatusAsync };
+// No duplicate exports here - these are already exported above

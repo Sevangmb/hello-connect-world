@@ -40,11 +40,18 @@ export const useModulePriority = () => {
     setSortByPriority(prev => !prev);
   }, []);
   
+  // This is a no-op function to satisfy the interface
+  const preloadPriorityModules = useCallback(() => {
+    console.log('Preloading priority modules...');
+    // Implementation would go here if needed
+  }, []);
+  
   const priorityUtils = useMemo(() => ({
     sortByPriority,
     sortModulesByPriority,
-    toggleSortByPriority
-  }), [sortByPriority, sortModulesByPriority, toggleSortByPriority]);
+    toggleSortByPriority,
+    preloadPriorityModules
+  }), [sortByPriority, sortModulesByPriority, toggleSortByPriority, preloadPriorityModules]);
   
   return priorityUtils;
 };
