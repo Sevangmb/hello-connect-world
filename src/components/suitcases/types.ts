@@ -1,77 +1,44 @@
-import { ReactNode } from 'react';
 
-// Interface pour la valise
-export interface Suitcase {
-  id: string;
-  name: string;
-  description?: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  user_id: string;
-  status: 'active' | 'archived';
-  created_at: string;
-  updated_at: string;
+export type SuitcaseStatus = 'active' | 'archived' | 'completed' | 'deleted';
+
+export interface SuitcaseFilter {
+  status: SuitcaseStatus | 'all';
+  search: string;
 }
 
-// Interface pour les éléments dans une valise
+export interface Suitcase {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+  destination?: string;
+  status: SuitcaseStatus;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface SuitcaseItem {
   id: string;
   suitcase_id: string;
   clothes_id: string;
   quantity: number;
+  notes?: string;
+  is_packed: boolean;
   created_at: string;
+  updated_at?: string;
+  clothes?: any; // Définition complète à ajouter selon besoin
 }
 
-// Interface pour les props du composant SuitcaseHeader
-export interface SuitcaseHeaderProps {
-  onRefresh: () => void;
-}
-
-// Interface pour les props du composant SuitcaseFilters
-export interface SuitcaseFiltersProps {
-  filters: {
-    status: string;
-    search: string;
-    date: Date | null;
-  };
-  statusLabels: Record<string, string>;
-  onStatusChange: (status: string) => void;
-  onClearSearch: () => void;
-}
-
-// Interface pour les props du composant SuitcaseGrid
-export interface SuitcaseGridProps {
-  suitcases: Suitcase[];
-  onSelectSuitcase: (suitcaseId: string) => void;
-}
-
-// Interface pour les props du composant EmptySuitcases
-export interface EmptySuitcasesProps {
-  onCreateClick: () => void;
-}
-
-// Interface pour les props du composant SuitcaseItems
-export interface SuitcaseItemsProps {
-  suitcaseId: string;
-  onBack: () => void;
-}
-
-// Interface pour les props du formulaire de création de valise
-export interface CreateSuitcaseFormProps {
-  onSubmit: (data: CreateSuitcaseData) => void;
-  onSuccess?: () => void;
-  isLoading: boolean;
-}
-
-// Interface pour les données de création d'une valise
-export interface CreateSuitcaseData {
-  name: string;
-  description?: string;
-  start_date?: string;
-  end_date?: string;
-}
-
-export interface SuitcaseListItemProps {
-  suitcase: Suitcase;
-  onSelect: (id: string) => void;
+export interface SuitcaseCalendarItem {
+  id: string;
+  suitcase_id: string;
+  date: string;
+  items: {
+    id: string;
+    clothes_id: string;
+    clothes_name?: string;
+    clothes_image?: string;
+  }[];
 }

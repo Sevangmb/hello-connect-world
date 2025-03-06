@@ -1,19 +1,18 @@
 
 import React, { useMemo } from 'react';
-import { Suspense } from 'react';
 import { SuitcaseListItem } from './SuitcaseListItem';
 import { LoadingState } from '@/components/ui/loading-state';
 import { useTransitionState } from '@/hooks/useTransitionState';
-import type { Suitcase } from '../types';
+import { Suitcase } from '../types';
 
-interface SuitcaseGridProps {
+interface SuitcaseListProps {
   suitcases: Suitcase[];
   onSelect: (suitcase: Suitcase) => void;
   loading?: boolean;
 }
 
-export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({ 
-  suitcases, 
+export const SuitcaseList: React.FC<SuitcaseListProps> = ({
+  suitcases,
   onSelect,
   loading = false
 }) => {
@@ -29,13 +28,14 @@ export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-opacity duration-300 ease-in-out animate-fade-in">
+    <div className="space-y-4 transition-opacity duration-300 ease-in-out animate-fade-in">
       {memoizedSuitcases.map((suitcase) => (
-        <SuitcaseListItem
-          key={suitcase.id}
-          suitcase={suitcase}
-          onSelect={() => onSelect(suitcase)}
-        />
+        <div key={suitcase.id} className="border border-border rounded-lg p-4">
+          <SuitcaseListItem
+            suitcase={suitcase}
+            onSelect={() => onSelect(suitcase)}
+          />
+        </div>
       ))}
     </div>
   );

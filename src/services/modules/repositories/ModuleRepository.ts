@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -85,28 +86,29 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Fetch dependency records first
-      const { data: dependencyRecords, error } = await supabase
+      // Récupérer les dépendances pour le module
+      const { data: dependencyData, error: dependencyError } = await supabase
         .from('module_dependencies')
-        .select('id, module_id, dependency_id, is_required');
+        .select('id, module_id, dependency_id, is_required')
+        .eq('module_id', moduleId);
       
-      if (error) throw error;
+      if (dependencyError) throw dependencyError;
       
-      // Filter for this specific module
-      const filteredDependencies = dependencyRecords.filter(
-        dep => dep.module_id === moduleId
-      );
-      
-      // Fetch module data for each dependency
+      // Récupérer les détails des modules de dépendance
       const dependencies = [];
       
-      for (const dep of filteredDependencies) {
-        const { data: moduleData } = await supabase
+      for (const dep of dependencyData) {
+        const { data: moduleData, error: moduleError } = await supabase
           .from('app_modules')
           .select('id, name, code, status')
           .eq('id', dep.dependency_id)
           .single();
           
+        if (moduleError) {
+          console.error(`Error fetching dependency module ${dep.dependency_id}:`, moduleError);
+          continue;
+        }
+        
         if (moduleData) {
           dependencies.push({
             id: dep.id,
@@ -187,36 +189,42 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Get modules
-      const { data: moduleData, error: moduleError } = await supabase
+      // Récupérer les modules
+      const { data: modules, error: modulesError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
       
-      if (moduleError || !moduleData) return [];
+      if (modulesError || !modules) {
+        console.error('Error fetching modules:', modulesError);
+        return [];
+      }
       
-      // Get features
-      const { data: featureData, error: featureError } = await supabase
+      // Récupérer les fonctionnalités
+      const { data: features, error: featuresError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
         
-      if (featureError) return [];
+      if (featuresError) {
+        console.error('Error fetching features:', featuresError);
+        return [];
+      }
       
-      // Map modules to features
-      const resultMap = new Map();
+      // Mapper les modules aux fonctionnalités
+      const moduleFeatureMap = new Map();
       
-      moduleData.forEach(module => {
-        resultMap.set(module.code, {
+      modules.forEach(module => {
+        moduleFeatureMap.set(module.code, {
           module,
           features: []
         });
       });
       
-      // Add features to modules
-      if (featureData) {
-        featureData.forEach(feature => {
+      // Ajouter les fonctionnalités aux modules
+      if (features) {
+        features.forEach(feature => {
           const moduleCode = feature.module_code;
-          if (resultMap.has(moduleCode)) {
-            resultMap.get(moduleCode).features.push({
+          if (moduleFeatureMap.has(moduleCode)) {
+            moduleFeatureMap.get(moduleCode).features.push({
               id: feature.id,
               feature_code: feature.feature_code,
               feature_name: feature.feature_name,
@@ -227,7 +235,7 @@ export class ModuleRepository implements IModuleRepository {
         });
       }
       
-      return Array.from(resultMap.values());
+      return Array.from(moduleFeatureMap.values());
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];

@@ -1,9 +1,9 @@
 
-import type { SuitcaseStatus } from '../utils/types';
+import { SuitcaseStatus } from '../types';
 
 export const SUITCASE_STATUSES: Record<SuitcaseStatus, string> = {
-  active: 'Active',
-  archived: 'Archivée',
-  deleted: 'Supprimée',
-  completed: 'Terminée'
+  active: "Active",
+  archived: "Archivée",
+  completed: "Terminée",
+  deleted: "Supprimée"
 };

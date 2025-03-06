@@ -4,31 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Grid, List } from 'lucide-react';
 
 export interface SuitcaseViewToggleProps {
-  currentView: 'grid' | 'list';
-  onChangeView: (view: 'grid' | 'list') => void;
+  currentView: 'list' | 'grid';
+  onViewChange: (view: 'list' | 'grid') => void;
 }
 
-export const SuitcaseViewToggle = ({ 
-  currentView, 
-  onChangeView 
-}: SuitcaseViewToggleProps) => {
+export const SuitcaseViewToggle: React.FC<SuitcaseViewToggleProps> = ({
+  currentView,
+  onViewChange
+}) => {
   return (
-    <div className="flex">
+    <div className="flex space-x-2">
       <Button
-        variant={currentView === 'grid' ? 'default' : 'ghost'}
-        size="icon"
-        onClick={() => onChangeView('grid')}
-        className="rounded-r-none"
+        size="sm"
+        variant={currentView === 'grid' ? 'default' : 'outline'}
+        onClick={() => onViewChange('grid')}
+        className="transition-all duration-200"
       >
-        <Grid className="h-4 w-4" />
+        <Grid className="h-4 w-4 mr-1" />
+        Grille
       </Button>
+      
       <Button
-        variant={currentView === 'list' ? 'default' : 'ghost'}
-        size="icon"
-        onClick={() => onChangeView('list')}
-        className="rounded-l-none"
+        size="sm"
+        variant={currentView === 'list' ? 'default' : 'outline'}
+        onClick={() => onViewChange('list')}
+        className="transition-all duration-200"
       >
-        <List className="h-4 w-4" />
+        <List className="h-4 w-4 mr-1" />
+        Liste
       </Button>
     </div>
   );
