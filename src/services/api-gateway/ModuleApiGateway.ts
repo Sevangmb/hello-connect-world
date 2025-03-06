@@ -1,12 +1,12 @@
-
 import { ModuleServiceImpl } from '../modules/services/ModuleServiceImpl';
+import { IModuleService } from '../modules/domain/interfaces/IModuleService';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 
 export class ModuleApiGateway {
-  private moduleService: ModuleServiceImpl;
+  private moduleService: IModuleService;
 
-  constructor() {
-    this.moduleService = new ModuleServiceImpl();
+  constructor(moduleService?: IModuleService) {
+    this.moduleService = moduleService || new ModuleServiceImpl();
   }
 
   public async getAllModules(): Promise<AppModule[]> {
@@ -107,5 +107,5 @@ export class ModuleApiGateway {
   }
 }
 
-// Exportation d'une instance unique
+// Export a singleton instance
 export const moduleApiGateway = new ModuleApiGateway();

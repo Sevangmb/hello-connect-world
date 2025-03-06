@@ -1,18 +1,22 @@
 
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { ModuleStatus } from '@/hooks/modules/types';
-import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
-const moduleApi = new ModuleApiGateway();
+export const getModuleStatus = async (moduleCode: string): Promise<ModuleStatus | null> => {
+  return moduleApiGateway.getModuleStatus(moduleCode);
+};
 
-export async function isModuleActive(moduleCode: string): Promise<boolean> {
-  return await moduleApi.isModuleActive(moduleCode);
-}
+export const checkModuleActive = async (moduleCode: string): Promise<boolean> => {
+  return moduleApiGateway.isModuleActive(moduleCode);
+};
 
-export async function getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-  const module = await moduleApi.getModuleByCode(moduleCode);
-  return module?.status || null;
-}
+export const checkModuleDegraded = async (moduleCode: string): Promise<boolean> => {
+  return moduleApiGateway.isModuleDegraded(moduleCode);
+};
 
-export async function updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-  return await moduleApi.updateModuleStatus(moduleId, status);
-}
+export const checkFeatureEnabled = async (
+  moduleCode: string,
+  featureCode: string
+): Promise<boolean> => {
+  return moduleApiGateway.isFeatureEnabled(moduleCode, featureCode);
+};

@@ -1,33 +1,12 @@
 
-// Re-export all module status functions
 export {
-  isActiveStatus,
-  isDegradedStatus,
-  isInactiveStatus,
-  isMaintenanceStatus,
-  getEffectiveStatus,
-  getModuleStatusFromCache,
-  updateModuleCache,
-  getModuleCache,
-  isModuleActive,
-  isModuleDegraded,
-  isModuleMaintenance,
-  isModuleInactive,
-  isAdminModule
-} from './api/moduleStatusCore';
-
-export {
-  fetchModuleStatus,
-  fetchModuleActiveState,
-  checkModuleActiveAsync,
-  checkModuleDegradedAsync,
-  checkFeatureEnabledAsync
+  getModuleStatus,
+  checkModuleActive,
+  checkModuleDegraded,
+  checkFeatureEnabled
 } from './api/moduleStatusAsync';
 
 export {
   updateModuleStatus,
-  updateFeatureStatus,
-  updateModuleStatusInDb,
-  updateFeatureStatusInDb,
-  updateFeatureStatusSilent
+  updateFeatureStatus
 } from './api/moduleStatusUpdates';
