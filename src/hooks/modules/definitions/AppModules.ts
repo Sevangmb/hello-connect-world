@@ -1,4 +1,3 @@
-
 /**
  * Définitions des modules de l'application
  * Ce fichier centralise les informations sur les modules disponibles
@@ -20,6 +19,8 @@ export interface ModuleDefinition {
     enabledByDefault?: boolean;
   }[];
 }
+
+import OutfitsModule from '@/modules/outfits';
 
 export const APP_MODULES: Record<string, ModuleDefinition> = {
   // Module d'administration - toujours actif
@@ -129,7 +130,10 @@ export const APP_MODULES: Record<string, ModuleDefinition> = {
         enabledByDefault: true
       }
     ]
-  }
+  },
+  
+  // Ajouter le module de tenues
+  OUTFITS: OutfitsModule,
 };
 
 // Exporter les codes de module comme constantes pour faciliter l'utilisation
