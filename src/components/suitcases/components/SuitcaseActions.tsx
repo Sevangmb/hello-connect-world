@@ -1,8 +1,9 @@
 
+import React from "react";
 import { HelpCircle, Loader2, Package, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDeleteSuitcase } from "../hooks/useDeleteSuitcase";
-import { useSuitcaseSuggestions } from "../hooks"; // Import du hook de suggestions
+import { useSuitcaseSuggestions } from "../hooks/suitcase-suggestions/useSuitcaseSuggestions";
 import { SuitcaseSuggestionsDialog } from "./SuitcaseSuggestionsDialog";
 
 interface SuitcaseActionsProps {
@@ -13,7 +14,7 @@ interface SuitcaseActionsProps {
   endDate?: Date;
 }
 
-export const SuitcaseActions = ({
+export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
   suitcaseId,
   isSelected,
   onSelect,

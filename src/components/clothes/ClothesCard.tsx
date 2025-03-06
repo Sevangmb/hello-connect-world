@@ -1,46 +1,11 @@
+import React from 'react';
 
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Loader2, Archive, Scissors } from "lucide-react";
-import { EditClothesDialog } from "./EditClothesDialog";
-import { formatPrice } from "@/lib/utils";
+export interface ClothesCardProps {
+  cloth: any;
+  simple?: boolean;
+}
 
-type ClothesCardProps = {
-  cloth: {
-    id: string;
-    name: string;
-    description: string | null;
-    category: string;
-    subcategory: string | null;
-    brand: string | null;
-    size: string | null;
-    color: string | null;
-    material: string | null;
-    style: string | null;
-    price: number | null;
-    purchase_date: string | null;
-    image_url: string | null;
-    archived: boolean;
-    needs_alteration: boolean;
-    is_for_sale: boolean;
-    weather_categories: string[];
-  };
-  onDelete: (id: string) => Promise<void>;
-  onArchive: (id: string, archived: boolean) => Promise<void>;
-  onAlterationToggle: (id: string, needsAlteration: boolean) => Promise<void>;
-  isDeleting: boolean;
-  isUpdating: boolean;
-};
-
-export const ClothesCard = ({ 
-  cloth, 
-  onDelete, 
-  onArchive,
-  onAlterationToggle,
-  isDeleting,
-  isUpdating 
-}: ClothesCardProps) => {
+export const ClothesCard: React.FC<ClothesCardProps> = ({ cloth, simple = false }) => {
   return (
     <Card className={cloth.archived ? "opacity-75" : ""}>
       {cloth.image_url && (

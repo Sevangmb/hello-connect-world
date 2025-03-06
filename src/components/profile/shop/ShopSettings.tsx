@@ -1,13 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import { ShopSettings as ShopSettingsType, PaymentMethod, DeliveryOption } from "@/core/shop/domain/types";
-import { useShopById, useUpdateShopSettings } from "@/hooks/useShop";
-import { supabase } from "@/integrations/supabase/client";
+
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { CheckboxGroup, CheckboxItem } from '@/components/ui/checkbox-group';
+import { useShop } from '@/hooks/useShop';
+import { DeliveryOption, PaymentMethod, ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
 
 interface ShopSettingsProps {
   shopId: string;
@@ -15,257 +31,240 @@ interface ShopSettingsProps {
 
 export function ShopSettings({ shopId }: ShopSettingsProps) {
   const { toast } = useToast();
-  const shopById = useShopById();
-  const updateShopSettings = useUpdateShopSettings();
-  
-  const [settings, setSettings] = useState<Partial<ShopSettingsType>>({
-    delivery_options: [],
-    payment_methods: [],
-    auto_accept_orders: false,
-    notification_preferences: {
-      email: true,
-      app: true
+  const { fetchShopSettings, updateShopSettings } = useShop();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [settings, setSettings] = useState<ShopSettingsType | null>(null);
+
+  const form = useForm({
+    defaultValues: {
+      delivery_options: [] as string[],
+      payment_methods: [] as string[],
+      auto_accept_orders: false,
+      notification_email: true,
+      notification_app: true
     }
   });
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadSettings = async () => {
       try {
-        // First get the shop to ensure it exists
-        const shop = await shopById.fetchShop(shopId);
+        setIsLoading(true);
+        const shopSettings = await fetchShopSettings(shopId);
         
-        // Then fetch shop settings from the database
-        const { data, error } = await supabase
-          .from('shop_settings')
-          .select('*')
-          .eq('shop_id', shopId)
-          .single();
-        
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // Settings don't exist yet, use defaults
-            return;
-          }
-          throw error;
+        if (shopSettings) {
+          setSettings(shopSettings);
+          
+          form.reset({
+            delivery_options: shopSettings.delivery_options.map(option => option as unknown as string),
+            payment_methods: shopSettings.payment_methods.map(method => method as unknown as string),
+            auto_accept_orders: shopSettings.auto_accept_orders,
+            notification_email: shopSettings.notification_preferences.email,
+            notification_app: shopSettings.notification_preferences.app
+          });
         }
-        
-        // Convert string arrays to the correct types
-        setSettings({
-          ...data,
-          delivery_options: data.delivery_options as DeliveryOption[],
-          payment_methods: data.payment_methods as PaymentMethod[],
-          notification_preferences: typeof data.notification_preferences === 'string'
-            ? JSON.parse(data.notification_preferences)
-            : data.notification_preferences
-        });
-      } catch (error) {
-        console.error("Error fetching shop settings:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les paramètres de la boutique",
-          variant: "destructive"
-        });
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to load shop settings'));
+      } finally {
+        setIsLoading(false);
       }
     };
-    
-    fetchData();
-  }, [shopId]);
 
-  const handleSave = async () => {
+    loadSettings();
+  }, [shopId, fetchShopSettings, form]);
+
+  const onSubmit = async (data: any) => {
     try {
-      await updateShopSettings.updateSettings(shopId, settings);
+      await updateShopSettings(shopId, {
+        delivery_options: data.delivery_options as unknown as DeliveryOption[],
+        payment_methods: data.payment_methods as unknown as PaymentMethod[],
+        auto_accept_orders: data.auto_accept_orders,
+        notification_preferences: {
+          email: data.notification_email,
+          app: data.notification_app
+        }
+      });
       
       toast({
-        title: "Paramètres sauvegardés",
-        description: "Les paramètres de votre boutique ont été mis à jour"
+        title: 'Settings updated',
+        description: 'Your shop settings have been successfully updated.',
       });
-    } catch (error: any) {
-      console.error("Error saving settings:", error);
+    } catch (err) {
       toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la sauvegarde des paramètres",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to update settings. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleDeliveryOptionToggle = (option: DeliveryOption) => {
-    setSettings(prev => {
-      const currentOptions = prev.delivery_options || [];
-      const newOptions = currentOptions.includes(option)
-        ? currentOptions.filter(o => o !== option)
-        : [...currentOptions, option];
-      
-      return {
-        ...prev,
-        delivery_options: newOptions
-      };
-    });
-  };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-  const handlePaymentMethodToggle = (method: PaymentMethod) => {
-    setSettings(prev => {
-      const currentMethods = prev.payment_methods || [];
-      const newMethods = currentMethods.includes(method)
-        ? currentMethods.filter(m => m !== method)
-        : [...currentMethods, method];
-      
-      return {
-        ...prev,
-        payment_methods: newMethods
-      };
-    });
-  };
-
-  if (shopById.loading) {
-    return <div>Chargement des paramètres...</div>;
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+          <CardDescription>Failed to load shop settings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-destructive">{error.message}</p>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+            className="mt-4"
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Options de livraison</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="pickup">Retrait en magasin</Label>
-            <Switch
-              id="pickup"
-              checked={settings.delivery_options?.includes('pickup')}
-              onCheckedChange={() => handleDeliveryOptionToggle('pickup')}
+    <Card>
+      <CardHeader>
+        <CardTitle>Shop Settings</CardTitle>
+        <CardDescription>
+          Configure your shop's delivery options, payment methods, and notification preferences
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="delivery_options"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delivery Options</FormLabel>
+                  <FormControl>
+                    <CheckboxGroup 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      className="flex flex-col space-y-3"
+                    >
+                      <CheckboxItem value="pickup">Pickup</CheckboxItem>
+                      <CheckboxItem value="delivery">Delivery</CheckboxItem>
+                      <CheckboxItem value="both">Both</CheckboxItem>
+                    </CheckboxGroup>
+                  </FormControl>
+                  <FormDescription>
+                    Select the delivery options your shop will offer
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="delivery">Livraison</Label>
-            <Switch
-              id="delivery"
-              checked={settings.delivery_options?.includes('delivery')}
-              onCheckedChange={() => handleDeliveryOptionToggle('delivery')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="both">Les deux options</Label>
-            <Switch
-              id="both"
-              checked={settings.delivery_options?.includes('both')}
-              onCheckedChange={() => handleDeliveryOptionToggle('both')}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Méthodes de paiement</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="card">Carte bancaire</Label>
-            <Switch
-              id="card"
-              checked={settings.payment_methods?.includes('card')}
-              onCheckedChange={() => handlePaymentMethodToggle('card')}
+            <FormField
+              control={form.control}
+              name="payment_methods"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Methods</FormLabel>
+                  <FormControl>
+                    <CheckboxGroup 
+                      value={field.value} 
+                      onValueChange={field.onChange}
+                      className="flex flex-col space-y-3"
+                    >
+                      <CheckboxItem value="card">Card</CheckboxItem>
+                      <CheckboxItem value="paypal">PayPal</CheckboxItem>
+                      <CheckboxItem value="bank_transfer">Bank Transfer</CheckboxItem>
+                      <CheckboxItem value="cash">Cash</CheckboxItem>
+                    </CheckboxGroup>
+                  </FormControl>
+                  <FormDescription>
+                    Select the payment methods your shop will accept
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="paypal">PayPal</Label>
-            <Switch
-              id="paypal"
-              checked={settings.payment_methods?.includes('paypal')}
-              onCheckedChange={() => handlePaymentMethodToggle('paypal')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="bank_transfer">Virement bancaire</Label>
-            <Switch
-              id="bank_transfer"
-              checked={settings.payment_methods?.includes('bank_transfer')}
-              onCheckedChange={() => handlePaymentMethodToggle('bank_transfer')}
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="cash">Espèces</Label>
-            <Switch
-              id="cash"
-              checked={settings.payment_methods?.includes('cash')}
-              onCheckedChange={() => handlePaymentMethodToggle('cash')}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Commandes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="auto_accept">Acceptation automatique des commandes</Label>
-              <p className="text-sm text-muted-foreground">
-                Accepter automatiquement les commandes sans votre validation
-              </p>
-            </div>
-            <Switch
-              id="auto_accept"
-              checked={settings.auto_accept_orders}
-              onCheckedChange={(checked) => setSettings(prev => ({ ...prev, auto_accept_orders: checked }))}
+            <FormField
+              control={form.control}
+              name="auto_accept_orders"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Auto-Accept Orders</FormLabel>
+                    <FormDescription>
+                      Automatically accept new orders without manual approval
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="email_notif">Notifications par email</Label>
-            <Switch
-              id="email_notif"
-              checked={settings.notification_preferences?.email}
-              onCheckedChange={(checked) => setSettings(prev => ({
-                ...prev,
-                notification_preferences: {
-                  ...prev.notification_preferences,
-                  email: checked
-                }
-              }))}
+            <FormField
+              control={form.control}
+              name="notification_email"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Email Notifications</FormLabel>
+                    <FormDescription>
+                      Receive notifications via email
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="app_notif">Notifications dans l'application</Label>
-            <Switch
-              id="app_notif"
-              checked={settings.notification_preferences?.app}
-              onCheckedChange={(checked) => setSettings(prev => ({
-                ...prev,
-                notification_preferences: {
-                  ...prev.notification_preferences,
-                  app: checked
-                }
-              }))}
-            />
-          </div>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-end">
-        <Button 
-          onClick={handleSave}
-          disabled={updateShopSettings.updating}
-        >
-          {updateShopSettings.updating ? "Sauvegarde en cours..." : "Sauvegarder les paramètres"}
-        </Button>
-      </div>
-    </div>
+            <FormField
+              control={form.control}
+              name="notification_app"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">App Notifications</FormLabel>
+                    <FormDescription>
+                      Receive in-app notifications
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full sm:w-auto">
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Settings'
+              )}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

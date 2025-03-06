@@ -1,29 +1,72 @@
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import React, { createContext, useContext } from 'react';
+import { Checkbox } from './checkbox';
+import { cn } from '@/lib/utils';
 
-export interface CheckboxGroupProps extends React.HTMLAttributes<HTMLDivElement> {
+const CheckboxGroupContext = createContext<{
+  value: string[];
+  onValueChange: (value: string[]) => void;
+}>({
+  value: [],
+  onValueChange: () => {},
+});
+
+interface CheckboxGroupProps {
+  value: string[];
+  onValueChange: (value: string[]) => void;
   className?: string;
-  orientation?: "horizontal" | "vertical";
+  children: React.ReactNode;
 }
 
-const CheckboxGroup = React.forwardRef<HTMLDivElement, CheckboxGroupProps>(
-  ({ className, orientation = "vertical", ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          "flex",
-          orientation === "vertical" ? "flex-col space-y-2" : "space-x-6",
-          className
-        )}
-        role="group"
-        {...props}
+export const CheckboxGroup = ({
+  value,
+  onValueChange,
+  className,
+  children,
+}: CheckboxGroupProps) => {
+  return (
+    <CheckboxGroupContext.Provider value={{ value, onValueChange }}>
+      <div className={cn('space-y-2', className)}>{children}</div>
+    </CheckboxGroupContext.Provider>
+  );
+};
+
+interface CheckboxItemProps {
+  value: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const CheckboxItem = ({
+  value,
+  children,
+  className,
+}: CheckboxItemProps) => {
+  const { value: groupValue, onValueChange } = useContext(CheckboxGroupContext);
+  
+  const isChecked = groupValue.includes(value);
+
+  const handleCheckedChange = (checked: boolean) => {
+    if (checked) {
+      onValueChange([...groupValue, value]);
+    } else {
+      onValueChange(groupValue.filter(v => v !== value));
+    }
+  };
+
+  return (
+    <div className={cn('flex items-center space-x-2', className)}>
+      <Checkbox 
+        id={`checkbox-${value}`} 
+        checked={isChecked} 
+        onCheckedChange={handleCheckedChange} 
       />
-    );
-  }
-);
-
-CheckboxGroup.displayName = "CheckboxGroup";
-
-export { CheckboxGroup };
+      <label
+        htmlFor={`checkbox-${value}`}
+        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+      >
+        {children}
+      </label>
+    </div>
+  );
+};

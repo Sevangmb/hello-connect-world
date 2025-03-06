@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -85,10 +86,9 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
+      // Use direct SQL query instead of complex nested selection
       const { data, error } = await supabase
-        .from('module_dependencies')
-        .select('*')
-        .eq('module_id', moduleId);
+        .rpc('get_module_dependencies', { module_id_param: moduleId });
 
       if (error) throw error;
       return data || [];
@@ -160,13 +160,9 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
+      // Simplify query to avoid deep nesting
       const { data, error } = await supabase
-        .from('app_modules')
-        .select(`
-          *,
-          module_features(*)
-        `)
-        .order('priority', { ascending: false });
+        .rpc('get_modules_with_features');
 
       if (error) throw error;
       return data || [];
