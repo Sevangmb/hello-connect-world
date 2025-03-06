@@ -1,87 +1,130 @@
 
-import { Outfit, OutfitItem, OutfitStatus, OutfitComment } from '../domain/types';
 import { IOutfitRepository } from '../domain/interfaces/IOutfitRepository';
+import { Outfit, OutfitComment, OutfitItem } from '../domain/types';
 
 export class OutfitService {
-  private repository: IOutfitRepository;
+  private outfitRepository: IOutfitRepository;
 
-  constructor(repository: IOutfitRepository) {
-    this.repository = repository;
+  constructor(outfitRepository: IOutfitRepository) {
+    this.outfitRepository = outfitRepository;
   }
 
+  /**
+   * Get all outfits
+   */
+  async getAllOutfits(): Promise<Outfit[]> {
+    return this.outfitRepository.getAllOutfits();
+  }
+
+  /**
+   * Get outfit by ID
+   */
   async getOutfitById(id: string): Promise<Outfit | null> {
-    return await this.repository.getOutfitById(id);
+    return this.outfitRepository.getOutfitById(id);
   }
 
-  async getOutfitItems(outfitId: string): Promise<OutfitItem[]> {
-    return await this.repository.getOutfitItems(outfitId);
+  /**
+   * Create a new outfit
+   */
+  async createOutfit(outfit: Partial<Outfit>): Promise<Outfit | null> {
+    return this.outfitRepository.createOutfit(outfit);
   }
 
-  async getUserOutfits(userId: string): Promise<Outfit[]> {
-    return await this.repository.getUserOutfits(userId);
+  /**
+   * Update an existing outfit
+   */
+  async updateOutfit(id: string, outfit: Partial<Outfit>): Promise<Outfit | null> {
+    return this.outfitRepository.updateOutfit(id, outfit);
   }
 
-  async getPublicOutfits(limit?: number): Promise<Outfit[]> {
-    return await this.repository.getPublicOutfits(limit);
-  }
-
-  async getTrendingOutfits(limit?: number): Promise<Outfit[]> {
-    return await this.repository.getTrendingOutfits(limit);
-  }
-
-  async searchOutfits(query: string): Promise<Outfit[]> {
-    return await this.repository.searchOutfits(query);
-  }
-
-  async createOutfit(outfitData: Partial<Outfit>): Promise<Outfit | null> {
-    return await this.repository.createOutfit(outfitData);
-  }
-
-  async updateOutfit(id: string, updates: Partial<Outfit>): Promise<Outfit | null> {
-    return await this.repository.updateOutfit(id, updates);
-  }
-
+  /**
+   * Delete an outfit
+   */
   async deleteOutfit(id: string): Promise<boolean> {
-    return await this.repository.deleteOutfit(id);
+    return this.outfitRepository.deleteOutfit(id);
   }
 
-  async updateOutfitStatus(id: string, status: OutfitStatus): Promise<boolean> {
-    return await this.repository.updateOutfitStatus(id, status);
+  /**
+   * Add an item to an outfit
+   */
+  async addOutfitItem(outfitItem: OutfitItem): Promise<OutfitItem | null> {
+    return this.outfitRepository.addOutfitItem(outfitItem);
   }
 
-  async addOutfitItem(item: Omit<OutfitItem, 'id' | 'created_at'>): Promise<OutfitItem | null> {
-    return await this.repository.addOutfitItem(item);
+  /**
+   * Get items for an outfit
+   */
+  async getOutfitItems(outfitId: string): Promise<OutfitItem[]> {
+    return this.outfitRepository.getOutfitItems(outfitId);
   }
 
-  async updateOutfitItem(id: string, updates: Partial<OutfitItem>): Promise<OutfitItem | null> {
-    return await this.repository.updateOutfitItem(id, updates);
+  /**
+   * Remove an item from an outfit
+   */
+  async removeOutfitItem(outfitId: string, clothesId: string): Promise<boolean> {
+    return this.outfitRepository.removeOutfitItem(outfitId, clothesId);
   }
 
-  async deleteOutfitItem(id: string): Promise<boolean> {
-    return await this.repository.deleteOutfitItem(id);
+  /**
+   * Get outfits by user ID
+   */
+  async getOutfitsByUserId(userId: string): Promise<Outfit[]> {
+    return this.outfitRepository.getOutfitsByUserId(userId);
   }
 
-  async getOutfitComments(outfitId: string): Promise<OutfitComment[]> {
-    return await this.repository.getOutfitComments(outfitId);
+  /**
+   * Get public outfits
+   */
+  async getPublicOutfits(): Promise<Outfit[]> {
+    return this.outfitRepository.getPublicOutfits();
   }
 
-  async addComment(outfitId: string, userId: string, content: string): Promise<OutfitComment> {
-    return await this.repository.addComment(outfitId, userId, content);
+  /**
+   * Get trending outfits
+   */
+  async getTrendingOutfits(): Promise<Outfit[]> {
+    return this.outfitRepository.getTrendingOutfits();
   }
 
-  async deleteComment(commentId: string): Promise<boolean> {
-    return await this.repository.deleteComment(commentId);
+  /**
+   * Search outfits
+   */
+  async searchOutfits(query: string): Promise<Outfit[]> {
+    return this.outfitRepository.searchOutfits(query);
   }
 
+  /**
+   * Like an outfit
+   */
   async likeOutfit(outfitId: string, userId: string): Promise<boolean> {
-    return await this.repository.likeOutfit(outfitId, userId);
+    return this.outfitRepository.likeOutfit(outfitId, userId);
   }
 
+  /**
+   * Unlike an outfit
+   */
   async unlikeOutfit(outfitId: string, userId: string): Promise<boolean> {
-    return await this.repository.unlikeOutfit(outfitId, userId);
+    return this.outfitRepository.unlikeOutfit(outfitId, userId);
   }
 
-  async isOutfitLikedByUser(outfitId: string, userId: string): Promise<boolean> {
-    return await this.repository.isOutfitLikedByUser(outfitId, userId);
+  /**
+   * Check if user has liked an outfit
+   */
+  async hasUserLikedOutfit(outfitId: string, userId: string): Promise<boolean> {
+    return this.outfitRepository.hasUserLikedOutfit(outfitId, userId);
+  }
+
+  /**
+   * Add a comment to an outfit
+   */
+  async addOutfitComment(outfitId: string, userId: string, content: string): Promise<OutfitComment | null> {
+    return this.outfitRepository.addOutfitComment(outfitId, userId, content);
+  }
+
+  /**
+   * Get comments for an outfit
+   */
+  async getOutfitComments(outfitId: string): Promise<OutfitComment[]> {
+    return this.outfitRepository.getOutfitComments(outfitId);
   }
 }

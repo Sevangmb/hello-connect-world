@@ -1,173 +1,136 @@
-/**
- * Définitions des modules de l'application
- * Ce fichier centralise les informations sur les modules disponibles
- */
 
+import { AppModule } from '../types';
+
+// Define a module definition interface
 export interface ModuleDefinition {
   code: string;
   name: string;
   description?: string;
-  isCore?: boolean;
-  dependencies?: {
-    code: string;
-    required: boolean;
-  }[];
-  features?: {
+  version: string;
+  is_core: boolean;
+  is_admin?: boolean;
+  features: Array<{
     code: string;
     name: string;
     description?: string;
     enabledByDefault?: boolean;
-  }[];
+  }>;
 }
 
-import OutfitsModule from '@/modules/outfits';
+// Convert AppModule to ModuleDefinition format for type compatibility
+export function convertAppModuleToDefinition(module: AppModule): ModuleDefinition {
+  // Convert the Record<string, boolean> features to the array format
+  const featuresArray = Object.entries(module.features || {}).map(([code, enabled]) => ({
+    code,
+    name: code, // We don't have a name in the Record format, so use code
+    enabledByDefault: enabled
+  }));
 
-export const APP_MODULES: Record<string, ModuleDefinition> = {
-  // Module d'administration - toujours actif
+  return {
+    code: module.code,
+    name: module.name,
+    description: module.description,
+    version: module.version || '1.0.0',
+    is_core: module.is_core,
+    is_admin: module.is_admin,
+    features: featuresArray
+  };
+}
+
+// Module definitions
+export const appModules: Record<string, ModuleDefinition> = {
+  // Core modules
+  CORE: {
+    code: 'core',
+    name: 'Core System',
+    description: 'Core system functionality',
+    version: '1.0.0',
+    is_core: true,
+    features: [
+      {
+        code: 'settings',
+        name: 'Settings',
+        description: 'System settings',
+        enabledByDefault: true
+      }
+    ]
+  },
+  
+  // Authentication module
+  AUTH: {
+    code: 'auth',
+    name: 'Authentication',
+    description: 'User authentication and management',
+    version: '1.0.0',
+    is_core: true,
+    features: [
+      {
+        code: 'register',
+        name: 'Registration',
+        description: 'User registration',
+        enabledByDefault: true
+      },
+      {
+        code: 'login',
+        name: 'Login',
+        description: 'User login',
+        enabledByDefault: true
+      },
+      {
+        code: 'reset_password',
+        name: 'Reset Password',
+        description: 'Password reset functionality',
+        enabledByDefault: true
+      }
+    ]
+  },
+  
+  // Admin module
   ADMIN: {
     code: 'admin',
     name: 'Administration',
-    description: 'Module d\'administration principal',
-    isCore: true,
+    description: 'Administration functionality',
+    version: '1.0.0',
+    is_core: true,
+    is_admin: true,
     features: [
       {
-        code: 'modules_management',
-        name: 'Gestion des modules',
-        description: 'Permet de gérer les modules de l\'application',
+        code: 'dashboard',
+        name: 'Admin Dashboard',
+        description: 'Admin dashboard',
         enabledByDefault: true
       },
       {
-        code: 'users_management',
-        name: 'Gestion des utilisateurs',
-        description: 'Permet de gérer les utilisateurs de l\'application',
+        code: 'user_management',
+        name: 'User Management',
+        description: 'User management',
+        enabledByDefault: true
+      },
+      {
+        code: 'module_management',
+        name: 'Module Management',
+        description: 'Module management',
         enabledByDefault: true
       }
     ]
   },
   
-  // Module de profil utilisateur
-  PROFILE: {
-    code: 'profile',
-    name: 'Profil utilisateur',
-    description: 'Gestion du profil utilisateur',
-    isCore: true,
-    features: [
-      {
-        code: 'edit_profile',
-        name: 'Édition du profil',
-        enabledByDefault: true
-      },
-      {
-        code: 'avatar_upload',
-        name: 'Téléchargement d\'avatar',
-        enabledByDefault: true
-      }
-    ]
-  },
-  
-  // Module de notifications
-  NOTIFICATIONS: {
-    code: 'notifications',
-    name: 'Notifications',
-    description: 'Système de notifications',
-    dependencies: [
-      {
-        code: 'profile',
-        required: true
-      }
-    ],
-    features: [
-      {
-        code: 'push_notifications',
-        name: 'Notifications push',
-        enabledByDefault: false
-      },
-      {
-        code: 'email_notifications',
-        name: 'Notifications par email',
-        enabledByDefault: true
-      }
-    ]
-  },
-  
-  // Module de suggestions
-  SUGGESTIONS: {
-    code: 'suggestions',
-    name: 'Suggestions',
-    description: 'Système de suggestions personnalisées',
-    dependencies: [
-      {
-        code: 'profile',
-        required: true
-      }
-    ]
-  },
-  
-  // Module d'intelligence artificielle
-  AI: {
-    code: 'ai',
-    name: 'Intelligence artificielle',
-    description: 'Fonctionnalités d\'IA et recommandations',
-    dependencies: [
-      {
-        code: 'profile',
-        required: true
-      },
-      {
-        code: 'suggestions',
-        required: false
-      }
-    ],
-    features: [
-      {
-        code: 'outfit_recommendations',
-        name: 'Recommandations de tenues',
-        enabledByDefault: true
-      },
-      {
-        code: 'style_analysis',
-        name: 'Analyse de style',
-        enabledByDefault: true
-      }
-    ]
-  },
-  
-  // Ajouter le module de tenues
-  OUTFITS: OutfitsModule,
+  // Shop module
+  SHOP: convertAppModuleToDefinition({
+    id: 'shop-module-id',
+    code: 'shop',
+    name: 'Shop',
+    description: 'E-commerce functionality',
+    status: 'active',
+    is_core: false,
+    version: '1.0.0',
+    features: {
+      'product_listing': true,
+      'shopping_cart': true,
+      'checkout': true,
+      'reviews': true
+    },
+    created_at: '',
+    updated_at: ''
+  })
 };
-
-// Exporter les codes de module comme constantes pour faciliter l'utilisation
-export const MODULE_CODES = Object.fromEntries(
-  Object.entries(APP_MODULES).map(([key, module]) => [key, module.code])
-);
-
-// Fonction utilitaire pour obtenir une définition de module par son code
-export function getModuleDefinitionByCode(code: string): ModuleDefinition | undefined {
-  return Object.values(APP_MODULES).find(module => module.code === code);
-}
-
-// Fonction utilitaire pour vérifier si un module dépend d'un autre
-export function moduleDepends(moduleCode: string, dependencyCode: string): boolean {
-  const module = getModuleDefinitionByCode(moduleCode);
-  if (!module || !module.dependencies) return false;
-  
-  return module.dependencies.some(dep => dep.code === dependencyCode);
-}
-
-// Fonction utilitaire pour obtenir toutes les dépendances d'un module
-export function getModuleDependencies(moduleCode: string): string[] {
-  const module = getModuleDefinitionByCode(moduleCode);
-  if (!module || !module.dependencies) return [];
-  
-  return module.dependencies.map(dep => dep.code);
-}
-
-// Fonction utilitaire pour obtenir toutes les dépendances requises d'un module
-export function getRequiredModuleDependencies(moduleCode: string): string[] {
-  const module = getModuleDefinitionByCode(moduleCode);
-  if (!module || !module.dependencies) return [];
-  
-  return module.dependencies
-    .filter(dep => dep.required)
-    .map(dep => dep.code);
-}

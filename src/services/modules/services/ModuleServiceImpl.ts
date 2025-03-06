@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleRepository } from '../repositories/ModuleRepository';
 import { FeatureRepository } from '../repositories/FeatureRepository';
@@ -7,9 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 export class ModuleServiceImpl implements IModuleService {
   private moduleRepository: ModuleRepository;
+  private featureRepository: FeatureRepository;
   
   constructor(moduleRepository: ModuleRepository) {
     this.moduleRepository = moduleRepository;
+    this.featureRepository = new FeatureRepository();
   }
 
   /**
@@ -151,7 +154,10 @@ export class ModuleServiceImpl implements IModuleService {
     }
   }
 
-  async recordModuleUsage(moduleCode: string): Promise<void> {
+  /**
+   * Record module usage
+   */
+  public async recordModuleUsage(moduleCode: string): Promise<void> {
     try {
       await supabase.rpc('increment_module_usage', { module_code: moduleCode });
     } catch (error) {

@@ -1,12 +1,15 @@
+
 import { ModuleServiceImpl } from '../modules/services/ModuleServiceImpl';
 import { IModuleService } from '../modules/domain/interfaces/IModuleService';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
+import { ModuleRepository } from '../modules/repositories/ModuleRepository';
 
 export class ModuleApiGateway {
   private moduleService: IModuleService;
 
   constructor(moduleService?: IModuleService) {
-    this.moduleService = moduleService || new ModuleServiceImpl();
+    const moduleRepository = new ModuleRepository();
+    this.moduleService = moduleService || new ModuleServiceImpl(moduleRepository);
   }
 
   public async getAllModules(): Promise<AppModule[]> {
@@ -103,6 +106,16 @@ export class ModuleApiGateway {
       await this.moduleService.recordModuleUsage(moduleCode);
     } catch (error) {
       console.error(`Error recording module ${moduleCode} usage:`, error);
+    }
+  }
+
+  // Get module status directly
+  public async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
+    try {
+      return await this.moduleService.getModuleStatus(moduleCode);
+    } catch (error) {
+      console.error(`Error getting status for module ${moduleCode}:`, error);
+      return null;
     }
   }
 }
