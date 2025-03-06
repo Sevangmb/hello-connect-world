@@ -1,6 +1,21 @@
-import { IShopRepository } from '../../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopSettings, ShopReview, Order, OrderItem, OrderStatus, PaymentStatus, DeliveryOption, PaymentMethod } from '../../domain/models/Shop';
+
 import { supabase } from '@/integrations/supabase/client';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
+import { 
+  Shop, 
+  ShopItem, 
+  ShopSettings, 
+  ShopReview, 
+  Order, 
+  OrderItem, 
+  OrderStatus, 
+  PaymentStatus, 
+  DeliveryOption, 
+  PaymentMethod,
+  RawShopItem,
+  CartItem,
+  DbOrder 
+} from '../types';
 
 export class ShopRepository implements IShopRepository {
   // Mapping methods
@@ -14,20 +29,19 @@ export class ShopRepository implements IShopRepository {
       address: shop.address || '',
       phone: shop.phone || '',
       website: shop.website || '',
+      status: shop.status || 'pending',
       categories: shop.categories || [],
-      opening_hours: shop.opening_hours || {},
       average_rating: shop.average_rating || 0,
+      total_ratings: shop.total_ratings || 0,
+      rating_count: shop.rating_count || 0,
       latitude: shop.latitude || 0,
       longitude: shop.longitude || 0,
-      status: shop.status || 'active',
-      is_verified: shop.is_verified || false,
       created_at: shop.created_at,
       updated_at: shop.updated_at,
-      owner: shop.profiles ? {
-        id: shop.profiles.id,
+      profiles: shop.profiles ? {
         username: shop.profiles.username || '',
-        avatar_url: shop.profiles.avatar_url || ''
-      } : null
+        full_name: shop.profiles.full_name || ''
+      } : undefined
     };
   }
 
@@ -38,17 +52,16 @@ export class ShopRepository implements IShopRepository {
       name: item.name,
       description: item.description || '',
       price: item.price,
-      sale_price: item.sale_price,
+      original_price: item.original_price,
       image_url: item.image_url || '',
-      category: item.category || '',
-      subcategory: item.subcategory || '',
-      tags: item.tags || [],
-      inventory: item.inventory || 0,
-      is_available: item.is_available || false,
-      options: item.options || [],
-      specifications: item.specifications || {},
+      stock: item.stock || 0,
+      status: item.status || 'available',
       created_at: item.created_at,
-      updated_at: item.updated_at
+      updated_at: item.updated_at,
+      clothes_id: item.clothes_id,
+      shop: item.shop ? {
+        name: item.shop.name || ''
+      } : undefined
     };
   }
 
@@ -56,18 +69,15 @@ export class ShopRepository implements IShopRepository {
     return {
       id: settings.id,
       shop_id: settings.shop_id,
-      currency: settings.currency || 'USD',
-      language: settings.language || 'en',
-      notification_email: settings.notification_email || '',
-      order_confirmation_message: settings.order_confirmation_message || '',
-      automatic_order_confirmation: settings.automatic_order_confirmation || false,
       delivery_options: (settings.delivery_options || []) as DeliveryOption[],
       payment_methods: (settings.payment_methods || []) as PaymentMethod[],
-      social_links: settings.social_links || {},
-      notification_settings: {
-        email: settings.notification_settings?.email || false,
-        app: settings.notification_settings?.app || false
-      }
+      auto_accept_orders: settings.auto_accept_orders || false,
+      notification_preferences: {
+        email: settings.notification_preferences?.email || false,
+        app: settings.notification_preferences?.app || false
+      },
+      created_at: settings.created_at,
+      updated_at: settings.updated_at
     };
   }
 
@@ -78,18 +88,18 @@ export class ShopRepository implements IShopRepository {
       customer_id: order.customer_id,
       status: order.status as OrderStatus,
       total_amount: order.total_amount,
-      delivery_fee: order.delivery_fee,
+      delivery_fee: order.delivery_fee || 0,
       payment_status: order.payment_status as PaymentStatus,
       payment_method: order.payment_method || 'card',
-      delivery_address: {
-        street: order.delivery_address?.street || '',
-        city: order.delivery_address?.city || '',
-        postal_code: order.delivery_address?.postal_code || '',
-        country: order.delivery_address?.country || ''
+      delivery_address: order.delivery_address || {
+        street: '',
+        city: '',
+        postal_code: '',
+        country: ''
       },
       created_at: order.created_at,
       updated_at: order.updated_at,
-      items: items.map(this.mapOrderItemFromDB)
+      items: items.map(item => this.mapOrderItemFromDB(item))
     };
   }
 
@@ -97,16 +107,13 @@ export class ShopRepository implements IShopRepository {
     return {
       id: item.id,
       order_id: item.order_id,
-      shop_item_id: item.shop_item_id,
-      quantity: item.quantity,
-      price: item.price,
-      options: item.options || {},
+      item_id: item.item_id || item.shop_item_id,
+      name: item.name || (item.shop_items ? item.shop_items.name : 'Unknown Item'),
+      price: item.price || item.price_at_time || 0,
+      quantity: item.quantity || 1,
       created_at: item.created_at,
-      updated_at: item.updated_at,
-      shop_item: item.shop_items ? {
-        name: item.shop_items.name,
-        image_url: item.shop_items.image_url || ''
-      } : { name: item.name || 'Unknown Item' }
+      shop_item_id: item.shop_item_id,
+      price_at_time: item.price_at_time
     };
   }
 
@@ -117,16 +124,12 @@ export class ShopRepository implements IShopRepository {
       user_id: review.user_id,
       rating: review.rating,
       comment: review.comment || '',
-      images: review.images || [],
-      likes_count: review.likes_count || 0,
-      is_verified_purchase: review.is_verified_purchase || false,
       created_at: review.created_at,
       updated_at: review.updated_at,
-      user: review.profiles ? {
-        id: review.profiles.id,
+      profiles: review.profiles ? {
         username: review.profiles.username || '',
-        avatar_url: review.profiles.avatar_url || ''
-      } : null
+        full_name: review.profiles.full_name || ''
+      } : undefined
     };
   }
 
@@ -137,7 +140,7 @@ export class ShopRepository implements IShopRepository {
       .select('*, profiles(*)');
 
     if (error) throw error;
-    return data.map(this.mapShopFromDB);
+    return data.map(shop => this.mapShopFromDB(shop));
   }
 
   async getShopById(id: string): Promise<Shop | null> {
@@ -162,7 +165,7 @@ export class ShopRepository implements IShopRepository {
     return this.mapShopFromDB(data);
   }
 
-  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'owner'>>): Promise<Shop> {
+  async createShop(shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop> {
     const { data, error } = await supabase
       .from('shops')
       .insert({
@@ -173,13 +176,13 @@ export class ShopRepository implements IShopRepository {
         address: shopData.address,
         phone: shopData.phone,
         website: shopData.website,
-        categories: shopData.categories,
-        opening_hours: shopData.opening_hours,
-        average_rating: shopData.average_rating,
-        latitude: shopData.latitude,
-        longitude: shopData.longitude,
         status: shopData.status,
-        is_verified: shopData.is_verified
+        categories: shopData.categories,
+        average_rating: shopData.average_rating,
+        total_ratings: shopData.total_ratings,
+        rating_count: shopData.rating_count,
+        latitude: shopData.latitude,
+        longitude: shopData.longitude
       })
       .select('*, profiles(*)')
       .single();
@@ -188,7 +191,7 @@ export class ShopRepository implements IShopRepository {
     return this.mapShopFromDB(data);
   }
 
-  async updateShop(id: string, shopData: Partial<Omit<Shop, 'id' | 'created_at' | 'updated_at' | 'owner'>>): Promise<Shop> {
+  async updateShop(id: string, shopData: Partial<Omit<Shop, 'id' | 'created_at' | 'updated_at'>>): Promise<Shop> {
     const { data, error } = await supabase
       .from('shops')
       .update({
@@ -199,13 +202,13 @@ export class ShopRepository implements IShopRepository {
         address: shopData.address,
         phone: shopData.phone,
         website: shopData.website,
-        categories: shopData.categories,
-        opening_hours: shopData.opening_hours,
-        average_rating: shopData.average_rating,
-        latitude: shopData.latitude,
-        longitude: shopData.longitude,
         status: shopData.status,
-        is_verified: shopData.is_verified
+        categories: shopData.categories,
+        average_rating: shopData.average_rating,
+        total_ratings: shopData.total_ratings,
+        rating_count: shopData.rating_count,
+        latitude: shopData.latitude,
+        longitude: shopData.longitude
       })
       .eq('id', id)
       .select('*, profiles(*)')
@@ -233,15 +236,11 @@ export class ShopRepository implements IShopRepository {
         name: itemData.name,
         description: itemData.description,
         price: itemData.price,
-        sale_price: itemData.sale_price,
+        original_price: itemData.original_price,
         image_url: itemData.image_url,
-        category: itemData.category,
-        subcategory: itemData.subcategory,
-        tags: itemData.tags,
-        inventory: itemData.inventory,
-        is_available: itemData.is_available,
-        options: itemData.options,
-        specifications: itemData.specifications
+        stock: itemData.stock,
+        status: itemData.status,
+        clothes_id: itemData.clothes_id
       })
       .select()
       .single();
@@ -253,17 +252,17 @@ export class ShopRepository implements IShopRepository {
   async getShopItemsByShop(shopId: string): Promise<ShopItem[]> {
     const { data, error } = await supabase
       .from('shop_items')
-      .select('*')
+      .select('*, shop:shops(name)')
       .eq('shop_id', shopId);
 
     if (error) throw error;
-    return data.map(this.mapShopItemFromDB);
+    return data.map(item => this.mapShopItemFromDB(item));
   }
 
   async getShopItemById(id: string): Promise<ShopItem | null> {
     const { data, error } = await supabase
       .from('shop_items')
-      .select('*')
+      .select('*, shop:shops(name)')
       .eq('id', id)
       .single();
 
@@ -279,18 +278,14 @@ export class ShopRepository implements IShopRepository {
         name: itemData.name,
         description: itemData.description,
         price: itemData.price,
-        sale_price: itemData.sale_price,
+        original_price: itemData.original_price,
         image_url: itemData.image_url,
-        category: itemData.category,
-        subcategory: itemData.subcategory,
-        tags: itemData.tags,
-        inventory: itemData.inventory,
-        is_available: itemData.is_available,
-        options: itemData.options,
-        specifications: itemData.specifications
+        stock: itemData.stock,
+        status: itemData.status,
+        clothes_id: itemData.clothes_id
       })
       .eq('id', id)
-      .select()
+      .select('*, shop:shops(name)')
       .single();
 
     if (error) throw error;
@@ -314,11 +309,9 @@ export class ShopRepository implements IShopRepository {
         shop_id: reviewData.shop_id,
         user_id: reviewData.user_id,
         rating: reviewData.rating,
-        comment: reviewData.comment,
-        images: reviewData.images,
-        is_verified_purchase: reviewData.is_verified_purchase
+        comment: reviewData.comment
       })
-      .select()
+      .select('*, profiles(*)')
       .single();
 
     if (error) throw error;
@@ -332,7 +325,7 @@ export class ShopRepository implements IShopRepository {
       .eq('shop_id', shopId);
 
     if (error) throw error;
-    return data.map(this.mapShopReviewFromDB);
+    return data.map(review => this.mapShopReviewFromDB(review));
   }
 
   async getShopReviewById(id: string): Promise<ShopReview | null> {
@@ -353,9 +346,7 @@ export class ShopRepository implements IShopRepository {
         shop_id: reviewData.shop_id,
         user_id: reviewData.user_id,
         rating: reviewData.rating,
-        comment: reviewData.comment,
-        images: reviewData.images,
-        is_verified_purchase: reviewData.is_verified_purchase
+        comment: reviewData.comment
       })
       .eq('id', id)
       .select('*, profiles(*)')
@@ -379,57 +370,84 @@ export class ShopRepository implements IShopRepository {
   async getOrdersByShop(shopId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, items:order_items(*)')
+      .select('*')
       .eq('shop_id', shopId);
 
     if (error) throw error;
 
-    return data.map(order => {
-      // Handle order items safely
-      let orderItems: any[] = [];
-      if (order.items && Array.isArray(order.items)) {
-        orderItems = order.items;
+    // Get order items separately
+    const orders: Order[] = [];
+    for (const order of data) {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, shop_items(*)')
+        .eq('order_id', order.id);
+
+      if (itemsError) {
+        console.error(`Error fetching items for order ${order.id}:`, itemsError);
+        orders.push(this.mapOrderFromDB(order, []));
+      } else {
+        orders.push(this.mapOrderFromDB(order, itemsData || []));
       }
-      return this.mapOrderFromDB(order, orderItems);
-    });
+    }
+
+    return orders;
   }
 
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, items:order_items(*)')
+      .select('*')
       .eq('customer_id', customerId);
 
     if (error) throw error;
 
-    return data.map(order => {
-      // Handle order items safely
-      let orderItems: any[] = [];
-      if (order.items && Array.isArray(order.items)) {
-        orderItems = order.items;
+    // Get order items separately
+    const orders: Order[] = [];
+    for (const order of data) {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, shop_items(*)')
+        .eq('order_id', order.id);
+
+      if (itemsError) {
+        console.error(`Error fetching items for order ${order.id}:`, itemsError);
+        orders.push(this.mapOrderFromDB(order, []));
+      } else {
+        orders.push(this.mapOrderFromDB(order, itemsData || []));
       }
-      return this.mapOrderFromDB(order, orderItems);
-    });
+    }
+
+    return orders;
   }
 
   async getOrderById(orderId: string): Promise<Order | null> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*, items:order_items(*)')
+      .select('*')
       .eq('id', orderId)
       .single();
 
     if (error) return null;
 
-    // Handle order items safely
-    let orderItems: any[] = [];
-    if (data.items && Array.isArray(data.items)) {
-      orderItems = data.items;
+    // Get order items
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('order_items')
+      .select('*, shop_items(*)')
+      .eq('order_id', orderId);
+
+    if (itemsError) {
+      console.error(`Error fetching items for order ${orderId}:`, itemsError);
+      return this.mapOrderFromDB(data, []);
     }
-    return this.mapOrderFromDB(data, orderItems);
+
+    return this.mapOrderFromDB(data, itemsData || []);
   }
 
-  async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'items'>, items: Omit<OrderItem, 'id' | 'created_at' | 'updated_at' | 'order_id'>[]): Promise<Order> {
+  async createOrder(
+    orderData: Omit<Order, 'id' | 'created_at' | 'updated_at' | 'items'>, 
+    items: Omit<OrderItem, 'id' | 'created_at' | 'order_id'>[]
+  ): Promise<Order> {
     // Transaction to create order and items
     const { data, error } = await supabase
       .from('orders')
@@ -452,10 +470,12 @@ export class ShopRepository implements IShopRepository {
     if (items.length > 0) {
       const orderItems = items.map(item => ({
         order_id: data.id,
-        shop_item_id: item.shop_item_id,
-        quantity: item.quantity,
+        item_id: item.item_id,
+        name: item.name,
         price: item.price,
-        options: item.options
+        quantity: item.quantity,
+        shop_item_id: item.shop_item_id,
+        price_at_time: item.price_at_time
       }));
 
       const { error: itemsError } = await supabase
@@ -489,61 +509,52 @@ export class ShopRepository implements IShopRepository {
   }
 
   // Favorites operations
-  async isShopFavorited(shopId: string): Promise<boolean> {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
+  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
     const { data, error } = await supabase
       .from('shop_favorites')
       .select('*')
       .eq('shop_id', shopId)
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
-    return data ? true : false;
+    if (error) return false;
+    return !!data;
   }
 
-  async addShopToFavorites(shopId: string): Promise<boolean> {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
+  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
     const { error } = await supabase
       .from('shop_favorites')
       .insert({
         shop_id: shopId,
-        user_id: user.id
+        user_id: userId
       });
 
-    if (error) throw error;
+    if (error) {
+      // Check if it's because the favorite already exists
+      if (error.code === '23505') { // Unique constraint violation
+        return true;
+      }
+      throw error;
+    }
     return true;
   }
 
-  async removeShopFromFavorites(shopId: string): Promise<boolean> {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
+  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
     const { error } = await supabase
       .from('shop_favorites')
       .delete()
       .eq('shop_id', shopId)
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (error) throw error;
     return true;
   }
 
-  async getFavoriteShops(): Promise<Shop[]> {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
     const { data, error } = await supabase
       .from('shop_favorites')
       .select('shop_id')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (error) throw error;
 
@@ -557,31 +568,142 @@ export class ShopRepository implements IShopRepository {
       .in('id', shopIds);
 
     if (shopsError) throw shopsError;
-    return shops.map(this.mapShopFromDB);
+    return shops.map(shop => this.mapShopFromDB(shop));
   }
 
-  // Additional methods for IShopRepository implementation
+  // Cart methods
+  async getCartItems(userId: string): Promise<CartItem[]> {
+    const { data, error } = await supabase
+      .from('cart_items')
+      .select(`
+        *,
+        shop_items (id, name, price, image_url, shop_id),
+        shop:shops (id, name)
+      `)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return data;
+  }
+
+  async addToCart(userId: string, itemId: string, quantity: number): Promise<CartItem | null> {
+    // Check if item is already in cart
+    const { data: existingItem, error: checkError } = await supabase
+      .from('cart_items')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('item_id', itemId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found"
+      throw checkError;
+    }
+
+    if (existingItem) {
+      // Update quantity
+      const newQuantity = existingItem.quantity + quantity;
+      const { data, error } = await supabase
+        .from('cart_items')
+        .update({ quantity: newQuantity })
+        .eq('id', existingItem.id)
+        .select(`
+          *,
+          shop_items (id, name, price, image_url, shop_id),
+          shop:shops (id, name)
+        `)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } else {
+      // Get shop_id from shop_items
+      const { data: shopItem, error: shopItemError } = await supabase
+        .from('shop_items')
+        .select('shop_id')
+        .eq('id', itemId)
+        .single();
+
+      if (shopItemError) throw shopItemError;
+
+      // Insert new cart item
+      const { data, error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: userId,
+          item_id: itemId,
+          shop_id: shopItem.shop_id,
+          quantity
+        })
+        .select(`
+          *,
+          shop_items (id, name, price, image_url, shop_id),
+          shop:shops (id, name)
+        `)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  }
+
+  async updateCartItemQuantity(userId: string, itemId: string, quantity: number): Promise<CartItem | null> {
+    if (quantity <= 0) {
+      // Remove item from cart
+      await this.removeFromCart(userId, itemId);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('cart_items')
+      .update({ quantity })
+      .eq('user_id', userId)
+      .eq('item_id', itemId)
+      .select(`
+        *,
+        shop_items (id, name, price, image_url, shop_id),
+        shop:shops (id, name)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async removeFromCart(userId: string, itemId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', userId)
+      .eq('item_id', itemId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  async clearCart(userId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  // Helper to get shop for a user
+  async getUserShop(userId: string): Promise<Shop | null> {
+    return this.getShopByUserId(userId);
+  }
+
+  // Helper method to get orders for a shop
   async getShopOrders(shopId: string): Promise<Order[]> {
     return this.getOrdersByShop(shopId);
   }
 
+  // Helper method to get orders for a user as a customer
   async getUserOrders(userId: string): Promise<Order[]> {
     return this.getOrdersByCustomer(userId);
   }
-
-  async addFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    return this.addShopToFavorites(shopId);
-  }
-
-  async removeFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    return this.removeShopFromFavorites(shopId);
-  }
-
-  async isFavoriteShop(userId: string, shopId: string): Promise<boolean> {
-    return this.isShopFavorited(shopId);
-  }
-
-  async getUserShop(userId: string): Promise<Shop | null> {
-    return this.getShopByUserId(userId);
-  }
 }
+
+export const shopRepository = new ShopRepository();
