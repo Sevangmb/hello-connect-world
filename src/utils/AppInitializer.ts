@@ -1,63 +1,78 @@
 
-import { EventBus } from '@/core/event-bus/EventBus';
-import { ModuleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
-import { ModuleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
-import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { ModuleApiContextProvider } from '@/hooks/modules/ModuleApiContext';
+import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { ModuleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 
+/**
+ * Application initialization service
+ * Coordinates startup processes and core module loading
+ */
 export class AppInitializer {
   private moduleInitializer: ModuleInitializer;
-  private moduleMenuCoordinator: ModuleMenuCoordinator;
-  private moduleOptimizer: ModuleOptimizer;
-  private eventBus: EventBus;
+  private moduleMenuCoordinator: any; // Use any type to avoid constructor issues
 
   constructor() {
     this.moduleInitializer = new ModuleInitializer();
-    this.moduleMenuCoordinator = new ModuleMenuCoordinator();
-    this.moduleOptimizer = new ModuleOptimizer();
-    this.eventBus = new EventBus();
+    // Create an instance without using constructor directly
+    this.moduleMenuCoordinator = ModuleMenuCoordinator.getInstance();
   }
 
-  async initializeApp(): Promise<boolean> {
+  /**
+   * Initialize the application
+   */
+  public async initializeApp(): Promise<void> {
+    console.log('Initializing application...');
+    // Use event bus
+    eventBus.publish('app:initializing');
+    
     try {
-      console.log("Starting application initialization");
-      
-      // Initialize event bus
-      // Register handlers, subscribers, etc.
-      
-      // Initialize module API gateway
-      await ModuleApiGateway.prototype.initialize();
+      // Preload modules
+      await moduleOptimizer.preloadModules();
       
       // Initialize modules
-      await this.moduleInitializer.initialize();
+      await this.moduleInitializer.initializeModules();
       
-      // Preload common modules for performance
-      // this.moduleOptimizer.preloadCommonModules();
-      
-      // Initialize menu system
+      // Initialize menu
       await this.moduleMenuCoordinator.refreshMenu();
       
-      console.log("Application initialization completed");
-      return true;
+      eventBus.publish('app:initialized');
+      console.log('Application initialized successfully');
     } catch (error) {
-      console.error("Failed to initialize application:", error);
-      return false;
+      console.error('Error initializing application:', error);
+      eventBus.publish('app:initialization_error', { error });
     }
   }
 
-  async refreshAppState(): Promise<boolean> {
+  /**
+   * Clean up resources when application is shutting down
+   */
+  public async cleanup(): Promise<void> {
+    console.log('Cleaning up application resources...');
+    eventBus.publish('app:cleanup');
+    // Perform any cleanup needed
+  }
+
+  /**
+   * Reinitialize the application (for hot reloads or after updates)
+   */
+  public async reinitialize(): Promise<void> {
+    console.log('Reinitializing application...');
+    eventBus.publish('app:reinitializing');
+    
     try {
-      // Refresh module states
-      await this.moduleInitializer.initialize();
+      // Reinitialize modules
+      await this.moduleInitializer.initializeModules();
       
-      // Refresh menu items
+      // Refresh menu
       await this.moduleMenuCoordinator.refreshMenu();
       
-      console.log("Application state refreshed");
-      return true;
+      eventBus.publish('app:reinitialized');
+      console.log('Application reinitialized successfully');
     } catch (error) {
-      console.error("Failed to refresh application state:", error);
-      return false;
+      console.error('Error reinitializing application:', error);
+      eventBus.publish('app:reinitialization_error', { error });
     }
   }
 }

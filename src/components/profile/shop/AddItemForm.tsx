@@ -1,14 +1,7 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ShopItemStatus } from '@/core/shop/domain/types';
-import { useShop } from '@/hooks/useShop';
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Form,
   FormControl,
@@ -16,168 +9,256 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useShop } from '@/hooks/useShop';
+import { ShopItem, ShopItemStatus } from '@/core/shop/domain/types';
+import { uploadImage } from '@/integrations/supabase/storage';
+import { ImageIcon } from 'lucide-react';
+import { useProfile } from '@/hooks/useProfile';
 
-// Define form schema for validation
-const addItemSchema = z.object({
-  name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "Le nom doit contenir au moins 2 caractères.",
+  }),
   description: z.string().optional(),
-  price: z.coerce.number().positive('Le prix doit être positif'),
-  original_price: z.coerce.number().optional(),
-  stock: z.coerce.number().int().nonnegative('Le stock ne peut pas être négatif'),
-  image_url: z.string().optional(),
-  clothes_id: z.string().optional(),
+  price: z.string().refine((value) => {
+    try {
+      const num = parseFloat(value);
+      return !isNaN(num) && num > 0;
+    } catch (e) {
+      return false;
+    }
+  }, {
+    message: "Le prix doit être un nombre valide supérieur à zéro.",
+  }),
+  originalPrice: z.string().optional(),
+  stock: z.string().refine((value) => {
+    try {
+      const num = parseInt(value, 10);
+      return !isNaN(num) && num >= 0;
+    } catch (e) {
+      return false;
+    }
+  }, {
+    message: "Le stock doit être un nombre entier valide supérieur ou égal à zéro.",
+  }),
+  clothesId: z.string().optional(),
 });
-
-type FormValues = z.infer<typeof addItemSchema>;
 
 interface AddItemFormProps {
   shopId: string;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export function AddItemForm({ shopId, onSuccess }: AddItemFormProps) {
-  const { useAddShopItem } = useShop();
-  const { mutate: addItem, isPending } = useAddShopItem();
+  const { toast } = useToast();
+  const { addShopItems } = useShop();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const { profile } = useProfile();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(addItemSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
-      description: '',
-      price: 0,
-      original_price: undefined,
-      stock: 1,
-      image_url: '',
-      clothes_id: '',
+      name: "",
+      description: "",
+      price: "",
+      originalPrice: "",
+      stock: "",
+      clothesId: "",
     },
-  });
+  })
 
-  const onSubmit = (values: FormValues) => {
-    // Ensure we have a shop_id attached to the item
-    addItem(
-      {
-        shopId: shopId,
-        item: {
-          ...values,
-          shop_id: shopId,
-          status: 'available' as ShopItemStatus,
-        },
-      },
-      {
-        onSuccess: () => {
-          form.reset();
-          onSuccess();
-        },
+  const onImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Veuillez sélectionner une image.",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const url = await uploadImage(file, `shop-items/${profile?.username}`);
+      setImageUrl(url);
+      toast({
+        title: "Succès",
+        description: "Image téléchargée avec succès.",
+      });
+    } catch (error) {
+      console.error("Erreur lors du téléchargement de l'image :", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Erreur lors du téléchargement de l'image.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    setIsSubmitting(true);
+
+    try {
+      const formData: Omit<ShopItem, "id" | "created_at" | "updated_at"> = {
+        shop_id: shopId,
+        name: data.name,
+        description: data.description,
+        price: parseFloat(data.price),
+        original_price: data.originalPrice ? parseFloat(data.originalPrice) : undefined,
+        stock: parseInt(data.stock, 10),
+        status: 'available' as ShopItemStatus,
+        image_url: imageUrl || undefined,
+        clothes_id: data.clothesId || undefined
+      };
+
+      const success = await addShopItems([formData]);
+
+      if (success) {
+        toast({
+          title: "Succès",
+          description: "Article ajouté avec succès.",
+        });
+        form.reset();
+        setImageUrl(null);
+        onSuccess?.();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Erreur lors de l'ajout de l'article.",
+        });
       }
-    );
+    } catch (error) {
+      console.error("Erreur lors de la soumission du formulaire :", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Erreur lors de la soumission du formulaire.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nom de l'article</FormLabel>
-              <FormControl>
-                <Input placeholder="Nom de l'article" {...field} id="name" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Description de l'article" {...field} id="description" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Prix</FormLabel>
-                <FormControl>
-                  <Input type="number" placeholder="Prix" {...field} min={0} step={0.01} id="price" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="original_price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Prix original (optionnel)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Prix original" 
-                    {...field} 
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                    min={0} 
-                    step={0.01} 
-                    id="original_price" 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="stock"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Quantité disponible</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="Quantité" {...field} min={0} id="stock" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="image_url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL de l'image (optionnel)</FormLabel>
-              <FormControl>
-                <Input placeholder="URL de l'image" {...field} id="image_url" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isPending}>
-            {isPending ? <LoadingSpinner size="sm" className="mr-2" /> : null}
-            Ajouter l'article
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
+    <Card>
+      <CardHeader>
+        <CardTitle>Ajouter un article</CardTitle>
+        <CardDescription>Ajouter un nouvel article à votre boutique.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nom</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nom de l'article" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Description de l'article"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prix</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Prix de l'article" type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="originalPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prix original</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Prix original de l'article" type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="stock"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stock</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Stock de l'article" type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clothesId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Clothes ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Clothes ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex flex-col space-y-2">
+              <FormLabel>Image de l'article</FormLabel>
+              <Input type="file" id="image" accept="image/*" onChange={onImageUpload} />
+              {imageUrl && (
+                <img src={imageUrl} alt="Article" className="mt-2 rounded-md object-cover w-32 h-32" />
+              )}
+              {!imageUrl && (
+                <div className="flex items-center justify-center w-32 h-32 mt-2 rounded-md bg-muted">
+                  <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Envoi..." : "Ajouter l'article"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  )
 }

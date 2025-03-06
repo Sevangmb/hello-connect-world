@@ -14,6 +14,7 @@ import { Info, CircleCheck } from "lucide-react";
 export const ModulesList: React.FC = () => {
   const {
     modules,
+    dependencies,
     isLoading,
     lastRefresh,
     isModuleActive,
@@ -92,6 +93,7 @@ export const ModulesList: React.FC = () => {
       <div className="px-6 pb-4">
         <ModulesTable
           modules={modules}
+          dependencies={dependencies}
           pendingChanges={pendingChanges}
           isModuleActive={isModuleActive}
           canToggleModule={canToggleModule}

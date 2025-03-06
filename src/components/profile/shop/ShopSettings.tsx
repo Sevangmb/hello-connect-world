@@ -1,246 +1,183 @@
-
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 import { useShop } from '@/hooks/useShop';
-import { useQueryClient } from '@tanstack/react-query';
-import { Shop, DeliveryOption, PaymentMethod } from '@/core/shop/domain/types';
-import { shopApiGateway } from '@/services/api-gateway/ShopApiGateway';
 
-// Define form schema for validation
-const shopSettingsSchema = z.object({
-  name: z.string().min(3, 'Le nom doit contenir au moins 3 caractères'),
-  description: z.string().optional(),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  website: z.string().optional(),
-  auto_accept_orders: z.boolean().optional(),
-  delivery_options: z.array(z.string()).optional(),
-  payment_methods: z.array(z.string()).optional(),
-});
-
-type FormValues = z.infer<typeof shopSettingsSchema>;
-
-interface ShopSettingsProps {
-  shop: Shop;
-}
-
-export function ShopSettings({ shop }: ShopSettingsProps) {
-  const { toast } = useToast();
-  const { useUpdateShop } = useShop();
-  const { mutate: updateShop, isPending } = useUpdateShop();
-  const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(shopSettingsSchema),
-    defaultValues: {
-      name: shop.name || '',
-      description: shop.description || '',
-      address: shop.address || '',
-      phone: shop.phone || '',
-      website: shop.website || '',
-      auto_accept_orders: false,
-      delivery_options: [],
-      payment_methods: [],
-    },
+export const ShopSettings = () => {
+  const { shop, isLoading, updateShop } = useShop();
+  const [values, setValues] = useState({
+    paymentMethods: [],
+    autoAcceptOrders: false,
+    emailNotifications: true,
+    appNotifications: true
   });
+  const { toast } = useToast();
 
-  // Helper function to handle array types
-  const formatArrayField = (value: string | string[]): string[] => {
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string' && value.trim()) return value.split(',');
-    return [];
-  };
+  useEffect(() => {
+    if (shop) {
+      setValues({
+        paymentMethods: shop.payment_methods || [],
+        autoAcceptOrders: shop.auto_accept_orders || false,
+        emailNotifications: shop.notification_preferences?.email !== false,
+        appNotifications: shop.notification_preferences?.app !== false
+      });
+    }
+  }, [shop]);
 
-  const onSubmit = (values: FormValues) => {
-    const deliveryOptions = formatArrayField(values.delivery_options);
-    const paymentMethods = formatArrayField(values.payment_methods);
-
-    updateShop(
-      {
-        shopId: shop.id,
-        shopData: {
-          ...values,
-          delivery_options: deliveryOptions as DeliveryOption[],
-          payment_methods: paymentMethods as PaymentMethod[],
+  const updateShopSettings = async (values: any) => {
+    try {
+      // Remove any shop properties that aren't allowed
+      const shopSettings = {
+        payment_methods: values.paymentMethods,
+        auto_accept_orders: values.autoAcceptOrders,
+        notification_preferences: {
+          email: values.emailNotifications,
+          app: values.appNotifications
         }
-      },
-      {
-        onSuccess: () => {
-          toast({
-            title: "Paramètres mis à jour",
-            description: "Les paramètres de votre boutique ont été mis à jour avec succès.",
-          });
-          setIsEditing(false);
-        },
-        onError: (error) => {
-          toast({
-            variant: "destructive",
-            title: "Erreur",
-            description: "Une erreur est survenue lors de la mise à jour des paramètres.",
-          });
-        },
+        // Don't include delivery_options directly in shop update
+      };
+
+      const success = await updateShop(shopSettings);
+
+      if (success) {
+        toast({
+          title: "Paramètres enregistrés",
+          description: "Les paramètres de votre boutique ont été mis à jour.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de mettre à jour les paramètres de la boutique.",
+        });
       }
-    );
+    } catch (error) {
+      console.error("Error updating shop settings:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la mise à jour des paramètres.",
+      });
+    }
   };
+
+  const onSubmit = async () => {
+    await updateShopSettings(values);
+  };
+
+  if (isLoading || !shop) {
+    return <div>Chargement des paramètres...</div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Paramètres de la boutique</CardTitle>
-          <Button 
-            variant={isEditing ? "outline" : "default"} 
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? "Annuler" : "Modifier"}
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {isEditing ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom de la boutique</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nom de la boutique" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Description de la boutique" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adresse</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Adresse" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Téléphone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Téléphone" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="website"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Site web</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Site web" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="auto_accept_orders"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
-                          Acceptation automatique des commandes
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? "Enregistrement..." : "Enregistrer les modifications"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          ) : (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium">Nom de la boutique</h3>
-                <p className="mt-1">{shop.name}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium">Description</h3>
-                <p className="mt-1">{shop.description || "Aucune description"}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium">Adresse</h3>
-                <p className="mt-1">{shop.address || "Aucune adresse"}</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium">Téléphone</h3>
-                  <p className="mt-1">{shop.phone || "Aucun numéro"}</p>
-                </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium">Site web</h3>
-                  <p className="mt-1">{shop.website || "Aucun site web"}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Paramètres de la boutique</CardTitle>
+        <CardDescription>
+          Gérez les paramètres de votre boutique.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="paymentMethods">Méthodes de paiement</Label>
+          <div className="flex flex-wrap gap-2">
+            <Checkbox
+              id="paymentMethods-card"
+              checked={values.paymentMethods.includes('card')}
+              onCheckedChange={(checked) =>
+                setValues({
+                  ...values,
+                  paymentMethods: checked
+                    ? [...values.paymentMethods, 'card']
+                    : values.paymentMethods.filter((method) => method !== 'card'),
+                })
+              }
+            />
+            <Label htmlFor="paymentMethods-card" className="cursor-pointer">
+              Carte de crédit
+            </Label>
+            <Checkbox
+              id="paymentMethods-paypal"
+              checked={values.paymentMethods.includes('paypal')}
+              onCheckedChange={(checked) =>
+                setValues({
+                  ...values,
+                  paymentMethods: checked
+                    ? [...values.paymentMethods, 'paypal']
+                    : values.paymentMethods.filter((method) => method !== 'paypal'),
+                })
+              }
+            />
+            <Label htmlFor="paymentMethods-paypal" className="cursor-pointer">
+              PayPal
+            </Label>
+            <Checkbox
+              id="paymentMethods-bank_transfer"
+              checked={values.paymentMethods.includes('bank_transfer')}
+              onCheckedChange={(checked) =>
+                setValues({
+                  ...values,
+                  paymentMethods: checked
+                    ? [...values.paymentMethods, 'bank_transfer']
+                    : values.paymentMethods.filter((method) => method !== 'bank_transfer'),
+                })
+              }
+            />
+            <Label htmlFor="paymentMethods-bank_transfer" className="cursor-pointer">
+              Virement bancaire
+            </Label>
+            <Checkbox
+              id="paymentMethods-cash"
+              checked={values.paymentMethods.includes('cash')}
+              onCheckedChange={(checked) =>
+                setValues({
+                  ...values,
+                  paymentMethods: checked
+                    ? [...values.paymentMethods, 'cash']
+                    : values.paymentMethods.filter((method) => method !== 'cash'),
+                })
+              }
+            />
+            <Label htmlFor="paymentMethods-cash" className="cursor-pointer">
+              Espèces
+            </Label>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="autoAcceptOrders">Accepter automatiquement les commandes</Label>
+          <Switch
+            id="autoAcceptOrders"
+            checked={values.autoAcceptOrders}
+            onCheckedChange={(checked) => setValues({ ...values, autoAcceptOrders: checked })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Préférences de notification</Label>
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="emailNotifications">Email</Label>
+            <Switch
+              id="emailNotifications"
+              checked={values.emailNotifications}
+              onCheckedChange={(checked) => setValues({ ...values, emailNotifications: checked })}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="appNotifications">Application</Label>
+            <Switch
+              id="appNotifications"
+              checked={values.appNotifications}
+              onCheckedChange={(checked) => setValues({ ...values, appNotifications: checked })}
+            />
+          </div>
+        </div>
+        <Button onClick={onSubmit}>Enregistrer les paramètres</Button>
+      </CardContent>
+    </Card>
   );
-}
+};

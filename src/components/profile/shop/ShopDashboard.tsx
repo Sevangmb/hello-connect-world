@@ -1,16 +1,15 @@
-
-import React, { useState } from 'react';
-import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShopItemsList } from "./ShopItemsList";
+import { ShopOrdersList } from "./ShopOrdersList";
+import ShopReviewsList from "./ShopReviewsList";
+import { Button } from "@/components/ui/button";
 import { Plus, Settings, Package, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AddItemForm } from './AddItemForm';
 import { ShopSettings } from './ShopSettings';
-import { ShopItemsList } from './ShopItemsList';
-import { ShopOrdersList } from './ShopOrdersList';
-import { ShopReviewsList } from './ShopReviewsList';
 import { useShop } from '@/hooks/useShop';
 
 const ShopDashboard = () => {
@@ -56,20 +55,20 @@ const ShopDashboard = () => {
     <div className="space-y-6">
       <Tabs selectedIndex={activeTab} onSelect={handleTabChange}>
         <div className="flex justify-between items-center mb-4">
-          <TabList className="flex space-x-4 border-b">
-            <Tab className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+          <TabsList className="flex space-x-4 border-b">
+            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
               Articles
-            </Tab>
-            <Tab className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            </TabsTrigger>
+            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
               Commandes
-            </Tab>
-            <Tab className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            </TabsTrigger>
+            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
               Avis
-            </Tab>
-            <Tab className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
+            </TabsTrigger>
+            <TabsTrigger className="px-4 py-2 cursor-pointer border-b-2 border-transparent hover:border-primary data-[selected]:border-primary data-[selected]:font-medium transition">
               Paramètres
-            </Tab>
-          </TabList>
+            </TabsTrigger>
+          </TabsList>
           {activeTab === 0 && (
             <Button size="sm" onClick={() => setIsAddItemDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -78,27 +77,27 @@ const ShopDashboard = () => {
           )}
         </div>
 
-        <TabPanel>
+        <TabsContent>
           <Card>
             <ShopItemsList shopId={shop.id} />
           </Card>
-        </TabPanel>
+        </TabsContent>
 
-        <TabPanel>
+        <TabsContent>
           <Card>
             <ShopOrdersList shopId={shop.id} />
           </Card>
-        </TabPanel>
+        </TabsContent>
 
-        <TabPanel>
+        <TabsContent>
           <Card>
             <ShopReviewsList shopId={shop.id} />
           </Card>
-        </TabPanel>
+        </TabsContent>
 
-        <TabPanel>
+        <TabsContent>
           <ShopSettings shop={shop} />
-        </TabPanel>
+        </TabsContent>
       </Tabs>
 
       <Dialog open={isAddItemDialogOpen} onOpenChange={setIsAddItemDialogOpen}>
