@@ -8,9 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useToast } from '@/hooks/use-toast';
 import { AddItemForm } from './AddItemForm';
 import { ShopSettings } from './ShopSettings';
-import ShopItemsList from './ShopItemsList';
-import ShopOrdersList from './ShopOrdersList';
-import ShopReviewsList from './ShopReviewsList';
+import { ShopItemsList } from './ShopItemsList';
+import { ShopOrdersList } from './ShopOrdersList';
+import { ShopReviewsList } from './ShopReviewsList';
 import { useShop } from '@/hooks/useShop';
 
 const ShopDashboard = () => {

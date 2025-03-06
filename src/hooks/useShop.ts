@@ -1,253 +1,249 @@
 
-import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { ShopApiGateway } from '@/services/api-gateway/ShopApiGateway';
-import { ShopService } from '@/core/shop/application/ShopService';
-import { Shop, ShopItem, ShopItemStatus, Order, ShopReview } from '@/core/shop/domain/types';
 import { useAuth } from './useAuth';
+import { shopApiGateway } from '@/services/api-gateway/ShopApiGateway';
+import { Shop, ShopItem, ShopItemStatus, ShopStatus } from '@/core/shop/domain/types';
 
-// Initialize services
-const shopService = new ShopService();
-const shopApiGateway = new ShopApiGateway(shopService);
-
+/**
+ * Hook for shop-related operations
+ */
 export const useShop = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const userId = user?.id;
 
-  // Query: Get shop by ID
+  // Get a specific shop by ID
   const useShopById = (shopId?: string) => {
     return useQuery({
       queryKey: ['shop', shopId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
+        if (!shopId) return null;
         const shop = await shopApiGateway.getShopById(shopId);
-        if (!shop) throw new Error('Shop not found');
         return shop;
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
 
-  // Query: Get user's shop
+  // Get the current user's shop
   const useUserShop = () => {
     return useQuery({
-      queryKey: ['userShop', user?.id],
+      queryKey: ['user-shop', userId],
       queryFn: async () => {
-        if (!user?.id) throw new Error('User must be authenticated');
-        const shop = await shopApiGateway.getUserShop(user.id);
+        if (!userId) return null;
+        const shop = await shopApiGateway.getShopByUserId(userId);
         return shop;
       },
-      enabled: !!user?.id
+      enabled: !!userId,
     });
   };
 
-  // Mutation: Create shop
+  // Create a new shop
   const useCreateShop = () => {
     return useMutation({
-      mutationFn: async (shopData: Partial<Shop>) => {
-        if (!user?.id) throw new Error('User must be authenticated');
-        
-        const newShop = {
+      mutationFn: async (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => {
+        if (!userId) throw new Error('User not authenticated');
+        return await shopApiGateway.createShop({
           ...shopData,
-          user_id: user.id,
-          status: 'pending' as const
-        };
-        
-        return shopApiGateway.createShop(newShop);
+          user_id: userId,
+        });
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['userShop'] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
+      },
     });
   };
 
-  // Mutation: Update shop
+  // Update an existing shop
   const useUpdateShop = () => {
     return useMutation({
-      mutationFn: async ({ shopId, data }: { shopId: string; data: Partial<Shop> }) => {
-        return shopApiGateway.updateShop(shopId, data);
+      mutationFn: async ({ 
+        shopId, shopData 
+      }: { 
+        shopId: string; 
+        shopData: Partial<Shop> 
+      }) => {
+        return await shopApiGateway.updateShop(shopId, shopData);
       },
       onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['shop', variables.shopId] });
-        queryClient.invalidateQueries({ queryKey: ['userShop'] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
+      },
     });
   };
 
-  // Mutation: Add shop items
-  const useAddShopItems = () => {
+  // Add an item to a shop
+  const useAddShopItem = () => {
     return useMutation({
-      mutationFn: async ({ shopId, item }: { shopId: string; item: Omit<ShopItem, "id" | "created_at" | "updated_at"> }) => {
-        // Ensure shop_id is set in the item
-        const itemWithShopId = {
-          ...item,
-          shop_id: shopId
-        };
-        
-        return shopApiGateway.createShopItem(shopId, itemWithShopId);
+      mutationFn: async ({ 
+        shopId, item 
+      }: { 
+        shopId: string; 
+        item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'> 
+      }) => {
+        // We need to ensure shop_id is set properly
+        return await shopApiGateway.addShopItems(shopId, [item]);
       },
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shopItems', variables.shopId] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shopId] });
+      },
     });
   };
 
-  // Mutation: Update shop item
+  // Update a shop item
   const useUpdateShopItem = () => {
     return useMutation({
-      mutationFn: async ({ itemId, data }: { itemId: string; data: Partial<ShopItem> }) => {
-        return shopApiGateway.updateShopItem(itemId, data);
+      mutationFn: async ({ 
+        itemId, itemData 
+      }: { 
+        itemId: string; 
+        itemData: Partial<ShopItem> 
+      }) => {
+        return await shopApiGateway.updateShopItem(itemId, itemData);
       },
-      onSuccess: (_, variables) => {
-        // We don't know which shop this item belongs to, so invalidate all shop items queries
-        queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-        queryClient.invalidateQueries({ queryKey: ['shopItem', variables.itemId] });
-      }
+      onSuccess: (result) => {
+        if (result) {
+          queryClient.invalidateQueries({ queryKey: ['shop-items', result.shop_id] });
+          queryClient.invalidateQueries({ queryKey: ['shop-item', result.id] });
+        }
+      },
     });
   };
 
-  // Mutation: Update shop item status
+  // Update an item's status
   const useUpdateShopItemStatus = () => {
     return useMutation({
-      mutationFn: async ({ itemId, status }: { itemId: string; status: ShopItemStatus }) => {
-        return shopApiGateway.updateShopItemStatus(itemId, status);
+      mutationFn: async ({ 
+        itemId, status 
+      }: { 
+        itemId: string; 
+        status: ShopItemStatus 
+      }) => {
+        return await shopApiGateway.updateShopItemStatus(itemId, status);
       },
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shopItems'] });
-        queryClient.invalidateQueries({ queryKey: ['shopItem', variables.itemId] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['shop-item', variables.itemId] });
+        // Since we don't know the shop ID here, we may need to invalidate all shop items
+        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+      },
     });
   };
 
-  // Query: Get shop items
+  // Get items for a shop
   const useShopItems = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shopItems', shopId],
+      queryKey: ['shop-items', shopId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return shopApiGateway.getShopItems(shopId);
+        if (!shopId) return [];
+        return await shopApiGateway.getShopItems(shopId);
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
 
-  // Query: Get shop item by ID
-  const useShopItemById = (itemId?: string) => {
+  // Get a specific shop item
+  const useShopItem = (itemId?: string) => {
     return useQuery({
-      queryKey: ['shopItem', itemId],
+      queryKey: ['shop-item', itemId],
       queryFn: async () => {
-        if (!itemId) throw new Error('Item ID is required');
-        const item = await shopApiGateway.getShopItemById(itemId);
-        if (!item) throw new Error('Item not found');
-        return item;
+        if (!itemId) return null;
+        return await shopApiGateway.getShopItemById(itemId);
       },
-      enabled: !!itemId
+      enabled: !!itemId,
     });
   };
 
-  // Query: Get shop orders
+  // Get orders for a shop
   const useShopOrders = (shopId?: string) => {
     return useQuery({
-      queryKey: ['shopOrders', shopId],
+      queryKey: ['shop-orders', shopId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return shopApiGateway.getOrdersByShop(shopId);
+        if (!shopId) return [];
+        return await shopApiGateway.getShopOrders(shopId);
       },
-      enabled: !!shopId
+      enabled: !!shopId,
     });
   };
 
-  // Query: Get user's favorite shops
-  const useFavoriteShops = () => {
+  // Get all shops
+  const useShops = () => {
     return useQuery({
-      queryKey: ['favoriteShops', user?.id],
+      queryKey: ['shops'],
       queryFn: async () => {
-        if (!user?.id) throw new Error('User must be authenticated');
-        
-        const { data, error } = await supabase
-          .from('user_favorite_shops')
-          .select('shop_id')
-          .eq('user_id', user.id);
-          
-        if (error) throw error;
-        
-        // Return an empty array if no favorites
-        if (!data || data.length === 0) return [];
-        
-        // Get shop details for each favorite
-        const shopIds = data.map(favorite => favorite.shop_id);
-        const shopsPromises = shopIds.map(id => shopApiGateway.getShopById(id));
-        const shops = await Promise.all(shopsPromises);
-        
-        // Filter out null values
-        return shops.filter(Boolean) as Shop[];
+        return await shopApiGateway.getAllShops();
       },
-      enabled: !!user?.id
     });
   };
 
-  // Check if a shop is favorited by the user
+  // Add item to cart
+  const useAddToCart = () => {
+    return useMutation({
+      mutationFn: async ({ 
+        itemId, quantity 
+      }: { 
+        itemId: string; 
+        quantity: number 
+      }) => {
+        if (!userId) throw new Error('User not authenticated');
+        return await shopApiGateway.addToCart(userId, itemId, quantity);
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
+      },
+    });
+  };
+
+  // Check if shop is favorited
   const useIsShopFavorited = (shopId?: string) => {
     return useQuery({
-      queryKey: ['isShopFavorited', user?.id, shopId],
+      queryKey: ['shop-favorited', shopId, userId],
       queryFn: async () => {
-        if (!user?.id || !shopId) return false;
-        
-        const { data, error } = await supabase
-          .from('user_favorite_shops')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('shop_id', shopId)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
-        
-        return !!data;
+        if (!shopId || !userId) return false;
+        return await shopApiGateway.isShopFavorited(userId, shopId);
       },
-      enabled: !!user?.id && !!shopId
+      enabled: !!shopId && !!userId,
     });
   };
 
-  // Mutation: Favorite a shop
+  // Favorite a shop
   const useFavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!user?.id) throw new Error('User must be authenticated');
-        
-        const { error } = await supabase
-          .from('user_favorite_shops')
-          .insert({ user_id: user.id, shop_id: shopId });
-          
-        if (error) throw error;
-        return true;
+        if (!userId) throw new Error('User not authenticated');
+        return await shopApiGateway.addToFavorites(userId, shopId);
       },
       onSuccess: (_, shopId) => {
-        queryClient.invalidateQueries({ queryKey: ['isShopFavorited', user?.id, shopId] });
-        queryClient.invalidateQueries({ queryKey: ['favoriteShops', user?.id] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['shop-favorited', shopId, userId] });
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+      },
     });
   };
 
-  // Mutation: Unfavorite a shop
+  // Unfavorite a shop
   const useUnfavoriteShop = () => {
     return useMutation({
       mutationFn: async (shopId: string) => {
-        if (!user?.id) throw new Error('User must be authenticated');
-        
-        const { error } = await supabase
-          .from('user_favorite_shops')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('shop_id', shopId);
-          
-        if (error) throw error;
-        return true;
+        if (!userId) throw new Error('User not authenticated');
+        return await shopApiGateway.removeFromFavorites(userId, shopId);
       },
       onSuccess: (_, shopId) => {
-        queryClient.invalidateQueries({ queryKey: ['isShopFavorited', user?.id, shopId] });
-        queryClient.invalidateQueries({ queryKey: ['favoriteShops', user?.id] });
-      }
+        queryClient.invalidateQueries({ queryKey: ['shop-favorited', shopId, userId] });
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+      },
+    });
+  };
+
+  // Get favorite shops
+  const useFavoriteShops = () => {
+    return useQuery({
+      queryKey: ['favorite-shops', userId],
+      queryFn: async () => {
+        if (!userId) return [];
+        return await shopApiGateway.getFavoriteShops(userId);
+      },
+      enabled: !!userId,
     });
   };
 
@@ -256,15 +252,17 @@ export const useShop = () => {
     useUserShop,
     useCreateShop,
     useUpdateShop,
-    useAddShopItems,
+    useAddShopItem,
     useUpdateShopItem,
     useUpdateShopItemStatus,
     useShopItems,
-    useShopItemById,
+    useShopItem,
     useShopOrders,
-    useFavoriteShops,
+    useShops,
+    useAddToCart,
     useIsShopFavorited,
     useFavoriteShop,
-    useUnfavoriteShop
+    useUnfavoriteShop,
+    useFavoriteShops,
   };
 };

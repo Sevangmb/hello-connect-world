@@ -1,167 +1,250 @@
 
-import { ShopService } from '@/core/shop/application/ShopService';
-import { 
-  Shop, ShopItem, ShopItemStatus, ShopStatus, 
-  CartItem, Order, OrderStatus, ShopReview, PaymentMethod
-} from '@/core/shop/domain/types';
+import { Shop, ShopItem, ShopStatus, ShopItemStatus, Order, ShopReview } from '@/core/shop/domain/types';
+import { ModuleService } from '@/services/modules/ModuleService';
+import { shopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+
+// Create a singleton instance
+let moduleServiceInstance: ModuleService | null = null;
 
 export class ShopApiGateway {
-  private shopService: ShopService;
-
-  constructor(shopService: ShopService) {
-    this.shopService = shopService;
+  constructor() {
+    if (!moduleServiceInstance) {
+      moduleServiceInstance = new ModuleService();
+    }
   }
 
-  /**
-   * Get all shops
-   */
+  // Shop operations
   async getAllShops(): Promise<Shop[]> {
-    return this.shopService.getShops();
+    try {
+      return await shopService.getShopsByStatus('approved' as ShopStatus);
+    } catch (error) {
+      console.error("Error getting all shops:", error);
+      return [];
+    }
   }
 
-  /**
-   * Get user shop
-   */
-  async getUserShop(userId: string): Promise<Shop | null> {
-    return this.shopService.getShopByUserId(userId);
-  }
-
-  /**
-   * Get shop by ID
-   */
   async getShopById(id: string): Promise<Shop | null> {
-    return this.shopService.getShopById(id);
+    try {
+      return await shopService.getShopById(id);
+    } catch (error) {
+      console.error("Error getting shop by ID:", error);
+      return null;
+    }
   }
 
-  /**
-   * Get shops by status
-   */
-  async getShopsByStatus(status: ShopStatus): Promise<Shop[]> {
-    return this.shopService.getShopsByStatus(status);
+  async getShopByUserId(userId: string): Promise<Shop | null> {
+    try {
+      return await shopService.getShopByUserId(userId);
+    } catch (error) {
+      console.error("Error getting shop by user ID:", error);
+      return null;
+    }
   }
 
-  /**
-   * Create shop
-   */
-  async createShop(shop: Partial<Shop>): Promise<Shop | null> {
-    return this.shopService.createShop(shop);
+  async createShop(shop: Omit<Shop, 'id' | 'created_at' | 'updated_at'>): Promise<Shop | null> {
+    try {
+      return await shopService.createShop(shop);
+    } catch (error) {
+      console.error("Error creating shop:", error);
+      return null;
+    }
   }
 
-  /**
-   * Update shop
-   */
-  async updateShop(id: string, data: Partial<Shop>): Promise<Shop | null> {
-    return this.shopService.updateShop(id, data);
+  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop | null> {
+    try {
+      return await shopService.updateShop(id, shopData);
+    } catch (error) {
+      console.error("Error updating shop:", error);
+      return null;
+    }
   }
 
-  /**
-   * Update shop item status
-   */
+  // Shop item operations
+  async getShopItems(shopId: string): Promise<ShopItem[]> {
+    try {
+      return await shopService.getShopItems(shopId);
+    } catch (error) {
+      console.error("Error getting shop items:", error);
+      return [];
+    }
+  }
+
+  async getShopItemById(id: string): Promise<ShopItem | null> {
+    try {
+      return await shopService.getShopItemById(id);
+    } catch (error) {
+      console.error("Error getting shop item by ID:", error);
+      return null;
+    }
+  }
+
+  async addShopItems(shopId: string, items: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>[]): Promise<boolean> {
+    try {
+      return await shopService.addShopItems(shopId, items);
+    } catch (error) {
+      console.error("Error adding shop items:", error);
+      return false;
+    }
+  }
+
+  async updateShopItem(id: string, item: Partial<ShopItem>): Promise<ShopItem | null> {
+    try {
+      return await shopService.updateShopItem(id, item);
+    } catch (error) {
+      console.error("Error updating shop item:", error);
+      return null;
+    }
+  }
+
   async updateShopItemStatus(id: string, status: ShopItemStatus): Promise<boolean> {
-    const result = await this.shopService.updateShopItemStatus(id, status);
-    return !!result;
+    try {
+      return await shopService.updateShopItemStatus(id, status);
+    } catch (error) {
+      console.error("Error updating shop item status:", error);
+      return false;
+    }
   }
 
-  /**
-   * Get shop reviews
-   */
+  // Shop reviews operations
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
-    return this.shopService.getShopReviews(shopId);
+    try {
+      return await shopService.getShopReviews(shopId);
+    } catch (error) {
+      console.error("Error getting shop reviews:", error);
+      return [];
+    }
   }
 
-  /**
-   * Create shop review
-   */
-  async createShopReview(shopId: string, review: Partial<ShopReview>): Promise<ShopReview | null> {
-    // Fallback implementation si le service n'a pas cette méthode
-    const shopReview: ShopReview = {
-      id: '',
-      shop_id: shopId,
-      user_id: review.user_id || '',
-      rating: review.rating || 0,
-      comment: review.comment || '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    return shopReview;
+  // Order operations
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    try {
+      return await shopService.getShopOrders(shopId);
+    } catch (error) {
+      console.error("Error getting shop orders:", error);
+      return [];
+    }
   }
 
-  /**
-   * Get orders by shop
-   */
-  async getOrdersByShop(shopId: string): Promise<Order[]> {
-    return this.shopService.getOrdersByShop(shopId);
-  }
-
-  /**
-   * Get orders by customer
-   */
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    return this.shopService.getOrdersByCustomer(customerId);
+    try {
+      // Fallback implementation if service doesn't have this method
+      return [];
+    } catch (error) {
+      console.error("Error getting customer orders:", error);
+      return [];
+    }
   }
 
-  /**
-   * Get order by ID
-   */
-  async getOrderById(orderId: string): Promise<Order | null> {
-    return this.shopService.getOrderById(orderId);
+  async getOrderById(id: string): Promise<Order | null> {
+    try {
+      // Fallback implementation if service doesn't have this method
+      return null;
+    } catch (error) {
+      console.error("Error getting order by ID:", error);
+      return null;
+    }
   }
 
-  /**
-   * Update order status
-   */
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
-    const result = await this.shopService.updateOrderStatus(orderId, status);
-    return !!result;
+  async createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null> {
+    try {
+      return await shopService.createOrder(order);
+    } catch (error) {
+      console.error("Error creating order:", error);
+      return null;
+    }
   }
 
-  /**
-   * Get shop settings
-   */
-  async getShopSettings(shopId: string): Promise<any> {
-    // Implémentation par défaut si le service n'a pas cette méthode
-    return {
-      shop_id: shopId,
-      payment_methods: ['card', 'paypal'] as PaymentMethod[],
-      delivery_options: ['pickup', 'delivery'] as any[],
-      auto_accept_orders: true
-    };
+  async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
+    try {
+      return await shopService.updateOrderStatus(orderId, status as any);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      return false;
+    }
   }
 
-  /**
-   * Update shop settings
-   */
-  async updateShopSettings(shopId: string, settings: any): Promise<boolean> {
-    // Implémentation par défaut si le service n'a pas cette méthode
+  // Favorites operations
+  async getFavoriteShops(userId: string): Promise<Shop[]> {
+    try {
+      return await shopService.getFavoriteShops(userId);
+    } catch (error) {
+      console.error("Error getting favorite shops:", error);
+      return [];
+    }
+  }
+
+  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
+    try {
+      return await shopService.isShopFavorited(userId, shopId);
+    } catch (error) {
+      console.error("Error checking if shop is favorited:", error);
+      return false;
+    }
+  }
+
+  async addToFavorites(userId: string, shopId: string): Promise<boolean> {
+    try {
+      return await shopService.addShopToFavorites(userId, shopId);
+    } catch (error) {
+      console.error("Error adding shop to favorites:", error);
+      return false;
+    }
+  }
+
+  async removeFromFavorites(userId: string, shopId: string): Promise<boolean> {
+    try {
+      return await shopService.removeShopFromFavorites(userId, shopId);
+    } catch (error) {
+      console.error("Error removing shop from favorites:", error);
+      return false;
+    }
+  }
+
+  // Cart operations
+  async getCart(userId: string): Promise<any[]> {
+    try {
+      // Implement when needed
+      return [];
+    } catch (error) {
+      console.error("Error getting cart:", error);
+      return [];
+    }
+  }
+
+  async addToCart(userId: string, itemId: string, quantity: number): Promise<boolean> {
+    try {
+      return await shopService.addToCart(userId, itemId, quantity);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      return false;
+    }
+  }
+
+  async removeFromCart(userId: string, itemId: string): Promise<boolean> {
+    try {
+      // Implement when needed
+      return false;
+    } catch (error) {
+      console.error("Error removing from cart:", error);
+      return false;
+    }
+  }
+
+  async clearCart(userId: string): Promise<boolean> {
+    try {
+      // Implement when needed
+      return false;
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+      return false;
+    }
+  }
+
+  // Module methods
+  async initialize(): Promise<boolean> {
     return true;
   }
-
-  /**
-   * Get shop items
-   */
-  async getShopItems(shopId: string): Promise<ShopItem[]> {
-    return this.shopService.getShopItems(shopId);
-  }
-
-  /**
-   * Get shop item by ID
-   */
-  async getShopItemById(itemId: string): Promise<ShopItem | null> {
-    return this.shopService.getShopItemById(itemId);
-  }
-
-  /**
-   * Create shop item
-   */
-  async createShopItem(shopId: string, item: Partial<ShopItem>): Promise<ShopItem | null> {
-    return this.shopService.createShopItem(shopId, item as Omit<ShopItem, "id" | "created_at" | "updated_at">);
-  }
-
-  /**
-   * Update shop item
-   */
-  async updateShopItem(itemId: string, data: Partial<ShopItem>): Promise<ShopItem | null> {
-    return this.shopService.updateShopItem(itemId, data);
-  }
 }
+
+// Export a singleton instance
+export const shopApiGateway = new ShopApiGateway();

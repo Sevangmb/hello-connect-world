@@ -1,55 +1,63 @@
 
-import { eventBus } from '@/core/event-bus/EventBus';
-import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
-import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
+import { EventBus } from '@/core/event-bus/EventBus';
+import { ModuleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
+import { ModuleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
+import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
 export class AppInitializer {
-  /**
-   * Initialize the application
-   */
-  async initializeApp(): Promise<void> {
-    console.log('Initializing application...');
-    
+  private moduleInitializer: ModuleInitializer;
+  private moduleMenuCoordinator: ModuleMenuCoordinator;
+  private moduleOptimizer: ModuleOptimizer;
+  private eventBus: EventBus;
+
+  constructor() {
+    this.moduleInitializer = new ModuleInitializer();
+    this.moduleMenuCoordinator = new ModuleMenuCoordinator();
+    this.moduleOptimizer = new ModuleOptimizer();
+    this.eventBus = new EventBus();
+  }
+
+  async initializeApp(): Promise<boolean> {
     try {
-      // Initialiser le bus d'événements
-      this.initializeEventBus();
+      console.log("Starting application initialization");
       
-      // Précharger les modules communs
-      this.preloadModules();
+      // Initialize event bus
+      // Register handlers, subscribers, etc.
       
-      // Initialiser le coordinateur de menu
-      this.initializeMenuCoordinator();
+      // Initialize module API gateway
+      await ModuleApiGateway.prototype.initialize();
       
-      console.log('Application initialized successfully');
+      // Initialize modules
+      await this.moduleInitializer.initialize();
+      
+      // Preload common modules for performance
+      // this.moduleOptimizer.preloadCommonModules();
+      
+      // Initialize menu system
+      await this.moduleMenuCoordinator.refreshMenu();
+      
+      console.log("Application initialization completed");
+      return true;
     } catch (error) {
-      console.error('Error initializing application:', error);
-      throw error;
+      console.error("Failed to initialize application:", error);
+      return false;
     }
   }
-  
-  /**
-   * Initialize event bus
-   */
-  private initializeEventBus(): void {
-    console.log('Initializing event bus...');
-    eventBus.subscribe('app:initialized', () => {
-      console.log('Application initialization event received');
-    });
-  }
-  
-  /**
-   * Preload modules
-   */
-  private preloadModules(): void {
-    console.log('Preloading common modules...');
-    moduleOptimizer.preloadPriorityModules();
-  }
-  
-  /**
-   * Initialize menu coordinator
-   */
-  private initializeMenuCoordinator(): void {
-    console.log('Initializing menu coordinator...');
-    moduleMenuCoordinator.refreshMenuItems();
+
+  async refreshAppState(): Promise<boolean> {
+    try {
+      // Refresh module states
+      await this.moduleInitializer.initialize();
+      
+      // Refresh menu items
+      await this.moduleMenuCoordinator.refreshMenu();
+      
+      console.log("Application state refreshed");
+      return true;
+    } catch (error) {
+      console.error("Failed to refresh application state:", error);
+      return false;
+    }
   }
 }
