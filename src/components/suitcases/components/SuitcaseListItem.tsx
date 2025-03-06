@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Suitcase } from "@/components/suitcases/utils/types";
 import { SuitcaseDates } from "./SuitcaseDates";
 import { SuitcaseItems } from "@/components/suitcases/items";
-import { SuitcaseActions } from "./SuitcaseActions";
+import SuitcaseActions from "./SuitcaseActions";
 
 interface SuitcaseListItemProps {
   suitcase: Suitcase;
@@ -88,10 +88,8 @@ export const SuitcaseListItem = ({
             
             <SuitcaseActions 
               suitcaseId={suitcase.id}
-              isSelected={isSelected}
-              onSelect={onSelect}
-              startDate={startDate}
-              endDate={endDate}
+              onAddItems={() => {}}
+              onViewCalendar={() => {}}
             />
           </div>
         </div>

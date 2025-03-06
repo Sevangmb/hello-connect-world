@@ -9,66 +9,61 @@ interface SuitcaseSuggestionsDialogProps {
   onOpenChange: (open: boolean) => void;
   suggestions: any[];
   isLoading: boolean;
-  onAddSuggestions: () => Promise<void>;
   isAdding: boolean;
   aiExplanation: string;
+  onAddSuggestions: () => Promise<void>;
   suitcaseId: string;
 }
 
-const SuitcaseSuggestionsDialog: React.FC<SuitcaseSuggestionsDialogProps> = ({
+export const SuitcaseSuggestionsDialog: React.FC<SuitcaseSuggestionsDialogProps> = ({
   open,
   onOpenChange,
   suggestions,
   isLoading,
-  onAddSuggestions,
   isAdding,
   aiExplanation,
+  onAddSuggestions,
   suitcaseId,
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Suggestions de l'IA</DialogTitle>
+          <DialogTitle>Suggestions IA pour votre valise</DialogTitle>
         </DialogHeader>
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-center text-sm text-muted-foreground">
-              L'IA est en train d'analyser votre valise et de générer des suggestions...
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-2 text-center text-sm text-muted-foreground">
+              Génération des suggestions en cours...
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {aiExplanation && (
-              <div className="bg-muted p-4 rounded-md text-sm">
-                <p className="font-medium mb-1">Explication:</p>
+              <div className="rounded-md bg-muted p-3 text-sm">
+                <p className="font-medium mb-1">Explication IA:</p>
                 <p>{aiExplanation}</p>
               </div>
             )}
             
             {suggestions.length > 0 ? (
               <div className="space-y-2">
-                <h3 className="text-sm font-medium">
-                  {suggestions.length} vêtements suggérés:
-                </h3>
+                <p className="text-sm font-medium">Vêtements suggérés ({suggestions.length}):</p>
                 <ul className="space-y-1">
                   {suggestions.map((item, index) => (
-                    <li key={item.id || index} className="text-sm flex items-center gap-2">
-                      <span className="w-4 h-4 flex items-center justify-center bg-primary/10 text-primary rounded-full text-xs">
-                        {index + 1}
-                      </span>
-                      <span>
-                        {item.name || `${item.category || 'Vêtement'} ${item.color || ''}`}
-                      </span>
+                    <li key={index} className="flex items-center gap-2 text-sm">
+                      <span className="h-2 w-2 rounded-full bg-primary"></span>
+                      {item.name || item.category || "Vêtement"}
+                      {item.color && ` (${item.color})`}
                     </li>
                   ))}
                 </ul>
               </div>
             ) : (
               <p className="text-center text-sm text-muted-foreground py-4">
-                Aucune suggestion n'a été trouvée pour cette valise.
+                Aucune suggestion disponible. Essayez d'ajouter plus d'informations à votre valise.
               </p>
             )}
           </div>
@@ -79,26 +74,25 @@ const SuitcaseSuggestionsDialog: React.FC<SuitcaseSuggestionsDialogProps> = ({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Annuler
+            Fermer
           </Button>
-          
-          <Button
-            onClick={onAddSuggestions}
-            disabled={isAdding || isLoading || suggestions.length === 0}
-          >
-            {isAdding ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Ajout en cours...
-              </>
-            ) : (
-              'Ajouter les suggestions'
-            )}
-          </Button>
+          {suggestions.length > 0 && (
+            <Button 
+              onClick={onAddSuggestions}
+              disabled={isAdding}
+            >
+              {isAdding ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Ajout en cours...
+                </>
+              ) : (
+                'Ajouter tous les vêtements'
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
-
-export default SuitcaseSuggestionsDialog;

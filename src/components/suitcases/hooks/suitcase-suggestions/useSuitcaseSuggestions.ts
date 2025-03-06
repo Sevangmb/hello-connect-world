@@ -25,31 +25,42 @@ export const useSuitcaseSuggestions = (suitcaseId: string) => {
       
       if (suitcaseError) throw suitcaseError;
       
-      // Get suggestions from Supabase Edge Function (or similar)
+      // Prepare body with optional fields handled safely
+      const requestBody: Record<string, any> = {
+        suitcaseId,
+        startDate: suitcase.start_date,
+        endDate: suitcase.end_date,
+      };
+      
+      // Only add these properties if they exist in the suitcase object
+      if ('destination' in suitcase && suitcase.destination) {
+        requestBody.destination = suitcase.destination;
+      }
+      
+      if ('purpose' in suitcase && suitcase.purpose) {
+        requestBody.purpose = suitcase.purpose;
+      }
+      
+      // Get suggestions from Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('get-suitcase-suggestions', {
-        body: {
-          suitcaseId,
-          startDate: suitcase.start_date,
-          endDate: suitcase.end_date,
-          // Only pass these if they exist
-          ...(suitcase.destination && { destination: suitcase.destination }),
-          ...(suitcase.purpose && { purpose: suitcase.purpose })
-        }
+        body: requestBody
       });
       
       if (error) throw error;
       
       if (data?.suggestions && Array.isArray(data.suggestions)) {
         // Match the suggestions with actual clothes items
-        const matchedItems = data.suggestions.map((suggestion: any) => {
-          // Find the closest match from user's clothes
-          const match = clothes.find(cloth => 
-            cloth.category === suggestion.category && 
-            (!suggestion.color || cloth.color === suggestion.color)
-          );
-          
-          return match || null;
-        }).filter(Boolean);
+        const matchedItems = data.suggestions
+          .map((suggestion: any) => {
+            // Find the closest match from user's clothes
+            const match = clothes.find(cloth => 
+              cloth.category === suggestion.category && 
+              (!suggestion.color || cloth.color === suggestion.color)
+            );
+            
+            return match || null;
+          })
+          .filter(Boolean);
         
         setSuggestions(matchedItems);
         setAiExplanation(data.explanation || '');

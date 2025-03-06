@@ -86,7 +86,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Use function call with correct parameter format
+      // Use Edge Function instead of RPC
       const { data, error } = await supabase.functions.invoke(
         'get-module-dependencies', 
         { body: { module_id: moduleId } }
@@ -164,7 +164,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<any[]> {
     try {
-      // Use functions.invoke instead of rpc
+      // Use Edge Function instead of RPC
       const { data, error } = await supabase.functions.invoke(
         'get-modules-with-features'
       );

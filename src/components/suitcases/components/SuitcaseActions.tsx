@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Loader2, Plus } from 'lucide-react';
 import { useSuitcaseSuggestions } from '../hooks/suitcase-suggestions/useSuitcaseSuggestions';
-import SuitcaseSuggestionsDialog from './SuitcaseSuggestionsDialog';
+import { SuitcaseSuggestionsDialog } from './SuitcaseSuggestionsDialog';
 
 interface SuitcaseActionsProps {
   suitcaseId: string;
@@ -16,7 +16,8 @@ interface SuitcaseActionsProps {
   endDate?: Date;
 }
 
-const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
+// Export as named export, not default
+export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
   suitcaseId,
   onAddItems,
   onViewCalendar,
@@ -94,5 +95,3 @@ const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({
     </>
   );
 };
-
-export default SuitcaseActions;

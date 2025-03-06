@@ -1,288 +1,362 @@
 
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useShop } from '@/hooks/useShop';
 import { useForm } from 'react-hook-form';
-import { PaymentMethod, DeliveryOption, ShopSettings as ShopSettingsType } from '@/core/shop/domain/types';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { DeliveryOption, PaymentMethod, ShopSettings } from '@/core/shop/domain/types';
 
-interface SettingsFormValues {
-  payment_methods: PaymentMethod[];
-  delivery_options: DeliveryOption[];
-  auto_accept_orders: boolean;
-  notification_preferences: {
-    email: boolean;
-    app: boolean;
-  };
-}
+const formSchema = z.object({
+  delivery_options: z.array(z.string()),
+  payment_methods: z.array(z.string()),
+  auto_accept_orders: z.boolean(),
+  notification_preferences: z.object({
+    email: z.boolean(),
+    app: z.boolean(),
+  }),
+});
 
-const ShopSettings: React.FC = () => {
-  const { shop, fetchShopByUserId } = useShop();
+type FormValues = z.infer<typeof formSchema>;
+
+export const ShopSettings = () => {
+  const { shop, getShopSettings, updateShopSettings } = useShop();
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  
-  const form = useForm<SettingsFormValues>({
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
-      payment_methods: [],
       delivery_options: [],
+      payment_methods: [],
       auto_accept_orders: false,
       notification_preferences: {
         email: true,
-        app: true
-      }
-    }
+        app: true,
+      },
+    },
   });
-  
-  const onSubmit = async (data: SettingsFormValues) => {
-    if (!shop) return;
-    
-    try {
-      setSaving(true);
-      
-      // In a real implementation, you would save this with updateShopSettings
-      // For now, we'll just show a success message
-      
-      console.log('Saving shop settings:', data);
-      
-      toast({
-        title: "Paramètres sauvegardés",
-        description: "Les paramètres de votre boutique ont été mis à jour."
-      });
-    } catch (error) {
-      console.error('Error saving shop settings:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de sauvegarder les paramètres de la boutique."
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-  
+
   useEffect(() => {
     const loadSettings = async () => {
-      if (!shop) return;
+      if (!shop?.id) return;
       
       try {
-        setLoading(true);
+        setIsLoading(true);
+        const settings = await getShopSettings(shop.id);
         
-        // In a real implementation, you would fetch the settings
-        // For now, we'll use dummy data
-        
-        const dummySettings = {
-          payment_methods: ['card', 'paypal'] as PaymentMethod[],
-          delivery_options: ['delivery', 'pickup'] as DeliveryOption[],
-          auto_accept_orders: true,
-          notification_preferences: {
-            email: true,
-            app: true
-          }
-        };
-        
-        form.reset(dummySettings);
+        if (settings) {
+          form.reset({
+            delivery_options: settings.delivery_options as string[],
+            payment_methods: settings.payment_methods as string[],
+            auto_accept_orders: settings.auto_accept_orders,
+            notification_preferences: settings.notification_preferences,
+          });
+        }
       } catch (error) {
         console.error('Error loading shop settings:', error);
         toast({
-          variant: "destructive",
-          title: "Erreur",
-          description: "Impossible de charger les paramètres de la boutique."
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Impossible de charger les paramètres de la boutique.',
         });
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    
+
     loadSettings();
-  }, [shop, form, toast]);
-  
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-  
+  }, [shop?.id, form, getShopSettings, toast]);
+
+  const onSubmit = async (data: FormValues) => {
+    if (!shop?.id) return;
+    
+    try {
+      setIsLoading(true);
+      
+      await updateShopSettings(shop.id, {
+        delivery_options: data.delivery_options as DeliveryOption[],
+        payment_methods: data.payment_methods as PaymentMethod[],
+        auto_accept_orders: data.auto_accept_orders,
+        notification_preferences: data.notification_preferences,
+      });
+      
+      toast({
+        title: 'Paramètres mis à jour',
+        description: 'Les paramètres de votre boutique ont été mis à jour avec succès.',
+      });
+    } catch (error) {
+      console.error('Error updating shop settings:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Une erreur est survenue lors de la mise à jour des paramètres.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Méthodes de paiement</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="payment-card"
-                checked={form.watch('payment_methods').includes('card')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('payment_methods');
-                  if (checked) {
-                    form.setValue('payment_methods', [...current, 'card'] as PaymentMethod[]);
-                  } else {
-                    form.setValue('payment_methods', current.filter(m => m !== 'card') as PaymentMethod[]);
-                  }
-                }}
-              />
-              <Label htmlFor="payment-card">Carte bancaire</Label>
+    <Card>
+      <CardHeader>
+        <CardTitle>Paramètres de la boutique</CardTitle>
+        <CardDescription>Configurez les options de votre boutique</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium">Options de livraison</h3>
+              <p className="text-sm text-muted-foreground">
+                Sélectionnez les options de livraison disponibles pour vos clients.
+              </p>
+              <div className="grid gap-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="delivery_options"
+                  render={() => (
+                    <FormItem className="space-y-2">
+                      <div className="space-y-2">
+                        <FormField
+                          control={form.control}
+                          name="delivery_options"
+                          render={({ field }) => {
+                            return (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes('pickup')}
+                                    onCheckedChange={(checked) => {
+                                      checked
+                                        ? field.onChange([...field.value, 'pickup'])
+                                        : field.onChange(field.value?.filter((value) => value !== 'pickup'));
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Retrait en boutique</FormLabel>
+                                  <FormDescription>
+                                    Les clients peuvent venir chercher leurs commandes directement en boutique.
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="delivery_options"
+                          render={({ field }) => {
+                            return (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes('delivery')}
+                                    onCheckedChange={(checked) => {
+                                      checked
+                                        ? field.onChange([...field.value, 'delivery'])
+                                        : field.onChange(field.value?.filter((value) => value !== 'delivery'));
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Livraison à domicile</FormLabel>
+                                  <FormDescription>
+                                    Proposer la livraison des commandes à l'adresse des clients.
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="payment-paypal"
-                checked={form.watch('payment_methods').includes('paypal')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('payment_methods');
-                  if (checked) {
-                    form.setValue('payment_methods', [...current, 'paypal'] as PaymentMethod[]);
-                  } else {
-                    form.setValue('payment_methods', current.filter(m => m !== 'paypal') as PaymentMethod[]);
-                  }
-                }}
-              />
-              <Label htmlFor="payment-paypal">PayPal</Label>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-medium">Options de paiement</h3>
+              <p className="text-sm text-muted-foreground">
+                Sélectionnez les méthodes de paiement acceptées.
+              </p>
+              <div className="grid gap-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="payment_methods"
+                  render={() => (
+                    <FormItem className="space-y-2">
+                      <div className="space-y-2">
+                        <FormField
+                          control={form.control}
+                          name="payment_methods"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes('card')}
+                                  onCheckedChange={(checked) => {
+                                    checked
+                                      ? field.onChange([...field.value, 'card'])
+                                      : field.onChange(field.value?.filter((value) => value !== 'card'));
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Carte bancaire</FormLabel>
+                                <FormDescription>
+                                  Paiement sécurisé par carte bancaire.
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="payment_methods"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes('paypal')}
+                                  onCheckedChange={(checked) => {
+                                    checked
+                                      ? field.onChange([...field.value, 'paypal'])
+                                      : field.onChange(field.value?.filter((value) => value !== 'paypal'));
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>PayPal</FormLabel>
+                                <FormDescription>
+                                  Accepter les paiements via PayPal.
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="payment_methods"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes('bank_transfer')}
+                                  onCheckedChange={(checked) => {
+                                    checked
+                                      ? field.onChange([...field.value, 'bank_transfer'])
+                                      : field.onChange(field.value?.filter((value) => value !== 'bank_transfer'));
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Virement bancaire</FormLabel>
+                                <FormDescription>
+                                  Accepter les paiements par virement bancaire.
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="payment-bank"
-                checked={form.watch('payment_methods').includes('bank_transfer')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('payment_methods');
-                  if (checked) {
-                    form.setValue('payment_methods', [...current, 'bank_transfer'] as PaymentMethod[]);
-                  } else {
-                    form.setValue('payment_methods', current.filter(m => m !== 'bank_transfer') as PaymentMethod[]);
-                  }
-                }}
-              />
-              <Label htmlFor="payment-bank">Virement bancaire</Label>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-medium">Paramètres des commandes</h3>
+              <div className="grid gap-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="auto_accept_orders"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Acceptation automatique des commandes</FormLabel>
+                        <FormDescription>
+                          Les commandes seront automatiquement acceptées sans validation manuelle.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="payment-cash"
-                checked={form.watch('payment_methods').includes('cash')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('payment_methods');
-                  if (checked) {
-                    form.setValue('payment_methods', [...current, 'cash'] as PaymentMethod[]);
-                  } else {
-                    form.setValue('payment_methods', current.filter(m => m !== 'cash') as PaymentMethod[]);
-                  }
-                }}
-              />
-              <Label htmlFor="payment-cash">Paiement en espèces</Label>
+
+            <Separator />
+
+            <div>
+              <h3 className="text-lg font-medium">Notifications</h3>
+              <div className="grid gap-4 pt-4">
+                <FormField
+                  control={form.control}
+                  name="notification_preferences.email"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Notifications par email</FormLabel>
+                        <FormDescription>
+                          Recevoir des notifications par email pour les nouvelles commandes.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="notification_preferences.app"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Notifications dans l'application</FormLabel>
+                        <FormDescription>
+                          Recevoir des notifications dans l'application pour les nouvelles commandes.
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Options de livraison</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="delivery-pickup"
-                checked={form.watch('delivery_options').includes('pickup')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('delivery_options');
-                  if (checked) {
-                    form.setValue('delivery_options', [...current, 'pickup'] as DeliveryOption[]);
-                  } else {
-                    form.setValue('delivery_options', current.filter(o => o !== 'pickup') as DeliveryOption[]);
-                  }
-                }}
-              />
-              <Label htmlFor="delivery-pickup">Retrait en boutique</Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="delivery-delivery"
-                checked={form.watch('delivery_options').includes('delivery')}
-                onCheckedChange={(checked) => {
-                  const current = form.getValues('delivery_options');
-                  if (checked) {
-                    form.setValue('delivery_options', [...current, 'delivery'] as DeliveryOption[]);
-                  } else {
-                    form.setValue('delivery_options', current.filter(o => o !== 'delivery') as DeliveryOption[]);
-                  }
-                }}
-              />
-              <Label htmlFor="delivery-delivery">Livraison à domicile</Label>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Préférences de commande</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="auto-accept">Accepter automatiquement les commandes</Label>
-              <Switch
-                id="auto-accept"
-                checked={form.watch('auto_accept_orders')}
-                onCheckedChange={(checked) => {
-                  form.setValue('auto_accept_orders', checked);
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-email">Notifications par email</Label>
-              <Switch
-                id="notify-email"
-                checked={form.watch('notification_preferences.email')}
-                onCheckedChange={(checked) => {
-                  form.setValue('notification_preferences.email', checked);
-                }}
-              />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notify-app">Notifications dans l'application</Label>
-              <Switch
-                id="notify-app"
-                checked={form.watch('notification_preferences.app')}
-                onCheckedChange={(checked) => {
-                  form.setValue('notification_preferences.app', checked);
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Button type="submit" className="w-full" disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sauvegarde en cours...
-            </>
-          ) : (
-            'Sauvegarder les paramètres'
-          )}
-        </Button>
-      </div>
-    </form>
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 };
-
-export default ShopSettings;

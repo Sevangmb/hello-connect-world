@@ -1,6 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, CartItem, DbCartItem, DbOrder } from '../domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, ShopStatus, ShopItemStatus, PaymentMethod, DeliveryOption, OrderStatus, PaymentStatus, DbOrder, DbCartItem } from '../domain/types';
+import { IShopRepository } from '../domain/repository/IShopRepository';
 
 export class ShopRepository implements IShopRepository {
   async getShopById(id: string): Promise<Shop | null> {
@@ -14,23 +15,8 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as Shop;
     } catch (error) {
-      console.error(`Error fetching shop by ID ${id}:`, error);
+      console.error('Error fetching shop:', error);
       return null;
-    }
-  }
-
-  async getShopsByUserId(userId: string): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      return data as Shop[];
-    } catch (error) {
-      console.error(`Error fetching shops by user ID ${userId}:`, error);
-      return [];
     }
   }
 
@@ -45,7 +31,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as Shop;
     } catch (error) {
-      console.error(`Error fetching shop for user ${userId}:`, error);
+      console.error('Error fetching shop by user ID:', error);
       return null;
     }
   }
@@ -60,7 +46,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as Shop[];
     } catch (error) {
-      console.error(`Error fetching shops for user ${userId}:`, error);
+      console.error('Error fetching user shops:', error);
       return [];
     }
   }
@@ -69,8 +55,7 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shops')
-        .select('*, profiles(username, full_name)')
-        .order('created_at', { ascending: false });
+        .select('*, profiles(username, full_name)');
 
       if (error) throw error;
       return data as Shop[];
@@ -82,36 +67,14 @@ export class ShopRepository implements IShopRepository {
 
   async createShop(shop: Partial<Shop>): Promise<Shop> {
     try {
-      if (!shop.name || !shop.user_id) {
-        throw new Error('Shop name and user_id are required');
-      }
-
-      const shopData = {
-        name: shop.name,
-        user_id: shop.user_id,
-        description: shop.description || '',
-        image_url: shop.image_url,
-        address: shop.address,
-        phone: shop.phone,
-        website: shop.website,
-        status: shop.status || 'pending' as ShopStatus,
-        categories: shop.categories || [],
-        average_rating: shop.average_rating || 0,
-        total_ratings: shop.total_ratings || 0,
-        latitude: shop.latitude,
-        longitude: shop.longitude,
-        opening_hours: shop.opening_hours
-      };
-
       const { data, error } = await supabase
         .from('shops')
-        .insert([shopData])
+        .insert(shop)
         .select()
         .single();
 
       if (error) throw error;
-      
-      return data as unknown as Shop;
+      return data as Shop;
     } catch (error) {
       console.error('Error creating shop:', error);
       throw error;
@@ -128,9 +91,9 @@ export class ShopRepository implements IShopRepository {
         .single();
 
       if (error) throw error;
-      return data as unknown as Shop;
+      return data as Shop;
     } catch (error) {
-      console.error(`Error updating shop ${shopId}:`, error);
+      console.error('Error updating shop:', error);
       return null;
     }
   }
@@ -145,7 +108,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error deleting shop ${shopId}:`, error);
+      console.error('Error deleting shop:', error);
       return false;
     }
   }
@@ -160,7 +123,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as Shop[];
     } catch (error) {
-      console.error(`Error fetching shops with status ${status}:`, error);
+      console.error(`Error fetching shops by status ${status}:`, error);
       return [];
     }
   }
@@ -169,16 +132,13 @@ export class ShopRepository implements IShopRepository {
     try {
       const { error } = await supabase
         .from('shops')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
+        .update({ status })
         .eq('id', shopId);
 
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error updating shop status for ${shopId}:`, error);
+      console.error('Error updating shop status:', error);
       return false;
     }
   }
@@ -187,40 +147,26 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*, shop(name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+        .select('*, shop:shops(name, id)')
+        .eq('shop_id', shopId);
 
       if (error) throw error;
       return data as unknown as ShopItem[];
     } catch (error) {
-      console.error(`Error fetching items for shop ${shopId}:`, error);
+      console.error('Error fetching shop items:', error);
       return [];
     }
   }
 
   async getShopItemsByShopId(shopId: string): Promise<ShopItem[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_items')
-        .select('*, shop(name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as unknown as ShopItem[];
-    } catch (error) {
-      console.error(`Error fetching items for shop ${shopId}:`, error);
-      return [];
-    }
+    return this.getShopItems(shopId);
   }
 
   async getAllShopItems(): Promise<ShopItem[]> {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*, shop(name)')
-        .order('created_at', { ascending: false });
+        .select('*, shop:shops(name, id)');
 
       if (error) throw error;
       return data as unknown as ShopItem[];
@@ -234,45 +180,28 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*, shop(name)')
+        .select('*, shop:shops(name, id)')
         .eq('id', itemId)
         .single();
 
       if (error) throw error;
       return data as unknown as ShopItem;
     } catch (error) {
-      console.error(`Error fetching shop item by ID ${itemId}:`, error);
+      console.error('Error fetching shop item:', error);
       return null;
     }
   }
 
   async createShopItem(shopItem: Partial<ShopItem>): Promise<ShopItem> {
     try {
-      if (!shopItem.shop_id || shopItem.price === undefined) {
-        throw new Error('Shop ID and price are required');
-      }
-
-      const shopItemData = {
-        shop_id: shopItem.shop_id,
-        name: shopItem.name || 'Unnamed item',
-        description: shopItem.description || '',
-        image_url: shopItem.image_url,
-        price: shopItem.price,
-        original_price: shopItem.original_price,
-        stock: shopItem.stock !== undefined ? shopItem.stock : 0,
-        status: shopItem.status || 'available' as ShopItemStatus,
-        clothes_id: shopItem.clothes_id
-      };
-
       const { data, error } = await supabase
         .from('shop_items')
-        .insert([shopItemData])
+        .insert(shopItem)
         .select()
         .single();
 
       if (error) throw error;
-      
-      return data as unknown as ShopItem;
+      return data as ShopItem;
     } catch (error) {
       console.error('Error creating shop item:', error);
       throw error;
@@ -289,9 +218,9 @@ export class ShopRepository implements IShopRepository {
         .single();
 
       if (error) throw error;
-      return data as unknown as ShopItem;
+      return data as ShopItem;
     } catch (error) {
-      console.error(`Error updating shop item ${itemId}:`, error);
+      console.error('Error updating shop item:', error);
       return null;
     }
   }
@@ -306,7 +235,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error deleting shop item ${itemId}:`, error);
+      console.error('Error deleting shop item:', error);
       return false;
     }
   }
@@ -315,32 +244,48 @@ export class ShopRepository implements IShopRepository {
     try {
       const { error } = await supabase
         .from('shop_items')
-        .update({ 
-          status, 
-          updated_at: new Date().toISOString()
-        })
+        .update({ status })
         .eq('id', itemId);
 
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error updating shop item status for ${itemId}:`, error);
+      console.error('Error updating shop item status:', error);
       return false;
     }
   }
 
   async addShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]> {
     try {
+      // Make sure all required fields are present in each item
+      const validItems = items.map(item => {
+        if (!item.shop_id || !item.price) {
+          throw new Error('Missing required fields in shop items');
+        }
+        return {
+          shop_id: item.shop_id,
+          price: item.price,
+          name: item.name || '',
+          description: item.description,
+          image_url: item.image_url,
+          original_price: item.original_price,
+          stock: item.stock || 1,
+          status: item.status || 'available',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
+
       const { data, error } = await supabase
         .from('shop_items')
-        .insert(items)
+        .insert(validItems)
         .select();
 
       if (error) throw error;
       return data as ShopItem[];
     } catch (error) {
       console.error('Error adding shop items:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -348,14 +293,14 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*')
+        .select('*, shop:shops(name, id)')
         .eq('shop_id', shopId)
-        .like('name', `%${category}%`);
+        .eq('category', category);
 
       if (error) throw error;
       return data as unknown as ShopItem[];
     } catch (error) {
-      console.error(`Error fetching shop items by category for shop ${shopId}:`, error);
+      console.error('Error fetching shop items by category:', error);
       return [];
     }
   }
@@ -364,13 +309,13 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*')
-        .or(`name.ilike.%${query}%, description.ilike.%${query}%`);
+        .select('*, shop:shops(name, id)')
+        .ilike('name', `%${query}%`);
 
       if (error) throw error;
       return data as unknown as ShopItem[];
     } catch (error) {
-      console.error(`Error searching shop items with query "${query}":`, error);
+      console.error('Error searching shop items:', error);
       return [];
     }
   }
@@ -379,14 +324,14 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_items')
-        .select('*')
+        .select('*, shop:shops(name, id)')
         .eq('shop_id', shopId)
         .eq('status', status);
 
       if (error) throw error;
       return data as unknown as ShopItem[];
     } catch (error) {
-      console.error(`Error fetching shop items with status ${status}:`, error);
+      console.error('Error fetching shop items by status:', error);
       return [];
     }
   }
@@ -396,31 +341,18 @@ export class ShopRepository implements IShopRepository {
       const { data, error } = await supabase
         .from('shop_reviews')
         .select('*, profiles(username, full_name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
+        .eq('shop_id', shopId);
 
       if (error) throw error;
       return data as ShopReview[];
     } catch (error) {
-      console.error(`Error fetching reviews for shop ${shopId}:`, error);
+      console.error('Error fetching shop reviews:', error);
       return [];
     }
   }
 
   async getShopReviewsByShopId(shopId: string): Promise<ShopReview[]> {
-    try {
-      const { data, error } = await supabase
-        .from('shop_reviews')
-        .select('*, profiles(username, full_name)')
-        .eq('shop_id', shopId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as ShopReview[];
-    } catch (error) {
-      console.error(`Error fetching reviews for shop ${shopId}:`, error);
-      return [];
-    }
+    return this.getShopReviews(shopId);
   }
 
   async addShopReview(review: Omit<ShopReview, 'id' | 'created_at' | 'updated_at'>): Promise<ShopReview | null> {
@@ -428,20 +360,17 @@ export class ShopRepository implements IShopRepository {
       const { data, error } = await supabase
         .from('shop_reviews')
         .insert({
-          shop_id: review.shop_id,
-          user_id: review.user_id,
-          rating: review.rating,
-          comment: review.comment,
+          ...review,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
-        .select('*, profiles(username, full_name)')
+        .select()
         .single();
 
       if (error) throw error;
       return data as ShopReview;
     } catch (error) {
-      console.error('Error creating shop review:', error);
+      console.error('Error adding shop review:', error);
       return null;
     }
   }
@@ -451,14 +380,11 @@ export class ShopRepository implements IShopRepository {
       const { data, error } = await supabase
         .from('shop_reviews')
         .insert({
-          shop_id: review.shop_id,
-          user_id: review.user_id,
-          rating: review.rating,
-          comment: review.comment,
+          ...review,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
-        .select('*, profiles(username, full_name)')
+        .select()
         .single();
 
       if (error) throw error;
@@ -473,15 +399,18 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('shop_reviews')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', reviewId)
-        .select('*, profiles(username, full_name)')
+        .select()
         .single();
 
       if (error) throw error;
       return data as ShopReview;
     } catch (error) {
-      console.error(`Error updating shop review ${reviewId}:`, error);
+      console.error('Error updating shop review:', error);
       return null;
     }
   }
@@ -496,7 +425,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error deleting shop review ${reviewId}:`, error);
+      console.error('Error deleting shop review:', error);
       return false;
     }
   }
@@ -511,7 +440,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as ShopReview[];
     } catch (error) {
-      console.error(`Error fetching reviews by user ${userId}:`, error);
+      console.error('Error fetching user shop reviews:', error);
       return [];
     }
   }
@@ -527,49 +456,69 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return data as ShopSettings;
     } catch (error) {
-      console.error(`Error fetching shop settings for ${shopId}:`, error);
+      console.error('Error fetching shop settings:', error);
       return null;
     }
   }
 
   async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
     try {
-      const { data, error } = await supabase
+      // Check if settings exist first
+      const { data: existingSettings } = await supabase
         .from('shop_settings')
-        .update({
-          delivery_options: settings.delivery_options,
-          payment_methods: settings.payment_methods,
-          auto_accept_orders: settings.auto_accept_orders,
-          notification_preferences: settings.notification_preferences,
-          updated_at: new Date().toISOString()
-        })
+        .select('*')
         .eq('shop_id', shopId)
-        .select()
         .single();
 
-      if (error) throw error;
-      return data as ShopSettings;
+      let result;
+      
+      if (existingSettings) {
+        // Update existing settings
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .update({
+            ...settings,
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop_id', shopId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Create new settings
+        const { data, error } = await supabase
+          .from('shop_settings')
+          .insert({
+            shop_id: shopId,
+            ...settings,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      return result as ShopSettings;
     } catch (error) {
-      console.error(`Error updating shop settings for ${shopId}:`, error);
+      console.error('Error updating shop settings:', error);
       return null;
     }
   }
 
   async createShopSettings(settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
     try {
-      if (!settings.shop_id) {
-        throw new Error('Shop ID is required for shop settings');
-      }
-
       const { data, error } = await supabase
         .from('shop_settings')
-        .insert([{
-          shop_id: settings.shop_id,
-          delivery_options: settings.delivery_options || ['pickup'],
-          payment_methods: settings.payment_methods || ['card'],
-          auto_accept_orders: settings.auto_accept_orders || false,
-          notification_preferences: settings.notification_preferences || { email: true, app: true }
-        }])
+        .insert({
+          ...settings,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         .select()
         .single();
 
@@ -583,34 +532,41 @@ export class ShopRepository implements IShopRepository {
 
   async toggleShopFavorite(shopId: string, userId: string): Promise<boolean> {
     try {
-      const { data: existingFav, error: checkError } = await supabase
+      // Check if already favorited
+      const { data: existing, error: checkError } = await supabase
         .from('user_favorite_shops')
         .select('*')
-        .eq('shop_id', shopId)
         .eq('user_id', userId)
+        .eq('shop_id', shopId)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
-      if (existingFav) {
+      if (existing) {
+        // Remove from favorites
         const { error: deleteError } = await supabase
           .from('user_favorite_shops')
           .delete()
-          .eq('shop_id', shopId)
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .eq('shop_id', shopId);
 
         if (deleteError) throw deleteError;
-        return false;
       } else {
+        // Add to favorites
         const { error: insertError } = await supabase
           .from('user_favorite_shops')
-          .insert([{ shop_id: shopId, user_id: userId }]);
+          .insert({
+            user_id: userId,
+            shop_id: shopId,
+            created_at: new Date().toISOString()
+          });
 
         if (insertError) throw insertError;
-        return true;
       }
+
+      return true;
     } catch (error) {
-      console.error(`Error toggling favorite for shop ${shopId}:`, error);
+      console.error('Error toggling shop favorite:', error);
       return false;
     }
   }
@@ -620,14 +576,14 @@ export class ShopRepository implements IShopRepository {
       const { data, error } = await supabase
         .from('user_favorite_shops')
         .select('*')
-        .eq('shop_id', shopId)
         .eq('user_id', userId)
+        .eq('shop_id', shopId)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
       return !!data;
     } catch (error) {
-      console.error(`Error checking if shop ${shopId} is favorited:`, error);
+      console.error('Error checking shop favorite status:', error);
       return false;
     }
   }
@@ -636,54 +592,21 @@ export class ShopRepository implements IShopRepository {
     try {
       const { data, error } = await supabase
         .from('user_favorite_shops')
-        .select('shop_id')
+        .select('shop_id, shops:shop_id(*, profiles(username, full_name))')
         .eq('user_id', userId);
 
       if (error) throw error;
-
-      if (data.length === 0) return [];
-
-      const shopIds = data.map(item => item.shop_id);
       
-      const { data: shops, error: shopsError } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .in('id', shopIds);
-
-      if (shopsError) throw shopsError;
-      
-      return shops as Shop[];
+      const shops = data.map(item => item.shops) as Shop[];
+      return shops;
     } catch (error) {
-      console.error(`Error fetching favorite shops for user ${userId}:`, error);
+      console.error('Error fetching user favorite shops:', error);
       return [];
     }
   }
 
   async getFavoriteShops(userId: string): Promise<Shop[]> {
-    try {
-      const { data, error } = await supabase
-        .from('user_favorite_shops')
-        .select('shop_id')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      if (data.length === 0) return [];
-
-      const shopIds = data.map(item => item.shop_id);
-      
-      const { data: shops, error: shopsError } = await supabase
-        .from('shops')
-        .select('*, profiles(username, full_name)')
-        .in('id', shopIds);
-
-      if (shopsError) throw shopsError;
-      
-      return shops as Shop[];
-    } catch (error) {
-      console.error(`Error fetching favorite shops for user ${userId}:`, error);
-      return [];
-    }
+    return this.getUserFavoriteShops(userId);
   }
 
   async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
@@ -699,7 +622,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error adding shop ${shopId} to favorites for user ${userId}:`, error);
+      console.error('Error adding shop to favorites:', error);
       return false;
     }
   }
@@ -715,12 +638,12 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error removing shop ${shopId} from favorites for user ${userId}:`, error);
+      console.error('Error removing shop from favorites:', error);
       return false;
     }
   }
 
-  async getFeaturedShops(limit?: number): Promise<Shop[]> {
+  async getFeaturedShops(limit: number = 5): Promise<Shop[]> {
     try {
       const { data, error } = await supabase
         .from('shops')
@@ -737,25 +660,43 @@ export class ShopRepository implements IShopRepository {
     }
   }
 
-  async getRelatedShops(shopId: string, limit?: number): Promise<Shop[]> {
+  async getRelatedShops(shopId: string, limit: number = 3): Promise<Shop[]> {
     try {
-      const shop = await this.getShopById(shopId);
-      if (!shop || !shop.categories || shop.categories.length === 0) {
+      // Get the categories of the specified shop
+      const { data: shopData, error: shopError } = await supabase
+        .from('shops')
+        .select('categories')
+        .eq('id', shopId)
+        .single();
+
+      if (shopError) throw shopError;
+      
+      if (!shopData.categories || !shopData.categories.length) {
         return [];
       }
 
+      // Find shops with similar categories
       const { data, error } = await supabase
         .from('shops')
         .select('*, profiles(username, full_name)')
         .neq('id', shopId)
         .eq('status', 'approved')
+        .order('average_rating', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
       
-      return data as Shop[];
+      // Filter shops that have at least one matching category
+      const relatedShops = data.filter(shop => {
+        if (!shop.categories) return false;
+        return shop.categories.some((category: string) => 
+          shopData.categories.includes(category)
+        );
+      });
+
+      return relatedShops as Shop[];
     } catch (error) {
-      console.error(`Error fetching related shops for shop ${shopId}:`, error);
+      console.error('Error fetching related shops:', error);
       return [];
     }
   }
@@ -768,16 +709,18 @@ export class ShopRepository implements IShopRepository {
         .eq('buyer_id', userId);
         
       if (status) {
-        query = query.eq('status', status as string);
+        query = query.eq('status', status);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query;
 
       if (error) throw error;
       
-      return data as Order[];
+      // Transform the database orders to the Order type
+      const orders = data.map(dbOrder => this.mapDatabaseOrderToOrder(dbOrder));
+      return orders;
     } catch (error) {
-      console.error(`Error fetching orders for user ${userId}:`, error);
+      console.error('Error fetching user orders:', error);
       return [];
     }
   }
@@ -791,9 +734,10 @@ export class ShopRepository implements IShopRepository {
 
       if (error) throw error;
       
-      return data as Order[];
+      const orders = data.map(dbOrder => this.mapDatabaseOrderToOrder(dbOrder));
+      return orders;
     } catch (error) {
-      console.error(`Error fetching seller orders for ${userId}:`, error);
+      console.error('Error fetching seller orders:', error);
       return [];
     }
   }
@@ -809,15 +753,20 @@ export class ShopRepository implements IShopRepository {
         query = query.eq('status', status);
       }
       
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query;
 
       if (error) throw error;
       
-      return data as Order[];
+      const orders = data.map(dbOrder => this.mapDatabaseOrderToOrder(dbOrder));
+      return orders;
     } catch (error) {
-      console.error(`Error fetching orders for shop ${shopId}:`, error);
+      console.error('Error fetching shop orders:', error);
       return [];
     }
+  }
+
+  async getShopOrders(shopId: string): Promise<Order[]> {
+    return this.getOrdersByShopId(shopId);
   }
 
   async updateOrderStatus(orderId: string, status: string): Promise<boolean> {
@@ -833,7 +782,7 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error updating order status for ${orderId}:`, error);
+      console.error('Error updating order status:', error);
       return false;
     }
   }
@@ -851,33 +800,35 @@ export class ShopRepository implements IShopRepository {
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error(`Error updating payment status for ${orderId}:`, error);
+      console.error('Error updating payment status:', error);
       return false;
     }
   }
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {
+      // Map Order to database structure
+      const dbOrderData = {
+        buyer_id: orderData.customer_id,
+        seller_id: orderData.seller_id,
+        status: orderData.status,
+        total_amount: orderData.total_amount,
+        payment_status: orderData.payment_status,
+        payment_method: orderData.payment_method,
+        delivery_address: orderData.delivery_address,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('orders')
-        .insert({
-          shop_id: orderData.shop_id,
-          customer_id: orderData.customer_id,
-          status: orderData.status || 'pending',
-          total_amount: orderData.total_amount,
-          delivery_fee: orderData.delivery_fee || 0,
-          payment_status: orderData.payment_status || 'pending',
-          payment_method: orderData.payment_method,
-          delivery_address: orderData.delivery_address,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .insert(dbOrderData)
         .select()
         .single();
 
       if (error) throw error;
       
-      return data as unknown as Order;
+      return this.mapDatabaseOrderToOrder(data);
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
@@ -886,45 +837,72 @@ export class ShopRepository implements IShopRepository {
 
   async addToCart(userId: string, shopItemId: string, quantity: number): Promise<boolean> {
     try {
-      const { data: existingItem, error: checkError } = await supabase
+      // Check if the item is already in the cart
+      const { data: existingItems, error: checkError } = await supabase
         .from('cart_items')
         .select('*')
         .eq('user_id', userId)
-        .eq('shop_item_id', shopItemId)
-        .single();
+        .eq('shop_item_id', shopItemId);
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
+      if (checkError) throw checkError;
 
-      if (existingItem) {
+      if (existingItems && existingItems.length > 0) {
+        // Update the quantity if the item is already in the cart
+        const existingItem = existingItems[0];
+        const newQuantity = existingItem.quantity + quantity;
+
         const { error: updateError } = await supabase
           .from('cart_items')
           .update({ 
-            quantity: existingItem.quantity + quantity,
-            updated_at: new Date().toISOString() 
+            quantity: newQuantity,
+            updated_at: new Date().toISOString()
           })
           .eq('id', existingItem.id);
 
         if (updateError) throw updateError;
       } else {
+        // Add a new item to the cart
+        const cartItem: DbCartItem = {
+          user_id: userId,
+          shop_item_id: shopItemId,
+          quantity,
+        };
+
         const { error: insertError } = await supabase
           .from('cart_items')
-          .insert({
-            user_id: userId,
-            shop_item_id: shopItemId,
-            quantity,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
+          .insert(cartItem);
 
         if (insertError) throw insertError;
       }
 
       return true;
     } catch (error) {
-      console.error(`Error adding item ${shopItemId} to cart for user ${userId}:`, error);
+      console.error('Error adding item to cart:', error);
       return false;
     }
+  }
+
+  // Helper method to map database order to Order type
+  private mapDatabaseOrderToOrder(dbOrder: any): Order {
+    return {
+      id: dbOrder.id,
+      shop_id: dbOrder.shop_id || '',
+      customer_id: dbOrder.buyer_id,
+      seller_id: dbOrder.seller_id,
+      status: dbOrder.status as OrderStatus,
+      total_amount: dbOrder.total_amount,
+      delivery_fee: dbOrder.delivery_fee || 0,
+      payment_status: dbOrder.payment_status as PaymentStatus,
+      payment_method: dbOrder.payment_method,
+      delivery_address: dbOrder.delivery_address || {
+        street: '',
+        city: '',
+        postal_code: '',
+        country: ''
+      },
+      created_at: dbOrder.created_at,
+      updated_at: dbOrder.updated_at,
+      items: []
+    };
   }
 }

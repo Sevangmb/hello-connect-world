@@ -1,85 +1,75 @@
 
 import React, { useEffect, useState } from 'react';
 import { useShop } from '@/hooks/useShop';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ShopReview } from '@/core/shop/domain/types';
-import { Loader2, Star, StarOff } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
+import { StarIcon } from 'lucide-react';
 
 interface ShopReviewsListProps {
   shopId: string;
 }
 
-const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
-  const { fetchShopById } = useShop();
+export const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
   const [reviews, setReviews] = useState<ShopReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getShopReviews } = useShop();
 
   useEffect(() => {
-    const fetchReviews = async () => {
+    const loadReviews = async () => {
+      if (!shopId) return;
+      
+      setLoading(true);
       try {
-        setLoading(true);
-        
-        // For now, we'll just use some dummy data since getShopReviews isn't implemented
-        // In a real implementation, you'd fetch this from the API
-        const dummyReviews = [
-          {
-            id: '1',
-            shop_id: shopId,
-            user_id: 'user1',
-            rating: 5,
-            comment: 'Excellent service and products!',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            profiles: {
-              username: 'john_doe',
-              full_name: 'John Doe'
-            }
-          },
-          {
-            id: '2',
-            shop_id: shopId,
-            user_id: 'user2',
-            rating: 4,
-            comment: 'Great shop, would buy again.',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            profiles: {
-              username: 'jane_smith',
-              full_name: 'Jane Smith'
-            }
-          }
-        ] as ShopReview[];
-        
-        setReviews(dummyReviews);
+        const shopReviews = await getShopReviews(shopId);
+        setReviews(shopReviews);
       } catch (error) {
-        console.error('Error fetching shop reviews:', error);
+        console.error('Error loading shop reviews:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchReviews();
-  }, [shopId, fetchShopById]);
+    loadReviews();
+  }, [shopId, getShopReviews]);
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon 
+            key={i} 
+            className={`h-4 w-4 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
+          />
+        ))}
+      </div>
+    );
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-gray-200"></div>
+              <div className="space-y-2">
+                <div className="h-4 w-40 bg-gray-200 rounded"></div>
+                <div className="h-3 w-24 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+            <div className="mt-2 h-16 bg-gray-200 rounded"></div>
+          </div>
+        ))}
       </div>
     );
   }
 
   if (reviews.length === 0) {
     return (
-      <Card className="text-center p-8">
-        <CardHeader>
-          <CardTitle>Aucun avis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Votre boutique n'a pas encore reçu d'avis.
-          </p>
+      <Card>
+        <CardContent className="py-4 text-center text-muted-foreground">
+          Aucun avis pour le moment.
         </CardContent>
       </Card>
     );
@@ -87,54 +77,32 @@ const ShopReviewsList: React.FC<ShopReviewsListProps> = ({ shopId }) => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold mb-4">Avis clients</h2>
-      
-      <div className="grid gap-4">
-        {reviews.map((review) => (
-          <Card key={review.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
+      {reviews.map((review) => (
+        <Card key={review.id}>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
                 <Avatar>
+                  <AvatarImage src={review.profiles?.avatar_url || ''} />
                   <AvatarFallback>
-                    {review.profiles?.username?.substring(0, 2) || 'U'}
+                    {(review.profiles?.username || 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>
-                  {review.profiles?.username && (
-                    <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${review.profiles.username}`} />
-                  )}
                 </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">
-                        {review.profiles?.full_name || review.profiles?.username || 'Utilisateur'}
-                      </p>
-                      <div className="flex items-center mt-1 text-amber-500">
-                        {[...Array(5)].map((_, i) => (
-                          i < review.rating ? (
-                            <Star key={i} className="w-4 h-4 fill-current" />
-                          ) : (
-                            <StarOff key={i} className="w-4 h-4" />
-                          )
-                        ))}
-                      </div>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  {review.comment && (
-                    <p className="mt-2 text-muted-foreground">{review.comment}</p>
-                  )}
+                <div>
+                  <p className="font-medium">{review.profiles?.username || 'Utilisateur'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              {renderStars(review.rating)}
+            </div>
+            {review.comment && (
+              <p className="text-sm mt-2">{review.comment}</p>
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };
-
-export default ShopReviewsList;

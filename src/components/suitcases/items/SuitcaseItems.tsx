@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useClothes } from '@/hooks/useClothes';
 import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
-import SuitcaseItemsEmpty from './SuitcaseItemsEmpty';
-import SuitcaseItemsHeader from './SuitcaseItemsHeader';
+import { SuitcaseItemsEmpty } from './SuitcaseItemsEmpty';
+import { SuitcaseItemsHeader } from './SuitcaseItemsHeader';
 
 interface SuitcaseItemsProps {
   suitcaseId: string;
@@ -12,7 +12,7 @@ interface SuitcaseItemsProps {
 export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { clothes } = useClothes();
-  const { items, fetchItems, removeItem } = useSuitcaseItems(suitcaseId);
+  const { data: items = [], refetch: fetchItems, remove: removeItem } = useSuitcaseItems(suitcaseId);
   
   useEffect(() => {
     const loadItems = async () => {
@@ -75,5 +75,3 @@ export const SuitcaseItems: React.FC<SuitcaseItemsProps> = ({ suitcaseId }) => {
     </div>
   );
 };
-
-export default SuitcaseItems;

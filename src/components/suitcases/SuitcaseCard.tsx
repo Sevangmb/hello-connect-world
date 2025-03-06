@@ -13,7 +13,7 @@ import {
 import type { Suitcase } from "./utils/types";
 import { SuitcaseItems } from "./SuitcaseItems";
 import { SuitcaseDates } from "./components/SuitcaseDates";
-import { SuitcaseActions } from "./components/SuitcaseActions";
+import SuitcaseActions from "./components/SuitcaseActions";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -107,10 +107,8 @@ export const SuitcaseCard = ({ suitcase, onSelect, isSelected }: SuitcaseCardPro
             
             <SuitcaseActions 
               suitcaseId={suitcase.id}
-              isSelected={isSelected}
-              onSelect={onSelect}
-              startDate={startDate}
-              endDate={endDate}
+              onAddItems={() => {}}  // Add appropriate handlers
+              onViewCalendar={() => {}}
             />
           </div>
         )}
