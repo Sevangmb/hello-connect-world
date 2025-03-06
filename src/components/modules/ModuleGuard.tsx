@@ -1,90 +1,70 @@
 
-import React, { ReactNode, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { ModuleUnavailable } from './ModuleUnavailable';
 import { useModuleRegistry } from '@/hooks/modules/useModuleRegistry';
-import ModuleUnavailable from './ModuleUnavailable';
-import ModuleDegraded from './ModuleDegraded';
-import { Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '../ui/loading-spinner';
 
 interface ModuleGuardProps {
+  children: React.ReactNode;
   moduleCode: string;
-  children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: React.ReactNode;
+  redirectTo?: string;
 }
 
-/**
- * Composant qui vérifie si un module est disponible avant d'afficher son contenu
- */
-export const ModuleGuard: React.FC<ModuleGuardProps> = ({ 
-  moduleCode, 
-  children, 
-  fallback 
+export const ModuleGuard: React.FC<ModuleGuardProps> = ({
+  children,
+  moduleCode,
+  fallback,
+  redirectTo,
 }) => {
-  const navigate = useNavigate();
-  const { modules, loading, error, isModuleDegraded } = useModuleRegistry();
-  const [moduleActive, setModuleActive] = useState<boolean | null>(null);
-  const [moduleDegraded, setModuleDegraded] = useState<boolean>(false);
-  const [checkingStatus, setCheckingStatus] = useState<boolean>(true);
+  const { modules, loading, initialized, isModuleActive } = useModuleRegistry();
+  const [isActive, setIsActive] = useState<boolean | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const checkModuleStatus = async () => {
-      setCheckingStatus(true);
+      if (!initialized) return;
       
-      // Vérifier si le module existe dans la liste
-      const module = modules.find(m => m.code === moduleCode);
-      
-      if (module) {
-        setModuleActive(module.status === 'active');
-        
-        // Vérifier si le module est en dégradation
-        try {
-          const isDegraded = await isModuleDegraded(module.id);
-          setModuleDegraded(isDegraded);
-        } catch (err) {
-          console.error(`Error checking if module ${moduleCode} is degraded:`, err);
-          setModuleDegraded(false);
-        }
-      } else {
-        setModuleActive(false);
+      try {
+        setIsChecking(true);
+        const active = await isModuleActive(moduleCode);
+        setIsActive(active);
+      } catch (error) {
+        console.error(`Error checking module status for ${moduleCode}:`, error);
+        setIsActive(false);
+      } finally {
+        setIsChecking(false);
       }
-      
-      setCheckingStatus(false);
     };
-    
-    if (!loading && modules.length > 0) {
+
+    if (initialized) {
       checkModuleStatus();
     }
-  }, [moduleCode, modules, loading, isModuleDegraded]);
+  }, [moduleCode, initialized, isModuleActive]);
 
-  // Afficher un loader pendant la vérification
-  if (loading || checkingStatus) {
+  // Si les modules sont en cours de chargement ou si le statut est en vérification
+  if (loading || isChecking) {
     return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-full w-full items-center justify-center">
+        <LoadingSpinner />
       </div>
     );
   }
 
-  // Si le module n'est pas actif, afficher un message ou rediriger
-  if (moduleActive === false) {
+  // Si le module n'est pas actif
+  if (isActive === false) {
+    if (redirectTo) {
+      return <Navigate to={redirectTo} replace />;
+    }
+
     if (fallback) {
       return <>{fallback}</>;
     }
+
     return <ModuleUnavailable moduleCode={moduleCode} />;
   }
 
-  // Si le module est dégradé, afficher un avertissement
-  if (moduleDegraded) {
-    return (
-      <>
-        <ModuleDegraded moduleCode={moduleCode} />
-        {children}
-      </>
-    );
-  }
-
-  // Si tout est bon, afficher le contenu du module
+  // Module actif, rendre le contenu
   return <>{children}</>;
 };
-
-export default ModuleGuard;

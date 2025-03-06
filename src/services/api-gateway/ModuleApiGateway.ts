@@ -1,3 +1,4 @@
+
 import { BaseApiGateway } from './BaseApiGateway';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleService } from '../modules/ModuleService';
@@ -38,14 +39,16 @@ export class ModuleApiGateway extends BaseApiGateway {
    * Activate a module
    */
   async activateModule(moduleId: string): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(moduleId, 'active');
+    const result = await this.moduleService.updateModuleStatus(moduleId, 'active');
+    return !!result;
   }
 
   /**
    * Deactivate a module
    */
   async deactivateModule(moduleId: string): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(moduleId, 'inactive');
+    const result = await this.moduleService.updateModuleStatus(moduleId, 'inactive');
+    return !!result;
   }
 
   /**
@@ -88,7 +91,8 @@ export class ModuleApiGateway extends BaseApiGateway {
    * Update module status
    */
   async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
-    return await this.moduleService.updateModuleStatus(id, status);
+    const result = await this.moduleService.updateModuleStatus(id, status);
+    return !!result;
   }
 
   async refreshModules(): Promise<AppModule[]> {
@@ -100,8 +104,17 @@ export class ModuleApiGateway extends BaseApiGateway {
   }
 
   async isModuleDegraded(moduleId: string): Promise<boolean> {
-    const module = await this.moduleService.getModuleById(moduleId);
-    return module?.status === 'degraded';
+    try {
+      const module = await this.moduleService.getModuleByCode(moduleId);
+      return module?.status === 'degraded';
+    } catch (error) {
+      console.error("Error checking if module is degraded:", error);
+      return false;
+    }
+  }
+
+  async getModuleById(moduleId: string): Promise<AppModule | null> {
+    return await this.moduleService.getModuleByCode(moduleId);
   }
 }
 

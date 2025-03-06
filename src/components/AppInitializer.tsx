@@ -2,23 +2,40 @@
 import React, { useEffect, useState } from 'react';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { LoadingSpinner } from './ui/loading-spinner';
-import { useAppInitializer } from '@/utils/AppInitializer';
+import { useToast } from '@/hooks/use-toast';
+import { useModuleRegistry } from '@/hooks/modules/useModuleRegistry';
 
 interface AppInitializerProps {
   children: React.ReactNode;
 }
 
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
-  const { initialized, loading } = useAppInitializer();
+  const { initialized, loading, initializeModules } = useModuleRegistry();
   const [initStartTime] = useState(performance.now());
   const [displayLoading, setDisplayLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Mesurer le temps de démarrage
     const startTime = performance.now();
     
-    // Précharger les modules prioritaires
-    moduleOptimizer.preloadPriorityModules();
+    // Initialiser les modules
+    const init = async () => {
+      try {
+        await initializeModules();
+        // Précharger les modules prioritaires
+        await moduleOptimizer.preloadPriorityModules();
+      } catch (error) {
+        console.error('Erreur durant l\'initialisation:', error);
+        toast({
+          variant: "destructive",
+          title: "Erreur d'initialisation",
+          description: "L'application n'a pas pu démarrer correctement. Veuillez rafraîchir la page.",
+        });
+      }
+    };
+    
+    init();
     
     // Mesurer et enregistrer les performances
     const endTime = performance.now();
@@ -33,7 +50,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     setTimeout(() => {
       setDisplayLoading(false);
     }, remainingTime);
-  }, [initStartTime]);
+  }, [initStartTime, initializeModules, toast]);
 
   if (loading || displayLoading) {
     return (
