@@ -3,25 +3,17 @@ import React, { useState } from "react";
 import { Card, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModulesHeader } from "./components/ModulesHeader";
 import { ModulesFooter } from "./components/ModulesFooter";
-import { ModulesLoadingSkeleton } from "./components/ModulesLoadingSkeleton";
 import { ModulesTable } from "./components/ModulesTable";
+import { ModulesLoadingSkeleton } from "./components/ModulesLoadingSkeleton";
 import { useModulesList } from "./hooks/useModulesList";
 import { useModuleToggle } from "./hooks/useModuleToggle";
 import { useModuleSave } from "./hooks/useModuleSave";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ModuleFeatures } from "./ModuleFeatures";
-import { Info, CircleCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AppModule } from "@/hooks/modules/types";
+import { Info, CircleCheck } from "lucide-react";
 
-interface ModulesListProps {
-  onStatusChange?: () => void;
-}
-
-export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
+export const ModulesList: React.FC = () => {
   const {
     modules,
-    dependencies,
     isLoading,
     lastRefresh,
     isModuleActive,
@@ -30,7 +22,7 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     refreshModules,
     canToggleModule,
     handleRefresh
-  } = useModulesList(onStatusChange);
+  } = useModulesList();
   
   const {
     pendingChanges,
@@ -44,13 +36,9 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
     modules,
     updateModuleStatus,
     updateFeatureStatus,
-    refreshModules: async (): Promise<AppModule[]> => {
-      await refreshModules();
-      return modules;
-    },
+    refreshModules,
     pendingChanges,
-    resetPendingChanges,
-    onStatusChange
+    resetPendingChanges
   });
 
   const [showInfo, setShowInfo] = useState(false);
@@ -102,29 +90,15 @@ export const ModulesList: React.FC<ModulesListProps> = ({ onStatusChange }) => {
       />
       
       <div className="px-6 pb-4">
-        <Tabs defaultValue="modules" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="modules">Modules</TabsTrigger>
-            <TabsTrigger value="features">Fonctionnalités</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="modules">
-            <ModulesTable
-              modules={modules}
-              dependencies={dependencies}
-              pendingChanges={pendingChanges}
-              isModuleActive={isModuleActive}
-              canToggleModule={canToggleModule}
-              handleToggleModule={handleToggleModule}
-              getModuleStatus={getModuleStatus}
-              isLoading={isLoading || saving}
-            />
-          </TabsContent>
-          
-          <TabsContent value="features">
-            <ModuleFeatures />
-          </TabsContent>
-        </Tabs>
+        <ModulesTable
+          modules={modules}
+          pendingChanges={pendingChanges}
+          isModuleActive={isModuleActive}
+          canToggleModule={canToggleModule}
+          handleToggleModule={handleToggleModule}
+          getModuleStatus={getModuleStatus}
+          isLoading={isLoading || saving}
+        />
       </div>
       
       <CardFooter>
