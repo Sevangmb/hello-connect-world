@@ -1,22 +1,23 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
 export interface ClothesFilters {
-  category?: string;
-  subcategory?: string;
+  category?: string | string[];
   brand?: string;
   color?: string;
-  size?: string;
+  season?: string;
+  searchTerm?: string;
+  status?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-  search?: string;
-  isForSale?: boolean;
   showArchived?: boolean;
   needsAlteration?: boolean;
-  source?: 'mine' | 'friends' | 'all';
+  source?: string;
+  subcategory?: string | string[];
+  limit?: number;
+  offset?: number;
 }
 
 export const useClothes = (initialFilters: ClothesFilters = {}) => {
@@ -33,11 +34,19 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
       
       // Apply filters
       if (filters.category) {
-        query = query.eq('category', filters.category);
+        if (Array.isArray(filters.category)) {
+          query = query.in('category', filters.category);
+        } else {
+          query = query.eq('category', filters.category);
+        }
       }
       
       if (filters.subcategory) {
-        query = query.eq('subcategory', filters.subcategory);
+        if (Array.isArray(filters.subcategory)) {
+          query = query.in('subcategory', filters.subcategory);
+        } else {
+          query = query.eq('subcategory', filters.subcategory);
+        }
       }
       
       if (filters.brand) {
@@ -48,8 +57,16 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
         query = query.eq('color', filters.color);
       }
       
-      if (filters.size) {
-        query = query.eq('size', filters.size);
+      if (filters.season) {
+        query = query.eq('season', filters.season);
+      }
+      
+      if (filters.searchTerm) {
+        query = query.ilike('name', `%${filters.searchTerm}%`);
+      }
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status);
       }
       
       if (filters.isForSale !== undefined) {
@@ -67,16 +84,19 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
         query = query.eq('needs_alteration', filters.needsAlteration);
       }
       
-      if (filters.search) {
-        query = query.ilike('name', `%${filters.search}%`);
-      }
-      
-      // Apply sorting
       if (filters.sortBy) {
         query = query.order(filters.sortBy, { ascending: filters.sortOrder === 'asc' });
       } else {
         // Default sorting
         query = query.order('created_at', { ascending: false });
+      }
+      
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      if (filters.offset) {
+        query = query.offset(filters.offset);
       }
       
       const { data, error: apiError } = await query;

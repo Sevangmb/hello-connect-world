@@ -55,4 +55,23 @@ export interface OutfitItem {
   clothes_id: string;
   position: number;
   created_at?: string;
+  type?: string;
+}
+
+export interface OutfitRepositoryData {
+  id?: string;
+  user_id?: string;
+  name: string;
+  description?: string;
+  top_id?: string;
+  bottom_id?: string;
+  shoes_id?: string;
+  status: string;
+  category: string;
+  season: string;
+  is_favorite: boolean;
+  likes_count: number;
+  comments_count: number;
+  created_at?: string;
+  updated_at?: string;
 }

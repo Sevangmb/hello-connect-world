@@ -1,5 +1,5 @@
 
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus } from '../types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, PaymentStatus } from '../types';
 
 export interface IShopRepository {
   // Shop methods
@@ -12,7 +12,7 @@ export interface IShopRepository {
   getAllShops(): Promise<Shop[]>;
   
   // Shop items methods
-  getShopItems(userId: string): Promise<ShopItem[]>;
+  getShopItems(shopId: string): Promise<ShopItem[]>;
   getAllShopItems(): Promise<ShopItem[]>;
   getShopItemsByShopId(shopId: string): Promise<ShopItem[]>;
   getShopItemById(id: string): Promise<ShopItem | null>;

@@ -1,6 +1,5 @@
 
-import { Outfit } from '../types';
-import { OutfitItem } from '../../infrastructure/OutfitRepository';
+import { Outfit, OutfitItem, OutfitComment } from '../types';
 
 export interface IOutfitRepository {
   createOutfit(outfit: Partial<Outfit>): Promise<Outfit>;
@@ -22,4 +21,12 @@ export interface IOutfitRepository {
   getSimilarOutfits(outfitId: string): Promise<Outfit[]>;
   
   searchOutfits(query: string): Promise<Outfit[]>;
+  
+  // Additional methods that were missing
+  getAllOutfits(): Promise<Outfit[]>;
+  getOutfitsByUserId(userId: string): Promise<Outfit[]>;
+  getPublicOutfits(): Promise<Outfit[]>;
+  hasUserLikedOutfit(outfitId: string, userId: string): Promise<boolean>;
+  addOutfitComment(outfitId: string, userId: string, content: string): Promise<OutfitComment | null>;
+  getOutfitComments(outfitId: string): Promise<OutfitComment[]>;
 }

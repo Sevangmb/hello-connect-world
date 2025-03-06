@@ -61,8 +61,8 @@ export class OutfitService {
   /**
    * Remove an item from an outfit
    */
-  async removeOutfitItem(outfitId: string, clothesId: string): Promise<boolean> {
-    return this.outfitRepository.removeOutfitItem(outfitId, clothesId);
+  async removeOutfitItem(itemId: string): Promise<boolean> {
+    return this.outfitRepository.removeOutfitItem(itemId);
   }
 
   /**

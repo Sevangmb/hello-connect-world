@@ -1,118 +1,61 @@
-import React, { useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+
+import React, { useEffect, useState } from 'react';
 import { useOutfits } from '@/hooks/useOutfits';
 import { Outfit } from '@/core/outfits/domain/types';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
 
-const OutfitsList: React.FC = () => {
-  const { user } = useAuth();
-  const userId = user?.id || null;
-  const { outfits, loading: outfitsLoading, fetchOutfits } = useOutfits();
-  const navigate = useNavigate();
+interface OutfitsListProps {
+  userId?: string;
+  filter?: 'all' | 'favorites' | 'recent';
+}
+
+const OutfitsList: React.FC<OutfitsListProps> = ({ userId, filter = 'all' }) => {
+  const { outfits, loading, error, fetchUserOutfits, fetchOutfits } = useOutfits();
+  const [filteredOutfits, setFilteredOutfits] = useState<Outfit[]>([]);
 
   useEffect(() => {
-    fetchOutfits();
-  }, [fetchOutfits]);
+    const loadOutfits = async () => {
+      if (userId) {
+        await fetchUserOutfits(userId);
+      } else {
+        await fetchOutfits();
+      }
+    };
+    
+    loadOutfits();
+  }, [userId, filter]);
 
-  const handleEditOutfit = (outfitId: string) => {
-    navigate(`/outfits/edit/${outfitId}`);
-  };
+  useEffect(() => {
+    if (filter === 'favorites') {
+      setFilteredOutfits(outfits.filter(outfit => outfit.is_favorite));
+    } else if (filter === 'recent') {
+      setFilteredOutfits([...outfits].sort((a, b) => {
+        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime();
+      }).slice(0, 5));
+    } else {
+      setFilteredOutfits(outfits);
+    }
+  }, [outfits, filter]);
 
-  const handleViewOutfit = (outfitId: string) => {
-    navigate(`/outfits/${outfitId}`);
-  };
-
-  if (outfitsLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-6">Mes tenues</h1>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (outfits.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-6">Mes tenues</h1>
-        <div className="bg-gray-100 rounded-lg p-8 text-center">
-          <h2 className="text-xl font-semibold mb-2">Aucune tenue trouvée</h2>
-          <p className="text-gray-600 mb-4">
-            Vous n'avez pas encore créé de tenues. Commencez par en créer une !
-          </p>
-          <Button onClick={() => navigate('/outfits/create')}>
-            Créer une tenue
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading outfits...</div>;
+  if (error) return <div>Error loading outfits: {error.message}</div>;
+  if (filteredOutfits.length === 0) return <div>No outfits found.</div>;
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Mes tenues</h1>
-        <Button onClick={() => navigate('/outfits/create')}>
-          Créer une tenue
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {outfits.map((outfit: Outfit) => (
-          <Card key={outfit.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="aspect-w-3 aspect-h-2 relative">
-              {outfit.image_url ? (
-                <img
-                  src={outfit.image_url}
-                  alt={outfit.name}
-                  className="w-full h-48 object-cover"
-                />
-              ) : (
-                <div className="w-full h-48 bg-gray-200 flex justify-center items-center">
-                  <span className="text-gray-500">Pas d'image</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4">
-              <h3 className="text-lg font-semibold mb-1">{outfit.name}</h3>
-              <p className="text-gray-600 text-sm mb-2 line-clamp-2">
-                {outfit.description || "Aucune description"}
-              </p>
-              
-              <div className="flex items-center text-xs text-gray-500 mb-3">
-                <span className="mr-3 px-2 py-1 bg-gray-100 rounded-full">
-                  {outfit.category}
-                </span>
-                <span className="px-2 py-1 bg-gray-100 rounded-full">
-                  {outfit.season}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleViewOutfit(outfit.id)}
-                >
-                  Voir
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => handleEditOutfit(outfit.id)}
-                >
-                  Modifier
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {filteredOutfits.map(outfit => (
+        <div key={outfit.id} className="border rounded-lg p-4">
+          <h3 className="font-semibold">{outfit.name}</h3>
+          <p className="text-sm text-gray-600">{outfit.description}</p>
+          <div className="mt-2 flex justify-between items-center">
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+              {outfit.category}
+            </span>
+            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+              {outfit.season}
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

@@ -13,36 +13,36 @@ export class ShopService {
     return this.shopRepository.getShopByUserId(userId);
   }
 
-  async getShopById(id: string): Promise<Shop | null> {
-    return this.shopRepository.getShopById(id);
+  async createShop(shopData: Partial<Shop>): Promise<Shop> {
+    return this.shopRepository.createShop(shopData);
   }
 
-  async getAllShops(): Promise<Shop[]> {
-    return this.shopRepository.getAllShops();
+  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop> {
+    return this.shopRepository.updateShop(shopId, shopData);
   }
 
-  async getShopItemsByShopId(shopId: string): Promise<ShopItem[]> {
+  async getShopItems(shopId: string): Promise<ShopItem[]> {
     return this.shopRepository.getShopItemsByShopId(shopId);
   }
 
-  async getShopItemById(id: string): Promise<ShopItem | null> {
-    return this.shopRepository.getShopItemById(id);
+  async getAllShopItems(): Promise<ShopItem[]> {
+    return this.shopRepository.getAllShopItems();
   }
 
-  async createShop(shop: Partial<Shop>): Promise<Shop> {
-    return this.shopRepository.createShop(shop);
+  async createShopItem(item: Partial<ShopItem>): Promise<ShopItem> {
+    return this.shopRepository.createShopItem(item);
   }
 
-  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop> {
-    return this.shopRepository.updateShop(id, shopData);
+  async updateShopItem(itemId: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
+    return this.shopRepository.updateShopItem(itemId, itemData);
+  }
+
+  async getShopReviews(shopId: string): Promise<ShopReview[]> {
+    return this.shopRepository.getShopReviewsByShopId(shopId);
   }
 
   async createShopReview(review: Partial<ShopReview>): Promise<ShopReview> {
     return this.shopRepository.createShopReview(review);
-  }
-
-  async getShopReviewsByShopId(shopId: string): Promise<ShopReview[]> {
-    return this.shopRepository.getShopReviewsByShopId(shopId);
   }
 
   async getShopSettings(shopId: string): Promise<ShopSettings | null> {
@@ -53,32 +53,28 @@ export class ShopService {
     return this.shopRepository.updateShopSettings(shopId, settings);
   }
 
-  async createShopItem(item: Partial<ShopItem>): Promise<ShopItem> {
-    return this.shopRepository.createShopItem(item);
+  async getAllShops(): Promise<Shop[]> {
+    return this.shopRepository.getAllShops();
+  }
+
+  async getShopById(shopId: string): Promise<Shop | null> {
+    return this.shopRepository.getShopById(shopId);
   }
 
   async addShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]> {
     return this.shopRepository.addShopItems(items);
   }
 
-  async updateShopItem(id: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
-    return this.shopRepository.updateShopItem(id, itemData);
-  }
-
-  async updateShopItemStatus(id: string, status: string): Promise<boolean> {
-    return this.shopRepository.updateShopItemStatus(id, status);
-  }
-
-  async deleteShopItem(id: string): Promise<boolean> {
-    return this.shopRepository.deleteShopItem(id);
+  async updateShopItemStatus(itemId: string, status: string): Promise<boolean> {
+    return this.shopRepository.updateShopItemStatus(itemId, status);
   }
 
   async getShopOrders(shopId: string): Promise<Order[]> {
     return this.shopRepository.getShopOrders(shopId);
   }
 
-  async getUserOrders(userId: string): Promise<Order[]> {
-    return this.shopRepository.getUserOrders(userId);
+  async createOrder(orderData: Partial<Order>): Promise<Order> {
+    return this.shopRepository.createOrder(orderData);
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
