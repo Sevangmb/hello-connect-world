@@ -24,6 +24,5 @@ export interface IShopRepository {
   
   // Settings operations
   getShopSettings(shopId: string): Promise<ShopSettings | null>;
-  createShopSettings(settings: Partial<ShopSettings>): Promise<ShopSettings>;
   updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings>;
 }

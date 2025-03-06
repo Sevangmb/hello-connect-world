@@ -1,5 +1,6 @@
+
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order, OrderStatus, PaymentStatus } from '../domain/types';
+import { Shop, ShopItem, ShopReview, ShopSettings, Order } from '../domain/types';
 
 export class ShopService {
   private shopRepository: IShopRepository;
@@ -8,19 +9,19 @@ export class ShopService {
     this.shopRepository = shopRepository;
   }
 
-  async getShopByUserId(userId: string): Promise<Shop | null> {
-    return this.shopRepository.getShopByUserId(userId);
+  async getShopById(id: string): Promise<Shop | null> {
+    return this.shopRepository.getShopById(id);
   }
 
   async getUserShop(userId: string): Promise<Shop | null> {
-    return this.shopRepository.getShopByUserId(userId);
+    return this.shopRepository.getUserShop(userId);
   }
 
   async createShop(shopData: Partial<Shop>): Promise<Shop> {
     return this.shopRepository.createShop(shopData);
   }
 
-  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop | null> {
+  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop> {
     return this.shopRepository.updateShop(shopId, shopData);
   }
 
@@ -28,20 +29,16 @@ export class ShopService {
     return this.shopRepository.getShopItems(shopId);
   }
 
-  async getAllShopItems(): Promise<ShopItem[]> {
-    return this.shopRepository.getAllShopItems();
+  async getShopItemById(id: string): Promise<ShopItem | null> {
+    return this.shopRepository.getShopItemById(id);
   }
 
   async createShopItem(item: Partial<ShopItem>): Promise<ShopItem> {
     return this.shopRepository.createShopItem(item);
   }
 
-  async updateShopItem(itemId: string, itemData: Partial<ShopItem>): Promise<ShopItem | null> {
+  async updateShopItem(itemId: string, itemData: Partial<ShopItem>): Promise<ShopItem> {
     return this.shopRepository.updateShopItem(itemId, itemData);
-  }
-
-  async deleteShopItem(itemId: string): Promise<boolean> {
-    return this.shopRepository.deleteShopItem(itemId);
   }
 
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
@@ -56,63 +53,15 @@ export class ShopService {
     return this.shopRepository.getShopSettings(shopId);
   }
 
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
+  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
     return this.shopRepository.updateShopSettings(shopId, settings);
   }
 
-  async getAllShops(): Promise<Shop[]> {
-    return this.shopRepository.getAllShops();
+  async getOrdersByUserId(userId: string): Promise<Order[]> {
+    return this.shopRepository.getOrdersByUserId(userId);
   }
 
-  async getShopById(shopId: string): Promise<Shop | null> {
-    return this.shopRepository.getShopById(shopId);
-  }
-
-  async addShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]> {
-    return this.shopRepository.addShopItems(items);
-  }
-
-  async updateShopItemStatus(itemId: string, status: string): Promise<boolean> {
-    return this.shopRepository.updateShopItemStatus(itemId, status);
-  }
-
-  async getShopOrders(shopId: string): Promise<Order[]> {
-    return this.shopRepository.getShopOrders(shopId);
-  }
-
-  async getOrdersByShopId(shopId: string, status?: OrderStatus): Promise<Order[]> {
-    return this.shopRepository.getOrdersByShopId(shopId, status);
-  }
-
-  async getOrdersByUserId(userId: string, status?: OrderStatus): Promise<Order[]> {
-    return this.shopRepository.getOrdersByUserId(userId, status);
-  }
-
-  async createOrder(orderData: Partial<Order>): Promise<Order> {
-    return this.shopRepository.createOrder(orderData);
-  }
-
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
-    return this.shopRepository.updateOrderStatus(orderId, status);
-  }
-
-  async getFavoriteShops(userId: string): Promise<Shop[]> {
-    return this.shopRepository.getUserFavoriteShops(userId);
-  }
-
-  async isShopFavorited(userId: string, shopId: string): Promise<boolean> {
-    return this.shopRepository.isShopFavorited(shopId, userId);
-  }
-
-  async addShopToFavorites(userId: string, shopId: string): Promise<boolean> {
-    return this.shopRepository.toggleShopFavorite(shopId, userId);
-  }
-
-  async removeShopFromFavorites(userId: string, shopId: string): Promise<boolean> {
-    return this.shopRepository.toggleShopFavorite(shopId, userId);
-  }
-
-  async addToCart(userId: string, shopItemId: string, quantity: number): Promise<boolean> {
-    return this.shopRepository.addToCart(userId, shopItemId, quantity);
+  async getOrdersByShopId(shopId: string): Promise<Order[]> {
+    return this.shopRepository.getOrdersByShopId(shopId);
   }
 }

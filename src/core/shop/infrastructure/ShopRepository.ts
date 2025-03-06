@@ -1,39 +1,46 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { IShopRepository } from '../domain/interfaces/IShopRepository';
-import { Shop, ShopItem, ShopReview, ShopSettings, Order } from '../domain/types';
+import { 
+  Shop, ShopItem, ShopReview, ShopSettings, Order,
+  mapShopFromDB, mapShopItem, mapShopItems, mapOrder, mapOrders, mapSettings
+} from '../domain/types';
 
 export class ShopRepository implements IShopRepository {
   async createShop(data: Partial<Shop>): Promise<Shop> {
     const { data: shop, error } = await supabase
       .from('shops')
-      .insert([{
+      .insert({
         name: data.name,
         user_id: data.user_id,
         description: data.description,
         status: data.status || 'pending'
-      }])
+      })
       .select()
       .single();
 
     if (error) throw error;
-    return shop;
+    return mapShopFromDB(shop);
   }
 
   async createShopItem(data: Partial<ShopItem>): Promise<ShopItem> {
     const { data: item, error } = await supabase
       .from('shop_items')
-      .insert([{
+      .insert({
         clothes_id: data.clothes_id,
         shop_id: data.shop_id,
         price: data.price,
         name: data.name,
-        stock: data.stock || 1
-      }])
+        description: data.description,
+        image_url: data.image_url,
+        stock: data.stock || 1,
+        status: data.status || 'available'
+      })
       .select()
       .single();
 
     if (error) throw error;
-    return item;
+    return mapShopItem(item);
   }
 
   async getShopSettings(shopId: string): Promise<ShopSettings | null> {
@@ -44,30 +51,22 @@ export class ShopRepository implements IShopRepository {
       .single();
 
     if (error) return null;
-    return data;
-  }
-
-  async createShopSettings(settings: Partial<ShopSettings>): Promise<ShopSettings> {
-    const { data, error } = await supabase
-      .from('shop_settings')
-      .insert([settings])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    return mapSettings(data);
   }
 
   async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings> {
+    // Ensure shop_id is set for the update
+    const updateData = { ...settings, shop_id: shopId };
+    
     const { data, error } = await supabase
       .from('shop_settings')
-      .update(settings)
+      .update(updateData)
       .eq('shop_id', shopId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return mapSettings(data);
   }
 
   async getOrdersByUserId(userId: string): Promise<Order[]> {
@@ -77,13 +76,13 @@ export class ShopRepository implements IShopRepository {
       .eq('customer_id', userId);
 
     if (error) throw error;
-    return data;
+    return mapOrders(data || []);
   }
 
   async getShopById(id: string): Promise<Shop | null> {
     const { data, error } = await supabase
       .from('shops')
-      .select('*')
+      .select('*, profiles(username, full_name)')
       .eq('id', id)
       .single();
 
@@ -92,7 +91,7 @@ export class ShopRepository implements IShopRepository {
       return null;
     }
 
-    return data;
+    return mapShopFromDB(data);
   }
 
   async updateShop(id: string, data: Partial<Shop>): Promise<Shop> {
@@ -100,17 +99,17 @@ export class ShopRepository implements IShopRepository {
       .from('shops')
       .update(data)
       .eq('id', id)
-      .select()
+      .select('*, profiles(username, full_name)')
       .single();
 
     if (error) throw error;
-    return shop;
+    return mapShopFromDB(shop);
   }
 
   async getUserShop(userId: string): Promise<Shop | null> {
     const { data, error } = await supabase
       .from('shops')
-      .select('*')
+      .select('*, profiles(username, full_name)')
       .eq('user_id', userId)
       .single();
 
@@ -119,13 +118,13 @@ export class ShopRepository implements IShopRepository {
       return null;
     }
 
-    return data;
+    return mapShopFromDB(data);
   }
 
   async getShopItems(shopId: string): Promise<ShopItem[]> {
     const { data, error } = await supabase
       .from('shop_items')
-      .select('*')
+      .select('*, shop:shops(name, id)')
       .eq('shop_id', shopId);
 
     if (error) {
@@ -133,13 +132,13 @@ export class ShopRepository implements IShopRepository {
       return [];
     }
 
-    return data;
+    return mapShopItems(data || []);
   }
 
   async getShopItemById(id: string): Promise<ShopItem | null> {
     const { data, error } = await supabase
       .from('shop_items')
-      .select('*')
+      .select('*, shop:shops(name, id)')
       .eq('id', id)
       .single();
 
@@ -148,7 +147,7 @@ export class ShopRepository implements IShopRepository {
       return null;
     }
 
-    return data;
+    return mapShopItem(data);
   }
 
   async updateShopItem(id: string, data: Partial<ShopItem>): Promise<ShopItem> {
@@ -156,17 +155,23 @@ export class ShopRepository implements IShopRepository {
       .from('shop_items')
       .update(data)
       .eq('id', id)
-      .select()
+      .select('*, shop:shops(name, id)')
       .single();
 
     if (error) throw error;
-    return item;
+    return mapShopItem(item);
   }
 
   async getOrdersByShopId(shopId: string): Promise<Order[]> {
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
+      .select(`
+        *,
+        items:order_items(
+          id, shop_item_id, quantity, price_at_time,
+          shop_items(name, image_url)
+        )
+      `)
       .eq('shop_id', shopId);
 
     if (error) {
@@ -174,13 +179,13 @@ export class ShopRepository implements IShopRepository {
       return [];
     }
 
-    return data;
+    return mapOrders(data || []);
   }
 
   async getShopReviews(shopId: string): Promise<ShopReview[]> {
     const { data, error } = await supabase
       .from('shop_reviews')
-      .select('*')
+      .select('*, profiles:profiles(username, full_name)')
       .eq('shop_id', shopId);
 
     if (error) {
@@ -188,17 +193,34 @@ export class ShopRepository implements IShopRepository {
       return [];
     }
 
-    return data;
+    return data.map(review => ({
+      ...review,
+      profiles: review.profiles || { username: 'Anonymous' }
+    }));
   }
 
   async createShopReview(data: Partial<ShopReview>): Promise<ShopReview> {
+    // Validate required fields
+    if (!data.shop_id || !data.user_id || !data.rating) {
+      throw new Error('Missing required fields for shop review');
+    }
+    
     const { data: review, error } = await supabase
       .from('shop_reviews')
-      .insert([data])
-      .select()
+      .insert([{
+        shop_id: data.shop_id,
+        user_id: data.user_id,
+        rating: data.rating,
+        comment: data.comment
+      }])
+      .select('*, profiles:profiles(username, full_name)')
       .single();
 
     if (error) throw error;
-    return review;
+    
+    return {
+      ...review,
+      profiles: review.profiles || { username: 'Anonymous' }
+    };
   }
 }

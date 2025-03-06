@@ -19,9 +19,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
   const [description, setDescription] = useState<string>(selectedCloth?.description || "");
   const [price, setPrice] = useState<string>("");
   const [stock, setStock] = useState<string>("");
-  const { useCreateShopItem } = useShop();
-  const createShopItemMutation = useCreateShopItem();
-
+  const { createShopItem } = useShop();
+  
   const resetForm = () => {
     setName("");
     setDescription("");
@@ -54,8 +53,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
         status: "available" as ShopItemStatus
       };
       
-      // Use mutateAsync instead of execute
-      await createShopItemMutation.execute(itemData);
+      // Use mutateAsync from TanStack Query v5
+      await createShopItem.mutateAsync(itemData);
       
       resetForm();
       toast({
@@ -117,8 +116,8 @@ export function AddItemForm({ shopId, selectedCloth, onSuccess }: AddItemFormPro
           required
         />
       </div>
-      <Button type="submit" className="w-full" disabled={createShopItemMutation.creating}>
-        {createShopItemMutation.creating ? "Ajout en cours..." : "Ajouter l'article"}
+      <Button type="submit" className="w-full" disabled={createShopItem.isPending}>
+        {createShopItem.isPending ? "Ajout en cours..." : "Ajouter l'article"}
       </Button>
     </form>
   );

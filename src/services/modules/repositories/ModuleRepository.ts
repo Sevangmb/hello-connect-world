@@ -86,22 +86,19 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Optimisation pour éviter les problèmes de type instantiation trop profond
-      // Utilisation d'une requête SQL directe avec RPC ou simplification de la requête
-      
-      // Première étape : récupérer les enregistrements de dépendances
+      // Fetch dependency records first
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');
       
       if (error) throw error;
       
-      // Filtrer côté client pour ce module spécifique
+      // Filter for this specific module
       const filteredDependencies = dependencyRecords.filter(
         dep => dep.module_id === moduleId
       );
       
-      // Seconde étape : récupérer les informations des modules de dépendance
+      // Fetch module data for each dependency
       const dependencies = [];
       
       for (const dep of filteredDependencies) {
@@ -209,7 +206,7 @@ export class ModuleRepository implements IModuleRepository {
       if (featureError) return [];
       
       // Map modules to features
-      const resultMap = new Map();
+      const resultMap = new Map<string, any>();
       
       moduleData.forEach(module => {
         resultMap.set(module.code, {

@@ -1,7 +1,8 @@
 
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Briefcase } from 'lucide-react';
-import { SuitcaseListItemProps } from '../types';
+import { SuitcaseListItemProps } from './SuitcaseListItem';
 
 export const SuitcaseCard = ({ suitcase, onSelect }: SuitcaseListItemProps) => {
   return (
