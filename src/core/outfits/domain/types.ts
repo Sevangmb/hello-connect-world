@@ -36,6 +36,12 @@ export interface Outfit {
   comments_count: number;
   created_at: string;
   updated_at: string;
+  
+  // Champs compatibles avec la DB
+  top_id?: string;
+  bottom_id?: string;
+  shoes_id?: string;
+  
   items?: OutfitItem[];
   profiles?: {
     username?: string;
@@ -63,4 +69,29 @@ export interface OutfitLike {
   outfit_id: string;
   user_id: string;
   created_at: string;
+}
+
+// Type for database records
+export interface DbOutfit {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  category?: string;
+  season?: string;
+  top_id?: string;
+  bottom_id?: string;
+  shoes_id?: string;
+  is_favorite?: boolean;
+  likes_count?: number;
+  comments_count?: number;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
+  items?: any[];
 }

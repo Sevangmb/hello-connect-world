@@ -1,3 +1,4 @@
+
 /**
  * Types du module de boutique
  */
@@ -79,9 +80,11 @@ export interface CartItem {
     name: string;
     price: number;
     image_url?: string;
+    id: string;
   };
   shop: {
     name: string;
+    id: string;
   };
 }
 
@@ -99,13 +102,11 @@ export interface DbCartItem {
 export interface OrderItem {
   id: string;
   order_id: string;
-  item_id: string;
-  name: string;
-  price: number;
+  shop_item_id: string;
+  price_at_time: number;
   quantity: number;
   created_at: string;
-  shop_item_id?: string; // Added for database compatibility
-  price_at_time: number; // Changed from optional to required
+  name?: string;
 }
 
 // Commande
@@ -127,6 +128,10 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+  
+  // Champs compatibles avec les données de la DB
+  buyer_id?: string;
+  seller_id?: string;
 }
 
 // Database Order
@@ -138,11 +143,15 @@ export interface DbOrder {
   total_amount: number;
   delivery_fee: number;
   payment_status: string;
-  payment_method: string; // Changed to required
+  payment_method: string;
   delivery_address: any;
   created_at: string;
   updated_at: string;
   items?: any[];
+  
+  // Champs compatibles avec les données de la DB
+  buyer_id?: string;
+  seller_id?: string;
 }
 
 // Avis sur une boutique
@@ -173,13 +182,4 @@ export interface ShopSettings {
   };
   created_at: string;
   updated_at: string;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  shop_item_id: string;
-  price_at_time: number;
-  quantity: number;
-  created_at: string;
 }

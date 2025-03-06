@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Outfit, OutfitComment, OutfitItem, OutfitStatus } from '../domain/types';
+import { Outfit, OutfitComment, OutfitItem, OutfitStatus, DbOutfit } from '../domain/types';
 import { IOutfitRepository } from '../domain/interfaces/IOutfitRepository';
 
 export class OutfitRepository implements IOutfitRepository {
@@ -11,17 +11,37 @@ export class OutfitRepository implements IOutfitRepository {
         .from('outfits')
         .select(`
           *,
-          profiles:user_id (username, full_name, avatar_url),
-          items:outfit_items (
-            id, outfit_id, clothes_id, position, created_at,
-            clothes:clothes_id (id, name, image_url, category)
-          )
+          profiles:user_id (username, full_name, avatar_url)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
-      return data as Outfit;
+      
+      // Conversion explicite pour assurer la compatibilité des types
+      const outfitData = data as DbOutfit;
+      
+      // Création de l'objet Outfit avec les valeurs par défaut si nécessaire
+      const outfit: Outfit = {
+        id: outfitData.id,
+        user_id: outfitData.user_id,
+        name: outfitData.name,
+        description: outfitData.description || '',
+        status: (outfitData.status as OutfitStatus) || 'published',
+        category: (outfitData.category as any) || 'casual',
+        season: (outfitData.season as any) || 'all',
+        is_favorite: outfitData.is_favorite || false,
+        likes_count: outfitData.likes_count || 0,
+        comments_count: outfitData.comments_count || 0,
+        created_at: outfitData.created_at,
+        updated_at: outfitData.updated_at,
+        top_id: outfitData.top_id,
+        bottom_id: outfitData.bottom_id,
+        shoes_id: outfitData.shoes_id,
+        profiles: outfitData.profiles
+      };
+      
+      return outfit;
     } catch (error) {
       console.error('Error fetching outfit:', error);
       return null;
@@ -34,17 +54,32 @@ export class OutfitRepository implements IOutfitRepository {
         .from('outfits')
         .select(`
           *,
-          profiles:user_id (username, full_name, avatar_url),
-          items:outfit_items (
-            id, outfit_id, clothes_id, position, created_at,
-            clothes:clothes_id (id, name, image_url, category)
-          )
+          profiles:user_id (username, full_name, avatar_url)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Outfit[];
+      
+      // Map les données brutes vers le type Outfit
+      return (data as DbOutfit[]).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        name: item.name,
+        description: item.description || '',
+        status: (item.status as OutfitStatus) || 'published',
+        category: (item.category as any) || 'casual',
+        season: (item.season as any) || 'all',
+        is_favorite: item.is_favorite || false,
+        likes_count: item.likes_count || 0,
+        comments_count: item.comments_count || 0,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        top_id: item.top_id,
+        bottom_id: item.bottom_id,
+        shoes_id: item.shoes_id,
+        profiles: item.profiles
+      }));
     } catch (error) {
       console.error('Error fetching user outfits:', error);
       return [];
@@ -64,7 +99,25 @@ export class OutfitRepository implements IOutfitRepository {
         .limit(limit);
 
       if (error) throw error;
-      return data as Outfit[];
+      
+      return (data as DbOutfit[]).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        name: item.name,
+        description: item.description || '',
+        status: (item.status as OutfitStatus) || 'published',
+        category: (item.category as any) || 'casual',
+        season: (item.season as any) || 'all',
+        is_favorite: item.is_favorite || false,
+        likes_count: item.likes_count || 0,
+        comments_count: item.comments_count || 0,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        top_id: item.top_id,
+        bottom_id: item.bottom_id,
+        shoes_id: item.shoes_id,
+        profiles: item.profiles
+      }));
     } catch (error) {
       console.error('Error fetching public outfits:', error);
       return [];
@@ -84,7 +137,25 @@ export class OutfitRepository implements IOutfitRepository {
         .limit(limit);
 
       if (error) throw error;
-      return data as Outfit[];
+      
+      return (data as DbOutfit[]).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        name: item.name,
+        description: item.description || '',
+        status: (item.status as OutfitStatus) || 'published',
+        category: (item.category as any) || 'casual',
+        season: (item.season as any) || 'all',
+        is_favorite: item.is_favorite || false,
+        likes_count: item.likes_count || 0,
+        comments_count: item.comments_count || 0,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        top_id: item.top_id,
+        bottom_id: item.bottom_id,
+        shoes_id: item.shoes_id,
+        profiles: item.profiles
+      }));
     } catch (error) {
       console.error('Error fetching trending outfits:', error);
       return [];
@@ -104,7 +175,25 @@ export class OutfitRepository implements IOutfitRepository {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Outfit[];
+      
+      return (data as DbOutfit[]).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        name: item.name,
+        description: item.description || '',
+        status: (item.status as OutfitStatus) || 'published',
+        category: (item.category as any) || 'casual',
+        season: (item.season as any) || 'all',
+        is_favorite: item.is_favorite || false,
+        likes_count: item.likes_count || 0,
+        comments_count: item.comments_count || 0,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        top_id: item.top_id,
+        bottom_id: item.bottom_id,
+        shoes_id: item.shoes_id,
+        profiles: item.profiles
+      }));
     } catch (error) {
       console.error('Error searching outfits:', error);
       return [];
@@ -113,18 +202,52 @@ export class OutfitRepository implements IOutfitRepository {
 
   async createOutfit(outfit: Partial<Outfit>): Promise<Outfit> {
     try {
+      // S'assurer que les valeurs requises sont présentes
+      const outfitToCreate = {
+        user_id: outfit.user_id,
+        name: outfit.name || 'Nouvelle tenue',
+        description: outfit.description || '',
+        status: outfit.status || 'published',
+        category: outfit.category || 'casual',
+        season: outfit.season || 'all',
+        is_favorite: outfit.is_favorite || false,
+        likes_count: outfit.likes_count || 0,
+        comments_count: outfit.comments_count || 0,
+        top_id: outfit.top_id,
+        bottom_id: outfit.bottom_id,
+        shoes_id: outfit.shoes_id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('outfits')
-        .insert({
-          ...outfit,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(outfitToCreate)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Outfit;
+      
+      // Conversion sûre des données
+      const createdOutfit = data as DbOutfit;
+      
+      return {
+        id: createdOutfit.id,
+        user_id: createdOutfit.user_id,
+        name: createdOutfit.name,
+        description: createdOutfit.description || '',
+        status: (createdOutfit.status as OutfitStatus) || 'published',
+        category: (createdOutfit.category as any) || 'casual',
+        season: (createdOutfit.season as any) || 'all',
+        is_favorite: createdOutfit.is_favorite || false,
+        likes_count: createdOutfit.likes_count || 0,
+        comments_count: createdOutfit.comments_count || 0,
+        created_at: createdOutfit.created_at,
+        updated_at: createdOutfit.updated_at,
+        top_id: createdOutfit.top_id,
+        bottom_id: createdOutfit.bottom_id,
+        shoes_id: createdOutfit.shoes_id
+      };
     } catch (error) {
       console.error('Error creating outfit:', error);
       throw error;
@@ -133,18 +256,40 @@ export class OutfitRepository implements IOutfitRepository {
 
   async updateOutfit(id: string, outfitData: Partial<Outfit>): Promise<Outfit> {
     try {
+      // Préparer les données pour la mise à jour
+      const updateData = {
+        ...outfitData,
+        updated_at: new Date().toISOString()
+      };
+      
       const { data, error } = await supabase
         .from('outfits')
-        .update({
-          ...outfitData,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data as Outfit;
+      
+      const updatedOutfit = data as DbOutfit;
+      
+      return {
+        id: updatedOutfit.id,
+        user_id: updatedOutfit.user_id,
+        name: updatedOutfit.name,
+        description: updatedOutfit.description || '',
+        status: (updatedOutfit.status as OutfitStatus) || 'published',
+        category: (updatedOutfit.category as any) || 'casual',
+        season: (updatedOutfit.season as any) || 'all',
+        is_favorite: updatedOutfit.is_favorite || false,
+        likes_count: updatedOutfit.likes_count || 0,
+        comments_count: updatedOutfit.comments_count || 0,
+        created_at: updatedOutfit.created_at,
+        updated_at: updatedOutfit.updated_at,
+        top_id: updatedOutfit.top_id,
+        bottom_id: updatedOutfit.bottom_id,
+        shoes_id: updatedOutfit.shoes_id
+      };
     } catch (error) {
       console.error('Error updating outfit:', error);
       throw error;
@@ -197,7 +342,16 @@ export class OutfitRepository implements IOutfitRepository {
         .eq('outfit_id', outfitId)
         .order('position');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error in getOutfitItems:', error);
+        return [];
+      }
+
+      // Si aucune donnée n'est retournée, retourner un tableau vide
+      if (!data || data.length === 0) {
+        return [];
+      }
+
       return data as OutfitItem[];
     } catch (error) {
       console.error('Error fetching outfit items:', error);
@@ -207,12 +361,28 @@ export class OutfitRepository implements IOutfitRepository {
 
   async addOutfitItem(item: Partial<OutfitItem>): Promise<OutfitItem> {
     try {
+      // Get current max position for this outfit
+      const { data: existingItems } = await supabase
+        .from('outfit_items')
+        .select('position')
+        .eq('outfit_id', item.outfit_id)
+        .order('position', { ascending: false })
+        .limit(1);
+      
+      const nextPosition = existingItems && existingItems.length > 0 
+        ? existingItems[0].position + 1 
+        : 0;
+        
+      const newItem = {
+        outfit_id: item.outfit_id,
+        clothes_id: item.clothes_id,
+        position: item.position !== undefined ? item.position : nextPosition,
+        created_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('outfit_items')
-        .insert({
-          ...item,
-          created_at: new Date().toISOString()
-        })
+        .insert(newItem)
         .select()
         .single();
 
@@ -369,11 +539,7 @@ export class OutfitRepository implements IOutfitRepository {
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') return false; // Pas de résultat trouvé
-        throw error;
-      }
-
+      if (error && error.code !== 'PGRST116') throw error;
       return !!data;
     } catch (error) {
       console.error('Error checking if outfit is liked:', error);

@@ -1,122 +1,108 @@
 
-import { BaseApiGateway } from './BaseApiGateway';
+import { ModuleServiceImpl } from '../modules/services/ModuleServiceImpl';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { ModuleService } from '../modules/ModuleService';
 
-export class ModuleApiGateway extends BaseApiGateway {
-  private moduleService: ModuleService;
+export class ModuleApiGateway {
+  private moduleService: ModuleServiceImpl;
 
-  constructor(moduleService: ModuleService) {
-    super();
-    this.moduleService = moduleService;
+  constructor() {
+    this.moduleService = new ModuleServiceImpl();
   }
 
-  async initialize(): Promise<boolean> {
+  public async getAllModules(): Promise<AppModule[]> {
     try {
-      await this.moduleService.initializeModules();
-      return true;
+      return await this.moduleService.getAllModules();
     } catch (error) {
-      console.error('Error initializing modules:', error);
+      console.error('Error getting modules:', error);
+      return [];
+    }
+  }
+
+  public async getActiveModules(): Promise<AppModule[]> {
+    try {
+      return await this.moduleService.getActiveModules();
+    } catch (error) {
+      console.error('Error getting active modules:', error);
+      return [];
+    }
+  }
+
+  public async getModuleByCode(moduleCode: string): Promise<AppModule | null> {
+    try {
+      return await this.moduleService.getModuleByCode(moduleCode);
+    } catch (error) {
+      console.error(`Error getting module ${moduleCode}:`, error);
+      return null;
+    }
+  }
+
+  public async isModuleActive(moduleCode: string): Promise<boolean> {
+    try {
+      const status = await this.moduleService.getModuleStatus(moduleCode);
+      return status === 'active';
+    } catch (error) {
+      console.error(`Error checking if module ${moduleCode} is active:`, error);
       return false;
     }
   }
 
-  /**
-   * Check if a module is active
-   */
-  async isModuleActive(moduleCode: string): Promise<boolean> {
-    return await this.moduleService.isModuleActive(moduleCode);
-  }
-
-  /**
-   * Get a module's status
-   */
-  async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-    return await this.moduleService.getModuleStatus(moduleCode);
-  }
-
-  /**
-   * Activate a module
-   */
-  async activateModule(moduleId: string): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(moduleId, 'active');
-    return !!result;
-  }
-
-  /**
-   * Deactivate a module
-   */
-  async deactivateModule(moduleId: string): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(moduleId, 'inactive');
-    return !!result;
-  }
-
-  /**
-   * Check if a feature is enabled
-   */
-  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
-    return await this.moduleService.isFeatureEnabled(moduleCode, featureCode);
-  }
-
-  /**
-   * Enable or disable a feature
-   */
-  async setFeatureEnabled(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
-    return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-  }
-
-  /**
-   * Get all modules (with filters)
-   */
-  async getModules(filters?: { status?: ModuleStatus; isCore?: boolean }): Promise<AppModule[]> {
-    const modules = await this.moduleService.getAllModules();
-    
-    if (!filters) return modules;
-    
-    return modules.filter(module => {
-      if (filters.status && module.status !== filters.status) return false;
-      if (filters.isCore !== undefined && module.is_core !== filters.isCore) return false;
-      return true;
-    });
-  }
-
-  /**
-   * Get all modules
-   */
-  async getAllModules(): Promise<AppModule[]> {
-    return await this.moduleService.getAllModules();
-  }
-
-  /**
-   * Update module status
-   */
-  async updateModuleStatus(id: string, status: ModuleStatus): Promise<boolean> {
-    const result = await this.moduleService.updateModuleStatus(id, status);
-    return !!result;
-  }
-
-  async refreshModules(): Promise<AppModule[]> {
-    return await this.moduleService.getAllModules();
-  }
-
-  async updateFeatureStatus(moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> {
-    return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-  }
-
-  async isModuleDegraded(moduleId: string): Promise<boolean> {
+  public async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
     try {
-      const module = await this.moduleService.getModuleByCode(moduleId);
+      const result = await this.moduleService.updateModuleStatus(moduleId, status);
+      return !!result;
+    } catch (error) {
+      console.error(`Error updating module ${moduleId} status:`, error);
+      return false;
+    }
+  }
+
+  public async updateFeatureStatus(
+    moduleCode: string,
+    featureCode: string,
+    isEnabled: boolean
+  ): Promise<boolean> {
+    try {
+      return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
+    } catch (error) {
+      console.error(`Error updating feature ${featureCode} status:`, error);
+      return false;
+    }
+  }
+
+  public async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
+    try {
+      return await this.moduleService.isFeatureEnabled(moduleCode, featureCode);
+    } catch (error) {
+      console.error(`Error checking if feature ${featureCode} is enabled:`, error);
+      return false;
+    }
+  }
+
+  public async getModuleId(moduleCode: string): Promise<string | null> {
+    try {
+      const module = await this.moduleService.getModuleByCode(moduleCode);
+      return module?.id || null;
+    } catch (error) {
+      console.error(`Error getting module ${moduleCode} ID:`, error);
+      return null;
+    }
+  }
+  
+  public async isModuleDegraded(moduleId: string): Promise<boolean> {
+    try {
+      const module = await this.moduleService.getModuleById(moduleId);
       return module?.status === 'degraded';
     } catch (error) {
-      console.error("Error checking if module is degraded:", error);
+      console.error(`Error checking if module ${moduleId} is degraded:`, error);
       return false;
     }
   }
-
-  async getModuleById(moduleId: string): Promise<AppModule | null> {
-    return await this.moduleService.getModuleByCode(moduleId);
+  
+  public async recordModuleUsage(moduleCode: string): Promise<void> {
+    try {
+      await this.moduleService.recordModuleUsage(moduleCode);
+    } catch (error) {
+      console.error(`Error recording module ${moduleCode} usage:`, error);
+    }
   }
 }
-
-// Export singleton instance
-export const moduleApiGateway = new ModuleApiGateway(new ModuleService());
