@@ -1,97 +1,122 @@
 
 import React, { useState } from 'react';
+import { Dialog } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { EmptySuitcases } from '@/components/suitcases/components/EmptySuitcases';
-import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
-import { SuitcaseItems } from '@/components/suitcases/items/SuitcaseItems';
+import { PlusCircle } from 'lucide-react';
+import { useSuitcases } from '@/hooks/useSuitcases';
+import { 
+  CreateSuitcaseFormProps, 
+  EmptySuitcasesProps, 
+  SuitcaseItemsProps 
+} from '@/components/suitcases/types';
+
+// Component imports with proper type annotations
 import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
-import { CreateSuitcaseForm } from '@/components/suitcases/forms/CreateSuitcaseForm';
+import { SuitcaseHeader } from '@/components/suitcases/components/SuitcaseHeader';
+import { LoadingSuitcases } from '@/components/suitcases/components/LoadingSuitcases';
+import { SuitcaseFilters } from '@/components/suitcases/components/SuitcaseFilters';
+
+// Properly typed imports from components/suitcases
+const EmptySuitcases = React.lazy(() => import('@/components/suitcases/components/EmptySuitcases')).then(
+  module => ({ default: module.EmptySuitcases })
+);
+
+const SuitcaseItems = React.lazy(() => import('@/components/suitcases/components/SuitcaseItems')).then(
+  module => ({ default: module.SuitcaseItems })
+);
+
+const CreateSuitcaseForm = React.lazy(() => import('@/components/suitcases/forms/CreateSuitcaseForm')).then(
+  module => ({ default: module.CreateSuitcaseForm })
+);
 
 const Suitcases = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [suitcases, setSuitcases] = useState([]);
-  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState('');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string | null>(null);
+  const { data: suitcases, isLoading, createSuitcase } = useSuitcases();
 
-  // Mock data loading
-  React.useEffect(() => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleCreateSuitcase = () => {
-    setShowCreateDialog(true);
+  const handleCreateSuitcase = async (formData: any) => {
+    await createSuitcase.mutateAsync(formData);
+    setIsCreateDialogOpen(false);
   };
 
-  const handleCreateSuccess = () => {
-    setShowCreateDialog(false);
-    // Refresh suitcases list
+  const handleSelectSuitcase = (suitcaseId: string) => {
+    setSelectedSuitcaseId(suitcaseId);
   };
 
-  const handleBackFromItems = () => {
-    setSelectedSuitcaseId('');
+  const handleBack = () => {
+    setSelectedSuitcaseId(null);
   };
 
   if (isLoading) {
     return <LoadingSuitcases />;
   }
 
-  if (suitcases.length === 0) {
+  if (selectedSuitcaseId) {
     return (
-      <EmptySuitcases onCreateClick={handleCreateSuitcase} />
+      <React.Suspense fallback={<LoadingSuitcases />}>
+        <SuitcaseItems 
+          suitcaseId={selectedSuitcaseId} 
+          onBack={handleBack} 
+        />
+      </React.Suspense>
     );
   }
 
-  if (selectedSuitcaseId) {
+  if (suitcases && suitcases.length === 0) {
     return (
-      <SuitcaseItems 
-        suitcaseId={selectedSuitcaseId} 
-        onBack={handleBackFromItems} 
-      />
+      <React.Suspense fallback={<LoadingSuitcases />}>
+        <EmptySuitcases onCreateClick={() => setIsCreateDialogOpen(true)} />
+
+        <Dialog 
+          open={isCreateDialogOpen} 
+          onOpenChange={setIsCreateDialogOpen}
+        >
+          <React.Suspense fallback={<div>Loading form...</div>}>
+            <CreateSuitcaseForm 
+              onSubmit={handleCreateSuitcase}
+              onSuccess={() => setIsCreateDialogOpen(false)}
+              isLoading={createSuitcase.isPending}
+            />
+          </React.Suspense>
+        </Dialog>
+      </React.Suspense>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Mes Valises</h1>
-        <div className="flex space-x-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            onClick={() => setViewMode('grid')}
-            size="sm"
-          >
-            Grille
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            onClick={() => setViewMode('list')}
-            size="sm"
-          >
-            Liste
-          </Button>
-          <Button onClick={handleCreateSuitcase}>
-            Nouvelle valise
-          </Button>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <SuitcaseHeader />
+      
+      <div className="flex justify-between items-center mb-8">
+        <SuitcaseFilters />
+        
+        <Button 
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="flex items-center"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Créer une valise
+        </Button>
       </div>
 
-      <SuitcaseGrid
-        suitcases={suitcases}
-        viewMode={viewMode}
-        selectedSuitcaseId={selectedSuitcaseId}
-        setSelectedSuitcaseId={setSelectedSuitcaseId}
-      />
+      {suitcases && (
+        <SuitcaseGrid 
+          suitcases={suitcases} 
+          onSelect={handleSelectSuitcase} 
+        />
+      )}
 
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          <CreateSuitcaseForm onSuccess={handleCreateSuccess} />
-        </DialogContent>
+      <Dialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen}
+      >
+        <React.Suspense fallback={<div>Loading form...</div>}>
+          <CreateSuitcaseForm 
+            onSubmit={handleCreateSuitcase}
+            onSuccess={() => setIsCreateDialogOpen(false)}
+            isLoading={createSuitcase.isPending}
+          />
+        </React.Suspense>
       </Dialog>
     </div>
   );

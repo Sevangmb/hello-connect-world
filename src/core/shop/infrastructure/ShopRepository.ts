@@ -1,12 +1,11 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Shop, ShopItem, ShopReview, ShopSettings, CartItem, DbCartItem, Order, OrderStatus, PaymentStatus, 
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
+import { 
+  Shop, ShopItem, ShopReview, ShopSettings, CartItem, DbCartItem, Order, 
+  OrderStatus, PaymentStatus, DeliveryOption, PaymentMethod,
   mapShopItems, mapShopItem, mapOrder, mapOrders, isShopStatus, mapSettings, mapCartItem } from '../domain/types';
 
-// ShopRepository now implements partial interface until properly refactored
-export class ShopRepository {
-
-  // Implement bare minimum for the repository to work
+export class ShopRepository implements IShopRepository {
   async getShopSettings(shopId: string): Promise<ShopSettings | null> {
     try {
       const { data, error } = await supabase
@@ -453,9 +452,102 @@ export class ShopRepository {
   async updateShopStatus(shopId: string, status: string): Promise<boolean> { return false; }
   async getShopItemsByShopId(shopId: string): Promise<ShopItem[]> { return []; }
   async getAllShopItems(): Promise<ShopItem[]> { return []; }
-  async getShopItemById(itemId: string): Promise<ShopItem | null> { return null; }
-  async updateShopItem(itemId: string, updates: Partial<ShopItem>): Promise<ShopItem | null> { return null; }
-  async deleteShopItem(itemId: string): Promise<boolean> { return false; }
+  
+  // Fix the type instantiation depth error in getShopItemById
+  async getShopItemById(itemId: string): Promise<ShopItem | null> {
+    try {
+      const { data, error } = await supabase
+        .from('shop_items')
+        .select('*, shop:shop_id(id, name)')
+        .eq('id', itemId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching shop item:", error);
+        return null;
+      }
+
+      // Manually transform to avoid deep type issues
+      const item = data ? {
+        id: data.id,
+        shop_id: data.shop_id,
+        name: data.name,
+        description: data.description,
+        image_url: data.image_url,
+        price: data.price,
+        original_price: data.original_price,
+        stock: data.stock,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        clothes_id: data.clothes_id,
+        shop: data.shop && typeof data.shop === 'object' ? {
+          name: data.shop.name || 'Unknown'
+        } : { name: 'Unknown' }
+      } : null;
+
+      return item as ShopItem;
+    } catch (error) {
+      console.error("Error in getShopItemById:", error);
+      return null;
+    }
+  }
+  
+  // Fix the type instantiation depth error in updateShopItem
+  async updateShopItem(itemId: string, updates: Partial<ShopItem>): Promise<ShopItem | null> {
+    try {
+      // Create a mapped object with only allowed DB fields
+      const dbUpdates = {
+        name: updates.name,
+        description: updates.description,
+        image_url: updates.image_url,
+        price: updates.price,
+        original_price: updates.original_price,
+        stock: updates.stock,
+        status: updates.status,
+        clothes_id: updates.clothes_id,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('shop_items')
+        .update(dbUpdates)
+        .eq('id', itemId)
+        .select('*, shop:shop_id(id, name)')
+        .single();
+
+      if (error) {
+        console.error("Error updating shop item:", error);
+        return null;
+      }
+
+      // Manually transform to avoid deep type issues
+      const item = data ? {
+        id: data.id,
+        shop_id: data.shop_id,
+        name: data.name,
+        description: data.description,
+        image_url: data.image_url,
+        price: data.price,
+        original_price: data.original_price,
+        stock: data.stock,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        clothes_id: data.clothes_id,
+        shop: data.shop && typeof data.shop === 'object' ? {
+          name: data.shop.name || 'Unknown'
+        } : { name: 'Unknown' }
+      } : null;
+
+      return item as ShopItem;
+    } catch (error) {
+      console.error("Error in updateShopItem:", error);
+      return null;
+    }
+  }
+  
+  deleteShopItem(itemId: string): Promise<boolean> { return false; }
   async updateShopItemStatus(itemId: string, status: string): Promise<boolean> { return false; }
   async addShopItems(items: Partial<ShopItem>[]): Promise<ShopItem[]> { return []; }
   async getShopItemsByCategory(shopId: string, category: string): Promise<ShopItem[]> { return []; }
@@ -478,4 +570,36 @@ export class ShopRepository {
   async getShopOrders(shopId: string): Promise<Order[]> { return []; }
   async updatePaymentStatus(orderId: string, paymentStatus: PaymentStatus): Promise<boolean> { return false; }
   async createOrder(orderData: Partial<Order>): Promise<Order> { throw new Error("Not implemented"); }
+
+  // Add the missing createShopSettings method
+  async createShopSettings(settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
+    if (!settings.shop_id) {
+      console.error("Shop ID is required for creating settings");
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('shop_settings')
+        .insert({
+          shop_id: settings.shop_id,
+          delivery_options: settings.delivery_options || ['pickup'],
+          payment_methods: settings.payment_methods || ['card'],
+          auto_accept_orders: settings.auto_accept_orders || false,
+          notification_preferences: settings.notification_preferences || { email: true, app: true }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating shop settings:", error);
+        return null;
+      }
+
+      return mapSettings(data);
+    } catch (error) {
+      console.error("Error in createShopSettings:", error);
+      return null;
+    }
+  }
 }

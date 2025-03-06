@@ -3,14 +3,14 @@ export interface SuitcaseCardProps {
   suitcase: any;
   isSelected?: boolean;
   onClick?: () => void;
-  onSelect?: () => void; // Adding for compatibility
+  onSelect?: () => void; // Added for compatibility
 }
 
 export interface SuitcaseListItemProps {
   suitcase: any;
   isSelected?: boolean;
   onClick?: () => void;
-  onSelect?: () => void; // Adding for compatibility
+  onSelect?: () => void; // Added for compatibility
 }
 
 export interface CreateSuitcaseFormProps {

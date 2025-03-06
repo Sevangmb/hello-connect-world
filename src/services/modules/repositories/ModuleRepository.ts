@@ -86,7 +86,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      // Simple approach to avoid type instantiation depth errors
+      // Improved approach to avoid type instantiation depth errors
       const { data: dependencyRecords, error } = await supabase
         .from('module_dependencies')
         .select('id, module_id, dependency_id, is_required');
@@ -96,25 +96,29 @@ export class ModuleRepository implements IModuleRepository {
       // Filter dependencies manually
       const filteredData = dependencyRecords.filter(dep => dep.module_id === moduleId);
       
-      // Results array
+      // Build a simpler query for dependency modules to avoid nesting issues
       const dependencies = [];
       
       // Get info for each dependency
       for (const dep of filteredData) {
-        const { data: moduleInfo, error: moduleError } = await supabase
-          .from('app_modules')
-          .select('id, name, code, status')
-          .eq('id', dep.dependency_id)
-          .single();
-          
-        if (!moduleError && moduleInfo) {
-          dependencies.push({
-            id: dep.id,
-            module_id: dep.module_id,
-            dependency_id: dep.dependency_id,
-            is_required: dep.is_required,
-            dependency: moduleInfo
-          });
+        try {
+          const { data: moduleInfo } = await supabase
+            .from('app_modules')
+            .select('id, name, code, status')
+            .eq('id', dep.dependency_id)
+            .single();
+            
+          if (moduleInfo) {
+            dependencies.push({
+              id: dep.id,
+              module_id: dep.module_id,
+              dependency_id: dep.dependency_id,
+              is_required: dep.is_required,
+              dependency: moduleInfo
+            });
+          }
+        } catch (err) {
+          console.error(`Error fetching dependency module ${dep.dependency_id}:`, err);
         }
       }
       

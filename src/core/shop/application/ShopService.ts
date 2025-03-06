@@ -81,8 +81,13 @@ export class ShopService {
     return this.shopRepository.getShopOrders(shopId);
   }
 
-  async getOrdersByShopId(shopId: string, status?: string): Promise<Order[]> {
+  async getOrdersByShopId(shopId: string, status?: OrderStatus): Promise<Order[]> {
     return this.shopRepository.getOrdersByShopId(shopId, status);
+  }
+
+  async getOrdersByUserId(userId: string, status?: OrderStatus): Promise<Order[]> {
+    // Use this method instead of getUserOrders
+    return this.shopRepository.getUserOrders(userId, status);
   }
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
@@ -90,7 +95,7 @@ export class ShopService {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean> {
-    return this.shopRepository.updateOrderStatus(orderId, status.toString());
+    return this.shopRepository.updateOrderStatus(orderId, status);
   }
 
   async getFavoriteShops(userId: string): Promise<Shop[]> {
