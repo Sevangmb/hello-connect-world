@@ -1,57 +1,50 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { AppModule } from '../types';
+import { CORE_PRIORITY, HIGH_PRIORITY, NORMAL_PRIORITY, LOW_PRIORITY } from '../constants';
 
+/**
+ * Hook for managing module priority
+ */
 export const useModulePriority = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const priorityModules = ['core', 'admin', 'auth'];
+  const [sortByPriority, setSortByPriority] = useState(true);
   
-  // Sort modules by priority - core modules first, then by priority field
-  const sortModulesByPriority = useCallback((modules: AppModule[]) => {
+  /**
+   * Sort modules by priority
+   */
+  const sortModulesByPriority = useCallback((modules: AppModule[]): AppModule[] => {
+    if (!modules || modules.length === 0) return [];
+    
+    const priorityMap = {
+      [CORE_PRIORITY]: 1,
+      [HIGH_PRIORITY]: 2,
+      [NORMAL_PRIORITY]: 3,
+      [LOW_PRIORITY]: 4
+    };
+    
+    // Sort first by priority, then by name
     return [...modules].sort((a, b) => {
-      // Core modules always come first
-      if (a.is_core && !b.is_core) return -1;
-      if (!a.is_core && b.is_core) return 1;
+      const aPriority = a.priority !== undefined ? priorityMap[a.priority] || 5 : 5;
+      const bPriority = b.priority !== undefined ? priorityMap[b.priority] || 5 : 5;
       
-      // Admin modules come next
-      if (a.is_admin && !b.is_admin) return -1;
-      if (!a.is_admin && b.is_admin) return 1;
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
       
-      // Then sort by priority field
-      return (a.priority || 0) - (b.priority || 0);
+      // Sort alphabetically by name if priority is the same
+      return (a.name || '').localeCompare(b.name || '');
     });
   }, []);
   
-  // Preload priority modules
-  const preloadPriorityModules = async () => {
-    setIsLoading(true);
-    try {
-      // Preload logic for priority modules
-      await Promise.all(priorityModules.map(async (moduleCode) => {
-        await incrementModuleUsage(moduleCode);
-      }));
-    } catch (error) {
-      console.error("Error preloading priority modules:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const toggleSortByPriority = useCallback(() => {
+    setSortByPriority(prev => !prev);
+  }, []);
   
-  // Increment module usage count
-  const incrementModuleUsage = async (moduleCode: string) => {
-    try {
-      // Module usage increment logic
-      console.log(`Incrementing usage for module: ${moduleCode}`);
-    } catch (error) {
-      console.error(`Error incrementing module usage: ${error}`);
-    }
-  };
+  const priorityUtils = useMemo(() => ({
+    sortByPriority,
+    sortModulesByPriority,
+    toggleSortByPriority
+  }), [sortByPriority, sortModulesByPriority, toggleSortByPriority]);
   
-  return {
-    priorityModules,
-    isLoading,
-    preloadPriorityModules,
-    incrementModuleUsage,
-    sortModulesByPriority
-  };
+  return priorityUtils;
 };

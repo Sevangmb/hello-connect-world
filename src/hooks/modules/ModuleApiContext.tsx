@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useModuleApiCore } from './hooks/useModuleApiCore';
 import { ModuleStatus, AppModule } from './types';
@@ -92,7 +93,7 @@ export const ModuleApiProvider = ({ children }: ModuleApiProviderProps) => {
     updateModuleStatus: moduleApiCore.updateModuleStatus,
     updateFeatureStatus: moduleApiCore.updateFeatureStatus,
     loading: moduleApiCore.loading,
-    error: moduleApiCore.error,
+    error: moduleApiCore.error ? moduleApiCore.error.toString() : null,
     isInitialized: moduleApiCore.isInitialized,
     modules: moduleApiCore.modules
   };

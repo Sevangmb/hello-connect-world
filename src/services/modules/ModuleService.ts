@@ -56,10 +56,10 @@ export class ModuleService {
   /**
    * Initialize a module
    */
-  async initializeModule(moduleCode: string): Promise<boolean> {
+  async initializeModule(moduleCode: string): Promise<AppModule | null> {
     console.log(`Initializing module: ${moduleCode}`);
     // Implementation will depend on specific requirements
-    return true;
+    return this.getModuleByCode(moduleCode);
   }
 
   /**

@@ -1,63 +1,45 @@
 
 import React, { useEffect, useState } from 'react';
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
-import { ModuleInitializer } from '@/services/modules/ModuleInitializer';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
+import { LoadingSpinner } from './ui/loading-spinner';
 
 interface AppInitializerProps {
   children: React.ReactNode;
 }
 
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const moduleInitializer = new ModuleInitializer();
+  const [initialized, setInitialized] = useState(false);
+  const [initStartTime] = useState(performance.now());
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        console.log('Initializing application...');
-        
-        // Initialize module system
-        const initialized = await moduleInitializer.initializeAllModules();
-        
-        if (initialized) {
-          console.log('Application initialized successfully');
-          setIsInitialized(true);
-        } else {
-          setError('Failed to initialize the application. Please try refreshing the page.');
-        }
-      } catch (error) {
-        console.error('Error initializing application:', error);
-        setError('An unexpected error occurred during initialization. Please try refreshing the page.');
-      }
-    };
+    // Mesurer le temps de démarrage
+    const startTime = performance.now();
+    
+    // Précharger les modules prioritaires
+    moduleOptimizer.preloadPriorityModules();
+    
+    // Mesurer et enregistrer les performances
+    const endTime = performance.now();
+    console.log(`Initialisation rapide terminée en ${Math.round(endTime - startTime)}ms`);
+    
+    // Délai minimal pour éviter le flash de contenu
+    const minDisplayTime = 300;
+    const elapsedTime = performance.now() - initStartTime;
+    const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+    
+    // Finaliser l'initialisation après le délai minimal
+    setTimeout(() => {
+      setInitialized(true);
+    }, remainingTime);
+  }, [initStartTime]);
 
-    initializeApp();
-  }, []);
-
-  if (error) {
+  if (!initialized) {
     return (
-      <div className="flex h-screen w-full flex-col items-center justify-center p-4 text-center">
-        <div className="max-w-md">
-          <h1 className="mb-4 text-2xl font-bold">Initialization Error</h1>
-          <p className="mb-6 text-muted-foreground">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-          >
-            Refresh Page
-          </button>
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-muted-foreground">Chargement de l'application...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (!isInitialized) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center">
-        <LoadingSpinner size="lg" />
-        <p className="mt-4 text-muted-foreground">Initializing application...</p>
       </div>
     );
   }

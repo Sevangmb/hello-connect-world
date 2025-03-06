@@ -1,37 +1,28 @@
 
-import { eventBus } from '@/core/event-bus/EventBus';
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
-import { ModuleInitializationService } from '@/services/modules/ModuleInitializationService';
+import { moduleInitializer } from '@/services/modules/ModuleInitializer';
 
-export class AppInitializer {
-  private moduleInitService: ModuleInitializationService;
-  
-  constructor() {
-    this.moduleInitService = new ModuleInitializationService();
-  }
-  
-  async initialize(): Promise<boolean> {
+export const appInitializer = {
+  initializeApp: async (): Promise<boolean> => {
     try {
       console.log('Initializing application...');
       
-      // Initialize event bus
-      console.log('Initializing event bus...');
+      // Track initialization steps
+      const initSteps = {
+        modules: false,
+        settings: false,
+        auth: false
+      };
       
-      // Initialize modules
-      console.log('Initializing modules...');
-      const modulesInitialized = await this.moduleInitService.initializeCoreModules();
+      // Initialize modules first
+      const modulesInitialized = await moduleInitializer.initializeModules();
+      initSteps.modules = !!modulesInitialized;
       
-      if (!modulesInitialized) {
-        console.error('Failed to initialize modules');
-        return false;
-      }
+      // Later, additional initialization steps can be added here
       
-      return true;
+      return Object.values(initSteps).every(Boolean);
     } catch (error) {
-      console.error('Error initializing application:', error);
+      console.error('Application initialization failed:', error);
       return false;
     }
   }
-}
-
-export const appInitializer = new AppInitializer();
+};

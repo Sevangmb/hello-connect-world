@@ -1,18 +1,24 @@
 
 import { ShopService } from '../application/ShopService';
 import { ShopRepository } from './ShopRepository';
+import { IShopRepository } from '../domain/interfaces/IShopRepository';
 
 let shopService: ShopService | null = null;
+let shopRepository: IShopRepository | null = null;
 
-/**
- * Get or create a shop service instance
- * @returns ShopService
- */
+// Initialize repositories
+export const getShopRepository = (): IShopRepository => {
+  if (!shopRepository) {
+    shopRepository = new ShopRepository();
+  }
+  return shopRepository;
+};
+
+// Initialize service
 export const getShopService = (): ShopService => {
   if (!shopService) {
-    const shopRepository = new ShopRepository();
-    shopService = new ShopService(shopRepository);
+    const repository = getShopRepository();
+    shopService = new ShopService(repository);
   }
-  
   return shopService;
 };

@@ -1,245 +1,191 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getShopService } from '@/core/shop/infrastructure/ShopServiceProvider';
-import { useAuth } from '@/core/auth/infrastructure/AuthProvider';
+import { Shop, ShopItem, Order, OrderStatus } from '@/core/shop/domain/types';
+
+const shopService = getShopService();
 
 export const useShop = () => {
-  const shopService = getShopService();
   const queryClient = useQueryClient();
 
-  // Get shop by ID
-  const useShopById = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop', shopId],
+  // Shop queries
+  const useShopById = (shopId?: string) => 
+    useQuery({
+      queryKey: ['shops', shopId],
       queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopById(shopId);
+        if (!shopId) return null;
+        return shopService.getShopById(shopId);
       },
       enabled: !!shopId
     });
-  };
-
-  // Get shop by user ID (current user's shop)
-  const useUserShop = () => {
-    const { user } = useAuth();
-    
-    return useQuery({
+  
+  const useUserShop = () => 
+    useQuery({
       queryKey: ['user-shop'],
       queryFn: async () => {
-        if (!user) throw new Error('User not authenticated');
-        const shop = await shopService.getShopByUserId(user.id);
-        return shop;
-      },
-      enabled: !!user
+        // Get current user ID
+        const user = await shopService.getCurrentUser();
+        if (!user) return null;
+        
+        return shopService.getShopByUserId(user.id);
+      }
     });
-  };
-
-  // Create a new shop
-  const useCreateShop = () => {
-    return useMutation({
-      mutationFn: async (shopData: any) => {
-        return await shopService.createShop(shopData);
-      },
+  
+  const useAllShops = () => 
+    useQuery({
+      queryKey: ['shops'],
+      queryFn: () => shopService.getShops()
+    });
+  
+  const useShopsByStatus = (status: string) => 
+    useQuery({
+      queryKey: ['shops', 'status', status],
+      queryFn: () => shopService.getShopsByStatus(status),
+      enabled: !!status
+    });
+  
+  // Shop mutations
+  const useCreateShop = () => 
+    useMutation({
+      mutationFn: (shopData: Omit<Shop, 'id' | 'created_at' | 'updated_at'>) => 
+        shopService.createShop(shopData),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['user', 'shop'] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
+        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
       }
     });
-  };
-
-  // Update shop
-  const useUpdateShop = () => {
-    return useMutation({
-      mutationFn: async ({ shopId, data }: { shopId: string; data: any }) => {
-        return await shopService.updateShop(shopId, data);
-      },
+  
+  const useUpdateShop = () => 
+    useMutation({
+      mutationFn: ({ id, data }: { id: string, data: Partial<Shop> }) => 
+        shopService.updateShop(id, data),
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', variables.shopId] });
-        queryClient.invalidateQueries({ queryKey: ['user', 'shop'] });
+        queryClient.invalidateQueries({ queryKey: ['shops', variables.id] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
+        queryClient.invalidateQueries({ queryKey: ['user-shop'] });
       }
     });
-  };
-
-  // Get shop items
-  const useShopItems = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop', 'items', shopId],
-      queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopItems(shopId);
-      },
+  
+  // Shop items
+  const useShopItems = (shopId?: string) => 
+    useQuery({
+      queryKey: ['shop-items', shopId],
+      queryFn: () => shopService.getShopItems(shopId as string),
       enabled: !!shopId
     });
-  };
-
-  // Create shop item
-  const useCreateShopItem = () => {
-    return useMutation({
-      mutationFn: async (itemData: any) => {
-        return await shopService.createShopItem(itemData);
-      },
+  
+  const useShopItemById = (itemId?: string) => 
+    useQuery({
+      queryKey: ['shop-items', 'single', itemId],
+      queryFn: () => shopService.getShopItemById(itemId as string),
+      enabled: !!itemId
+    });
+  
+  const useCreateShopItem = () => 
+    useMutation({
+      mutationFn: (itemData: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>) => 
+        shopService.createShopItem(itemData),
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', 'items', variables.shop_id] });
+        queryClient.invalidateQueries({ queryKey: ['shop-items', variables.shop_id] });
       }
     });
-  };
-
-  // Update shop item
-  const useUpdateShopItem = () => {
-    return useMutation({
-      mutationFn: async ({ itemId, data }: { itemId: string; data: any }) => {
-        return await shopService.updateShopItem(itemId, data);
-      },
+  
+  const useUpdateShopItem = () => 
+    useMutation({
+      mutationFn: ({ id, data }: { id: string, data: Partial<ShopItem> }) => 
+        shopService.updateShopItem(id, data),
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', 'items'] });
+        queryClient.invalidateQueries({ queryKey: ['shop-items', 'single', variables.id] });
+        // We don't know the shop ID here, so invalidate all items
+        queryClient.invalidateQueries({ queryKey: ['shop-items'] });
       }
     });
-  };
-
-  // Get shop reviews
-  const useShopReviews = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop', 'reviews', shopId],
-      queryFn: async () => {
-        if (!shopId) throw new Error('Shop ID is required');
-        return await shopService.getShopReviews(shopId);
-      },
+  
+  // Orders
+  const useShopOrders = (shopId?: string) => 
+    useQuery({
+      queryKey: ['shop-orders', shopId],
+      queryFn: () => shopService.getOrdersByShop(shopId as string),
       enabled: !!shopId
     });
-  };
-
-  // Create shop review
-  const useCreateShopReview = () => {
-    return useMutation({
-      mutationFn: async (reviewData: any) => {
-        return await shopService.createShopReview(reviewData);
-      },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['shop', 'reviews', variables.shop_id] });
-        queryClient.invalidateQueries({ queryKey: ['shop', variables.shop_id] });
-      }
-    });
-  };
-
-  // Add missing methods for orders
-  const useOrders = (shopId: string) => {
-    return useQuery({
-      queryKey: ['shop', 'orders', shopId],
-      queryFn: async () => {
-        try {
-          return await shopService.getOrdersByShop(shopId);
-        } catch (error) {
-          console.error('Error fetching shop orders:', error);
-          throw error;
-        }
-      },
-      enabled: !!shopId
-    });
-  };
-
-  const useCustomerOrders = (customerId: string) => {
-    return useQuery({
-      queryKey: ['customer', 'orders', customerId],
-      queryFn: async () => {
-        try {
-          return await shopService.getOrdersByCustomer(customerId);
-        } catch (error) {
-          console.error('Error fetching customer orders:', error);
-          throw error;
-        }
-      },
+  
+  const useCustomerOrders = (customerId?: string) => 
+    useQuery({
+      queryKey: ['customer-orders', customerId],
+      queryFn: () => shopService.getOrdersByCustomer(customerId as string),
       enabled: !!customerId
     });
-  };
-
-  // Get order by ID
-  const useOrderById = (orderId?: string) => {
-    return useQuery({
-      queryKey: ['order', orderId],
-      queryFn: async () => {
-        if (!orderId) throw new Error('Order ID is required');
-        return await shopService.getOrderById(orderId);
-      },
+  
+  const useOrderById = (orderId?: string) => 
+    useQuery({
+      queryKey: ['orders', orderId],
+      queryFn: () => shopService.getOrderById(orderId as string),
       enabled: !!orderId
     });
-  };
+  
+  const useUpdateOrderStatus = () => 
+    useMutation({
+      mutationFn: ({ orderId, status }: { orderId: string, status: string }) => 
+        shopService.updateOrderStatus(orderId, status as OrderStatus),
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['orders', variables.orderId] });
+        queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
+      }
+    });
+  
+  // Favorites
+  const useFavoriteShops = () => 
+    useQuery({
+      queryKey: ['favorite-shops'],
+      queryFn: () => shopService.getFavoriteShops()
+    });
 
-  // Update order status
-  const useUpdateOrderStatus = () => {
-    const queryClient = useQueryClient();
-    
-    return useMutation({
-      mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-        return await shopService.updateOrderStatus(orderId, status as OrderStatus);
-      },
+  // For the favorite/unfavorite operations based on the error in ShopDetail.tsx
+  const useFavoriteShop = () => 
+    useMutation({
+      mutationFn: (shopId: string) => shopService.addShopToFavorites(shopId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
       }
     });
-  };
 
-  // Add missing methods for favorite shops
-  const useIsFavorited = (shopId?: string) => {
-    return useQuery({
-      queryKey: ['shop', 'favorite', shopId],
-      queryFn: async () => {
-        if (!shopId) return false;
-        try {
-          return await shopService.isShopFavorited(shopId);
-        } catch (error) {
-          console.error('Error checking if shop is favorited:', error);
-          throw error;
-        }
-      },
-      enabled: !!shopId
-    });
-  };
-
-  const useFavoriteToggle = () => {
-    return useMutation({
-      mutationFn: async (shopId: string) => {
-        const isFavorited = await shopService.isShopFavorited(shopId);
-        if (isFavorited) {
-          return await shopService.removeShopFromFavorites(shopId);
-        } else {
-          return await shopService.addShopToFavorites(shopId);
-        }
-      },
+  const useUnfavoriteShop = () => 
+    useMutation({
+      mutationFn: (shopId: string) => shopService.removeShopFromFavorites(shopId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['shop', 'favorite'] });
-        queryClient.invalidateQueries({ queryKey: ['favorite', 'shops'] });
+        queryClient.invalidateQueries({ queryKey: ['favorite-shops'] });
+        queryClient.invalidateQueries({ queryKey: ['shops'] });
       }
     });
-  };
-
-  const useFavoriteShops = () => {
-    return useQuery({
-      queryKey: ['favorite', 'shops'],
-      queryFn: async () => {
-        try {
-          return await shopService.getFavoriteShops();
-        } catch (error) {
-          console.error('Error fetching favorite shops:', error);
-          throw error;
-        }
-      }
-    });
-  };
-
+  
   return {
+    // Shop queries
     useShopById,
     useUserShop,
+    useAllShops,
+    useShopsByStatus,
+    
+    // Shop mutations
     useCreateShop,
     useUpdateShop,
+    
+    // Shop items
     useShopItems,
+    useShopItemById,
     useCreateShopItem,
     useUpdateShopItem,
-    useShopReviews,
-    useCreateShopReview,
+    
+    // Orders
+    useShopOrders,
+    useCustomerOrders,
     useOrderById,
     useUpdateOrderStatus,
-    useOrders,
-    useCustomerOrders,
-    useIsFavorited,
-    useFavoriteToggle,
-    useFavoriteShops
+    
+    // Favorites
+    useFavoriteShops,
+    useFavoriteShop,
+    useUnfavoriteShop
   };
 };
