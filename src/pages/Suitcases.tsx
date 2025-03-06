@@ -19,13 +19,13 @@ const Suitcases = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedSuitcaseId, setSelectedSuitcaseId] = useState<string | null>(null);
   const { 
-    data: suitcases, 
-    isLoading, 
-    mutateAsync: createSuitcaseMutation
+    suitcases, 
+    loading, 
+    createSuitcase
   } = useSuitcases();
 
   const handleCreateSuitcase = async (formData: any) => {
-    await createSuitcaseMutation(formData);
+    await createSuitcase(formData);
     setIsCreateDialogOpen(false);
   };
 
@@ -64,7 +64,7 @@ const Suitcases = () => {
     console.log('Search cleared');
   };
 
-  if (isLoading) {
+  if (loading) {
     return <LoadingSuitcases />;
   }
 

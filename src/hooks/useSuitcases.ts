@@ -24,6 +24,27 @@ export interface SuitcaseFilter {
   search?: string;
 }
 
+// Map database types to our application types
+const mapStatus = (status: string): SuitcaseStatus => {
+  if (status === 'active' || status === 'archived' || status === 'completed') {
+    return status;
+  }
+  return 'active'; // Default value
+};
+
+const mapSuitcase = (data: any): Suitcase => ({
+  id: data.id,
+  name: data.name || '',
+  description: data.description,
+  start_date: data.start_date,
+  end_date: data.end_date,
+  user_id: data.user_id,
+  status: mapStatus(data.status),
+  created_at: data.created_at,
+  updated_at: data.updated_at,
+  parent_id: data.parent_id
+});
+
 export const useSuitcases = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -47,7 +68,9 @@ export const useSuitcases = () => {
         .eq('user_id', user.id);
       
       if (filters.status) {
-        query = query.eq('status', filters.status);
+        // Convert our app status to DB status
+        const dbStatus = filters.status === 'completed' ? 'active' : filters.status;
+        query = query.eq('status', dbStatus);
       }
       
       if (filters.search) {
@@ -60,7 +83,9 @@ export const useSuitcases = () => {
       
       if (error) throw error;
       
-      setSuitcases(data || []);
+      // Map DB data to our app types
+      const mappedSuitcases = (data || []).map(mapSuitcase);
+      setSuitcases(mappedSuitcases);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
       toast({
@@ -77,11 +102,15 @@ export const useSuitcases = () => {
     if (!user) return null;
     
     try {
-      // Ensure the proper status type is used
+      // Ensure we have required fields and convert to DB schema
       const suitcaseData = {
-        ...data,
+        name: data.name || 'Nouvelle valise',
+        description: data.description,
+        start_date: data.start_date,
+        end_date: data.end_date,
         user_id: user.id,
-        status: data.status || 'active'
+        // Convert our app status to DB status if needed
+        status: data.status === 'completed' ? 'active' : (data.status || 'active')
       };
       
       const { data: newSuitcase, error } = await supabase
@@ -92,14 +121,16 @@ export const useSuitcases = () => {
       
       if (error) throw error;
       
-      setSuitcases(prev => [newSuitcase, ...prev]);
+      // Map to our app type
+      const mappedSuitcase = mapSuitcase(newSuitcase);
+      setSuitcases(prev => [mappedSuitcase, ...prev]);
       
       toast({
         title: 'Valise créée',
         description: 'Votre nouvelle valise a été créée avec succès'
       });
       
-      return newSuitcase;
+      return mappedSuitcase;
     } catch (err) {
       toast({
         title: 'Erreur',
@@ -112,18 +143,26 @@ export const useSuitcases = () => {
 
   const updateSuitcase = async (id: string, data: Partial<Suitcase>) => {
     try {
+      // Convert our app status to DB status if needed
+      const updateData = {
+        ...data,
+        status: data.status === 'completed' ? 'active' : data.status
+      };
+      
       const { data: updatedSuitcase, error } = await supabase
         .from('suitcases')
-        .update(data)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
       
       if (error) throw error;
       
+      // Map to our app type
+      const mappedSuitcase = mapSuitcase(updatedSuitcase);
       setSuitcases(prev => 
         prev.map(suitcase => 
-          suitcase.id === id ? updatedSuitcase : suitcase
+          suitcase.id === id ? mappedSuitcase : suitcase
         )
       );
       
@@ -132,7 +171,7 @@ export const useSuitcases = () => {
         description: 'Les modifications ont été enregistrées'
       });
       
-      return updatedSuitcase;
+      return mappedSuitcase;
     } catch (err) {
       toast({
         title: 'Erreur',
@@ -191,5 +230,24 @@ export const useSuitcases = () => {
     createSuitcase,
     updateSuitcase,
     deleteSuitcase
+  };
+};
+
+// Add a single suitcase getter for convenience
+export const useSuitcase = (id: string) => {
+  const { suitcases, loading, error } = useSuitcases();
+  const [suitcase, setSuitcase] = useState<Suitcase | null>(null);
+  
+  useEffect(() => {
+    if (suitcases.length > 0) {
+      const found = suitcases.find(s => s.id === id) || null;
+      setSuitcase(found);
+    }
+  }, [suitcases, id]);
+  
+  return {
+    suitcase,
+    loading,
+    error
   };
 };

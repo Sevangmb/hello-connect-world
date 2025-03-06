@@ -1,65 +1,80 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useShop } from "@/hooks/useShop";
-import { ShopReview } from "@/core/shop/domain/types";
+import React, { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { useShop } from '@/hooks/useShop';
+import { ShopReview } from '@/core/shop/domain/types';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-interface ShopReviewsListProps {
-  shopId: string;
-}
-
-export function ShopReviewsList({ shopId }: ShopReviewsListProps) {
+export function ShopReviewsList({ shopId }: { shopId: string }) {
   const { getShopReviews } = useShop();
-  const reviewsQuery = getShopReviews(shopId);
+  const { data: reviewsData, isLoading } = getShopReviews(shopId);
   const [reviews, setReviews] = useState<ShopReview[]>([]);
-
+  
   useEffect(() => {
-    if (reviewsQuery.data) {
-      setReviews(reviewsQuery.data);
+    if (reviewsData) {
+      setReviews(reviewsData);
     }
-  }, [reviewsQuery.data]);
-
-  const renderStars = (rating: number) => {
-    return Array(5)
-      .fill(0)
-      .map((_, i) => (
-        <span key={i} className={i < rating ? "text-yellow-500" : "text-gray-300"}>
-          ★
-        </span>
-      ));
-  };
+  }, [reviewsData]);
+  
+  if (isLoading) {
+    return <div>Chargement des avis...</div>;
+  }
+  
+  if (reviews.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <h3 className="text-lg font-medium">Aucun avis pour le moment</h3>
+        <p className="text-gray-500 mt-2">Les avis de vos clients apparaîtront ici</p>
+      </div>
+    );
+  }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Avis clients</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {reviewsQuery.isLoading ? (
-          <div>Chargement des avis...</div>
-        ) : reviews.length === 0 ? (
-          <div className="text-center text-gray-500 py-4">
-            Aucun avis pour le moment
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="border-b pb-4 last:border-0">
-                <div className="flex justify-between items-center">
-                  <div className="font-medium">
-                    {review.profiles?.username || "Utilisateur inconnu"}
-                  </div>
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold">Avis clients ({reviews.length})</h2>
+      
+      {reviews.map(review => (
+        <Card key={review.id} className="p-4">
+          <div className="flex items-start gap-4">
+            <Avatar className="w-10 h-10">
+              <div className="bg-primary text-primary-foreground rounded-full w-full h-full flex items-center justify-center">
+                {(review.profiles?.username || 'A')[0].toUpperCase()}
+              </div>
+            </Avatar>
+            
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium">
+                    {review.profiles?.username || review.profiles?.full_name || 'Anonyme'}
+                  </h3>
                   <div className="text-sm text-gray-500">
-                    {new Date(review.created_at).toLocaleDateString()}
+                    {format(new Date(review.created_at), 'dd MMMM yyyy', { locale: fr })}
                   </div>
                 </div>
-                <div className="my-1">{renderStars(review.rating)}</div>
-                {review.comment && <p className="text-gray-700">{review.comment}</p>}
+                
+                <Badge variant={getRatingVariant(review.rating)}>
+                  {review.rating}/5
+                </Badge>
               </div>
-            ))}
+              
+              {review.comment && (
+                <p className="mt-2 text-gray-700">{review.comment}</p>
+              )}
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </Card>
+      ))}
+    </div>
   );
+}
+
+function getRatingVariant(rating: number): 'default' | 'destructive' | 'outline' | 'secondary' {
+  if (rating >= 4) return 'default';
+  if (rating >= 3) return 'secondary';
+  if (rating >= 2) return 'outline';
+  return 'destructive';
 }

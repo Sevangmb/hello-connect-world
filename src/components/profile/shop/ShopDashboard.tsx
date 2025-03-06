@@ -11,8 +11,8 @@ import { ShopReviewsList } from './ShopReviewsList';
 
 const ShopDashboard = () => {
   const { user } = useAuth();
-  const { useUserShop } = useShop();
-  const { data: userShop, isLoading } = useUserShop(user?.id);
+  const { getShopById } = useShop();
+  const { data: userShop, isLoading } = getShopById(user?.id);
   const [shopId, setShopId] = useState<string | null>(null);
 
   useEffect(() => {

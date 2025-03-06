@@ -2,22 +2,28 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Briefcase } from 'lucide-react';
+import { Suitcase } from '@/hooks/useSuitcases';
 
 export interface SuitcaseListItemProps {
-  suitcase: {
-    id: string;
-    name: string;
-    description?: string;
-  };
+  suitcase: Suitcase;
   onSelect: (id: string) => void;
+  onClick?: () => void; // Add onClick prop to match usage in SuitcaseGrid
 }
 
-export const SuitcaseListItem = ({ suitcase, onSelect }: SuitcaseListItemProps) => {
+export const SuitcaseListItem = ({ suitcase, onSelect, onClick }: SuitcaseListItemProps) => {
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      onSelect(suitcase.id);
+    }
+  };
+
   return (
     <Button
       variant="ghost"
       className="w-full justify-start"
-      onClick={() => onSelect(suitcase.id)}
+      onClick={handleClick}
     >
       <Briefcase className="h-4 w-4 mr-2" />
       {suitcase.name}

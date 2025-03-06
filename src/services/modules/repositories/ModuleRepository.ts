@@ -102,24 +102,21 @@ export class ModuleRepository implements IModuleRepository {
       const dependencies = [];
       
       for (const dep of filteredDependencies) {
-        const { data: moduleData, error: moduleError } = await supabase
+        const { data: moduleData } = await supabase
           .from('app_modules')
           .select('id, name, code, status')
           .eq('id', dep.dependency_id)
           .single();
           
-        if (moduleError) {
-          console.error(`Error fetching dependency module ${dep.dependency_id}:`, moduleError);
-          continue;
+        if (moduleData) {
+          dependencies.push({
+            id: dep.id,
+            module_id: dep.module_id,
+            dependency_id: dep.dependency_id,
+            is_required: dep.is_required,
+            dependency: moduleData
+          });
         }
-        
-        dependencies.push({
-          id: dep.id,
-          module_id: dep.module_id,
-          dependency_id: dep.dependency_id,
-          is_required: dep.is_required,
-          dependency: moduleData
-        });
       }
       
       return dependencies;

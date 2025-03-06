@@ -1,73 +1,65 @@
 
-import { Shop, ShopItem } from '@/core/shop/domain/types';
-import { shopService } from '@/core/shop/infrastructure/ShopServiceProvider';
+import { ShopService } from '@/core/shop/application/ShopService';
+import { Shop, ShopItem, Order } from '@/core/shop/domain/types';
 
 export class ShopApiGateway {
-  private shopService = shopService;
+  private shopService: ShopService;
 
-  public async getShopByUserId(userId: string): Promise<Shop | null> {
+  constructor(shopService: ShopService) {
+    this.shopService = shopService;
+  }
+
+  async getUserShop(userId: string): Promise<Shop | null> {
     try {
-      return await this.shopService.getShopByUserId(userId);
+      return await this.shopService.getUserShop(userId);
     } catch (error) {
-      console.error('Error getting shop by user ID:', error);
+      console.error('Error getting user shop:', error);
       return null;
     }
   }
 
-  public async createShop(shopData: Partial<Shop>): Promise<Shop | null> {
+  async getShopById(shopId: string): Promise<Shop | null> {
     try {
-      return await this.shopService.createShop(shopData);
+      return await this.shopService.getShopById(shopId);
     } catch (error) {
-      console.error('Error creating shop:', error);
+      console.error('Error getting shop by id:', error);
       return null;
     }
   }
 
-  public async getShopItems(shopId: string): Promise<ShopItem[]> {
+  async getAllShopItems(): Promise<ShopItem[]> {
     try {
-      return await this.shopService.getShopItems(shopId);
-    } catch (error) {
-      console.error(`Error getting items for shop ${shopId}:`, error);
-      return [];
-    }
-  }
-
-  public async getAllItems(): Promise<ShopItem[]> {
-    try {
-      return await this.shopService.getAllShopItems();
+      return await this.shopService.getShopItems();
     } catch (error) {
       console.error('Error getting all shop items:', error);
       return [];
     }
   }
 
-  public async getShopById(shopId: string): Promise<Shop | null> {
+  async getShopItems(shopId: string): Promise<ShopItem[]> {
     try {
-      return await this.shopService.getShopById(shopId);
+      return await this.shopService.getShopItems(shopId);
     } catch (error) {
-      console.error(`Error getting shop ${shopId}:`, error);
-      return null;
+      console.error('Error getting shop items:', error);
+      return [];
     }
   }
 
-  public async createShopItem(itemData: Partial<ShopItem>): Promise<ShopItem | null> {
+  async getShopOrders(shopId: string): Promise<Order[]> {
     try {
-      return await this.shopService.createShopItem(itemData);
+      return await this.shopService.getOrdersByShopId(shopId);
     } catch (error) {
-      console.error('Error creating shop item:', error);
-      return null;
+      console.error('Error getting shop orders:', error);
+      return [];
     }
   }
 
-  public async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop | null> {
+  async getUserOrders(userId: string): Promise<Order[]> {
     try {
-      return await this.shopService.updateShop(shopId, shopData);
+      return await this.shopService.getOrdersByUserId(userId);
     } catch (error) {
-      console.error(`Error updating shop ${shopId}:`, error);
-      return null;
+      console.error('Error getting user orders:', error);
+      return [];
     }
   }
 }
-
-// Export a singleton instance
-export const shopApiGateway = new ShopApiGateway();

@@ -1,106 +1,93 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Suitcase } from "./useSuitcases";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Suitcase, SuitcaseStatus } from './useSuitcases';
 
-export interface CalendarItem {
+export interface SuitcaseCalendarItem {
   id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  allDay: boolean;
-  suitcaseId: string;
+  suitcase_id: string;
+  date: string;
+  created_at: string;
+  updated_at: string;
+  status: SuitcaseStatus;
+  name?: string;
+  description?: string;
 }
 
-export const useSuitcaseCalendarItems = () => {
-  const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+export const useSuitcaseCalendarItems = (suitcaseId: string | undefined) => {
+  const { toast } = useToast();
+  const [items, setItems] = useState<SuitcaseCalendarItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchCalendarItems = async () => {
-    setIsLoading(true);
+  const fetchItems = async () => {
+    if (!suitcaseId) return;
+    
+    setLoading(true);
     setError(null);
     
     try {
       const { data, error } = await supabase
-        .from("suitcases")
-        .select("*")
-        .not("start_date", "is", null)
-        .not("status", "eq", "deleted");
+        .from('suitcase_calendar_items')
+        .select('*')
+        .eq('suitcase_id', suitcaseId)
+        .neq('status', 'deleted') // Filter out deleted items
+        .order('date', { ascending: true });
       
       if (error) throw error;
       
-      const items: CalendarItem[] = [];
-      
-      if (data) {
-        data.forEach((suitcase: Suitcase) => {
-          if (suitcase.start_date) {
-            items.push({
-              id: suitcase.id,
-              title: suitcase.name,
-              start: new Date(suitcase.start_date),
-              end: new Date(suitcase.end_date || suitcase.start_date),
-              allDay: true,
-              suitcaseId: suitcase.id
-            });
-          }
-        });
-      }
-      
-      setCalendarItems(items);
+      setItems(data || []);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger les éléments du calendrier',
+        variant: 'destructive'
+      });
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const addCalendarItem = async (data: { 
-    name: string;
-    start_date: string; 
-    end_date?: string;
-    user_id: string;
-  }) => {
-    try {
-      const { data: newItem, error } = await supabase
-        .from("suitcases")
-        .insert([{
-          name: data.name,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          user_id: data.user_id,
-          status: "active"
-        }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      const calendarItem: CalendarItem = {
-        id: newItem.id,
-        title: newItem.name,
-        start: new Date(newItem.start_date),
-        end: new Date(newItem.end_date || newItem.start_date),
-        allDay: true,
-        suitcaseId: newItem.id
-      };
-      
-      setCalendarItems([...calendarItems, calendarItem]);
-      return calendarItem;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('An unknown error occurred');
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCalendarItems();
-  }, []);
+    if (suitcaseId) {
+      fetchItems();
+    }
+  }, [suitcaseId]);
+
+  // Get items for a specific date
+  const getItemsForDate = (date: string): SuitcaseCalendarItem[] => {
+    return items.filter(item => item.date === date);
+  };
 
   return {
-    calendarItems,
-    isLoading,
+    items,
+    loading,
     error,
-    fetchCalendarItems,
-    addCalendarItem
+    fetchItems,
+    getItemsForDate
+  };
+};
+
+// Add a convenience hook for getting items for a specific date
+export const useSuitcaseCalendarItemsForDate = (suitcaseId: string | undefined, date: string) => {
+  const { items, loading, error } = useSuitcaseCalendarItems(suitcaseId);
+  const [dateItems, setDateItems] = useState<SuitcaseCalendarItem[]>([]);
+
+  useEffect(() => {
+    if (!date) {
+      setDateItems([]);
+      return;
+    }
+    
+    const filteredItems = items.filter(item => item.date === date);
+    setDateItems(filteredItems);
+  }, [items, date]);
+
+  return {
+    items: dateItems,
+    loading,
+    error
   };
 };

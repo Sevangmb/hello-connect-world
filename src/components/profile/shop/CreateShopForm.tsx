@@ -35,8 +35,7 @@ function MultiSelect({ options, selected, onChange }: any) {
 
 export function CreateShopForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
-  const { useCreateShop } = useShop();
-  const createShopMutation = useCreateShop();
+  const { createShop } = useShop();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -79,7 +78,7 @@ export function CreateShopForm({ onSuccess }: { onSuccess?: () => void }) {
         status: 'pending',
       };
       
-      await createShopMutation.execute(shopData);
+      await createShop.mutate(shopData);
       
       toast({
         title: "Boutique créée",
@@ -171,9 +170,9 @@ export function CreateShopForm({ onSuccess }: { onSuccess?: () => void }) {
       <Button 
         type="submit" 
         className="w-full"
-        disabled={createShopMutation.creating}
+        disabled={createShop.isPending}
       >
-        {createShopMutation.creating ? "Création en cours..." : "Créer ma boutique"}
+        {createShop.isPending ? "Création en cours..." : "Créer ma boutique"}
       </Button>
     </form>
   );
