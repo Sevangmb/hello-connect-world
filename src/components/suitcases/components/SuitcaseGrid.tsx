@@ -1,42 +1,47 @@
 
-import { Suitcase } from "@/components/suitcases/utils/types";
-import { SuitcaseCard } from "./SuitcaseCard";
-import { SuitcaseListItem } from "./SuitcaseListItem";
+import React from 'react';
+import { Suitcase } from '@/components/suitcases/utils/types';
+import SuitcaseCard from './SuitcaseCard';
+import SuitcaseListItem from './SuitcaseListItem';
 
 interface SuitcaseGridProps {
   suitcases: Suitcase[];
-  viewMode: "grid" | "list";
-  selectedSuitcaseId: string | undefined;
-  setSelectedSuitcaseId: (id: string | undefined) => void;
+  view: 'grid' | 'list';
+  onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
-export const SuitcaseGrid = ({
+export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({
   suitcases,
-  viewMode,
-  selectedSuitcaseId,
-  setSelectedSuitcaseId,
-}: SuitcaseGridProps) => {
-  if (!suitcases.length) return null;
-
-  return (
-    <div className={viewMode === "grid" ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3" : ""}>
-      {suitcases.map((suitcase) => 
-        viewMode === "grid" ? (
+  view,
+  onDelete,
+  onEdit
+}) => {
+  if (view === 'grid') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {suitcases.map(suitcase => (
           <SuitcaseCard
             key={suitcase.id}
             suitcase={suitcase}
-            isSelected={selectedSuitcaseId === suitcase.id}
-            onSelect={setSelectedSuitcaseId}
+            onDelete={onDelete}
+            onEdit={onEdit}
           />
-        ) : (
-          <SuitcaseListItem
-            key={suitcase.id}
-            suitcase={suitcase}
-            isSelected={selectedSuitcaseId === suitcase.id}
-            onSelect={setSelectedSuitcaseId}
-          />
-        )
-      )}
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {suitcases.map(suitcase => (
+        <SuitcaseListItem
+          key={suitcase.id}
+          suitcase={suitcase}
+          onDelete={onDelete}
+          onEdit={onEdit}
+        />
+      ))}
     </div>
   );
 };

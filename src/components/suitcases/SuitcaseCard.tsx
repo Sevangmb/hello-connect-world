@@ -1,158 +1,111 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar, Suitcase } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { formatDistance } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { SuitcaseActions } from './components/SuitcaseActions';
-import { SuitcaseSuggestionsDialog } from './components/SuitcaseSuggestionsDialog';
+import { Briefcase } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Suitcase } from '@/components/suitcases/utils/types';
+import { SuitcaseActions } from '@/components/suitcases/components/SuitcaseActions';
 
 interface SuitcaseCardProps {
-  id: string;
-  name: string;
-  description?: string;
-  startDate?: string;
-  endDate?: string;
-  destination?: string;
-  itemCount?: number;
+  suitcase: Suitcase;
   onDelete?: (id: string) => void;
-  onShowSuggestions?: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
-const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
-  id,
-  name,
-  description,
-  startDate,
-  endDate,
-  destination,
-  itemCount = 0,
-  onDelete,
-  onShowSuggestions
-}) => {
-  const navigate = useNavigate();
-  const [showSuggestions, setShowSuggestions] = React.useState(false);
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (onDelete) {
-        await onDelete(id);
-      }
-    },
-    onSuccess: () => {
-      toast.success('Valise supprimée avec succès');
-    },
-    onError: (error) => {
-      toast.error(`Erreur lors de la suppression: ${error}`);
-    }
-  });
-
-  const handleViewClick = () => {
-    navigate(`/suitcases/${id}`);
+const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ suitcase, onDelete, onEdit }) => {
+  const formatDate = (date: string | null) => {
+    if (!date) return 'Non définie';
+    return new Date(date).toLocaleDateString();
   };
 
-  const handleCalendarClick = () => {
-    navigate(`/suitcases/${id}/calendar`);
-  };
-
-  const handleSuggestionsClick = () => {
-    if (onShowSuggestions) {
-      onShowSuggestions(id);
-    } else {
-      setShowSuggestions(true);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500">Actif</Badge>;
+      case 'archived':
+        return <Badge variant="outline">Archivé</Badge>;
+      case 'deleted':
+        return <Badge variant="destructive">Supprimé</Badge>;
+      default:
+        return null;
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
+  const timeAgo = (dateString: string) => {
     try {
-      return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
+      return formatDistance(new Date(dateString), new Date(), {
+        addSuffix: true,
+        locale: fr
+      });
     } catch (e) {
-      return 'Date invalide';
+      return dateString;
     }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(suitcase.id);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(suitcase.id);
+    }
+  };
+
+  const displayDateRange = () => {
+    if (!suitcase.start_date && !suitcase.end_date) {
+      return 'Aucune date définie';
+    }
+    
+    if (suitcase.start_date && !suitcase.end_date) {
+      return `À partir du ${formatDate(suitcase.start_date)}`;
+    }
+    
+    if (!suitcase.start_date && suitcase.end_date) {
+      return `Jusqu'au ${formatDate(suitcase.end_date)}`;
+    }
+    
+    return `Du ${formatDate(suitcase.start_date)} au ${formatDate(suitcase.end_date)}`;
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="overflow-hidden transition-shadow hover:shadow-md h-full flex flex-col">
+      <CardHeader className="bg-muted pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-medium">{name}</CardTitle>
-          <SuitcaseActions 
-            suitcaseId={id}
-            onAddItems={() => navigate(`/suitcases/${id}/add-items`)}
-            onViewCalendar={handleCalendarClick}
-          />
-        </div>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
-        )}
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          {(startDate || endDate) && (
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                {startDate && formatDate(startDate)}
-                {startDate && endDate && ' - '}
-                {endDate && formatDate(endDate)}
-              </span>
-            </div>
-          )}
-          {destination && (
-            <div className="flex items-center gap-2">
-              <Suitcase className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{destination}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-sm font-medium">
-              {itemCount} article{itemCount !== 1 ? 's' : ''}
-            </span>
+          <div className="flex items-center space-x-2">
+            <Briefcase size={20} className="text-primary" />
+            <h3 className="font-medium text-lg">{suitcase.name}</h3>
           </div>
+          {getStatusBadge(suitcase.status)}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-4 flex-grow">
+        {suitcase.description && (
+          <p className="text-sm text-muted-foreground mb-4">{suitcase.description}</p>
+        )}
+        <div className="text-xs text-muted-foreground">
+          <p className="mb-1">{displayDateRange()}</p>
+          <p>Créé {timeAgo(suitcase.created_at)}</p>
         </div>
       </CardContent>
-      <CardFooter className="pt-0 flex justify-between gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleViewClick}
-          className="flex-1"
-        >
-          Voir
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSuggestionsClick}
-          className="flex-1"
-        >
-          Suggestions
-        </Button>
-        {onDelete && (
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => deleteMutation.mutate()}
-            disabled={deleteMutation.isPending}
-            className="flex-1"
-          >
-            {deleteMutation.isPending ? 'Suppression...' : 'Supprimer'}
+      <CardFooter className="flex justify-between border-t pt-3 bg-muted/20">
+        <Link to={`/suitcases/${suitcase.id}`}>
+          <Button variant="outline" size="sm">
+            Voir le détail
           </Button>
-        )}
-      </CardFooter>
-      
-      {showSuggestions && (
-        <SuitcaseSuggestionsDialog
-          suitcaseId={id}
-          open={showSuggestions}
-          onOpenChange={setShowSuggestions}
+        </Link>
+        <SuitcaseActions 
+          suitcaseId={suitcase.id} 
+          onViewCalendar={() => {}}
+          onAddItems={() => {}}
         />
-      )}
+      </CardFooter>
     </Card>
   );
 };

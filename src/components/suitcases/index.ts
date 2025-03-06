@@ -1,8 +1,8 @@
 
-// Export main components
-export { SuitcaseCard } from './SuitcaseCard';
-export { SuitcaseItems } from './SuitcaseItems';
-export { CreateSuitcaseDialog } from './CreateSuitcaseDialog';
+import SuitcaseCard from './SuitcaseCard';
+import { SuitcaseItems } from './items/SuitcaseItems';
 
-// Export types
-export type { Suitcase, SuitcaseItem, SuitcaseStatus } from './utils/types';
+export {
+  SuitcaseCard,
+  SuitcaseItems
+};

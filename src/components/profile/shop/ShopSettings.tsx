@@ -155,7 +155,7 @@ export const ShopSettings: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Switch 
               checked={autoAcceptOrders}
-              onCheckedChange={setAutoAcceptOrders}
+              onCheckedChange={(checked) => setAutoAcceptOrders(checked)}
             />
             <span>Accepter automatiquement les commandes</span>
           </div>
@@ -170,14 +170,14 @@ export const ShopSettings: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Switch 
               checked={emailNotifications}
-              onCheckedChange={setEmailNotifications}
+              onCheckedChange={(checked) => setEmailNotifications(checked)}
             />
             <span>Notifications par email</span>
           </div>
           <div className="flex items-center space-x-2">
             <Switch 
               checked={appNotifications}
-              onCheckedChange={setAppNotifications}
+              onCheckedChange={(checked) => setAppNotifications(checked)}
             />
             <span>Notifications dans l'application</span>
           </div>

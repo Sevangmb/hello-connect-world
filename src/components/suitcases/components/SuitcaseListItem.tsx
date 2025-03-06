@@ -1,96 +1,112 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar, Suitcase } from 'lucide-react';
-import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { formatDistance } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import { Briefcase } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Suitcase } from '@/components/suitcases/utils/types';
 import { SuitcaseActions } from './SuitcaseActions';
 
 interface SuitcaseListItemProps {
-  id: string;
-  name: string;
-  description?: string;
-  startDate?: string;
-  endDate?: string;
-  destination?: string;
-  itemCount?: number;
+  suitcase: Suitcase;
+  onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
-const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({
-  id,
-  name,
-  description,
-  startDate,
-  endDate,
-  destination,
-  itemCount = 0
+const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({ 
+  suitcase, 
+  onDelete, 
+  onEdit 
 }) => {
-  const navigate = useNavigate();
-
-  const handleViewClick = () => {
-    navigate(`/suitcases/${id}`);
+  const formatDate = (date: string | null) => {
+    if (!date) return 'Non définie';
+    return new Date(date).toLocaleDateString();
   };
 
-  const handleCalendarClick = () => {
-    navigate(`/suitcases/${id}/calendar`);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return format(new Date(dateString), 'dd MMM yyyy', { locale: fr });
-    } catch (e) {
-      return 'Date invalide';
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500">Actif</Badge>;
+      case 'archived':
+        return <Badge variant="outline">Archivé</Badge>;
+      case 'deleted':
+        return <Badge variant="destructive">Supprimé</Badge>;
+      default:
+        return null;
     }
   };
 
+  const timeAgo = (dateString: string) => {
+    try {
+      return formatDistance(new Date(dateString), new Date(), {
+        addSuffix: true,
+        locale: fr
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(suitcase.id);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(suitcase.id);
+    }
+  };
+
+  const displayDateRange = () => {
+    if (!suitcase.start_date && !suitcase.end_date) {
+      return 'Aucune date définie';
+    }
+    
+    if (suitcase.start_date && !suitcase.end_date) {
+      return `À partir du ${formatDate(suitcase.start_date)}`;
+    }
+    
+    if (!suitcase.start_date && suitcase.end_date) {
+      return `Jusqu'au ${formatDate(suitcase.end_date)}`;
+    }
+    
+    return `Du ${formatDate(suitcase.start_date)} au ${formatDate(suitcase.end_date)}`;
+  };
+
   return (
-    <div className="border rounded-lg p-4 mb-3">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-medium">{name}</h3>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          )}
-          <div className="space-y-1 mt-2">
-            {(startDate || endDate) && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {startDate && formatDate(startDate)}
-                  {startDate && endDate && ' - '}
-                  {endDate && formatDate(endDate)}
-                </span>
-              </div>
-            )}
-            {destination && (
-              <div className="flex items-center gap-2">
-                <Suitcase className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{destination}</span>
-              </div>
-            )}
-            <div className="mt-2">
-              <span className="text-sm font-medium">
-                {itemCount} article{itemCount !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
+    <div className="border rounded-md p-4 mb-4 hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center space-x-2">
+          <Briefcase size={18} className="text-primary" />
+          <h3 className="font-medium text-lg">{suitcase.name}</h3>
         </div>
-        <div className="flex flex-col space-y-2">
-          <SuitcaseActions 
-            suitcaseId={id} 
-            onAddItems={() => navigate(`/suitcases/${id}/add-items`)}
-            onViewCalendar={handleCalendarClick}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewClick}
-          >
-            Voir
+        {getStatusBadge(suitcase.status)}
+      </div>
+      
+      {suitcase.description && (
+        <p className="text-sm text-muted-foreground mb-3">{suitcase.description}</p>
+      )}
+      
+      <div className="text-xs text-muted-foreground mb-4">
+        <p className="mb-1">{displayDateRange()}</p>
+        <p>Créé {timeAgo(suitcase.created_at)}</p>
+      </div>
+      
+      <div className="flex justify-between items-center border-t pt-3">
+        <Link to={`/suitcases/${suitcase.id}`}>
+          <Button variant="outline" size="sm">
+            Voir le détail
           </Button>
-        </div>
+        </Link>
+        <SuitcaseActions 
+          suitcaseId={suitcase.id} 
+          onViewCalendar={() => {}}
+          onAddItems={() => {}}
+        />
       </div>
     </div>
   );
