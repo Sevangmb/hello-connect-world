@@ -13,8 +13,10 @@ export const useAllMenuItems = () => {
     queryKey: ['menuItems', 'all'],
     queryFn: async () => {
       try {
+        console.log('Fetching all menu items');
         const menuService = getMenuService();
         const items = await menuService.getAllMenuItems();
+        console.log(`Retrieved ${items.length} menu items`);
         return items;
       } catch (error) {
         console.error('Erreur lors de la récupération de tous les éléments de menu:', error);
@@ -40,8 +42,10 @@ export const useMenuItemsByCategory = (category: MenuItemCategory) => {
     queryKey: ['menuItems', 'category', category],
     queryFn: async () => {
       try {
+        console.log(`Fetching menu items for category: ${category}`);
         const menuService = getMenuService();
         const items = await menuService.getMenuItemsByCategory(category);
+        console.log(`Retrieved ${items.length} items for category ${category}`);
         return items;
       } catch (error) {
         console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);

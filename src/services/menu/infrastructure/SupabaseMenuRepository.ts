@@ -23,16 +23,21 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Use the category value directly while avoiding TypeScript errors
+      console.log(`Fetching menu items for category: ${category}`);
+      // TypeScript cannot correctly infer the type here, so we use a type assertion
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as any)
+        .eq('category', category as unknown as string)
         .order('position');
       
-      if (error) throw error;
+      if (error) {
+        console.error(`Error fetching menu items for category ${category}:`, error);
+        throw error;
+      }
       
+      console.log(`Retrieved ${data?.length || 0} menu items for category ${category}`);
       return data as MenuItem[];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
