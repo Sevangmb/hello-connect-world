@@ -3,12 +3,12 @@ import {
   getModuleStatusAsync,
   checkModuleActiveAsync, 
   checkModuleDegradedAsync,
-  checkFeatureEnabledAsync 
-} from './moduleStatusAsync';
+  checkFeatureEnabledAsync
+} from "./moduleStatusAsync";
 
 export {
-  getModuleStatusAsync,
   checkModuleActiveAsync,
   checkModuleDegradedAsync,
-  checkFeatureEnabledAsync
+  checkFeatureEnabledAsync,
+  getModuleStatusAsync
 };

@@ -1,49 +1,36 @@
 
-// Exporte toutes les fonctions liées à l'API des modules
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
-// Imports depuis moduleStatusCore
-import {
-  isModuleActive,
-  isModuleDegraded,
-  isModuleInactive,
-  isModuleMaintenance,
-  isAdminModule
-} from './api/moduleStatusCore';
-
-// Imports depuis moduleStatusAsync
-import {
-  getModuleStatusAsync,
-  checkModuleActiveAsync,
+// Import les fonctions de gestion de statut des modules
+import { 
+  getModuleStatusAsync, 
+  checkModuleActiveAsync, 
   checkModuleDegradedAsync,
   checkFeatureEnabledAsync,
   fetchModuleActiveState
 } from './api/moduleStatusAsync';
 
-// Imports depuis moduleStatusUpdates
+// Import les fonctions de mise à jour de statut
 import {
   updateModuleStatusAsync,
   updateFeatureStatusAsync,
   updateFeatureStatusSilentAsync
 } from './api/moduleStatusUpdates';
 
-// Re-exporter toutes les fonctions
+// Export l'API des modules
 export {
-  // Fonctions synchrones
-  isModuleActive,
-  isModuleDegraded,
-  isModuleInactive,
-  isModuleMaintenance,
-  isAdminModule,
-  
-  // Fonctions asynchrones de vérification
+  // Fonctions de statut
   getModuleStatusAsync,
   checkModuleActiveAsync,
   checkModuleDegradedAsync,
   checkFeatureEnabledAsync,
   fetchModuleActiveState,
   
-  // Fonctions asynchrones de mise à jour
+  // Fonctions de mise à jour
   updateModuleStatusAsync,
   updateFeatureStatusAsync,
-  updateFeatureStatusSilentAsync
+  updateFeatureStatusSilentAsync,
+  
+  // Instance de l'API Gateway
+  moduleApiGateway
 };

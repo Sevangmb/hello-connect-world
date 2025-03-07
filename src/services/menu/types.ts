@@ -35,6 +35,8 @@ export interface MenuItem {
   children?: MenuItem[];
   position?: number; // Added to match DB schema
   description?: string; // Added to match DB schema
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Paramètres de création d'élément de menu

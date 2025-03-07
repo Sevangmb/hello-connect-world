@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { DateRange } from 'react-day-picker';
 
 export interface SuitcaseCalendarProps {
   suitcaseId: string;
@@ -21,10 +22,7 @@ export const SuitcaseCalendar: React.FC<SuitcaseCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     startDate ? new Date(startDate) : undefined
   );
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: startDate ? new Date(startDate) : undefined,
     to: endDate ? new Date(endDate) : undefined,
   });

@@ -22,6 +22,22 @@ export const FindFriendsTabs: React.FC<FindFriendsTabsProps> = ({
   isLoading,
   onSelectUser
 }) => {
+  const handleFriendSelect = (friend: { id: string; username: string }) => {
+    console.log('Friend selected:', friend);
+  };
+
+  // Données simulées pour les demandes d'amitié en attente
+  const pendingRequests = [];
+  const pendingRequestsLoading = false;
+  
+  const handleAcceptRequest = (requestId: string) => {
+    console.log('Accept friend request:', requestId);
+  };
+  
+  const handleRejectRequest = (requestId: string) => {
+    console.log('Reject friend request:', requestId);
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <TabsList className="grid grid-cols-4 mb-6">
@@ -56,11 +72,16 @@ export const FindFriendsTabs: React.FC<FindFriendsTabsProps> = ({
       </TabsContent>
       
       <TabsContent value="pending">
-        <PendingFriendRequestsList />
+        <PendingFriendRequestsList 
+          requests={pendingRequests}
+          isLoading={pendingRequestsLoading}
+          onAccept={handleAcceptRequest}
+          onReject={handleRejectRequest}
+        />
       </TabsContent>
       
       <TabsContent value="search">
-        <SearchFriends />
+        <SearchFriends onSelect={handleFriendSelect} />
       </TabsContent>
     </Tabs>
   );

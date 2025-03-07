@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
 
 export interface SuggestedUser {
   id: string;
@@ -11,8 +12,9 @@ export interface SuggestedUser {
 
 export const useSuggestedFriends = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['suggestedFriends'],
     queryFn: async (): Promise<SuggestedUser[]> => {
       if (!user) return [];
@@ -33,4 +35,39 @@ export const useSuggestedFriends = () => {
     },
     enabled: !!user,
   });
+
+  const sendFriendRequest = async (suggestedUser: SuggestedUser) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('friendships')
+        .insert({
+          user_id: user.id,
+          friend_id: suggestedUser.id,
+          status: 'pending'
+        });
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Demande envoyée",
+        description: `Demande d'ami envoyée à ${suggestedUser.username}`,
+      });
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'envoyer la demande d'ami",
+      });
+    }
+  };
+
+  return {
+    suggestedUsers: query.data || [],
+    isLoading: query.isLoading,
+    sendFriendRequest,
+    ...query
+  };
 };

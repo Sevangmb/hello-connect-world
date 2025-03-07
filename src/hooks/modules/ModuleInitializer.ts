@@ -1,116 +1,187 @@
 
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AppModule, ModuleStatus } from './types';
+import { v4 as uuidv4 } from 'uuid';
 
-export const initializeModules = async (): Promise<boolean> => {
+// Fonction pour initialiser les modules
+export const initializeModules = async (): Promise<void> => {
   try {
-    console.log('Initializing modules...');
-    
     // Vérifier si des modules existent déjà
-    const { count, error: countError } = await supabase
+    const { count, error } = await supabase
       .from('app_modules')
       .select('*', { count: 'exact', head: true });
-      
-    if (countError) {
-      console.error('Error checking modules:', countError);
-      return false;
+    
+    if (error) {
+      console.error('Error checking modules:', error);
+      return;
     }
     
-    // Si des modules existent déjà, ne rien faire
+    // Si des modules existent déjà, ne pas réinsérer
     if (count && count > 0) {
-      console.log(`${count} modules already exist, skipping initialization.`);
-      return true;
+      console.log('Modules already initialized. Skipping.');
+      return;
     }
     
     // Définir les modules de base
-    const coreModules: AppModule[] = [
+    const modules = [
       {
-        id: '1',
-        name: 'Core',
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         code: 'core',
-        description: 'Module de base de l\'application',
-        status: 'active' as ModuleStatus,
+        name: 'Core',
+        description: 'Module principal contenant les fonctionnalités essentielles',
+        status: 'active',
         is_core: true,
-        priority: 100,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        priority: 1
       },
       {
-        id: '2',
-        name: 'Administration',
-        code: 'admin',
-        description: 'Module d\'administration',
-        status: 'active' as ModuleStatus,
-        is_core: true,
-        is_admin: true,
-        priority: 90,
+        id: uuidv4(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        code: 'auth',
+        name: 'Authentication',
+        description: 'Module d\'authentification',
+        status: 'active',
+        is_core: true,
+        priority: 2
       },
       {
-        id: '3',
-        name: 'Garde-robe',
-        code: 'wardrobe',
-        description: 'Module de gestion des vêtements',
-        status: 'active' as ModuleStatus,
-        is_core: true,
-        priority: 80,
+        id: uuidv4(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '4',
-        name: 'Social',
-        code: 'social',
-        description: 'Module social',
-        status: 'active' as ModuleStatus,
+        updated_at: new Date().toISOString(),
+        code: 'profile',
+        name: 'Profile',
+        description: 'Gestion des profils utilisateurs',
+        status: 'active',
         is_core: false,
-        priority: 70,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        priority: 5
       },
       {
-        id: '5',
-        name: 'Marketplace',
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'clothes',
+        name: 'Clothes',
+        description: 'Gestion des vêtements',
+        status: 'active',
+        is_core: false,
+        priority: 10
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'outfits',
+        name: 'Outfits',
+        description: 'Création et gestion de tenues',
+        status: 'active',
+        is_core: false,
+        priority: 11
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'suitcases',
+        name: 'Suitcases',
+        description: 'Gestion des valises de voyage',
+        status: 'active',
+        is_core: false,
+        priority: 12
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
         code: 'marketplace',
-        description: 'Module de marché',
-        status: 'active' as ModuleStatus,
+        name: 'Marketplace',
+        description: 'Place de marché et boutiques',
+        status: 'active',
         is_core: false,
-        priority: 60,
+        priority: 20
+      },
+      {
+        id: uuidv4(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        code: 'social',
+        name: 'Social',
+        description: 'Fonctionnalités sociales et communautaires',
+        status: 'active',
+        is_core: false,
+        priority: 15
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'friends',
+        name: 'Friends',
+        description: 'Gestion des amis',
+        status: 'active',
+        is_core: false,
+        priority: 16
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'messages',
+        name: 'Messages',
+        description: 'Messagerie entre utilisateurs',
+        status: 'active',
+        is_core: false,
+        priority: 17
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'challenges',
+        name: 'Challenges',
+        description: 'Défis de mode communautaires',
+        status: 'active',
+        is_core: false,
+        priority: 18
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'notifications',
+        name: 'Notifications',
+        description: 'Système de notifications',
+        status: 'active',
+        is_core: false,
+        priority: 25
+      },
+      {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        code: 'admin',
+        name: 'Admin',
+        description: 'Panneau d\'administration',
+        status: 'active',
+        is_core: false,
+        is_admin: true,
+        priority: 100
       }
     ];
     
-    // Insérer les modules un par un
-    for (const module of coreModules) {
-      const { error } = await supabase
-        .from('app_modules')
-        .insert({
-          id: module.id,
-          name: module.name,
-          code: module.code,
-          description: module.description,
-          status: module.status,
-          is_core: module.is_core,
-          is_admin: module.is_admin || false,
-          priority: module.priority,
-          created_at: module.created_at,
-          updated_at: module.updated_at
-        });
-        
-      if (error) {
-        console.error(`Error inserting module ${module.name}:`, error);
-        return false;
-      }
+    // Insérer les modules
+    const { error: insertError } = await supabase
+      .from('app_modules')
+      .insert(modules);
+      
+    if (insertError) {
+      console.error('Error initializing modules:', insertError);
+      return;
     }
     
-    console.log(`${coreModules.length} modules initialized successfully.`);
-    return true;
+    console.log('Modules initialized successfully');
   } catch (error) {
-    console.error('Error initializing modules:', error);
-    return false;
+    console.error('Exception in initializeModules:', error);
   }
 };
-
-export default initializeModules;

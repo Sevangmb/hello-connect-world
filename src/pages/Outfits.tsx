@@ -23,7 +23,6 @@ const Outfits = () => {
       
       {showCreateOutfit && (
         <CreateOutfit 
-          isOpen={showCreateOutfit} 
           onClose={() => setShowCreateOutfit(false)} 
         />
       )}

@@ -9,9 +9,18 @@ import { UserPlus } from 'lucide-react';
 interface SuggestedUserCardProps {
   user: SuggestedUser;
   onSelect: () => void;
+  onAddFriend?: (user: SuggestedUser) => void; // Ajout de cette prop optionnelle
 }
 
-export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({ user, onSelect }) => {
+export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({ user, onSelect, onAddFriend }) => {
+  const handleAction = () => {
+    if (onAddFriend) {
+      onAddFriend(user);
+    } else {
+      onSelect();
+    }
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -32,7 +41,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({ user, onSe
         <Button 
           variant="outline" 
           className="w-full"
-          onClick={onSelect}
+          onClick={handleAction}
         >
           <UserPlus className="h-4 w-4 mr-2" />
           Ajouter
