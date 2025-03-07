@@ -1,29 +1,10 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { Shop, mapShop } from '../../domain/types';
 import { IShopRepository } from '../../domain/interfaces/IShopRepository';
-import { 
-  Shop, 
-  ShopItem, 
-  ShopSettings, 
-  ShopReview, 
-  Order,
-  mapShop,
-  mapShopItem,
-  mapShopItems,
-  mapSettings,
-  mapOrder,
-  mapOrders,
-  isShopStatus
-} from '../../domain/types';
 
-/**
- * Implémentation du repository de boutique utilisant Supabase
- */
 export class ShopRepository implements IShopRepository {
-  /**
-   * Récupère une boutique par son ID
-   */
-  async getShopById(shopId: string): Promise<Shop | null> {
+  // Shop operations
+  async getShopById(id: string): Promise<Shop | null> {
     try {
       const { data, error } = await supabase
         .from('shops')
@@ -34,24 +15,18 @@ export class ShopRepository implements IShopRepository {
             full_name
           )
         `)
-        .eq('id', shopId)
+        .eq('id', id)
         .single();
-      
-      if (error) {
-        console.error(`Error fetching shop ${shopId}:`, error);
-        return null;
-      }
+
+      if (error) throw error;
       
       return mapShop(data);
     } catch (error) {
-      console.error(`Error in getShopById for ${shopId}:`, error);
+      console.error('Error fetching shop by ID:', error);
       return null;
     }
   }
-  
-  /**
-   * Récupère une boutique par l'ID de l'utilisateur
-   */
+
   async getShopByUserId(userId: string): Promise<Shop | null> {
     try {
       const { data, error } = await supabase
@@ -65,116 +40,130 @@ export class ShopRepository implements IShopRepository {
         `)
         .eq('user_id', userId)
         .single();
-      
-      if (error) {
-        console.error(`Error fetching shop for user ${userId}:`, error);
-        return null;
-      }
+
+      if (error) throw error;
       
       return mapShop(data);
     } catch (error) {
-      console.error(`Error in getShopByUserId for ${userId}:`, error);
+      console.error('Error fetching shop by user ID:', error);
       return null;
     }
   }
-  
-  /**
-   * Récupère les paramètres d'une boutique
-   */
-  async getShopSettings(shopId: string): Promise<ShopSettings | null> {
+
+  async updateShop(id: string, shopData: Partial<Shop>): Promise<Shop | null> {
+    try {
+      const { data, error } = await supabase
+        .from('shops')
+        .update({
+          ...shopData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      return mapShop(data);
+    } catch (error) {
+      console.error('Error updating shop:', error);
+      return null;
+    }
+  }
+
+  async createShop(shop: Partial<Shop>): Promise<Shop | null> {
+    try {
+      const { data, error } = await supabase
+        .from('shops')
+        .insert({
+          ...shop,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          status: shop.status || 'pending',
+          average_rating: 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      return mapShop(data);
+    } catch (error) {
+      console.error('Error creating shop:', error);
+      return null;
+    }
+  }
+
+  // Shop settings operations
+  async getShopSettings(shopId: string): Promise<any> {
     try {
       const { data, error } = await supabase
         .from('shop_settings')
         .select('*')
         .eq('shop_id', shopId)
         .single();
+
+      if (error) throw error;
       
-      if (error) {
-        console.error(`Error fetching settings for shop ${shopId}:`, error);
-        return null;
-      }
-      
-      return mapSettings(data);
+      return data;
     } catch (error) {
-      console.error(`Error in getShopSettings for ${shopId}:`, error);
+      console.error('Error fetching shop settings:', error);
       return null;
     }
   }
-  
-  /**
-   * Crée ou met à jour les paramètres d'une boutique
-   */
-  async updateShopSettings(shopId: string, settings: Partial<ShopSettings>): Promise<ShopSettings | null> {
+
+  async updateShopSettings(shopId: string, settings: any): Promise<any> {
     try {
-      // Validation - s'assurer que shop_id est présent
-      const updateData = {
-        ...settings,
-        shop_id: shopId,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Vérifier si les paramètres existent déjà
+      // Check if settings already exist
       const { data: existingSettings } = await supabase
         .from('shop_settings')
-        .select('id')
+        .select('*')
         .eq('shop_id', shopId)
         .single();
-      
-      let result;
-      
-      if (existingSettings?.id) {
-        // Mise à jour des paramètres existants
-        result = await supabase
+
+      if (existingSettings) {
+        // Update existing settings
+        const { data, error } = await supabase
           .from('shop_settings')
-          .update(updateData)
-          .eq('id', existingSettings.id)
+          .update({
+            ...settings,
+            updated_at: new Date().toISOString()
+          })
+          .eq('shop_id', shopId)
           .select()
           .single();
+
+        if (error) throw error;
+        
+        return data;
       } else {
-        // Création de nouveaux paramètres
-        result = await supabase
+        // Create new settings
+        const { data, error } = await supabase
           .from('shop_settings')
           .insert({
-            ...updateData,
-            created_at: new Date().toISOString()
+            ...settings,
+            shop_id: shopId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
           .select()
           .single();
+
+        if (error) throw error;
+        
+        return data;
       }
-      
-      if (result.error) {
-        console.error(`Error updating settings for shop ${shopId}:`, result.error);
-        return null;
-      }
-      
-      return mapSettings(result.data);
     } catch (error) {
-      console.error(`Error in updateShopSettings for ${shopId}:`, error);
+      console.error('Error updating shop settings:', error);
       return null;
     }
   }
-  
-  /**
-   * Met à jour une boutique
-   */
-  async updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop | null> {
+
+  // Additional methods that need to be implemented to satisfy the interface
+  async getShopsByStatus(status: string): Promise<Shop[]> {
     try {
-      // Validation - s'assurer que les champs requis sont présents
-      const updateData = {
-        ...shopData,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Si status est fourni, vérifier qu'il est valide
-      if (shopData.status && !isShopStatus(shopData.status)) {
-        console.error(`Invalid shop status: ${shopData.status}`);
-        return null;
-      }
-      
       const { data, error } = await supabase
         .from('shops')
-        .update(updateData)
-        .eq('id', shopId)
         .select(`
           *,
           profiles:user_id (
@@ -182,17 +171,53 @@ export class ShopRepository implements IShopRepository {
             full_name
           )
         `)
-        .single();
+        .eq('status', status);
+
+      if (error) throw error;
       
-      if (error) {
-        console.error(`Error updating shop ${shopId}:`, error);
-        return null;
-      }
-      
-      return mapShop(data);
+      return data.map(shop => mapShop(shop)).filter(Boolean) as Shop[];
     } catch (error) {
-      console.error(`Error in updateShop for ${shopId}:`, error);
-      return null;
+      console.error('Error fetching shops by status:', error);
+      return [];
+    }
+  }
+
+  async deleteShop(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('shops')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting shop:', error);
+      return false;
+    }
+  }
+
+  // Other required methods from interface that will be implemented in their specific repositories
+  async getUserShops(userId: string): Promise<Shop[]> {
+    try {
+      const { data, error } = await supabase
+        .from('shops')
+        .select(`
+          *,
+          profiles:user_id (
+            username,
+            full_name
+          )
+        `)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      return data.map(shop => mapShop(shop)).filter(Boolean) as Shop[];
+    } catch (error) {
+      console.error('Error fetching user shops:', error);
+      return [];
     }
   }
 }

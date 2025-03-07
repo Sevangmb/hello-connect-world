@@ -20,7 +20,7 @@ export interface IOrderRepository {
   /**
    * Crée une commande
    */
-  createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null>;
+  createOrder(order: Partial<Order>): Promise<Order | null>;
   
   /**
    * Met à jour le statut d'une commande

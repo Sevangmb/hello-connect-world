@@ -99,7 +99,7 @@ export class ModuleRepository implements IModuleRepository {
       }
       
       // Récupérer les détails des modules de dépendance
-      const dependencies = [];
+      const dependencies: any[] = [];
       
       for (const dep of dependencyData) {
         const { data: moduleData, error: moduleError } = await supabase
@@ -214,7 +214,7 @@ export class ModuleRepository implements IModuleRepository {
       }
       
       // Créer la map des modules aux fonctionnalités
-      const moduleFeatureMap = new Map();
+      const moduleFeatureMap = new Map<string, any>();
       
       if (modules) {
         modules.forEach(module => {
@@ -230,13 +230,16 @@ export class ModuleRepository implements IModuleRepository {
         features.forEach(feature => {
           const moduleCode = feature.module_code;
           if (moduleFeatureMap.has(moduleCode)) {
-            moduleFeatureMap.get(moduleCode).features.push({
-              id: feature.id,
-              feature_code: feature.feature_code,
-              feature_name: feature.feature_name,
-              description: feature.description,
-              is_enabled: feature.is_enabled
-            });
+            const moduleData = moduleFeatureMap.get(moduleCode);
+            if (moduleData) {
+              moduleData.features.push({
+                id: feature.id,
+                feature_code: feature.feature_code,
+                feature_name: feature.feature_name,
+                description: feature.description,
+                is_enabled: feature.is_enabled
+              });
+            }
           }
         });
       }
