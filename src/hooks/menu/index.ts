@@ -50,10 +50,12 @@ export const useMenu = (options: UseMenuOptions = {}) => {
       refreshMenu();
     };
     
-    eventBus.subscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
+    // Subscribe returns an unsubscribe function, store it to call it on cleanup
+    const unsubscribe = eventBus.subscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
     
     return () => {
-      eventBus.unsubscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
+      // Call the unsubscribe function directly, not as a method on eventBus
+      unsubscribe();
     };
   }, [refreshMenu]);
 
