@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -225,10 +224,6 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      if (!modulesData) {
-        return [];
-      }
-      
       // Fetch features
       const { data: featuresData, error: featuresError } = await supabase
         .from('module_features')
@@ -239,12 +234,15 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Create an array to hold the results
+      // Create result array without using Maps or complex type manipulations
       const result: ModuleWithFeatures[] = [];
       
-      // Process each module
-      for (const module of modulesData || []) {
-        // Create the module info object
+      if (!modulesData) {
+        return [];
+      }
+      
+      // For each module, create an entry with its features
+      modulesData.forEach((module) => {
         const moduleInfo: ModuleBasicInfo = {
           id: module.id,
           name: module.name,
@@ -257,7 +255,7 @@ export class ModuleRepository implements IModuleRepository {
         const moduleFeatures: FeatureBasicInfo[] = [];
         
         if (featuresData) {
-          for (const feature of featuresData) {
+          featuresData.forEach((feature) => {
             if (feature.module_code === module.code) {
               moduleFeatures.push({
                 id: feature.id,
@@ -267,7 +265,7 @@ export class ModuleRepository implements IModuleRepository {
                 is_enabled: feature.is_enabled
               });
             }
-          }
+          });
         }
         
         // Add this module with its features to the result
@@ -275,7 +273,7 @@ export class ModuleRepository implements IModuleRepository {
           module: moduleInfo,
           features: moduleFeatures
         });
-      }
+      });
       
       return result;
     } catch (error) {
