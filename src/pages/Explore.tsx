@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -8,20 +7,24 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const Explore: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { modules, isModuleActive } = useModules();
+  const { modules } = useModules();
 
-  // Effet pour simuler un chargement initial et vérifier que les modules sont chargés
   useEffect(() => {
-    // Vérifier que les modules sont chargés avant d'arrêter le chargement
+    console.log("Explorer: Initialisation du chargement");
+    
+    const timer = setTimeout(() => {
+      console.log("Explorer: Fin du chargement forcée après timeout");
+      setIsLoading(false);
+    }, 1500);
+    
     if (modules && modules.length > 0) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
-      return () => clearTimeout(timer);
+      console.log("Explorer: Modules chargés, fin du chargement");
+      setIsLoading(false);
     }
+    
+    return () => clearTimeout(timer);
   }, [modules]);
 
-  // Page de chargement
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 flex items-center justify-center h-[80vh]">
@@ -80,7 +83,6 @@ const Explore: React.FC = () => {
   );
 };
 
-// Component for displaying unavailable modules
 const ModuleUnavailable = ({ name }: { name: string }) => (
   <Card className="p-6 bg-amber-50 border-amber-200">
     <h2 className="text-amber-800 font-semibold mb-2">Module {name} indisponible</h2>
@@ -90,12 +92,13 @@ const ModuleUnavailable = ({ name }: { name: string }) => (
   </Card>
 );
 
-// Section components with placeholder content
 const PostsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("PostsSection: Initialisation du chargement");
     const timer = setTimeout(() => {
+      console.log("PostsSection: Fin du chargement");
       setIsLoading(false);
     }, 800);
     return () => clearTimeout(timer);
@@ -128,7 +131,9 @@ const NewsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log("NewsSection: Initialisation du chargement");
     const timer = setTimeout(() => {
+      console.log("NewsSection: Fin du chargement");
       setIsLoading(false);
     }, 800);
     return () => clearTimeout(timer);
@@ -190,7 +195,6 @@ const TrendingSection = () => (
   </Card>
 );
 
-// UI Components for the different content types
 const PostCard = () => (
   <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
     <div className="flex items-center gap-3 mb-3">
