@@ -20,7 +20,7 @@ export class ModuleStatsRepository {
         .from('module_usage_stats')
         .select('*')
         .eq('module_id', moduleId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as ModuleUsageStat;
