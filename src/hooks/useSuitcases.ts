@@ -55,7 +55,7 @@ export const useSuitcases = () => {
       description?: string;
       start_date?: string;
       end_date?: string;
-      status?: SuitcaseStatus;
+      status?: 'active' | 'archived'; // Limiter aux statuts permis par la base de données
     }) => {
       if (!user) throw new Error('Vous devez être connecté pour créer une valise');
       
@@ -99,7 +99,7 @@ export const useSuitcases = () => {
       description?: string;
       start_date?: string;
       end_date?: string;
-      status?: SuitcaseStatus;
+      status?: 'active' | 'archived'; // Limiter aux statuts permis par la base de données
     }) => {
       if (!user) throw new Error('Vous devez être connecté pour modifier une valise');
       

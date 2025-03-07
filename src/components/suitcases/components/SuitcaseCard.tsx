@@ -1,111 +1,65 @@
 
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Suitcase } from '../types';
-import { CalendarIcon, Trash2, Edit, Eye, ArchiveIcon } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Edit, Trash } from 'lucide-react';
+import { SUITCASE_STATUSES } from '../constants/status';
 import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { fr } from 'date-fns/locale';
 
 interface SuitcaseCardProps {
   suitcase: Suitcase;
-  onDelete: (id: string) => void;
-  onEdit: (suitcase: Suitcase) => void;
-  onArchive: (id: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({ 
+export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
   suitcase,
-  onDelete,
   onEdit,
-  onArchive
+  onDelete
 }) => {
-  const navigate = useNavigate();
-
-  const handleView = () => {
-    navigate(`/suitcases/${suitcase.id}`);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Non défini';
-    try {
-      return format(new Date(dateString), 'dd/MM/yyyy');
-    } catch (error) {
-      return 'Date invalide';
-    }
-  };
-
-  const getStatusBadge = () => {
-    switch (suitcase.status) {
-      case 'active':
-        return <Badge variant="default">Active</Badge>;
-      case 'archived':
-        return <Badge variant="secondary">Archivée</Badge>;
-      case 'completed':
-        return <Badge variant="success">Terminée</Badge>;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
       <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-xl">{suitcase.name}</CardTitle>
-          {getStatusBadge()}
+        <CardTitle className="text-lg">{suitcase.name}</CardTitle>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 text-xs rounded-full ${
+            suitcase.status === 'active' 
+              ? 'bg-green-100 text-green-800' 
+              : suitcase.status === 'completed'
+              ? 'bg-blue-100 text-blue-800'
+              : 'bg-gray-100 text-gray-800'
+          }`}>
+            {SUITCASE_STATUSES[suitcase.status]}
+          </span>
         </div>
-        {suitcase.description && (
-          <CardDescription>{suitcase.description}</CardDescription>
-        )}
       </CardHeader>
-      <CardContent className="flex-grow">
-        <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <CalendarIcon className="mr-2 h-4 w-4 opacity-70" />
-            <span>Du {formatDate(suitcase.start_date)} au {formatDate(suitcase.end_date)}</span>
-          </div>
-          <div className="text-sm text-gray-500">
-            Créée le {formatDate(suitcase.created_at)}
-          </div>
-        </div>
+      <CardContent className="flex-1">
+        {suitcase.description && (
+          <p className="text-muted-foreground text-sm mb-2">
+            {suitcase.description}
+          </p>
+        )}
+        {suitcase.start_date && (
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium">Dates: </span>
+            {format(new Date(suitcase.start_date), 'dd MMM yyyy', { locale: fr })}
+            {suitcase.end_date && (
+              ` - ${format(new Date(suitcase.end_date), 'dd MMM yyyy', { locale: fr })}`
+            )}
+          </p>
+        )}
       </CardContent>
-      <CardFooter className="pt-2 flex justify-between">
-        <Button variant="outline" size="sm" onClick={() => handleView()}>
-          <Eye className="h-4 w-4 mr-2" />
-          Voir
+      <CardFooter className="justify-between pt-2 border-t">
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Edit className="h-4 w-4 mr-1" />
+          Modifier
         </Button>
-        <div className="space-x-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => onEdit(suitcase)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => onArchive(suitcase.id)}
-          >
-            <ArchiveIcon className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => onDelete(suitcase.id)}
-          >
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" onClick={onDelete} className="text-destructive">
+          <Trash className="h-4 w-4 mr-1" />
+          Supprimer
+        </Button>
       </CardFooter>
     </Card>
   );

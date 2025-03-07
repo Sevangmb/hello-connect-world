@@ -1,40 +1,21 @@
 
-import React, { useMemo } from 'react';
-import { Suspense } from 'react';
-import { SuitcaseListItem } from './SuitcaseListItem';
-import { LoadingState } from '@/components/ui/loading-state';
-import { useTransitionState } from '@/hooks/useTransitionState';
-import type { Suitcase } from '../types';
-
-interface SuitcaseGridProps {
-  suitcases: Suitcase[];
-  onSelect: (suitcase: Suitcase) => void;
-  loading?: boolean;
-}
+import React from 'react';
+import { SuitcaseGridProps } from '../types';
+import { SuitcaseCard } from './SuitcaseCard';
 
 export const SuitcaseGrid: React.FC<SuitcaseGridProps> = ({ 
   suitcases, 
-  onSelect,
-  loading = false
+  onEdit, 
+  onDelete 
 }) => {
-  // Utiliser le hook de transition pour éviter les clignotements
-  const isTransitioning = useTransitionState(loading);
-  
-  // Memoization des valises pour éviter les re-renders inutiles
-  const memoizedSuitcases = useMemo(() => suitcases, [suitcases]);
-
-  // Si en transition, afficher l'état de chargement
-  if (isTransitioning) {
-    return <LoadingState />;
-  }
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 transition-opacity duration-300 ease-in-out animate-fade-in">
-      {memoizedSuitcases.map((suitcase) => (
-        <SuitcaseListItem
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {suitcases.map((suitcase) => (
+        <SuitcaseCard
           key={suitcase.id}
           suitcase={suitcase}
-          onSelect={() => onSelect(suitcase)}
+          onEdit={() => onEdit(suitcase.id)}
+          onDelete={() => onDelete(suitcase.id)}
         />
       ))}
     </div>

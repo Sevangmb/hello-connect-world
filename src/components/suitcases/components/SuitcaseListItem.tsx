@@ -1,78 +1,63 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Suitcase } from '../types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Edit, Trash } from 'lucide-react';
 import { SUITCASE_STATUSES } from '../constants/status';
-import { Luggage, Calendar } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
-export interface SuitcaseListItemProps {
+interface SuitcaseListItemProps {
   suitcase: Suitcase;
-  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({ 
-  suitcase, 
-  onSelect 
+export const SuitcaseListItem: React.FC<SuitcaseListItemProps> = ({
+  suitcase,
+  onEdit,
+  onDelete
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'archived':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'deleted':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      default:
-        return '';
-    }
-  };
-
   return (
-    <Card 
-      className="h-full hover:shadow-md transition-shadow duration-200 cursor-pointer"
-      onClick={onSelect}
-    >
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg truncate">{suitcase.name}</CardTitle>
-          <Badge className={getStatusColor(suitcase.status)}>
-            {SUITCASE_STATUSES[suitcase.status as keyof typeof SUITCASE_STATUSES]}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-2">
-        {suitcase.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-            {suitcase.description}
-          </p>
-        )}
-        
-        {suitcase.destination && (
-          <div className="flex items-center text-sm mt-1">
-            <Luggage className="h-4 w-4 mr-1" />
-            <span className="truncate">{suitcase.destination}</span>
-          </div>
-        )}
-        
-        {(suitcase.start_date || suitcase.end_date) && (
-          <div className="flex items-center text-sm mt-1">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>
-              {suitcase.start_date && new Date(suitcase.start_date).toLocaleDateString()} 
-              {suitcase.start_date && suitcase.end_date && ' - '} 
-              {suitcase.end_date && new Date(suitcase.end_date).toLocaleDateString()}
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-4 flex justify-between items-center">
+        <div className="flex-1">
+          <h3 className="font-medium text-lg">{suitcase.name}</h3>
+          {suitcase.description && (
+            <p className="text-muted-foreground text-sm line-clamp-1">
+              {suitcase.description}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`px-2 py-0.5 text-xs rounded-full ${
+              suitcase.status === 'active' 
+                ? 'bg-green-100 text-green-800' 
+                : suitcase.status === 'completed'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {SUITCASE_STATUSES[suitcase.status]}
             </span>
+            {suitcase.start_date && (
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(suitcase.start_date), 'dd MMM yyyy', { locale: fr })}
+                {suitcase.end_date && (
+                  ` - ${format(new Date(suitcase.end_date), 'dd MMM yyyy', { locale: fr })}`
+                )}
+              </span>
+            )}
           </div>
-        )}
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" onClick={onEdit}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive">
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
       </CardContent>
-      <CardFooter className="pt-2 text-xs text-muted-foreground">
-        Créée {formatDistanceToNow(new Date(suitcase.created_at), { addSuffix: true, locale: fr })}
-      </CardFooter>
     </Card>
   );
 };

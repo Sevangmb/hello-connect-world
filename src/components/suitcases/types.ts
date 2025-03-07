@@ -2,6 +2,7 @@
 import { ReactNode } from 'react';
 import { UseMutationResult } from '@tanstack/react-query';
 
+// Assurons-nous que SuitcaseStatus corresponde aux valeurs acceptées par la base de données
 export type SuitcaseStatus = 'active' | 'archived' | 'completed' | 'deleted';
 
 export interface Suitcase {
