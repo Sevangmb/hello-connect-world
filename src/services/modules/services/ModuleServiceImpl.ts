@@ -1,7 +1,7 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleRepository } from '../repositories/ModuleRepository';
 import { FeatureRepository } from '../repositories/FeatureRepository';
+import { ModuleFeatureRepository } from '../repositories/ModuleFeatureRepository';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { IModuleService } from '../domain/interfaces/IModuleService';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,10 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 export class ModuleServiceImpl implements IModuleService {
   private moduleRepository: ModuleRepository;
   private featureRepository: FeatureRepository;
+  private moduleFeatureRepository: ModuleFeatureRepository;
   
   constructor(moduleRepository: ModuleRepository) {
     this.moduleRepository = moduleRepository;
     this.featureRepository = new FeatureRepository();
+    this.moduleFeatureRepository = new ModuleFeatureRepository();
   }
 
   /**
@@ -163,5 +165,12 @@ export class ModuleServiceImpl implements IModuleService {
     } catch (error) {
       console.error('Error recording module usage:', error);
     }
+  }
+
+  /**
+   * Get modules with features
+   */
+  public async getModulesWithFeatures() {
+    return this.moduleFeatureRepository.getModulesWithFeatures();
   }
 }

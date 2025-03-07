@@ -2,30 +2,18 @@
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
-
-// Define simple, non-recursive types for the return values
-interface ModuleBasicInfo {
-  id: string;
-  name: string;
-  code: string;
-  description?: string;
-  status: ModuleStatus;
-}
-
-interface FeatureBasicInfo {
-  id: string;
-  feature_code: string;
-  feature_name: string;
-  description: string;
-  is_enabled: boolean;
-}
-
-interface ModuleWithFeatures {
-  module: ModuleBasicInfo;
-  features: FeatureBasicInfo[];
-}
+import { ModuleDependencyRepository } from './ModuleDependencyRepository';
+import { ModuleStatsRepository } from './ModuleStatsRepository';
 
 export class ModuleRepository implements IModuleRepository {
+  private dependencyRepository: ModuleDependencyRepository;
+  private statsRepository: ModuleStatsRepository;
+
+  constructor() {
+    this.dependencyRepository = new ModuleDependencyRepository();
+    this.statsRepository = new ModuleStatsRepository();
+  }
+
   /**
    * Get all modules
    */
@@ -107,50 +95,7 @@ export class ModuleRepository implements IModuleRepository {
    * Get module dependencies
    */
   async getModuleDependencies(moduleId: string): Promise<any[]> {
-    try {
-      // Récupérer les dépendances pour le module
-      const { data: dependencyData, error: dependencyError } = await supabase
-        .from('module_dependencies')
-        .select('id, module_id, dependency_id, is_required')
-        .eq('module_id', moduleId);
-      
-      if (dependencyError) throw dependencyError;
-      
-      if (!dependencyData || dependencyData.length === 0) {
-        return [];
-      }
-      
-      // Récupérer les détails des modules de dépendance
-      const dependencies: any[] = [];
-      
-      for (const dep of dependencyData) {
-        const { data: moduleData, error: moduleError } = await supabase
-          .from('app_modules')
-          .select('id, name, code, status')
-          .eq('id', dep.dependency_id)
-          .single();
-          
-        if (moduleError) {
-          console.error(`Error fetching dependency module ${dep.dependency_id}:`, moduleError);
-          continue;
-        }
-        
-        if (moduleData) {
-          dependencies.push({
-            id: dep.id,
-            module_id: dep.module_id,
-            dependency_id: dep.dependency_id,
-            is_required: dep.is_required,
-            dependency: moduleData
-          });
-        }
-      }
-      
-      return dependencies;
-    } catch (error) {
-      console.error(`Error fetching dependencies for module ${moduleId}:`, error);
-      return [];
-    }
+    return this.dependencyRepository.getModuleDependencies(moduleId);
   }
   
   /**
@@ -195,94 +140,7 @@ export class ModuleRepository implements IModuleRepository {
    * Get module usage stats
    */
   async getModuleUsageStats(moduleId: string): Promise<any> {
-    try {
-      const { data, error } = await supabase
-        .from('module_usage_stats')
-        .select('*')
-        .eq('module_id', moduleId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error(`Error fetching usage stats for module ${moduleId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Get modules with features
-   */
-  public async getModulesWithFeatures(): Promise<ModuleWithFeatures[]> {
-    try {
-      // First, fetch all modules
-      const { data: modulesData, error: modulesError } = await supabase
-        .from('app_modules')
-        .select('id, name, code, description, status');
-      
-      if (modulesError) {
-        console.error('Error fetching modules:', modulesError);
-        return [];
-      }
-      
-      if (!modulesData || modulesData.length === 0) {
-        return [];
-      }
-      
-      // Then fetch all features
-      const { data: featuresData, error: featuresError } = await supabase
-        .from('module_features')
-        .select('id, feature_code, feature_name, description, is_enabled, module_code');
-        
-      if (featuresError) {
-        console.error('Error fetching features:', featuresError);
-        return [];
-      }
-      
-      // Build the result array directly with proper typing
-      const result: ModuleWithFeatures[] = [];
-      
-      // Process each module
-      for (const module of modulesData) {
-        const moduleInfo: ModuleBasicInfo = {
-          id: module.id,
-          name: module.name,
-          code: module.code,
-          description: module.description,
-          status: module.status as ModuleStatus
-        };
-        
-        // Find features for this module
-        const moduleFeatures: FeatureBasicInfo[] = [];
-        
-        if (featuresData) {
-          // Use explicit iteration instead of array methods to avoid complex type inference
-          for (let i = 0; i < featuresData.length; i++) {
-            const feature = featuresData[i];
-            if (feature.module_code === module.code) {
-              moduleFeatures.push({
-                id: feature.id,
-                feature_code: feature.feature_code,
-                feature_name: feature.feature_name,
-                description: feature.description || '',
-                is_enabled: feature.is_enabled
-              });
-            }
-          }
-        }
-        
-        // Add this module with its features to the result
-        result.push({
-          module: moduleInfo,
-          features: moduleFeatures
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Error fetching modules with features:', error);
-      return [];
-    }
+    return this.statsRepository.getModuleUsageStats(moduleId);
   }
 
   /**
