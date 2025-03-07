@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -70,11 +71,12 @@ export class MenuRepository implements IMenuRepository {
         return filteredItems;
       }
       
+      // Fix: Remove the generic type parameter that's causing the infinite recursion
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq<string>('category', category)
+        .eq('category', category)
         .order('position');
       
       if (error) {
