@@ -27,6 +27,8 @@ const Terms = () => <div className="container mx-auto p-8"><h1 className="text-2
 const Privacy = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Politique de confidentialité</h1><p>Contenu à venir</p></div>;
 const Contact = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Contact</h1><p>Contenu à venir</p></div>;
 const About = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">À propos</h1><p>Contenu à venir</p></div>;
+const Explore = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>;
+const Personal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>;
 
 function App() {
   const { user } = useAuth();
@@ -55,14 +57,14 @@ function App() {
           {/* Pages principales */}
           <Route index element={<Home />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="explore" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>} />
-          <Route path="personal" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>} />
+          <Route path="explore" element={<Explore />} />
+          <Route path="personal" element={<Personal />} />
           
           {/* Routes du module Admin */}
-          <Route path="admin" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
+          <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="admin/dashboard" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
           <Route path="admin/modules" element={<ModuleGuard moduleCode="admin"><AdminModules /></ModuleGuard>} />
           <Route path="admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
-          <Route path="admin/dashboard" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
           
           {/* Routes du module Shop */}
           <Route path="boutiques" element={<ModuleGuard moduleCode="shop"><Shops /></ModuleGuard>} />

@@ -34,17 +34,16 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Vérifier si un chemin est actif
   const isActive = (path: string) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    // Normaliser le chemin pour la comparaison
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const normalizedCurrentPath = location.pathname;
+    
+    if (normalizedPath === '/') {
+      return normalizedCurrentPath === '/';
     }
     
-    // Normaliser le chemin pour éviter les problèmes de correspondance
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const normalizedCurrentPath = location.pathname.startsWith('/') 
-      ? location.pathname 
-      : `/${location.pathname}`;
-      
-    return normalizedCurrentPath.startsWith(normalizedPath);
+    return normalizedCurrentPath === normalizedPath || 
+           normalizedCurrentPath.startsWith(`${normalizedPath}/`);
   };
 
   // Récupérer l'icône à partir de la bibliothèque Lucide
@@ -56,7 +55,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
   
-  // Mémoiser la vérification de visibilité pour éviter des recalculs inutiles
+  // Mémoiser la vérification de visibilité des modules
   const isMenuItemVisible = useMemo(() => {
     return (moduleCode: string | null) => {
       if (!moduleCode) return true;
@@ -66,19 +65,18 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         return true;
       }
       
-      // Sinon vérifier avec le coordinateur
+      // Vérifier avec le coordinateur
       return moduleMenuCoordinator.isModuleVisibleInMenu(moduleCode, modules);
     };
   }, [isUserAdmin, modules]);
 
-  // Mémoiser les éléments de menu filtrés pour éviter des re-rendus inutiles
+  // Filtrer les éléments de menu visibles
   const visibleMenuItems = useMemo(() => {
     return menuItems.filter(item => !item.module_code || isMenuItemVisible(item.module_code));
   }, [menuItems, isMenuItemVisible]);
 
-  // Optimisation du rendu pour éviter le clignotement
+  // Afficher un état de chargement
   if (loading) {
-    // Utiliser un effet de skeleton fixe pour éviter les effets de clignotement
     return (
       <div className={cn("space-y-2", className)}>
         {[...Array(5)].map((_, i) => (
@@ -105,22 +103,18 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
-  // Fonction pour gérer les clics sur les éléments de menu
-  const handleMenuItemClick = (path: string, event: React.MouseEvent) => {
+  // Gérer la navigation
+  const handleNavigate = (path: string, event: React.MouseEvent) => {
     event.preventDefault();
-    event.stopPropagation();
     
     // Normaliser le chemin pour la navigation
-    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    console.log(`DynamicMenu: Navigation vers ${normalizedPath}`);
-    
-    try {
-      // Utiliser le hook navigate pour la navigation SPA
-      navigate(`/${normalizedPath}`);
-    } catch (error) {
-      console.error(`Erreur lors de la navigation vers ${path}:`, error);
+    let targetPath = path;
+    if (!targetPath.startsWith('/')) {
+      targetPath = `/${targetPath}`;
     }
+    
+    console.log(`DynamicMenu: Navigation vers ${targetPath}`);
+    navigate(targetPath);
   };
 
   return (
@@ -138,7 +132,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
               "justify-start font-medium",
               isActive(normalizedPath) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
             )}
-            onClick={(e) => handleMenuItemClick(item.path, e)}
+            onClick={(e) => handleNavigate(normalizedPath, e)}
           >
             {getIcon(item.icon)}
             <span>{item.name}</span>

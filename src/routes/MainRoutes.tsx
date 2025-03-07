@@ -12,17 +12,17 @@ const MainRoutes: React.FC = () => {
   
   return (
     <Routes>
-      {/* Routes d'authentification */}
+      {/* Routes d'authentification qui ne sont pas dans le layout principal */}
       <Route path="/auth" element={<Auth />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       
       {/* Routes principales avec RootLayout comme wrapper */}
       <Route element={<RootLayout />}>
-        {/* App contient toutes les routes imbriquées */}
+        {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
       </Route>
 
-      {/* Page 404 pour les routes non gérées */}
+      {/* Route 404 explicite et fallback */}
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>

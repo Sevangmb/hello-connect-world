@@ -1,3 +1,4 @@
+
 import { eventBus } from "@/core/event-bus/EventBus";
 import { getModuleActiveStatus } from "@/hooks/modules/hooks/status";
 import { AppModule } from "@/hooks/modules/types";
@@ -7,7 +8,8 @@ export const MODULE_MENU_EVENTS = {
   MENU_UPDATED: 'module_menu:menu_updated',
   MODULE_STATUS_CHANGED: 'module_menu:module_status_changed',
   ADMIN_ACCESS_GRANTED: 'module_menu:admin_access_granted',
-  ADMIN_ACCESS_REVOKED: 'module_menu:admin_access_revoked'
+  ADMIN_ACCESS_REVOKED: 'module_menu:admin_access_revoked',
+  NAVIGATION_REQUESTED: 'module_menu:navigation_requested'
 };
 
 export class ModuleMenuCoordinator {
@@ -83,16 +85,20 @@ export class ModuleMenuCoordinator {
   }
 
   public isModuleVisibleInMenu(moduleCode: string, modules: AppModule[]): boolean {
+    // Toujours autoriser le module d'administration pour les administrateurs
     if (moduleCode === ADMIN_MODULE_CODE || moduleCode.startsWith('admin_')) {
       return this.adminAccessEnabled;
     }
 
+    // Vérifier le cache pour une performance optimale
     if (this.moduleCache[moduleCode] !== undefined) {
       return this.moduleCache[moduleCode];
     }
 
+    // Vérifier le statut du module
     const isActive = getModuleActiveStatus(moduleCode, modules);
     
+    // Mettre en cache le résultat
     this.moduleCache[moduleCode] = isActive;
     console.log(`ModuleMenuCoordinator: Module ${moduleCode} visibilité: ${isActive}`);
     
@@ -102,10 +108,11 @@ export class ModuleMenuCoordinator {
   private onModuleStatusChanged(moduleCode: string, status: string): void {
     console.log(`ModuleMenuCoordinator: Changement de statut du module ${moduleCode} à ${status}`);
     
+    // Invalider le cache pour ce module
     delete this.moduleCache[moduleCode];
-    
     this.moduleCache[moduleCode] = status === 'active';
     
+    // Publier l'événement de changement de statut
     this.debounceEvent('module_status_changed', () => {
       eventBus.publish(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, {
         moduleCode,
@@ -115,6 +122,7 @@ export class ModuleMenuCoordinator {
       console.log(`ModuleMenuCoordinator: Module ${moduleCode} status changed to ${status}`);
     });
     
+    // Rafraîchir le menu
     this.refreshMenu();
   }
 
@@ -126,9 +134,20 @@ export class ModuleMenuCoordinator {
     }
   }
 
+  // Fonction publique pour demander une navigation
+  public requestNavigation(path: string): void {
+    console.log(`ModuleMenuCoordinator: Demande de navigation vers ${path}`);
+    
+    eventBus.publish(MODULE_MENU_EVENTS.NAVIGATION_REQUESTED, {
+      path,
+      timestamp: Date.now()
+    });
+  }
+
   public refreshMenu(): void {
     const now = Date.now();
     
+    // Limiter la fréquence des rafraîchissements
     if (now - this.lastRefreshTimestamp < 500) {
       return;
     }
@@ -165,6 +184,9 @@ export class ModuleMenuCoordinator {
       });
       console.log('ModuleMenuCoordinator: Admin access enabled');
     });
+    
+    // Rafraîchir le menu après avoir activé l'accès admin
+    this.refreshMenu();
   }
 
   public disableAdminAccess(): void {
@@ -184,6 +206,9 @@ export class ModuleMenuCoordinator {
       });
       console.log('ModuleMenuCoordinator: Admin access disabled');
     });
+    
+    // Rafraîchir le menu après avoir désactivé l'accès admin
+    this.refreshMenu();
   }
 }
 

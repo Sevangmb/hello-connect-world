@@ -1,10 +1,11 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAllMenuItems, useMenuItemsByCategory, useMenuItemsByModule } from './useMenuItems';
 import { useMenuCategories } from './useMenuCategories';
 import { useAdminStatus } from './useAdminStatus';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { eventBus } from '@/core/event-bus/EventBus';
+import { MODULE_MENU_EVENTS } from '@/services/coordination/ModuleMenuCoordinator';
 
 interface UseMenuOptions {
   category?: MenuItemCategory;
@@ -12,31 +13,57 @@ interface UseMenuOptions {
   hierarchical?: boolean;
 }
 
-// Main hook for using menu functionality
+// Hook principal pour utiliser le menu
 export const useMenu = (options: UseMenuOptions = {}) => {
   const { category, moduleCode, hierarchical = false } = options;
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get admin status
+  // Obtenir le statut d'administrateur
   const { isUserAdmin } = useAdminStatus();
 
-  // Query for menu items based on provided options
+  // Requêtes pour les éléments de menu
   const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory);
   const moduleQuery = useMenuItemsByModule(moduleCode as string, isUserAdmin);
   const allItemsQuery = useAllMenuItems();
 
-  // Categories 
+  // Catégories de menu
   const menuCategories = useMenuCategories(menuItems);
 
-  // Effect to set menu items based on query results
+  // Fonction pour rafraîchir les données du menu
+  const refreshMenu = useCallback(() => {
+    console.log("useMenu: Rafraîchissement du menu");
+    if (category) {
+      categoryQuery.refetch();
+    } else if (moduleCode) {
+      moduleQuery.refetch();
+    } else {
+      allItemsQuery.refetch();
+    }
+  }, [category, moduleCode, categoryQuery, moduleQuery, allItemsQuery]);
+
+  // Écouter les événements de mise à jour du menu
+  useEffect(() => {
+    const onMenuUpdated = () => {
+      console.log("useMenu: Événement MENU_UPDATED reçu");
+      refreshMenu();
+    };
+    
+    eventBus.subscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
+    
+    return () => {
+      eventBus.unsubscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
+    };
+  }, [refreshMenu]);
+
+  // Effet pour définir les éléments de menu en fonction des résultats de la requête
   useEffect(() => {
     try {
       setLoading(true);
       let items: MenuItem[] = [];
 
-      // Get items based on options
+      // Obtenir les éléments en fonction des options
       if (category) {
         items = categoryQuery.data || [];
       } else if (moduleCode) {
@@ -45,7 +72,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
         items = allItemsQuery.data || [];
       }
 
-      // Filter based on user permissions
+      // Filtrer en fonction des autorisations de l'utilisateur
       const filteredItems = items.filter(item => {
         if (item.requires_admin && !isUserAdmin) {
           return false;
@@ -53,9 +80,9 @@ export const useMenu = (options: UseMenuOptions = {}) => {
         return true;
       });
 
-      // Handle hierarchical structure if needed
+      // Gérer la structure hiérarchique si nécessaire
       if (hierarchical) {
-        // Build tree structure (future enhancement)
+        // Structure arborescente (amélioration future)
         setMenuItems(filteredItems);
       } else {
         setMenuItems(filteredItems);
@@ -63,8 +90,8 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
       setError(null);
     } catch (err) {
-      console.error("Error processing menu items:", err);
-      setError("Failed to load menu items");
+      console.error("Erreur lors du traitement des éléments de menu:", err);
+      setError("Échec du chargement des éléments de menu");
     } finally {
       setLoading(false);
     }
@@ -78,17 +105,6 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     allItemsQuery.data
   ]);
 
-  // Function to refresh menu data
-  const refreshMenu = () => {
-    if (category) {
-      categoryQuery.refetch();
-    } else if (moduleCode) {
-      moduleQuery.refetch();
-    } else {
-      allItemsQuery.refetch();
-    }
-  };
-
   return {
     menuItems,
     loading: loading || categoryQuery.isLoading || moduleQuery.isLoading || allItemsQuery.isLoading,
@@ -99,7 +115,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
   };
 };
 
-// Export sub-hooks for direct access if needed
+// Exporter les sous-hooks pour un accès direct si nécessaire
 export { 
   useAllMenuItems,
   useMenuItemsByCategory,

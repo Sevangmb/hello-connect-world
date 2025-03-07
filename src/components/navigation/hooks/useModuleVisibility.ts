@@ -2,7 +2,7 @@
 import { useMenu } from "@/hooks/menu";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { MenuItem } from "@/services/menu/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useModules } from "@/hooks/modules/useModules";
 
 /**
@@ -11,11 +11,11 @@ import { useModules } from "@/hooks/modules/useModules";
 export const useModuleVisibility = (category: string) => {
   const { menuItems, loading, isUserAdmin, refreshMenu } = useMenu({ category });
   const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
-  const { modules } = useModules();
+  const { modules, isInitialized } = useModules();
   
-  // Filtrer les éléments en fonction de la visibilité du module
-  useEffect(() => {
-    if (!menuItems) return;
+  // Fonction de filtrage des éléments de menu
+  const filterMenuItems = useCallback(() => {
+    if (!menuItems || !isInitialized) return;
     
     // Appliquer les règles de visibilité des modules
     const filteredItems = menuItems.filter(item => {
@@ -28,7 +28,7 @@ export const useModuleVisibility = (category: string) => {
       if (item.module_code) {
         return moduleMenuCoordinator.isModuleVisibleInMenu(
           item.module_code, 
-          modules // Passer les modules chargés
+          modules
         );
       }
       
@@ -39,11 +39,16 @@ export const useModuleVisibility = (category: string) => {
       `${filteredItems.length}/${menuItems.length} éléments visibles`);
     
     setVisibleItems(filteredItems);
-  }, [menuItems, isUserAdmin, category, modules]);
+  }, [menuItems, isUserAdmin, category, modules, isInitialized]);
+  
+  // Filtrer les éléments de menu lorsque les dépendances changent
+  useEffect(() => {
+    filterMenuItems();
+  }, [filterMenuItems]);
   
   return {
     menuItems: visibleItems,
-    loading,
+    loading: loading || !isInitialized,
     isUserAdmin,
     refreshMenu
   };
