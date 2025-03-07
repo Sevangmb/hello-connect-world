@@ -1,17 +1,17 @@
 
 import { useEffect, useCallback, useRef } from "react";
-import { eventBus, EventCallback } from "@/core/event-bus/EventBus";
-import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinator";
+import { useEvents } from "@/hooks/useEvents";
 import { useToast } from "@/hooks/use-toast";
 import { useMenu } from "@/hooks/menu";
 
 /**
  * Hook pour gérer les événements liés au menu des modules
- * Utilise le principe d'inversion de dépendance en dépendant d'abstractions (eventBus)
+ * Utilise le service d'événements centralisé pour suivre le principe SRP
  */
 export const useModuleMenuEvents = () => {
   const { isUserAdmin, refreshMenu } = useMenu();
   const { toast } = useToast();
+  const { subscribe, EVENT_TYPES } = useEvents();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fonction de rafraîchissement avec debounce intégré
@@ -29,24 +29,14 @@ export const useModuleMenuEvents = () => {
 
   // S'abonner aux événements du menu et des modules
   useEffect(() => {
-    // Utiliser un objet pour stocker les abonnements
-    const subscriptions = new Map();
-    
-    // S'abonner aux événements avec une fonction commune
-    const subscribeToEvent = (eventName: string, handler: EventCallback<any>) => {
-      const unsubscribe = eventBus.subscribe(eventName, handler);
-      subscriptions.set(eventName, unsubscribe);
-      return unsubscribe;
-    };
-    
     // Événement: Menu mis à jour
-    subscribeToEvent(MODULE_MENU_EVENTS.MENU_UPDATED, () => {
+    const unsubscribeMenuUpdated = subscribe(EVENT_TYPES.MENU_UPDATED, () => {
       console.log("useModuleMenuEvents: Événement MENU_UPDATED reçu");
       debouncedRefresh();
     });
     
     // Événement: Statut de module changé
-    subscribeToEvent(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, (data) => {
+    const unsubscribeModuleStatus = subscribe(EVENT_TYPES.MODULE_STATUS_CHANGED, (data: any) => {
       console.log(`useModuleMenuEvents: Changement de statut du module ${data.moduleCode} détecté`);
       debouncedRefresh();
       
@@ -67,7 +57,7 @@ export const useModuleMenuEvents = () => {
     });
     
     // Événement: Accès admin accordé
-    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, () => {
+    const unsubscribeAdminGranted = subscribe(EVENT_TYPES.ADMIN_ACCESS_GRANTED, () => {
       console.log("useModuleMenuEvents: Événement ADMIN_ACCESS_GRANTED reçu");
       debouncedRefresh();
       
@@ -79,7 +69,7 @@ export const useModuleMenuEvents = () => {
     });
     
     // Événement: Accès admin révoqué
-    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, () => {
+    const unsubscribeAdminRevoked = subscribe(EVENT_TYPES.ADMIN_ACCESS_REVOKED, () => {
       console.log("useModuleMenuEvents: Événement ADMIN_ACCESS_REVOKED reçu");
       debouncedRefresh();
     });
@@ -92,9 +82,12 @@ export const useModuleMenuEvents = () => {
       }
       
       // Désabonner tous les événements
-      subscriptions.forEach(unsubscribe => unsubscribe());
+      unsubscribeMenuUpdated();
+      unsubscribeModuleStatus();
+      unsubscribeAdminGranted();
+      unsubscribeAdminRevoked();
     };
-  }, [debouncedRefresh, toast]);
+  }, [debouncedRefresh, toast, subscribe, EVENT_TYPES]);
 
   return { 
     isUserAdmin, 

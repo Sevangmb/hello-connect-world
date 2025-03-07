@@ -1,34 +1,21 @@
 
 /**
  * Système de gestion des événements pour les modules
- * Ce fichier centralise les événements liés aux modules
+ * Ce fichier utilise le service d'événements centralisé au lieu d'une implémentation séparée
  */
+import { eventService } from '@/services/events/EventService';
 
-type ModuleStatusChangeCallback = () => void;
-type FeatureStatusChangeCallback = () => void;
-
+// Événements du module
 const MODULE_STATUS_CHANGED_EVENT = 'module_status_changed';
 const FEATURE_STATUS_CHANGED_EVENT = 'feature_status_changed';
-
-// Liste des abonnés aux événements de changement de statut des modules
-const moduleStatusChangeListeners: ModuleStatusChangeCallback[] = [];
-const featureStatusChangeListeners: FeatureStatusChangeCallback[] = [];
 
 /**
  * Déclenche l'événement de changement de statut de module
  */
 export const triggerModuleStatusChanged = () => {
-  // Dispatcher l'événement DOM
-  const event = new CustomEvent(MODULE_STATUS_CHANGED_EVENT);
-  window.dispatchEvent(event);
-  
-  // Appeler tous les abonnés directs
-  moduleStatusChangeListeners.forEach(listener => {
-    try {
-      listener();
-    } catch (err) {
-      console.error("Erreur lors de l'exécution d'un écouteur de changement de statut:", err);
-    }
+  console.log("[ModuleEvents] Déclenchement de l'événement de changement de statut de module");
+  eventService.publish(MODULE_STATUS_CHANGED_EVENT, {
+    timestamp: Date.now()
   });
 };
 
@@ -36,17 +23,9 @@ export const triggerModuleStatusChanged = () => {
  * Déclenche l'événement de changement de statut de fonctionnalité
  */
 export const triggerFeatureStatusChanged = () => {
-  // Dispatcher l'événement DOM
-  const event = new CustomEvent(FEATURE_STATUS_CHANGED_EVENT);
-  window.dispatchEvent(event);
-  
-  // Appeler tous les abonnés directs
-  featureStatusChangeListeners.forEach(listener => {
-    try {
-      listener();
-    } catch (err) {
-      console.error("Erreur lors de l'exécution d'un écouteur de changement de statut de fonctionnalité:", err);
-    }
+  console.log("[ModuleEvents] Déclenchement de l'événement de changement de statut de fonctionnalité");
+  eventService.publish(FEATURE_STATUS_CHANGED_EVENT, {
+    timestamp: Date.now()
   });
 };
 
@@ -55,25 +34,9 @@ export const triggerFeatureStatusChanged = () => {
  * @param callback Fonction à appeler lorsque le statut d'un module change
  * @returns Fonction de nettoyage pour se désabonner
  */
-export const onModuleStatusChanged = (callback: ModuleStatusChangeCallback): () => void => {
-  // Ajouter l'écouteur à notre liste interne
-  moduleStatusChangeListeners.push(callback);
-  
-  // Ajouter également un écouteur d'événement DOM pour les changements provenant d'autres tabs
-  const handleDOMEvent = () => {
-    callback();
-  };
-  
-  window.addEventListener(MODULE_STATUS_CHANGED_EVENT, handleDOMEvent);
-  
-  // Retourner une fonction de nettoyage qui supprime les deux écouteurs
-  return () => {
-    const index = moduleStatusChangeListeners.indexOf(callback);
-    if (index > -1) {
-      moduleStatusChangeListeners.splice(index, 1);
-    }
-    window.removeEventListener(MODULE_STATUS_CHANGED_EVENT, handleDOMEvent);
-  };
+export const onModuleStatusChanged = (callback: () => void): () => void => {
+  console.log("[ModuleEvents] Abonnement aux changements de statut des modules");
+  return eventService.subscribe(MODULE_STATUS_CHANGED_EVENT, callback);
 };
 
 /**
@@ -81,25 +44,9 @@ export const onModuleStatusChanged = (callback: ModuleStatusChangeCallback): () 
  * @param callback Fonction à appeler lorsque le statut d'une fonctionnalité change
  * @returns Fonction de nettoyage pour se désabonner
  */
-export const onFeatureStatusChanged = (callback: FeatureStatusChangeCallback): () => void => {
-  // Ajouter l'écouteur à notre liste interne
-  featureStatusChangeListeners.push(callback);
-  
-  // Ajouter également un écouteur d'événement DOM pour les changements provenant d'autres tabs
-  const handleDOMEvent = () => {
-    callback();
-  };
-  
-  window.addEventListener(FEATURE_STATUS_CHANGED_EVENT, handleDOMEvent);
-  
-  // Retourner une fonction de nettoyage qui supprime les deux écouteurs
-  return () => {
-    const index = featureStatusChangeListeners.indexOf(callback);
-    if (index > -1) {
-      featureStatusChangeListeners.splice(index, 1);
-    }
-    window.removeEventListener(FEATURE_STATUS_CHANGED_EVENT, handleDOMEvent);
-  };
+export const onFeatureStatusChanged = (callback: () => void): () => void => {
+  console.log("[ModuleEvents] Abonnement aux changements de statut des fonctionnalités");
+  return eventService.subscribe(FEATURE_STATUS_CHANGED_EVENT, callback);
 };
 
 /**

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { listenToModuleChanges } from "@/hooks/modules/events";
+import { useEvents } from "@/hooks/useEvents";
 
 interface ModuleStatusAlertProps {
   onDismiss: () => void;
@@ -12,6 +12,7 @@ export const ModuleStatusAlert: React.FC<ModuleStatusAlertProps> = ({ onDismiss 
   const [showAlert, setShowAlert] = useState(false);
   const [alertType, setAlertType] = useState<"success" | "warning" | "error">("success");
   const [message, setMessage] = useState("");
+  const { subscribe, EVENT_TYPES } = useEvents();
 
   // Listen for module status change events
   useEffect(() => {
@@ -27,9 +28,9 @@ export const ModuleStatusAlert: React.FC<ModuleStatusAlertProps> = ({ onDismiss 
       }, 5000);
     };
 
-    const cleanup = listenToModuleChanges(showSuccessAlert);
-    return cleanup;
-  }, [onDismiss]);
+    const unsubscribe = subscribe(EVENT_TYPES.MODULE_STATUS_CHANGED, showSuccessAlert);
+    return unsubscribe;
+  }, [onDismiss, subscribe, EVENT_TYPES]);
 
   if (!showAlert) return null;
 
