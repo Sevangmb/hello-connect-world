@@ -23,12 +23,12 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Cast the category as unknown first, then as string for the query to avoid TypeScript errors
+      // Use the category value directly while avoiding TypeScript errors
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as unknown as string)
+        .eq('category', category as any)
         .order('position');
       
       if (error) throw error;
