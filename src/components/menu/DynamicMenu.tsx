@@ -99,9 +99,16 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
-  // Fonction pour gérer la navigation
+  // Fonction de navigation directe via useNavigate
   const handleClick = (path: string, event: React.MouseEvent) => {
+    // Empêcher le comportement par défaut 
+    if (event) {
+      event.preventDefault();
+    }
+    
     console.log(`DynamicMenu: Navigation vers ${path}`);
+    
+    // Utiliser la fonction navigateTo du hook personnalisé
     navigateTo(path, event);
   };
 

@@ -20,6 +20,7 @@ export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
 
   // Utiliser le hook de navigation pour la navigation
   const handleNavigateToAdmin = (event: React.MouseEvent) => {
+    console.log("Navigation vers la console d'admin");
     navigateTo('/admin/dashboard', event);
   };
 
