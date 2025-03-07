@@ -81,7 +81,7 @@ export class MenuRepository implements IMenuRepository {
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category)
+        .eq('category', category as string) // Correction ici : conversion explicite en string
         .order('position');
       
       if (error) {
