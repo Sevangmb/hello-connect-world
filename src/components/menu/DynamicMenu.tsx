@@ -25,11 +25,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   className,
   hierarchical = false,
 }) => {
-  const { menuItems, loading, error, isUserAdmin, initialized } = useMenu({
+  const { menuItems, loading, error, isUserAdmin, initialized, refreshMenu } = useMenu({
     category,
     moduleCode,
     hierarchical,
   });
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { modules, isInitialized: modulesInitialized } = useModules();
@@ -51,9 +52,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Filtrer les éléments de menu visibles et vérifier si les routes existent
   const visibleMenuItems = useMemo(() => {
-    if (!menuItems || !modulesInitialized) {
-      console.log(`No visible menu items: menuItems.length=${menuItems?.length || 0}, modulesInitialized=${modulesInitialized}`);
+    if (!menuItems || menuItems.length === 0) {
+      console.log("DynamicMenu: No menu items available");
       return [];
+    }
+    
+    if (!modulesInitialized) {
+      console.log("DynamicMenu: Modules not initialized yet");
+      return menuItems; // Retourner tous les éléments en attendant l'initialisation des modules
     }
     
     const filtered = menuItems
@@ -84,7 +90,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         return (a.order || 999) - (b.order || 999);
       });
     
-    console.log(`Filtered ${filtered.length}/${menuItems.length} visible menu items for category: ${category || 'all'}`);
+    console.log(`DynamicMenu: Filtered ${filtered.length}/${menuItems.length} visible menu items for category: ${category || 'all'}`);
     return filtered;
   }, [menuItems, isMenuItemVisible, modulesInitialized, category]);
 
@@ -117,13 +123,16 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Afficher un état d'erreur (minimal)
   if (error) {
-    // Correction ici: utiliser message au lieu de error
     return <MenuErrorState message={error} />;
   }
 
   // Afficher l'état vide
   if (visibleMenuItems.length === 0) {
-    return <MenuEmptyState category={category} />;
+    return <MenuEmptyState 
+      category={category} 
+      isUserAdmin={isUserAdmin} 
+      isInitialized={initialized} 
+    />;
   }
 
   // Rendre le menu hiérarchique ou standard

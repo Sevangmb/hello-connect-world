@@ -7,14 +7,20 @@ import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
     try {
+      console.log('Repository: Fetching all menu items');
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
         .order('position');
       
-      if (error) throw error;
-      return data as MenuItem[];
+      if (error) {
+        console.error('Repository error:', error);
+        throw error;
+      }
+      
+      console.log(`Repository: Retrieved ${data?.length || 0} menu items`);
+      return data as MenuItem[] || [];
     } catch (error) {
       console.error('Erreur lors de la récupération des éléments de menu:', error);
       throw error;
@@ -23,7 +29,7 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      console.log(`Fetching menu items for category: ${category}`);
+      console.log(`Repository: Fetching menu items for category: ${category}`);
       
       const { data, error } = await supabase
         .from('menu_items')
@@ -33,12 +39,12 @@ export class MenuRepository implements IMenuRepository {
         .order('position');
       
       if (error) {
-        console.error(`Error fetching menu items for category ${category}:`, error);
+        console.error(`Repository error for category ${category}:`, error);
         throw error;
       }
       
-      console.log(`Retrieved ${data?.length || 0} menu items for category ${category}`);
-      return data as MenuItem[];
+      console.log(`Repository: Retrieved ${data?.length || 0} menu items for category ${category}`);
+      return data as MenuItem[] || [];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
       throw error;
@@ -47,6 +53,7 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
+      console.log(`Repository: Fetching items for module ${moduleCode}, isAdmin: ${isAdmin}`);
       const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
       if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
@@ -68,10 +75,11 @@ export class MenuRepository implements IMenuRepository {
       const { data, error } = await query;
       
       if (error) {
-        console.error(`Erreur lors de la récupération des éléments de menu pour le module ${moduleCode}:`, error);
+        console.error(`Repository error for module ${moduleCode}:`, error);
         throw error;
       }
       
+      console.log(`Repository: Retrieved ${data?.length || 0} items for module ${moduleCode}`);
       return data || [];
     } catch (err) {
       console.error(`Exception lors du chargement des éléments de menu pour le module ${moduleCode}:`, err);
@@ -81,7 +89,7 @@ export class MenuRepository implements IMenuRepository {
   
   async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
     try {
-      console.log(`Fetching menu items with parent_id: ${parentId}`);
+      console.log(`Repository: Fetching menu items with parent_id: ${parentId}`);
       
       const { data, error } = await supabase
         .from('menu_items')
@@ -91,11 +99,11 @@ export class MenuRepository implements IMenuRepository {
         .order('position', { ascending: true });
         
       if (error) {
-        console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
+        console.error(`Repository error for parent ${parentId}:`, error);
         throw error;
       }
       
-      console.log(`Retrieved ${data?.length || 0} child menu items for parent ${parentId}`);
+      console.log(`Repository: Retrieved ${data?.length || 0} child menu items for parent ${parentId}`);
       return data || [];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);

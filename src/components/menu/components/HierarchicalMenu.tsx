@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { MenuItem } from "@/services/menu/types";
@@ -22,8 +23,19 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [processedItems, setProcessedItems] = useState<MenuItem[]>([]);
   
+  // Organiser les éléments de menu au montage
   useEffect(() => {
+    if (!menuItems || menuItems.length === 0) {
+      console.log("HierarchicalMenu: No menu items provided");
+      setProcessedItems([]);
+      return;
+    }
+
+    console.log(`HierarchicalMenu: Processing ${menuItems.length} menu items`);
+    
+    // Filter out items with parent_id (they will be fetched in MenuItemWithChildren)
     const rootItems = menuItems.filter(item => !item.parent_id);
+    console.log(`HierarchicalMenu: Found ${rootItems.length} root items`);
     
     const sortedItems = rootItems.sort((a, b) => {
       if (a.position !== undefined && b.position !== undefined) {
@@ -34,6 +46,7 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
     
     setProcessedItems(sortedItems);
     
+    // Automatically expand items based on current path
     const newExpandedState: Record<string, boolean> = {};
     rootItems.forEach(item => {
       const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
@@ -52,26 +65,40 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
     }));
   };
 
+  if (!menuItems || menuItems.length === 0) {
+    return (
+      <div className="text-gray-500 text-sm py-2">
+        Aucun élément hiérarchique disponible
+      </div>
+    );
+  }
+
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
-      {processedItems.map((item) => {
-        const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
-        const isItemActive = isActiveRoute(normalizedPath, currentPath);
-        const isExpanded = expandedItems[item.id] || isItemActive;
-        
-        return (
-          <MenuItemWithChildren
-            key={item.id}
-            item={item}
-            isActive={isItemActive}
-            isExpanded={isExpanded}
-            onToggleExpand={() => toggleItemExpansion(item.id)}
-            onNavigate={onNavigate}
-            currentPath={currentPath}
-            level={0}
-          />
-        );
-      })}
+      {processedItems.length > 0 ? (
+        processedItems.map((item) => {
+          const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+          const isItemActive = isActiveRoute(normalizedPath, currentPath);
+          const isExpanded = expandedItems[item.id] || isItemActive;
+          
+          return (
+            <MenuItemWithChildren
+              key={item.id}
+              item={item}
+              isActive={isItemActive}
+              isExpanded={isExpanded}
+              onToggleExpand={() => toggleItemExpansion(item.id)}
+              onNavigate={onNavigate}
+              currentPath={currentPath}
+              level={0}
+            />
+          );
+        })
+      ) : (
+        <div className="text-gray-500 text-sm py-2">
+          Aucun élément de menu disponible
+        </div>
+      )}
     </nav>
   );
 };
@@ -95,17 +122,24 @@ const MenuItemWithChildren: React.FC<MenuItemWithChildrenProps> = ({
   currentPath,
   level
 }) => {
-  const { data: childItems = [], isLoading } = useMenuItemsByParent(item.id);
+  const { data: childItems = [], isLoading, error } = useMenuItemsByParent(item.id);
   const [hasChildren, setHasChildren] = useState<boolean>(false);
   
   useEffect(() => {
     if (!isLoading) {
-      setHasChildren(childItems.length > 0);
+      // Vérifier si des enfants existent
+      const childrenExist = childItems && childItems.length > 0;
+      console.log(`MenuItemWithChildren: Item ${item.name} has ${childItems?.length || 0} children`);
+      setHasChildren(childrenExist);
     }
-  }, [childItems, isLoading]);
+  }, [childItems, isLoading, item.name]);
   
   if (isLoading && level === 0) {
     return <div className="py-2 px-4 text-sm text-gray-400">Chargement...</div>;
+  }
+  
+  if (error) {
+    console.error("Error loading child items:", error);
   }
   
   if (hasChildren) {

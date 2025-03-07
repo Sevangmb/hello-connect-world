@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import { MenuItem } from '@/services/menu/types';
 import { useMenuItemsByParent } from './useMenuItems';
+import { buildMenuHierarchy } from '@/components/menu/utils/menuUtils';
 
 interface UseMenuProcessorOptions {
   menuItems: MenuItem[];
@@ -26,12 +27,23 @@ export const useMenuProcessor = ({
   
   // Identifier les éléments racine (sans parent_id)
   const rootItemIds = useMemo(() => {
+    if (!rawItems || rawItems.length === 0) {
+      return new Set<string>();
+    }
     return new Set(rawItems.filter(item => !item.parent_id).map(item => item.id));
   }, [rawItems]);
   
   // Filtrer et traiter les éléments du menu
   useEffect(() => {
     try {
+      if (!rawItems || rawItems.length === 0) {
+        console.log("useMenuProcessor: No raw menu items to process");
+        setMenuItems([]);
+        return;
+      }
+      
+      console.log(`useMenuProcessor: Processing ${rawItems.length} menu items, hierarchical: ${hierarchical}`);
+      
       // Filtrer en fonction des autorisations de l'utilisateur
       const filteredItems = rawItems.filter(item => {
         // Valider que l'item n'est pas null
@@ -52,54 +64,20 @@ export const useMenuProcessor = ({
 
       // Gérer la structure hiérarchique si nécessaire
       if (hierarchical) {
-        // Créer une carte pour un accès rapide aux éléments
-        const itemsMap = new Map<string, MenuItem & { children: MenuItem[] }>();
-        
-        // Première passe : créer des entrées pour chaque élément
-        filteredItems.forEach(item => {
-          itemsMap.set(item.id, { ...item, children: [] });
-        });
-        
-        // Deuxième passe : construire la hiérarchie
-        const rootItems: MenuItem[] = [];
-        
-        filteredItems.forEach(item => {
-          if (item.parent_id && itemsMap.has(item.parent_id)) {
-            // Ajouter à l'élément parent
-            const parent = itemsMap.get(item.parent_id);
-            if (parent) {
-              parent.children.push(item);
-            }
-          } else if (rootItemIds.has(item.id) || !item.parent_id) {
-            // Élément racine
-            rootItems.push(item);
-          }
-        });
-        
-        // Trier les éléments racine par position/ordre
-        const sortedRootItems = rootItems.sort((a, b) => {
+        const hierarchicalItems = buildMenuHierarchy(filteredItems);
+        console.log(`Menu processor: Found ${hierarchicalItems.length} root items in hierarchy`);
+        setMenuItems(hierarchicalItems);
+      } else {
+        // Pour les menus non hiérarchiques, trier simplement par position/ordre
+        const sortedItems = [...filteredItems].sort((a, b) => {
           if (a.position !== undefined && b.position !== undefined) {
             return a.position - b.position;
           }
           return (a.order || 999) - (b.order || 999);
         });
         
-        // Trier les enfants de chaque élément
-        itemsMap.forEach(item => {
-          if (item.children.length > 0) {
-            item.children.sort((a, b) => {
-              if (a.position !== undefined && b.position !== undefined) {
-                return a.position - b.position;
-              }
-              return (a.order || 999) - (b.order || 999);
-            });
-          }
-        });
-        
-        console.log(`Menu processor: Found ${rootItems.length} root items and ${filteredItems.length - rootItems.length} child items`);
-        setMenuItems(sortedRootItems);
-      } else {
-        setMenuItems(filteredItems);
+        console.log(`Menu processor: Sorted ${sortedItems.length} non-hierarchical items`);
+        setMenuItems(sortedItems);
       }
 
       setError(null);

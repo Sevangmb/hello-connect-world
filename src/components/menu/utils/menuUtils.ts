@@ -84,21 +84,39 @@ export const validRoutes = [
   '/messages',
   '/friends',
   '/outfits',
-  '/suitcases'
+  '/suitcases',
+  // Routes de base (pour être plus permissif)
+  '/community',
+  '/settings',
+  '/home'
 ];
 
 /**
  * Vérifier si une route existe
+ * Cette implémentation est plus permissive pour permettre aux développeurs
+ * d'ajouter des nouvelles routes sans bloquer le menu
  */
 export const routeExists = (path: string): boolean => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
+  // En mode développement ou lorsque validRoutes est vide, accepter toutes les routes
+  if (validRoutes.length === 0 || process.env.NODE_ENV === 'development') {
+    return true;
+  }
+  
   // Check if path exactly matches a route or is a sub-route
-  return validRoutes.some(route => 
+  const exists = validRoutes.some(route => 
     route === normalizedPath || 
     route.startsWith(`${normalizedPath}/`) ||
     normalizedPath.startsWith(`${route}/`)
   );
+  
+  // Log uniquement si la route n'existe pas
+  if (!exists) {
+    console.warn(`Route not found in validRoutes: ${normalizedPath}`);
+  }
+  
+  return exists;
 };
 
 /**
@@ -106,11 +124,14 @@ export const routeExists = (path: string): boolean => {
  */
 export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
   if (!items || items.length === 0) {
+    console.log("buildMenuHierarchy: No items to process");
     return [];
   }
   
+  console.log(`buildMenuHierarchy: Building hierarchy for ${items.length} items`);
+  
   // Map pour stocker les items par ID pour un accès rapide
-  const itemMap = new Map<string, MenuItem & { children: MenuItem[] }>();
+  const itemMap = new Map<string, MenuItem & { children?: MenuItem[] }>();
   
   // Première passe : créer une copie de chaque item avec un tableau children vide
   items.forEach(item => {
@@ -128,7 +149,7 @@ export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
     if (item.parent_id && itemMap.has(item.parent_id)) {
       // Cet item a un parent valide, l'ajouter comme enfant
       const parent = itemMap.get(item.parent_id);
-      if (parent) {
+      if (parent && parent.children) {
         parent.children.push(itemCopy);
       }
     } else {
@@ -138,8 +159,8 @@ export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
   });
   
   // Trier les items racine et les enfants par position/ordre
-  const sortItems = (items: MenuItem[]) => {
-    return items.sort((a, b) => {
+  const sortItems = (items: MenuItem[]): MenuItem[] => {
+    return [...items].sort((a, b) => {
       if (a.position !== undefined && b.position !== undefined) {
         return a.position - b.position;
       }
@@ -162,5 +183,6 @@ export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
   
   sortChildrenRecursively(sortedRootItems);
   
+  console.log(`buildMenuHierarchy: Finished with ${sortedRootItems.length} root items`);
   return sortedRootItems;
 };
