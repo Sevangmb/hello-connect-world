@@ -69,14 +69,20 @@ export default function AdminMenus() {
     }
   };
 
-  // Fix the menu service logic
+  // Fix: Replace setMenuItemVisibility with updateMenuItem
   const toggleMenuItemVisibility = async (id: string) => {
     try {
       const item = menuItems.find(i => i.id === id);
       if (!item) return;
       
-      await menuService.setMenuItemVisibility(id, !item.is_visible);
+      // Use updateMenuItem instead of setMenuItemVisibility
+      await menuService.updateMenuItem(id, { is_visible: !item.is_visible });
       await refreshMenuItems();
+      
+      toast({
+        title: "Succès",
+        description: "Visibilité mise à jour avec succès",
+      });
     } catch (error) {
       console.error('Error toggling menu item visibility:', error);
       toast({
@@ -87,10 +93,11 @@ export default function AdminMenus() {
     }
   };
 
-  // Fix the update menu item method
+  // Use the existing updateMenuItem method
   const updateMenuItem = async (menuItemData: Partial<MenuItem> & { id: string }) => {
     try {
-      await menuService.updateMenuItem(menuItemData.id, menuItemData);
+      const { id, ...updates } = menuItemData;
+      await menuService.updateMenuItem(id, updates);
       await refreshMenuItems();
       
       toast({
