@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { BottomNav } from "./navigation/BottomNav";
-import MainSidebar from "./MainSidebar";
+import SimpleSidebar from "./navigation/SimpleSidebar";
 import { Footer } from "./Footer";
 
 export function RootLayout() {
@@ -17,8 +17,8 @@ export function RootLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Barre latérale (Menu) */}
-      <MainSidebar 
+      {/* Barre latérale (Menu) - Utilise maintenant SimpleSidebar */}
+      <SimpleSidebar 
         isMobileOpen={sidebarOpen} 
         onMobileClose={() => setSidebarOpen(false)}
       />
