@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Define explicit types for module usage stats
 interface ModuleUsageStat {
   id: string;
-  module_id?: string; // Make optional since it might not be present in all records
+  module_id?: string;
   module_code: string;
   usage_count: number;
   last_used: string;
