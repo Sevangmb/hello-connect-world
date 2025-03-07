@@ -1,8 +1,7 @@
-
 import { useCallback } from 'react';
 import { useMenuState } from './useMenuState';
 import { useMenuProcessor } from './useMenuProcessor';
-import { useMenuFetcher } from './useMenuFetcher';
+import { useMenuFetcher } from './fetcher';
 import { useMenuCategories } from './useMenuCategories';
 import { useAdminStatus } from './useAdminStatus';
 import { MenuItemCategory } from '@/services/menu/types';
