@@ -1,47 +1,52 @@
 
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCallback } from 'react';
 
 /**
- * Hook pour gérer la navigation dans l'application
- * Utilise le hook useNavigate de React Router pour assurer une navigation SPA correcte
+ * Hook pour gérer la navigation avec des fonctionnalités étendues
  */
 export const useNavigation = () => {
   const navigate = useNavigate();
-  
-  /**
-   * Navigue vers le chemin spécifié
-   * @param path Chemin de destination
-   * @param event Événement de clic (optionnel)
-   */
-  const navigateTo = useCallback((path: string, event?: React.MouseEvent) => {
-    // Empêcher le comportement par défaut du lien pour éviter les rechargements de page
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
+  const location = useLocation();
+
+  // Fonction pour normaliser un chemin
+  const normalizePath = useCallback((path: string) => {
+    return path.startsWith('/') ? path : `/${path}`;
+  }, []);
+
+  // Fonction pour naviguer vers un chemin avec des options avancées
+  const navigateTo = useCallback((path: string, options?: { forceRefresh?: boolean }) => {
+    const normalizedPath = normalizePath(path);
     
-    // Logs pour le débogage
-    console.log(`Navigation vers: ${path}`);
-    
-    // Vérifier que le chemin est valide
-    if (!path) {
-      console.error("Tentative de navigation avec un chemin vide ou null");
-      return;
-    }
-    
-    // Normaliser le chemin (supprimer le slash initial si présent)
-    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-    
-    // Effectuer la navigation
-    try {
+    // Si on est déjà sur le même chemin et qu'on veut forcer un rafraîchissement
+    if (location.pathname === normalizedPath && options?.forceRefresh) {
+      // Technique pour forcer un rafraîchissement du composant sans recharger la page
+      const tempPath = location.pathname === '/' ? '/temp-redirect' : '/';
+      navigate(tempPath, { replace: true });
+      
+      // Après un court délai, rediriger vers le chemin cible
+      setTimeout(() => navigate(normalizedPath), 10);
+    } else {
       navigate(normalizedPath);
-    } catch (error) {
-      console.error(`Erreur lors de la navigation vers ${path}:`, error);
     }
-  }, [navigate]);
-  
+  }, [navigate, location.pathname, normalizePath]);
+
+  // Vérifier si un chemin correspond au chemin actuel
+  const isActivePath = useCallback((path: string) => {
+    const normalizedPath = normalizePath(path);
+    
+    if (normalizedPath === '/') {
+      return location.pathname === '/' || location.pathname === '';
+    }
+    
+    return location.pathname === normalizedPath || 
+           location.pathname.startsWith(`${normalizedPath}/`);
+  }, [location.pathname, normalizePath]);
+
   return {
-    navigateTo
+    navigateTo,
+    isActivePath,
+    currentPath: location.pathname,
+    normalizePath
   };
 };

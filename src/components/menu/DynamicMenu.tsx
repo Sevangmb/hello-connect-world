@@ -39,7 +39,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     const normalizedCurrentPath = location.pathname;
     
     if (normalizedPath === '/') {
-      return normalizedCurrentPath === '/';
+      return normalizedCurrentPath === '/' || normalizedCurrentPath === '';
     }
     
     return normalizedCurrentPath === normalizedPath || 
@@ -114,7 +114,15 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     }
     
     console.log(`DynamicMenu: Navigation vers ${targetPath}`);
-    navigate(targetPath);
+    
+    // Forcer la navigation même si on est déjà sur le chemin
+    if (location.pathname === targetPath) {
+      // Pour forcer un rafraîchissement sans recharger la page
+      navigate('/', { replace: true });
+      setTimeout(() => navigate(targetPath), 10);
+    } else {
+      navigate(targetPath);
+    }
   };
 
   return (

@@ -1,42 +1,36 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import * as LucideIcons from "lucide-react";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import * as LucideIcons from 'lucide-react';
+import { useNavigation } from './hooks/useNavigation';
 
 interface MenuLinkProps {
   path: string;
   name: string;
   icon?: string | null;
+  isActive?: boolean;
   className?: string;
 }
 
+/**
+ * Composant MenuLink - lien de menu avancé avec gestion d'état actif
+ */
 export const MenuLink: React.FC<MenuLinkProps> = ({
   path,
   name,
-  icon,
+  icon = null,
+  isActive: forcedActiveState,
   className
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Normaliser le chemin
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const { navigateTo, isActivePath } = useNavigation();
   
-  // Vérifier si le chemin est actif
-  const isActive = () => {
-    const currentPath = location.pathname;
-    
-    if (normalizedPath === '/') {
-      return currentPath === '/';
-    }
-    
-    return currentPath === normalizedPath || 
-           currentPath.startsWith(`${normalizedPath}/`);
-  };
+  // Utiliser l'état actif fourni ou le calculer
+  const active = forcedActiveState !== undefined 
+    ? forcedActiveState 
+    : isActivePath(path);
   
-  // Récupérer l'icône
+  // Récupérer l'icône Lucide si spécifiée
   const getIcon = () => {
     if (!icon) return null;
     
@@ -45,22 +39,20 @@ export const MenuLink: React.FC<MenuLinkProps> = ({
     return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
   
-  // Gérer la navigation
-  const handleClick = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     
-    console.log(`MenuLink: Navigation vers ${normalizedPath}`);
-    navigate(normalizedPath);
+    // Si on est déjà sur ce chemin, forcer un rafraîchissement
+    navigateTo(path, { forceRefresh: isActivePath(path) });
   };
   
   return (
     <Button
-      variant={isActive() ? "secondary" : "ghost"}
+      variant={active ? "secondary" : "ghost"}
       size="sm"
       className={cn(
         "justify-start font-medium",
-        isActive() ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5",
+        active ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5",
         className
       )}
       onClick={handleClick}

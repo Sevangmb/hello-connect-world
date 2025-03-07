@@ -6,6 +6,7 @@ import App from '@/App';
 import Auth from '@/pages/Auth';
 import AdminLogin from '@/pages/AdminLogin';
 import NotFound from '@/pages/NotFound';
+import Home from '@/pages/Home';
 
 const MainRoutes: React.FC = () => {
   console.log("MainRoutes: Rendu des routes principales");
@@ -18,6 +19,10 @@ const MainRoutes: React.FC = () => {
       
       {/* Routes principales avec RootLayout comme wrapper */}
       <Route element={<RootLayout />}>
+        {/* Route racine explicite pour Home */}
+        <Route index element={<Home />} />
+        <Route path="/" element={<Home />} />
+        
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
       </Route>
