@@ -21,6 +21,7 @@ export default function AdminMenus() {
     saveChanges,
     setEditedName,
     setEditedPath,
+    addMenuItem,
   } = useMenuItems();
 
   // Fetch menu items on component mount
@@ -28,16 +29,10 @@ export default function AdminMenus() {
     fetchMenuItems();
   }, [fetchMenuItems]);
 
-  // Handler for add item button (to be implemented)
-  const handleAddItem = () => {
-    // This functionality would be added in a future implementation
-    console.log("Add item functionality to be implemented");
-  };
-
   return (
     <div className="space-y-6">
       <Card>
-        <MenuHeader onAddItem={handleAddItem} />
+        <MenuHeader onAddItem={addMenuItem} />
         <CardContent>
           <MenuItemsTable
             menuItems={menuItems}

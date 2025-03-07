@@ -1,119 +1,152 @@
 
 import { useState, useCallback } from 'react';
-import { useToast } from "@/hooks/use-toast";
-import { MenuItem } from "@/services/menu/types";
-import { MenuUseCase } from "@/services/menu/application/MenuUseCase";
-import { MenuRepository } from "@/services/menu/infrastructure/SupabaseMenuRepository";
+import { MenuItem, CreateMenuItemParams, UpdateMenuItemParams } from '@/services/menu/types';
+import { getMenuService } from '@/services/menu/infrastructure/menuServiceProvider';
+import { useToast } from '@/hooks/use-toast';
 
 export const useMenuItems = () => {
-  const { toast } = useToast();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedName, setEditedName] = useState("");
-  const [editedPath, setEditedPath] = useState("");
-
-  // Create menu service instance
-  const menuService = new MenuUseCase(new MenuRepository());
+  const [editedName, setEditedName] = useState('');
+  const [editedPath, setEditedPath] = useState('');
+  const { toast } = useToast();
 
   const fetchMenuItems = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
+      const menuService = getMenuService();
       const items = await menuService.getAllMenuItems();
       setMenuItems(items);
-    } catch (e) {
-      setError("Failed to load menu items.");
-      console.error("Error fetching menu items:", e);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les éléments du menu",
-        variant: "destructive",
-      });
+      setError(null);
+    } catch (err) {
+      setError('Failed to load menu items');
+      console.error(err);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const menuService = getMenuService();
+      const success = await menuService.deleteMenuItem(id);
+      if (success) {
+        setMenuItems(prev => prev.filter(item => item.id !== id));
+        toast({
+          title: "Success",
+          description: "Menu item deleted successfully",
+        });
+      } else {
+        throw new Error('Failed to delete menu item');
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete menu item",
+        variant: "destructive",
+      });
+      console.error(err);
+    }
   }, [toast]);
 
-  const refreshMenuItems = async () => {
-    await fetchMenuItems();
-  };
-
-  const handleDelete = async (id: string) => {
+  const toggleMenuItemVisibility = useCallback(async (id: string, isVisible: boolean) => {
     try {
-      await menuService.deleteMenuItem(id);
-      setMenuItems(menuItems.filter((item) => item.id !== id));
+      const menuService = getMenuService();
+      const updates: UpdateMenuItemParams = { is_visible: !isVisible };
+      const updatedItem = await menuService.updateMenuItem(id, updates);
+      
+      if (updatedItem) {
+        setMenuItems(prev => prev.map(item => 
+          item.id === id ? { ...item, is_visible: !isVisible } : item
+        ));
+        toast({
+          title: "Success",
+          description: `Menu item is now ${!isVisible ? 'visible' : 'hidden'}`,
+        });
+      }
+    } catch (err) {
       toast({
-        title: "Succès",
-        description: "Élément du menu supprimé avec succès",
-      });
-    } catch (e) {
-      console.error("Error deleting menu item:", e);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer cet élément du menu",
+        title: "Error",
+        description: "Failed to update menu item visibility",
         variant: "destructive",
       });
+      console.error(err);
     }
-  };
+  }, [toast]);
 
-  const toggleMenuItemVisibility = async (id: string) => {
-    try {
-      const item = menuItems.find(i => i.id === id);
-      if (!item) return;
-      
-      await menuService.updateMenuItem(id, { is_visible: !item.is_visible });
-      await refreshMenuItems();
-      
-      toast({
-        title: "Succès",
-        description: "Visibilité mise à jour avec succès",
-      });
-    } catch (error) {
-      console.error('Error toggling menu item visibility:', error);
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de modifier la visibilité de cet élément du menu',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const updateMenuItem = async (menuItemData: Partial<MenuItem> & { id: string }) => {
-    try {
-      const { id, ...updates } = menuItemData;
-      await menuService.updateMenuItem(id, updates);
-      await refreshMenuItems();
-      
-      toast({
-        title: "Succès",
-        description: "Élément du menu mis à jour avec succès",
-      });
-    } catch (error) {
-      console.error("Error updating menu item:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour cet élément du menu",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const startEditing = (item: MenuItem) => {
+  const startEditing = useCallback((item: MenuItem) => {
     setEditingId(item.id);
     setEditedName(item.name);
     setEditedPath(item.path);
-  };
+  }, []);
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setEditingId(null);
-  };
+    setEditedName('');
+    setEditedPath('');
+  }, []);
 
-  const saveChanges = async (id: string) => {
-    await updateMenuItem({ id: id, name: editedName, path: editedPath });
-    setEditingId(null);
-  };
+  const saveChanges = useCallback(async () => {
+    if (!editingId) return;
+    
+    try {
+      const menuService = getMenuService();
+      const updates: UpdateMenuItemParams = {
+        name: editedName,
+        path: editedPath,
+      };
+      
+      const updatedItem = await menuService.updateMenuItem(editingId, updates);
+      
+      if (updatedItem) {
+        setMenuItems(prev => prev.map(item => 
+          item.id === editingId 
+            ? { ...item, name: editedName, path: editedPath } 
+            : item
+        ));
+        
+        setEditingId(null);
+        toast({
+          title: "Success",
+          description: "Menu item updated successfully",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to update menu item",
+        variant: "destructive",
+      });
+      console.error(err);
+    }
+  }, [editingId, editedName, editedPath, toast]);
+
+  const addMenuItem = useCallback(async (newItem: CreateMenuItemParams) => {
+    try {
+      const menuService = getMenuService();
+      const createdItem = await menuService.createMenuItem(newItem);
+      
+      if (createdItem) {
+        setMenuItems(prev => [...prev, createdItem]);
+        toast({
+          title: "Success",
+          description: "Menu item created successfully",
+        });
+      } else {
+        throw new Error('Failed to create menu item');
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to create menu item",
+        variant: "destructive",
+      });
+      console.error(err);
+      throw err; // Re-throw to allow the form to handle the error
+    }
+  }, [toast]);
 
   return {
     menuItems,
@@ -123,14 +156,13 @@ export const useMenuItems = () => {
     editedName,
     editedPath,
     fetchMenuItems,
-    refreshMenuItems,
     handleDelete,
     toggleMenuItemVisibility,
-    updateMenuItem,
     startEditing,
     cancelEditing,
     saveChanges,
     setEditedName,
     setEditedPath,
+    addMenuItem,
   };
 };
