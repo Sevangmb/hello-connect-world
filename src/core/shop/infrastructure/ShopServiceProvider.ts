@@ -1,8 +1,25 @@
 
-import { ShopService } from '../application/ShopService';
-import { ShopRepository } from './ShopRepository';
-import { IShopRepository } from '../domain/interfaces/IShopRepository';
+import { IShopService } from '../application/interfaces/IShopService';
+import { ShopServiceImpl } from './ShopServiceImpl';
 
-// Implement a simple ShopRepository for now
-export const shopRepository = new ShopRepository();
-export const shopService = new ShopService(shopRepository as unknown as IShopRepository);
+// Instance singleton du service
+let shopService: IShopService | null = null;
+
+/**
+ * Récupère ou crée une instance du service de boutique
+ * @returns IShopService
+ */
+export const getShopService = (): IShopService => {
+  if (!shopService) {
+    shopService = new ShopServiceImpl();
+  }
+  
+  return shopService;
+};
+
+/**
+ * Réinitialise l'instance du service (utile pour les tests)
+ */
+export const resetShopService = (): void => {
+  shopService = null;
+};
