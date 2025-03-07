@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import {
   Route,
@@ -28,7 +29,6 @@ const Terms = () => <div className="container mx-auto p-8"><h1 className="text-2
 const Privacy = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Politique de confidentialité</h1><p>Contenu à venir</p></div>;
 const Contact = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Contact</h1><p>Contenu à venir</p></div>;
 const About = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">À propos</h1><p>Contenu à venir</p></div>;
-const Personal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>;
 
 function App() {
   const { user } = useAuth();
