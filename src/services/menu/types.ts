@@ -1,23 +1,36 @@
 
 /**
- * Menu types
+ * Types for menu items and related functionality
  */
 
-export type MenuItemCategory = 'main' | 'admin' | 'system' | 'marketplace' | 'social' | 'utility';
+// Catégories des éléments de menu
+export type MenuItemCategory = 
+  | 'main' 
+  | 'admin' 
+  | 'user' 
+  | 'shop' 
+  | 'profile' 
+  | 'settings'
+  | 'legal'
+  | string; // Allow string to support module-based categories
 
+// Élément de menu
 export interface MenuItem {
   id: string;
   name: string;
   path: string;
   icon?: string;
-  description?: string;
   category: MenuItemCategory;
-  module_code?: string;
-  parent_id?: string;
-  position: number;
-  is_visible: boolean;
-  is_active: boolean;
-  requires_admin: boolean;
-  created_at: string;
-  updated_at: string;
+  parent_id?: string | null;
+  order?: number;
+  is_visible?: boolean;
+  module_code?: string | null;
+  requires_auth?: boolean;
+  children?: MenuItem[];
 }
+
+// Paramètres de création d'élément de menu
+export type CreateMenuItemParams = Omit<MenuItem, 'id' | 'children'>;
+
+// Paramètres de mise à jour d'élément de menu
+export type UpdateMenuItemParams = Partial<Omit<MenuItem, 'id' | 'children'>>;
