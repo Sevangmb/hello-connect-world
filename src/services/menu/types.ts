@@ -34,7 +34,15 @@ export type MenuItemCategory =
   | 'looks'        // Mes Looks
   | 'suitcases'    // Mes Valises
   | 'favorites'    // Mes Favoris
+  | 'favorite_items' // Articles Favoris
+  | 'favorite_outfits' // Tenues Favorites
+  | 'favorite_users' // Utilisateurs Favoris
+  | 'favorite_shops' // Boutiques Favorites
   | 'add_clothing' // Ajouter un Vêtement
+  | 'scan_label'   // Scanner Étiquette
+  | 'take_photo'   // Prendre une Photo
+  | 'import_gallery' // Importer depuis Galerie
+  | 'manual_entry' // Saisie Manuelle
   | 'create_outfit' // Créer une Tenue
   | 'publish_look' // Publier un Look
   
@@ -51,16 +59,14 @@ export type MenuItemCategory =
   | 'purchases'    // Achats
   | 'cart'         // Panier
   | 'settings'     // Paramètres
-  | 'help'         // Aide & Support
-  | 'logout'       // Déconnexion
-  
-  // Sous-catégories - Paramètres
   | 'edit_profile' // Modifier le profil
   | 'privacy'      // Confidentialité
   | 'security'     // Sécurité
   | 'notification_settings' // Préférences de notifications
   | 'preferences'  // Préférences
   | 'data_storage' // Données et stockage
+  | 'help'         // Aide & Support
+  | 'logout'       // Déconnexion
   
   // Boutique (menu simplifié)
   | 'shop_dashboard'
@@ -72,12 +78,29 @@ export type MenuItemCategory =
   | 'admin'
   | 'admin_dashboard'
   | 'admin_users'
+  | 'admin_users_manage'
+  | 'admin_users_stats'
   | 'admin_shops'
+  | 'admin_shops_manage'
+  | 'admin_shops_stats'
   | 'admin_content'
+  | 'admin_content_challenges'
+  | 'admin_content_groups'
+  | 'admin_content_moderation'
   | 'admin_marketing'
+  | 'admin_marketing_campaigns'
+  | 'admin_marketing_newsletters'
   | 'admin_stats'
+  | 'admin_stats_general'
+  | 'admin_stats_financial'
   | 'admin_settings'
+  | 'admin_settings_admins'
+  | 'admin_settings_roles'
+  | 'admin_settings_config'
   | 'admin_marketplace'
+  | 'admin_marketplace_items'
+  | 'admin_marketplace_transactions'
+  | 'admin_marketplace_stats'
   | 'admin_transactions'
   | 'admin_challenges'
   | 'admin_groups'
@@ -154,4 +177,5 @@ export interface MenuCategory {
   category: MenuItemCategory;
   icon?: string;
   order?: number;
+  parent?: string;
 }

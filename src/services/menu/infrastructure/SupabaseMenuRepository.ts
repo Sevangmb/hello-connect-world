@@ -31,8 +31,8 @@ export class MenuRepository implements IMenuRepository {
         .order('position');
       
       // Ajouter le filtre de catégorie avec le cast approprié
-      // @ts-ignore: Type nécessaire pour la compatibilité avec l'API Supabase
-      query = query.eq('category', category);
+      // Pour résoudre l'erreur TypeScript, on utilise une assertion de type
+      query = query.eq('category', category as string);
       
       const { data, error } = await query;
       

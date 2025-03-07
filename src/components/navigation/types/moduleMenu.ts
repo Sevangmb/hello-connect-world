@@ -13,6 +13,7 @@ export interface MenuItem {
   path: string;
   icon?: string;
   category: MenuItemCategory;
+  parent_id?: string | null;
 }
 
 export interface MenuSection {

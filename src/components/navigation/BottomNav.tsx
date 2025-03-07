@@ -10,13 +10,6 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ className, onMenuClick }) => {
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (onMenuClick) {
-      onMenuClick();
-    }
-  };
-
   return (
     <div className={cn(
       "fixed bottom-0 left-0 right-0 border-t bg-white z-30 h-16 flex items-center justify-around px-1",

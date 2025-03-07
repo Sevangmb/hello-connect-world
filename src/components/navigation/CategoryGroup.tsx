@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { CategoryGroupProps } from "./types/moduleMenu";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
@@ -9,6 +9,7 @@ import { getIcon } from "@/components/menu/utils/menuUtils";
 
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) => {
   const { menuItems, loading, error } = useModuleVisibility(category);
+  const [isExpanded, setIsExpanded] = useState(false);
   
   // Récupérer et rendre l'icône à partir de la bibliothèque Lucide
   const renderIcon = () => {
@@ -73,18 +74,33 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
   if (!isMainCategory && (!menuItems || menuItems.length === 0)) {
     return null;
   }
+  
+  // Déterminer si la catégorie devrait être hiérarchique
+  const shouldBeHierarchical = category === 'admin' || category === 'settings' || category === 'favorites' || category === 'add_clothing';
 
   return (
-    <Accordion type="single" collapsible defaultValue={isMainCategory ? category : undefined} className="w-full">
+    <Accordion 
+      type="single" 
+      collapsible 
+      defaultValue={isMainCategory ? category : undefined} 
+      className="w-full"
+      onValueChange={(value) => setIsExpanded(!!value)}
+    >
       <AccordionItem value={category} className="border-none">
-        <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
+        <AccordionTrigger 
+          className={`py-2 px-3 text-sm font-medium ${isExpanded || isMainCategory ? 'text-primary font-semibold' : 'text-gray-600'} hover:text-gray-900 hover:no-underline`}
+        >
           <span className="flex items-center">
             {renderIcon()}
             <span>{title}</span>
           </span>
         </AccordionTrigger>
         <AccordionContent className="pt-1 pb-2">
-          <DynamicMenu category={category} className="px-1" />
+          <DynamicMenu 
+            category={category} 
+            className="px-1" 
+            hierarchical={shouldBeHierarchical}
+          />
         </AccordionContent>
       </AccordionItem>
     </Accordion>
