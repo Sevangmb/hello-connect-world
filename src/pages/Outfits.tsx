@@ -21,10 +21,12 @@ const Outfits = () => {
       
       <OutfitsList />
       
-      <CreateOutfit 
-        isOpen={showCreateOutfit} 
-        onClose={() => setShowCreateOutfit(false)} 
-      />
+      {showCreateOutfit && (
+        <CreateOutfit 
+          isOpen={showCreateOutfit} 
+          onClose={() => setShowCreateOutfit(false)} 
+        />
+      )}
     </div>
   );
 };

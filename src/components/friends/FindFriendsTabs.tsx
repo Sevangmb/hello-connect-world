@@ -1,60 +1,66 @@
 
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Search } from "lucide-react";
-import { SuggestedFriendsList } from "./SuggestedFriendsList";
-import { UserSearch } from "@/components/users/UserSearch";
-import { SuggestedUser } from "@/hooks/useSuggestedFriends";
+import React from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { SuggestedUserCard } from './SuggestedUserCard';
+import { SuggestedUser } from '@/hooks/useSuggestedFriends';
+import { SearchFriends } from './SearchFriends';
+import { FriendsList } from './FriendsList';
+import { PendingFriendRequestsList } from './PendingFriendRequestsList';
 
-interface FindFriendsTabsProps {
+export interface FindFriendsTabsProps {
   activeTab: string;
   onTabChange: (value: string) => void;
-  suggestedUsers: SuggestedUser[] | undefined;
+  suggestedUsers: SuggestedUser[];
   isLoading: boolean;
-  onSelectUser: (user: { id: string; username: string; avatar_url: string | null }) => void;
+  onSelectUser: (user: SuggestedUser) => void;
 }
 
-export const FindFriendsTabs = ({
+export const FindFriendsTabs: React.FC<FindFriendsTabsProps> = ({
   activeTab,
   onTabChange,
   suggestedUsers,
   isLoading,
   onSelectUser
-}: FindFriendsTabsProps) => {
+}) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid grid-cols-2 mb-6">
-        <TabsTrigger value="discover" className="data-[state=active]:bg-blue-100">
-          <Users className="mr-2 h-4 w-4" />
-          Découvrir
-        </TabsTrigger>
-        <TabsTrigger value="search" className="data-[state=active]:bg-blue-100">
-          <Search className="mr-2 h-4 w-4" />
-          Rechercher
-        </TabsTrigger>
+      <TabsList className="grid grid-cols-4 mb-6">
+        <TabsTrigger value="all">Tous</TabsTrigger>
+        <TabsTrigger value="discover">Découvrir</TabsTrigger>
+        <TabsTrigger value="pending">En attente</TabsTrigger>
+        <TabsTrigger value="search">Rechercher</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="discover" className="space-y-4">
-        <h2 className="text-lg font-medium text-blue-800">Suggestions d'amis</h2>
-        <SuggestedFriendsList
-          users={suggestedUsers}
-          isLoading={isLoading}
-          onAddFriend={onSelectUser}
-        />
+      <TabsContent value="all">
+        <FriendsList />
+      </TabsContent>
+      
+      <TabsContent value="discover">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {isLoading ? (
+            <div className="col-span-2 text-center py-8">Chargement des suggestions...</div>
+          ) : suggestedUsers && suggestedUsers.length > 0 ? (
+            suggestedUsers.map(user => (
+              <SuggestedUserCard 
+                key={user.id} 
+                user={user} 
+                onSelect={() => onSelectUser(user)} 
+              />
+            ))
+          ) : (
+            <div className="col-span-2 text-center py-8">
+              Aucune suggestion d'ami pour le moment
+            </div>
+          )}
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="pending">
+        <PendingFriendRequestsList />
       </TabsContent>
       
       <TabsContent value="search">
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium text-blue-800">Rechercher un utilisateur</h2>
-          <p className="text-gray-600">
-            Vous cherchez quelqu'un en particulier ? Entrez son nom d'utilisateur ci-dessous.
-          </p>
-          <UserSearch 
-            onSelect={onSelectUser}
-            placeholder="Rechercher par nom d'utilisateur..."
-            className="bg-blue-50 hover:bg-blue-100 focus:ring-blue-500 border-blue-100"
-          />
-        </div>
+        <SearchFriends />
       </TabsContent>
     </Tabs>
   );

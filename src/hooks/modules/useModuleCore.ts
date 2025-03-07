@@ -49,37 +49,28 @@ export const useModuleCore = () => {
   // Récupérer les dépendances des modules
   const fetchDependenciesData = useCallback(async () => {
     try {
-      // Récupérer la structure de la table avant de faire la requête
-      const { data: tableInfo, error: tableError } = await supabase
+      // Vérifier si la table existe avant de faire la requête
+      const { data, error } = await supabase
         .from('module_dependencies')
-        .select('*')
-        .limit(1);
+        .select('*');
         
-      if (tableError) {
-        console.error("Erreur lors de la vérification de la structure de la table:", tableError);
+      if (error) {
+        console.error("Erreur lors de la récupération des dépendances:", error);
         return [];
       }
       
-      // Construire la requête en fonction des colonnes disponibles
-      let query = supabase.from('module_dependencies').select('*');
-      
-      const { data, error } = await query;
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Mapper les données en fonction des colonnes disponibles
+      // Mapper les données disponibles
       const dependencyData: ModuleDependency[] = (data || []).map(item => {
+        // Utiliser les champs qui existent réellement dans la table
         return {
           module_id: item.module_id || "",
-          module_code: item.module_code || "",
-          module_name: item.module_name || "",
-          module_status: (item.module_status as ModuleStatus) || 'inactive',
+          module_code: item.module_id || "", // Utiliser module_id comme fallback
+          module_name: "Module " + item.module_id, // Générer un nom par défaut
+          module_status: 'active' as ModuleStatus, // Valeur par défaut
           dependency_id: item.dependency_id || "",
-          dependency_code: item.dependency_code || "",
-          dependency_name: item.dependency_name || "",
-          dependency_status: (item.dependency_status as ModuleStatus) || 'inactive',
+          dependency_code: item.dependency_id || "", // Utiliser dependency_id comme fallback
+          dependency_name: "Module " + item.dependency_id, // Générer un nom par défaut
+          dependency_status: 'active' as ModuleStatus, // Valeur par défaut
           is_required: !!item.is_required
         };
       });

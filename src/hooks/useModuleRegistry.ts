@@ -1,9 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { AppModule } from './modules/types';
-
-const moduleApi = new ModuleApiGateway(/* Add any required dependencies */);
 
 export const useModuleRegistry = () => {
   const [modules, setModules] = useState<AppModule[]>([]);
@@ -14,9 +12,30 @@ export const useModuleRegistry = () => {
   const initializeModules = async () => {
     try {
       setLoading(true);
-      const allModules = await moduleApi.getAllModules();
+      const allModules = await moduleApiGateway.getAllModules();
       setModules(allModules);
       setInitialized(true);
+      return allModules;
+    } catch (err) {
+      console.error('Error initializing modules:', err);
+      setError(err as Error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialized) {
+      initializeModules();
+    }
+  }, [initialized]);
+
+  const loadModules = async () => {
+    try {
+      setLoading(true);
+      const allModules = await moduleApiGateway.getAllModules();
+      setModules(allModules);
     } catch (err) {
       console.error('Error loading modules:', err);
       setError(err as Error);
@@ -25,27 +44,15 @@ export const useModuleRegistry = () => {
     }
   };
 
-  const isModuleActive = async (moduleCode: string): Promise<boolean> => {
-    try {
-      return await moduleApi.isModuleActive(moduleCode);
-    } catch (err) {
-      console.error(`Error checking module ${moduleCode} status:`, err);
-      return false;
-    }
+  const isModuleActive = (moduleCode: string): boolean => {
+    const module = modules.find(m => m.code === moduleCode);
+    return module?.status === 'active';
   };
 
-  const isModuleDegraded = async (moduleCode: string): Promise<boolean> => {
-    try {
-      return await moduleApi.isModuleDegraded(moduleCode);
-    } catch (err) {
-      console.error(`Error checking if module ${moduleCode} is degraded:`, err);
-      return false;
-    }
+  const isModuleDegraded = (moduleCode: string): boolean => {
+    const module = modules.find(m => m.code === moduleCode);
+    return module?.status === 'degraded';
   };
-
-  useEffect(() => {
-    initializeModules();
-  }, []);
 
   return { 
     modules, 
@@ -54,6 +61,6 @@ export const useModuleRegistry = () => {
     initialized,
     initializeModules,
     isModuleActive,
-    isModuleDegraded 
+    isModuleDegraded
   };
 };

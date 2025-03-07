@@ -134,8 +134,13 @@ const SuitcaseDetail = () => {
       {suitcase ? (
         <>
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <SuitcaseHeader 
-              suitcase={suitcase} 
+            <SuitcaseHeader
+              title={suitcase.name}
+              description={suitcase.description}
+              startDate={suitcase.start_date}
+              endDate={suitcase.end_date}
+              destination={suitcase.destination}
+              status={suitcase.status}
               isOwner={isOwner}
               onDelete={() => setShowDeleteDialog(true)}
             />
@@ -153,14 +158,15 @@ const SuitcaseDetail = () => {
               </TabsList>
               
               <TabsContent value="items">
-                <SuitcaseItems suitcaseId={id || ''} isOwner={isOwner} />
+                {/* Pass needed props to SuitcaseItems component */}
+                <SuitcaseItems suitcaseId={id || ''} />
               </TabsContent>
               
               <TabsContent value="calendar">
                 <SuitcaseCalendar 
+                  suitcaseId={id || ''}
                   startDate={suitcase.start_date} 
                   endDate={suitcase.end_date}
-                  suitcaseId={id || ''}
                 />
               </TabsContent>
             </Tabs>

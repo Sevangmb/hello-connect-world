@@ -1,185 +1,116 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { AppModule, ModuleStatus } from "./types";
-import { v4 as uuidv4 } from "uuid";
+import { supabase } from '@/integrations/supabase/client';
+import { AppModule, ModuleStatus } from './types';
 
-/**
- * Service for initializing and managing app modules
- */
-export class ModuleInitializer {
-  /**
-   * Initializes core modules if they don't exist
-   */
-  async initCoreModules(): Promise<void> {
-    try {
-      // Check if any modules exist
-      const { count, error } = await supabase
-        .from('app_modules')
-        .select('*', { count: 'exact', head: true });
-
-      if (error) {
-        console.error("Error checking modules:", error);
-        return;
-      }
-
-      // If modules already exist, skip initialization
-      if (count && count > 0) {
-        console.log("Modules already initialized, skipping...");
-        return;
-      }
-
-      // Get current timestamp
-      const now = new Date().toISOString();
-
-      // Define core modules
-      const coreModules: AppModule[] = [
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "core",
-          name: "Core",
-          description: "Core application functionality",
-          status: "active" as ModuleStatus,
-          is_core: true,
-          priority: 100
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "ui",
-          name: "User Interface",
-          description: "UI components and layout system",
-          status: "active" as ModuleStatus,
-          is_core: true,
-          priority: 90
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "auth",
-          name: "Authentication",
-          description: "User authentication and authorization",
-          status: "active" as ModuleStatus,
-          is_core: true,
-          priority: 95
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "menu",
-          name: "Navigation Menu",
-          description: "Application navigation system",
-          status: "active" as ModuleStatus,
-          is_core: true,
-          priority: 85
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "admin",
-          name: "Administration",
-          description: "Admin panel and management tools",
-          status: "active" as ModuleStatus,
-          is_core: true,
-          is_admin: true,
-          priority: 50
-        }
-      ];
-
-      // Define feature modules
-      const featureModules: AppModule[] = [
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "clothes",
-          name: "Clothes Management",
-          description: "Manage clothing items",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 80
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "outfits",
-          name: "Outfits",
-          description: "Create and manage outfits",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 75
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "suitcases",
-          name: "Suitcases",
-          description: "Pack and organize suitcases",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 70
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "social",
-          name: "Social Features",
-          description: "Social interactions and sharing",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 65
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "challenges",
-          name: "Challenges",
-          description: "Fashion challenges and contests",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 60
-        },
-        {
-          id: uuidv4(),
-          created_at: now,
-          updated_at: now,
-          code: "marketplace",
-          name: "Marketplace",
-          description: "Buy and sell fashion items",
-          status: "active" as ModuleStatus,
-          is_core: false,
-          priority: 55
-        }
-      ];
-
-      // Combine core and feature modules
-      const allModules = [...coreModules, ...featureModules];
-
-      // Insert modules one by one to ensure proper type safety
-      for (const module of allModules) {
-        const { error } = await supabase
-          .from('app_modules')
-          .insert(module);
-          
-        if (error) {
-          console.error(`Error inserting module ${module.code}:`, error);
-        }
-      }
-
-      console.log("Core modules initialized successfully");
-    } catch (error) {
-      console.error("Error initializing core modules:", error);
+export const initializeModules = async (): Promise<boolean> => {
+  try {
+    console.log('Initializing modules...');
+    
+    // Vérifier si des modules existent déjà
+    const { count, error: countError } = await supabase
+      .from('app_modules')
+      .select('*', { count: 'exact', head: true });
+      
+    if (countError) {
+      console.error('Error checking modules:', countError);
+      return false;
     }
+    
+    // Si des modules existent déjà, ne rien faire
+    if (count && count > 0) {
+      console.log(`${count} modules already exist, skipping initialization.`);
+      return true;
+    }
+    
+    // Définir les modules de base
+    const coreModules: AppModule[] = [
+      {
+        id: '1',
+        name: 'Core',
+        code: 'core',
+        description: 'Module de base de l\'application',
+        status: 'active' as ModuleStatus,
+        is_core: true,
+        priority: 100,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        name: 'Administration',
+        code: 'admin',
+        description: 'Module d\'administration',
+        status: 'active' as ModuleStatus,
+        is_core: true,
+        is_admin: true,
+        priority: 90,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        name: 'Garde-robe',
+        code: 'wardrobe',
+        description: 'Module de gestion des vêtements',
+        status: 'active' as ModuleStatus,
+        is_core: true,
+        priority: 80,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '4',
+        name: 'Social',
+        code: 'social',
+        description: 'Module social',
+        status: 'active' as ModuleStatus,
+        is_core: false,
+        priority: 70,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '5',
+        name: 'Marketplace',
+        code: 'marketplace',
+        description: 'Module de marché',
+        status: 'active' as ModuleStatus,
+        is_core: false,
+        priority: 60,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ];
+    
+    // Insérer les modules un par un
+    for (const module of coreModules) {
+      const { error } = await supabase
+        .from('app_modules')
+        .insert({
+          id: module.id,
+          name: module.name,
+          code: module.code,
+          description: module.description,
+          status: module.status,
+          is_core: module.is_core,
+          is_admin: module.is_admin || false,
+          priority: module.priority,
+          created_at: module.created_at,
+          updated_at: module.updated_at
+        });
+        
+      if (error) {
+        console.error(`Error inserting module ${module.name}:`, error);
+        return false;
+      }
+    }
+    
+    console.log(`${coreModules.length} modules initialized successfully.`);
+    return true;
+  } catch (error) {
+    console.error('Error initializing modules:', error);
+    return false;
   }
-}
+};
 
-export const moduleInitializer = new ModuleInitializer();
+export default initializeModules;

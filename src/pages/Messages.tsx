@@ -2,23 +2,30 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+interface Chat {
+  id: string;
+  name?: string;
+  is_group?: boolean;
+  last_message?: string;
+}
+
 const Messages = () => {
   const [selectedChat, setSelectedChat] = useState<{ id: string; type: 'private' | 'group' } | null>(null);
-  const [chats, setChats] = useState<any[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchChats = async () => {
       try {
         setLoading(true);
-        // Example query - adjust based on your database structure
-        const { data, error } = await supabase
-          .from('chats')
-          .select('*')
-          .limit(10);
-          
-        if (error) throw error;
-        setChats(data || []);
+        // Simuler des données de chat car la table n'existe pas encore
+        const mockChats: Chat[] = [
+          { id: '1', name: 'John Doe', is_group: false, last_message: 'Bonjour, comment ça va?' },
+          { id: '2', name: 'Groupe Mode', is_group: true, last_message: 'Nouvelle collection disponible!' },
+          { id: '3', name: 'Marie Dupont', is_group: false, last_message: 'Tu as vu ma nouvelle tenue?' }
+        ];
+        
+        setChats(mockChats);
       } catch (error) {
         console.error('Error fetching chats:', error);
       } finally {

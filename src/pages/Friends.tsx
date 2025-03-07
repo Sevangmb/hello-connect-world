@@ -27,13 +27,14 @@ const Friends = () => {
     console.log('Selected user:', user);
   };
 
+  // Ensure we pass all required props to FindFriendsTabs
   return (
     <div className="container max-w-4xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Amis</h1>
       <FindFriendsTabs 
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        suggestedUsers={suggestedUsers}
+        suggestedUsers={suggestedUsers || []}
         isLoading={isLoading}
         onSelectUser={handleSelectUser}
       />

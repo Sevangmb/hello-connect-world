@@ -1,6 +1,14 @@
-// Fix imports
+
 import { 
-  checkModuleActiveAsync as checkModuleActive,
-  checkModuleDegradedAsync as checkModuleDegraded,
-  checkFeatureEnabledAsync as checkFeatureEnabled
+  getModuleStatusAsync,
+  checkModuleActiveAsync, 
+  checkModuleDegradedAsync,
+  checkFeatureEnabledAsync 
 } from './moduleStatusAsync';
+
+export {
+  getModuleStatusAsync,
+  checkModuleActiveAsync,
+  checkModuleDegradedAsync,
+  checkFeatureEnabledAsync
+};

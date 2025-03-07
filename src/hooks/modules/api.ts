@@ -1,59 +1,49 @@
 
-import { ModuleStatus } from './types';
+// Exporte toutes les fonctions liées à l'API des modules
 
-// Import from moduleStatus
+// Imports depuis moduleStatusCore
 import {
-  isActiveStatus,
-  isDegradedStatus,
-  isInactiveStatus,
-  isMaintenanceStatus,
-  getEffectiveStatus,
-  getModuleStatusFromCache,
   isModuleActive,
   isModuleDegraded,
   isModuleInactive,
-  isModuleMaintenance
+  isModuleMaintenance,
+  isAdminModule
 } from './api/moduleStatusCore';
 
-// Import from moduleStatusAsync
+// Imports depuis moduleStatusAsync
 import {
-  getModuleStatus,
+  getModuleStatusAsync,
   checkModuleActiveAsync,
   checkModuleDegradedAsync,
   checkFeatureEnabledAsync,
   fetchModuleActiveState
 } from './api/moduleStatusAsync';
 
-// Import from moduleStatusUpdates
+// Imports depuis moduleStatusUpdates
 import {
-  updateModuleStatus,
-  updateFeatureStatus,
-  updateFeatureStatusSilent
+  updateModuleStatusAsync,
+  updateFeatureStatusAsync,
+  updateFeatureStatusSilentAsync
 } from './api/moduleStatusUpdates';
 
-// Export all the functions
+// Re-exporter toutes les fonctions
 export {
-  // From moduleStatus
-  isActiveStatus,
-  isDegradedStatus,
-  isInactiveStatus,
-  isMaintenanceStatus,
-  getEffectiveStatus,
-  getModuleStatusFromCache,
+  // Fonctions synchrones
   isModuleActive,
   isModuleDegraded,
   isModuleInactive,
   isModuleMaintenance,
+  isAdminModule,
   
-  // From moduleStatusAsync
-  getModuleStatus,
+  // Fonctions asynchrones de vérification
+  getModuleStatusAsync,
   checkModuleActiveAsync,
   checkModuleDegradedAsync,
   checkFeatureEnabledAsync,
   fetchModuleActiveState,
   
-  // From moduleStatusUpdates
-  updateModuleStatus,
-  updateFeatureStatus,
-  updateFeatureStatusSilent
+  // Fonctions asynchrones de mise à jour
+  updateModuleStatusAsync,
+  updateFeatureStatusAsync,
+  updateFeatureStatusSilentAsync
 };
