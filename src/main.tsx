@@ -14,14 +14,15 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,              // Réduire les tentatives pour économiser des requêtes
       refetchOnWindowFocus: false, // Désactiver le rechargement auto lors du retour sur l'onglet
-      staleTime: 2 * 60 * 1000,    // Données fraîches pendant 2 minutes
-      gcTime: 10 * 60 * 1000,      // Conserver en cache 10 minutes (remplace cacheTime)
+      staleTime: 5 * 60 * 1000,    // Données fraîches pendant 5 minutes au lieu de 2
+      gcTime: 15 * 60 * 1000,      // Conserver en cache 15 minutes au lieu de 10
     },
   },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+  // Supprimer StrictMode en production pour éviter les doubles rendus
+  process.env.NODE_ENV === 'production' ? (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppInitializer>
@@ -30,5 +31,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </AppInitializer>
       </BrowserRouter>
     </QueryClientProvider>
-  </React.StrictMode>,
+  ) : (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppInitializer>
+            <App />
+            <Toaster />
+          </AppInitializer>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  ),
 );

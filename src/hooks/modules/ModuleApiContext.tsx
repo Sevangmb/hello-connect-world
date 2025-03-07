@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { AppModule } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,8 +33,23 @@ export function useModuleApi() {
 // Alias for backward compatibility - export both to support existing code
 export const useModuleApiContext = useModuleApi;
 
-// Function to fetch all modules
-export const fetchAllModules = async (): Promise<AppModule[]> => {
+// Cache système pour éviter les requêtes redondantes
+const moduleCache = new Map<string, {data: AppModule[], timestamp: number}>();
+const CACHE_TTL = 120000; // 2 minutes
+
+// Function to fetch all modules with caching
+export const fetchAllModules = async (force: boolean = false): Promise<AppModule[]> => {
+  const cacheKey = 'all_modules';
+  
+  // Use cache if available and not forced refresh
+  if (!force && moduleCache.has(cacheKey)) {
+    const cachedData = moduleCache.get(cacheKey);
+    if (cachedData && (Date.now() - cachedData.timestamp < CACHE_TTL)) {
+      console.log('Using cached modules');
+      return cachedData.data;
+    }
+  }
+  
   try {
     const { data, error } = await supabase
       .from('app_modules')
@@ -43,9 +58,25 @@ export const fetchAllModules = async (): Promise<AppModule[]> => {
     
     if (error) throw error;
     
+    // Update cache
+    if (data && data.length > 0) {
+      moduleCache.set(cacheKey, {
+        data: data as AppModule[],
+        timestamp: Date.now()
+      });
+    }
+    
     return data as AppModule[];
   } catch (err) {
     console.error('Error fetching modules:', err);
+    
+    // Return cached data if available, even if expired
+    if (moduleCache.has(cacheKey)) {
+      console.log('Returning expired cached modules due to error');
+      const cachedData = moduleCache.get(cacheKey);
+      return cachedData?.data || [];
+    }
+    
     return [];
   }
 };
@@ -82,50 +113,68 @@ export function ModuleApiContextProvider({ children }: { children: React.ReactNo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const initialLoadAttemptedRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Function to handle errors
   const handleError = (err: unknown) => {
     const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
     console.error('Module API error:', errorMessage);
-    setError(errorMessage);
+    if (isMountedRef.current) {
+      setError(errorMessage);
+    }
   };
 
   // Fetch modules from the API
   const fetchModules = useCallback(async (force: boolean = false) => {
+    if (loading) return modules; // Prevent concurrent fetches
+    
     setLoading(true);
     try {
-      const fetchedModules = await fetchAllModules();
-      setModules(fetchedModules);
-      setError(null);
+      const fetchedModules = await fetchAllModules(force);
+      if (isMountedRef.current) {
+        setModules(fetchedModules);
+        setError(null);
+      }
       return fetchedModules;
     } catch (err) {
       handleError(err);
-      return [];
+      return modules;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [modules, loading]);
 
   // Fetch features from the API
   const fetchFeatures = useCallback(async () => {
+    if (loading) return features; // Prevent concurrent fetches
+    
     setLoading(true);
     try {
       const fetchedFeatures = await fetchAllFeatures();
-      setFeatures(fetchedFeatures);
-      setError(null);
+      if (isMountedRef.current) {
+        setFeatures(fetchedFeatures);
+        setError(null);
+      }
       return fetchedFeatures;
     } catch (err) {
       handleError(err);
-      return {};
+      return features;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [features, loading]);
 
   // Refresh modules and features
   const refreshModules = useCallback(async (force: boolean = false) => {
     const modules = await fetchModules(force);
-    setIsInitialized(true);
+    if (isMountedRef.current) {
+      setIsInitialized(true);
+    }
     return modules;
   }, [fetchModules]);
 
@@ -134,15 +183,34 @@ export function ModuleApiContextProvider({ children }: { children: React.ReactNo
     return;
   }, [fetchFeatures]);
 
-  // Load modules and features on component mount
+  // Load modules and features on component mount, mais une seule fois
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Éviter les initialisations multiples
+    if (initialLoadAttemptedRef.current) return;
+    initialLoadAttemptedRef.current = true;
+    
     const init = async () => {
-      await refreshModules();
-      await refreshFeatures();
-      setIsInitialized(true);
+      try {
+        await refreshModules();
+        await refreshFeatures();
+        if (isMountedRef.current) {
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation des modules:", error);
+        if (isMountedRef.current) {
+          setIsInitialized(true); // Mark as initialized even on error to prevent loops
+        }
+      }
     };
     
     init();
+    
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [refreshModules, refreshFeatures]);
 
   return (

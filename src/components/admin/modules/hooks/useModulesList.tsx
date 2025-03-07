@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useModules } from "@/hooks/modules";
 import { preloadModuleStatuses } from "@/hooks/modules/hooks/moduleStatus";
 import { useToast } from "@/hooks/use-toast";
@@ -20,12 +20,17 @@ export const useModulesList = (onStatusChange?: () => void) => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [localLoading, setLocalLoading] = useState<boolean>(true);
   const [loadingTimeout, setLoadingTimeout] = useState<boolean>(false);
+  const initialLoadAttemptedRef = useRef(false);
 
   // Memoize dependencies pour éviter les re-render inutiles
   const memoizedDependencies = useMemo(() => dependencies, [dependencies]);
 
   // Effet initial pour charger les modules avec préchargement
   useEffect(() => {
+    // Éviter les chargements multiples
+    if (initialLoadAttemptedRef.current) return;
+    initialLoadAttemptedRef.current = true;
+    
     const initialLoad = async () => {
       try {
         setLocalLoading(true);
@@ -54,7 +59,7 @@ export const useModulesList = (onStatusChange?: () => void) => {
     }, 3000);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [refreshModules]);
 
   // Mettre à jour localLoading quand le chargement principal change
   useEffect(() => {
@@ -63,18 +68,36 @@ export const useModulesList = (onStatusChange?: () => void) => {
     }
   }, [loading, modules]);
 
-  // Refresh modules data periodically, avec un intervalle plus long
+  // Refresh modules data periodically, avec un intervalle plus long et dédupliqué
   useEffect(() => {
-    const refreshInterval = setInterval(() => {
-      refreshModules().then(() => {
+    let refreshing = false;
+    
+    const refreshInterval = setInterval(async () => {
+      // Éviter les rechargements simultanés
+      if (refreshing) return;
+      refreshing = true;
+      
+      try {
+        await refreshModules();
         setLastRefresh(new Date());
-      });
-    }, 60000); // Toutes les 60 secondes au lieu de 30 secondes
+      } catch (error) {
+        console.error("Erreur lors du refresh périodique:", error);
+      } finally {
+        refreshing = false;
+      }
+    }, 120000); // Toutes les 2 minutes au lieu de 1 minute
     
     // Listen for module status changed events from other tabs
     const handleModuleStatusChanged = () => {
+      if (refreshing) return;
+      refreshing = true;
+      
       refreshModules().then(() => {
         setLastRefresh(new Date());
+        refreshing = false;
+      }).catch(error => {
+        console.error("Erreur lors du refresh suite à événement:", error);
+        refreshing = false;
       });
     };
     

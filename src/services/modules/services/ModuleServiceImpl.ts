@@ -173,8 +173,15 @@ export class ModuleServiceImpl implements IModuleService {
    */
   public async recordModuleUsage(moduleCode: string): Promise<void> {
     try {
+      // Vérifier si le code de module est valide avant d'enregistrer
+      if (!moduleCode || typeof moduleCode !== 'string') {
+        console.warn('Invalid module code provided to recordModuleUsage:', moduleCode);
+        return;
+      }
+      
       await this.moduleStatsRepository.recordModuleUsage(moduleCode);
     } catch (error) {
+      // Capturer l'erreur mais ne pas la propager pour éviter de bloquer l'application
       console.error('Error recording module usage:', error);
     }
   }

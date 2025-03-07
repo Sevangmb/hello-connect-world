@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { LoadingSpinner } from './ui/loading-spinner';
 import { useToast } from '@/hooks/use-toast';
@@ -14,8 +14,13 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [initStartTime] = useState(performance.now());
   const [displayLoading, setDisplayLoading] = useState(true);
   const { toast } = useToast();
+  const initAttemptedRef = useRef(false);
 
   useEffect(() => {
+    // Éviter les initialisation multiples
+    if (initAttemptedRef.current) return;
+    initAttemptedRef.current = true;
+    
     // Mesurer le temps de démarrage
     const startTime = performance.now();
     
@@ -23,8 +28,11 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     const init = async () => {
       try {
         await initializeModules();
-        // Précharger les modules prioritaires
-        await moduleOptimizer.preloadPriorityModules();
+        
+        // Précharger les modules prioritaires avec un délai
+        setTimeout(() => {
+          moduleOptimizer.preloadPriorityModules();
+        }, 500);
       } catch (error) {
         console.error('Erreur durant l\'initialisation:', error);
         toast({
@@ -46,10 +54,13 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
     const elapsedTime = performance.now() - initStartTime;
     const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
     
+    // Force hide loading after max 3 seconds, even if modules aren't ready
+    const maxLoadingTime = 3000;
+    
     // Finaliser l'initialisation après le délai minimal
     setTimeout(() => {
       setDisplayLoading(false);
-    }, remainingTime);
+    }, Math.min(remainingTime, maxLoadingTime));
   }, [initStartTime, initializeModules, toast]);
 
   if (loading || displayLoading) {

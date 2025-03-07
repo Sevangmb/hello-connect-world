@@ -31,6 +31,7 @@ export const useModuleCore = () => {
   const [forcedInitComplete, setForcedInitComplete] = useState(false);
   const initAttempts = useRef(0);
   const isMountedRef = useRef(true);
+  const initialLoadAttemptedRef = useRef(false);
   
   // Récupérer les données des modules et dépendances
   const {
@@ -60,6 +61,15 @@ export const useModuleCore = () => {
       }
     }
     
+    // Limiter les tentatives de rechargement
+    if (initAttempts.current > 3 && !force) {
+      console.log('Trop de tentatives de chargement, utilisation du cache si disponible');
+      const cache = modulesCache.get(cacheKey);
+      if (cache) return cache.data;
+    }
+    
+    initAttempts.current += 1;
+    
     // Récupérer les données
     const result = await fetchModules();
     
@@ -88,7 +98,7 @@ export const useModuleCore = () => {
     isFeatureEnabled
   } = useModuleActive(modules, features);
 
-  // Configurer les effets et abonnements
+  // Configurer les effets et abonnements, empêcher les rechargements multiples
   useModuleEffects(modules, setModules, cachedFetchModules, fetchDependencies, fetchFeatures);
 
   // Nettoyer lors du démontage du composant
@@ -100,11 +110,14 @@ export const useModuleCore = () => {
 
   // Utiliser les modules du cache si disponibles, sinon charger depuis Supabase
   useEffect(() => {
+    // Éviter les initialisations multiples
+    if (initialLoadAttemptedRef.current || isInitialized) return;
+    initialLoadAttemptedRef.current = true;
+    
     const initializeModules = async () => {
       try {
         if (!isInitialized && isMountedRef.current) {
           console.log("Initialisation des modules dans useModuleCore");
-          initAttempts.current += 1;
           
           // Essayer d'abord de charger depuis le localStorage pour un chargement ultra-rapide
           try {
@@ -135,8 +148,8 @@ export const useModuleCore = () => {
             console.error("Erreur lors du chargement du cache local:", e);
           }
           
-          // Essayer ensuite l'API des modules
-          if (!moduleApi.loading && moduleApi.isInitialized) {
+          // Essayer ensuite l'API des modules, mais pas si on a déjà des modules du cache
+          if (localModules.length === 0 && !moduleApi.loading && moduleApi.isInitialized) {
             const modulesData = await moduleApi.refreshModules(initAttempts.current > 1);
             console.log("Modules chargés depuis l'API:", modulesData?.length || 0);
             
@@ -144,16 +157,16 @@ export const useModuleCore = () => {
               setLocalModules(modulesData);
               setModules(modulesData);
             } else {
-              // Essayer de charger directement depuis le fetcher
+              // Essayer de charger directement depuis le fetcher si l'API échoue
               const directModules = await cachedFetchModules();
               console.log("Modules chargés directement:", directModules?.length || 0);
               if (isMountedRef.current) {
                 setLocalModules(directModules);
               }
             }
-          } else {
-            // Si l'API n'est pas prête, charger directement
-            console.log("API non prête, chargement direct des modules");
+          } else if (localModules.length === 0) {
+            // Si l'API n'est pas prête ou aucun module du cache, charger directement
+            console.log("API non prête ou aucun module du cache, chargement direct des modules");
             const directModules = await cachedFetchModules();
             console.log("Modules chargés directement:", directModules?.length || 0);
             if (isMountedRef.current) {
@@ -183,14 +196,19 @@ export const useModuleCore = () => {
         setIsInitialized(true);
         setForcedInitComplete(true);
       }
-    }, 3000); // Réduit de 5000 à 3000ms pour améliorer les performances perçues
+    }, 2000); // Réduit de 3000 à 2000ms pour améliorer les performances perçues
     
     return () => clearTimeout(timer);
-  }, [moduleApi, setModules, isInitialized, cachedFetchModules]);
+  }, [moduleApi, setModules, isInitialized, cachedFetchModules, localModules.length]);
   
   // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
+  // mais limiter à une seule tentative pour éviter les boucles
   useEffect(() => {
-    if (isInitialized && isMountedRef.current && (localModules.length === 0 || modules.length === 0)) {
+    const rechargementAttemptéRef = useRef(false);
+    
+    if (isInitialized && isMountedRef.current && (localModules.length === 0 || modules.length === 0) && !rechargementAttemptéRef.current) {
+      rechargementAttemptéRef.current = true;
+      
       const timer = setTimeout(async () => {
         console.log("Tentative de rechargement des modules après timeout");
         try {
@@ -231,13 +249,13 @@ export const useModuleCore = () => {
         } catch (e) {
           console.error("Erreur lors du rechargement des modules:", e);
         }
-      }, 2000); // Réduit de 3000 à 2000ms
+      }, 1500); // Réduit de 2000 à 1500ms
       
       return () => clearTimeout(timer);
     }
   }, [isInitialized, localModules.length, modules.length, cachedFetchModules, setModules, forcedInitComplete]);
 
-  // Mémoïser les modules pour de meilleures performances
+  // Mémoïser les modules pour de meilleures performances et éviter les re-rendus inutiles
   const memoizedModules = useMemo(() => 
     localModules.length > 0 ? localModules : modules, 
     [localModules, modules]
