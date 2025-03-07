@@ -3,6 +3,24 @@ import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
 
+// Define a simpler return type for getModulesWithFeatures to avoid deep type instantiation
+type ModuleWithFeatures = {
+  module: {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    status: ModuleStatus;
+  };
+  features: Array<{
+    id: string;
+    feature_code: string;
+    feature_name: string;
+    description: string;
+    is_enabled: boolean;
+  }>;
+};
+
 export class ModuleRepository implements IModuleRepository {
   /**
    * Get all modules
@@ -191,16 +209,7 @@ export class ModuleRepository implements IModuleRepository {
   /**
    * Get modules with features
    */
-  public async getModulesWithFeatures(): Promise<Array<{
-    module: any;
-    features: Array<{
-      id: string;
-      feature_code: string;
-      feature_name: string;
-      description: string;
-      is_enabled: boolean;
-    }>;
-  }>> {
+  public async getModulesWithFeatures(): Promise<ModuleWithFeatures[]> {
     try {
       // Récupérer les modules
       const { data: modules, error: modulesError } = await supabase
@@ -223,7 +232,7 @@ export class ModuleRepository implements IModuleRepository {
       }
       
       // Créer la map des modules aux fonctionnalités
-      const moduleFeatureMap = new Map<string, any>();
+      const moduleFeatureMap = new Map<string, ModuleWithFeatures>();
       
       if (modules) {
         modules.forEach(module => {

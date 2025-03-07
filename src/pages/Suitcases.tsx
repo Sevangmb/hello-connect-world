@@ -142,7 +142,7 @@ export default function Suitcases() {
                 </div>
                 <h3 className="text-lg font-medium mb-2">Aucune valise trouvée</h3>
                 <p className="text-muted-foreground mb-6 max-w-md">
-                  {filterValues.status !== 'all' || filterValues.search
+                  {filterValues.status !== 'all' && filterValues.search
                     ? "Aucune valise ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
                     : "Vous n'avez pas encore créé de valise. Commencez par en créer une pour organiser vos vêtements de voyage."}
                 </p>
