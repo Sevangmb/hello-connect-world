@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -26,7 +27,7 @@ export class MenuRepository implements IMenuRepository {
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as string)
+        .eq('category', category) // No need for type casting here
         .order('position');
       
       const { data, error } = await query;
