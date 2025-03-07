@@ -6,69 +6,67 @@ import { useToast } from "@/hooks/use-toast";
 import { useMenu } from "@/hooks/menu";
 
 /**
- * Custom hook to handle module menu events and refreshes
+ * Hook pour gérer les événements liés au menu des modules
+ * Utilise le principe d'inversion de dépendance en dépendant d'abstractions (eventBus)
  */
 export const useModuleMenuEvents = () => {
   const { isUserAdmin, refreshMenu } = useMenu();
   const { toast } = useToast();
 
+  // S'abonner aux événements du menu et des modules
   useEffect(() => {
-    // Écouter les événements de mise à jour de menu et de modules
-    // en utilisant un délai pour éviter les rafraîchissements trop fréquents
+    // Utiliser un objet pour stocker les abonnements
+    const subscriptions = new Map();
     let refreshTimeout: NodeJS.Timeout | null = null;
     
-    const handleMenuUpdate = () => {
-      // Annuler tout timeout existant
+    // Fonction commune pour rafraîchir le menu avec un délai pour éviter les refreshs trop fréquents
+    const scheduleMenuRefresh = () => {
       if (refreshTimeout) {
         clearTimeout(refreshTimeout);
       }
       
-      // Planifier un rafraîchissement avec un délai
       refreshTimeout = setTimeout(() => {
         console.log("ModuleMenu: Rafraîchissement du menu suite à un événement");
         refreshMenu();
         refreshTimeout = null;
-      }, 300); // Délai pour regrouper les mises à jour rapprochées
+      }, 300);
     };
     
-    const unsubscribeMenuUpdated = eventBus.subscribe(
-      MODULE_MENU_EVENTS.MENU_UPDATED, 
-      handleMenuUpdate
-    );
+    // S'abonner aux événements avec une fonction commune
+    const subscribeToEvent = (eventName: string, handler: Function) => {
+      const unsubscribe = eventBus.subscribe(eventName, handler);
+      subscriptions.set(eventName, unsubscribe);
+      return unsubscribe;
+    };
     
-    const unsubscribeModuleStatus = eventBus.subscribe(
-      MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, 
-      (data) => {
-        console.log(`ModuleMenu: Changement de statut du module ${data.moduleCode} détecté`);
-        handleMenuUpdate();
-        
-        // Afficher une notification de changement de statut
-        if (data.status === 'inactive') {
-          toast({
-            title: "Module désactivé",
-            description: `Le module ${data.moduleCode} a été désactivé`,
-            variant: "default"
-          });
-        }
+    // Événement: Menu mis à jour
+    subscribeToEvent(MODULE_MENU_EVENTS.MENU_UPDATED, scheduleMenuRefresh);
+    
+    // Événement: Statut de module changé
+    subscribeToEvent(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, (data) => {
+      console.log(`ModuleMenu: Changement de statut du module ${data.moduleCode} détecté`);
+      scheduleMenuRefresh();
+      
+      // Afficher une notification si le module a été désactivé
+      if (data.status === 'inactive') {
+        toast({
+          title: "Module désactivé",
+          description: `Le module ${data.moduleCode} a été désactivé`,
+          variant: "default"
+        });
       }
-    );
+    });
     
-    const unsubscribeAdminAccess = eventBus.subscribe(
-      MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, 
-      handleMenuUpdate
-    );
+    // Événement: Accès admin accordé
+    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, scheduleMenuRefresh);
     
-    const unsubscribeAdminRevoked = eventBus.subscribe(
-      MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, 
-      handleMenuUpdate
-    );
+    // Événement: Accès admin révoqué
+    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, scheduleMenuRefresh);
     
+    // Nettoyage à la désinscription du composant
     return () => {
-      // Nettoyer les abonnements
-      unsubscribeMenuUpdated();
-      unsubscribeModuleStatus();
-      unsubscribeAdminAccess();
-      unsubscribeAdminRevoked();
+      // Désabonner tous les événements
+      subscriptions.forEach(unsubscribe => unsubscribe());
       
       // Annuler tout timeout en attente
       if (refreshTimeout) {

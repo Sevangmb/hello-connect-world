@@ -1,23 +1,24 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import CategoryGroup from "./CategoryGroup";
+import { useNavigation } from "./hooks/useNavigation";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
 }
 
 export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
 
+  // Retourner null si l'utilisateur n'est pas admin
   if (!isUserAdmin) {
     return null;
   }
 
+  // Utiliser le hook de navigation pour la navigation
   const handleNavigateToAdmin = (event: React.MouseEvent) => {
-    event.preventDefault();
-    navigate('/admin');
+    navigateTo('/admin', event);
   };
 
   return (

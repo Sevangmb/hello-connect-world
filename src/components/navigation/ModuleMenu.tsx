@@ -1,30 +1,17 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import MenuCategories from "./MenuCategories";
 import AdminMenuSection from "./AdminMenuSection";
 import { useModuleMenuEvents } from "./hooks/useModuleMenuEvents";
 
-// Composant de menu principal avec optimisations pour éviter le clignotement
+/**
+ * Composant de menu principal - séparé selon les principes de la Clean Architecture
+ * Ce composant agit maintenant uniquement comme un conteneur qui assemble d'autres composants
+ */
 export const ModuleMenu: React.FC = () => {
+  // Obtenir les données nécessaires à partir du hook
   const { isUserAdmin } = useModuleMenuEvents();
-  const [initialized, setInitialized] = useState(false);
-  
-  // Optimiser les mises à jour de menu pour éviter le clignotement
-  useEffect(() => {
-    // Marquer comme initialisé après le premier rendu
-    if (!initialized) {
-      setInitialized(true);
-      // Initialiser le statut admin dans le coordinateur
-      if (isUserAdmin) {
-        moduleMenuCoordinator.enableAdminAccess();
-      }
-    }
-  }, [isUserAdmin, initialized]);
-
-  // Ajoutons un peu de débogage pour comprendre le problème
-  console.log("ModuleMenu: Rendu avec isUserAdmin =", isUserAdmin);
   
   return (
     <TooltipProvider>

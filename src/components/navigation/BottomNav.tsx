@@ -61,3 +61,5 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className, onMenuClick }) 
     </div>
   );
 };
+
+export default BottomNav;
