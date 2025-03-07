@@ -2,9 +2,9 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
+import { BottomNav } from "./navigation/BottomNav";
 import MainSidebar from "./MainSidebar";
 import { Footer } from "./Footer";
-import BottomNav from "./navigation/BottomNav";
 
 export function RootLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
