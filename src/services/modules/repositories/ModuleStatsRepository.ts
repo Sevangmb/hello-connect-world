@@ -20,7 +20,8 @@ export class ModuleStatsRepository {
         .from('module_usage_stats')
         .select('*')
         .eq('module_id', moduleId)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (error) throw error;
       return data as ModuleUsageStat;
@@ -35,26 +36,52 @@ export class ModuleStatsRepository {
    */
   async recordModuleUsage(moduleCode: string): Promise<boolean> {
     try {
+      // Utiliser la fonction RPC de Supabase pour incrémenter l'utilisation du module
+      const { error } = await supabase
+        .rpc('increment_module_usage', { module_code: moduleCode });
+      
+      if (error) {
+        console.error(`Error recording usage for module ${moduleCode} via RPC:`, error);
+        
+        // Fallback au mécanisme manuel en cas d'échec de la fonction RPC
+        return await this.recordModuleUsageFallback(moduleCode);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error recording usage for module ${moduleCode}:`, error);
+      
+      // En cas d'exception, tenter le mécanisme fallback
+      return await this.recordModuleUsageFallback(moduleCode);
+    }
+  }
+  
+  /**
+   * Mécanisme fallback pour enregistrer l'utilisation d'un module
+   * si la RPC ne fonctionne pas
+   */
+  private async recordModuleUsageFallback(moduleCode: string): Promise<boolean> {
+    try {
       // First check if a record already exists
       const { data: existingRecord, error: queryError } = await supabase
         .from('module_usage_stats')
         .select('id, usage_count')
         .eq('module_code', moduleCode)
-        .maybeSingle();
+        .limit(1);
       
       if (queryError) {
         throw queryError;
       }
       
-      if (existingRecord) {
+      if (existingRecord && existingRecord.length > 0) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('module_usage_stats')
           .update({ 
-            usage_count: (existingRecord.usage_count || 0) + 1,
+            usage_count: (existingRecord[0].usage_count || 0) + 1,
             last_used: new Date().toISOString()
           })
-          .eq('id', existingRecord.id);
+          .eq('id', existingRecord[0].id);
           
         if (updateError) throw updateError;
       } else {
@@ -72,7 +99,7 @@ export class ModuleStatsRepository {
       
       return true;
     } catch (error) {
-      console.error(`Error recording usage for module ${moduleCode}:`, error);
+      console.error(`Error in fallback recording for module ${moduleCode}:`, error);
       return false;
     }
   }

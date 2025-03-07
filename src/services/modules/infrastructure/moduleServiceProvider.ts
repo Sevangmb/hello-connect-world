@@ -7,14 +7,14 @@ import { ModuleDependencyRepository } from '../repositories/ModuleDependencyRepo
 import { ModuleServiceImpl } from '../services/ModuleServiceImpl';
 import { IModuleService } from '../domain/interfaces/IModuleService';
 
-// Create singleton instances of repositories
+// Créer des instances singleton des dépôts
 const moduleRepository = new ModuleRepository();
 const featureRepository = new FeatureRepository();
 const moduleFeatureRepository = new ModuleFeatureRepository();
 const moduleStatsRepository = new ModuleStatsRepository();
 const moduleDependencyRepository = new ModuleDependencyRepository();
 
-// Create a singleton instance of the service with injected repositories
+// Créer une instance singleton du service avec les dépôts injectés
 const moduleService: IModuleService = new ModuleServiceImpl(
   moduleRepository,
   featureRepository,
@@ -24,14 +24,14 @@ const moduleService: IModuleService = new ModuleServiceImpl(
 );
 
 /**
- * Get the module service instance with all dependencies injected
+ * Obtenir l'instance du service de module avec toutes les dépendances injectées
  */
 export const getModuleService = (): IModuleService => {
   return moduleService;
 };
 
 /**
- * Get repository instances directly if needed
+ * Obtenir directement les instances de dépôt si nécessaire
  */
 export const getModuleRepository = (): ModuleRepository => {
   return moduleRepository;
