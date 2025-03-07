@@ -27,6 +27,26 @@ export const useEvents = () => {
   ) => {
     eventService.publish(eventName, data);
   }, []);
+  
+  // Fonction pour s'abonner à plusieurs événements à la fois
+  const subscribeToMultipleEvents = useCallback(<T = any>(
+    eventNames: string[],
+    callback: EventCallback<T>
+  ) => {
+    const unsubscribe = eventService.subscribeToMultiple(eventNames, callback);
+    subscriptionsRef.current.push(unsubscribe);
+    return unsubscribe;
+  }, []);
+  
+  // Fonction pour s'abonner à des événements selon un pattern
+  const subscribeToPatternEvents = useCallback(<T = any>(
+    pattern: RegExp,
+    callback: EventCallback<T>
+  ) => {
+    const unsubscribe = eventService.subscribeToPattern(pattern, callback);
+    subscriptionsRef.current.push(unsubscribe);
+    return unsubscribe;
+  }, []);
 
   // Nettoyage automatique des abonnements au démontage du composant
   useEffect(() => {
@@ -40,8 +60,8 @@ export const useEvents = () => {
   return {
     subscribe,
     publish,
-    subscribeToMultiple: eventService.subscribeToMultiple.bind(eventService),
-    subscribeToPattern: eventService.subscribeToPattern.bind(eventService),
+    subscribeToMultiple: subscribeToMultipleEvents,
+    subscribeToPattern: subscribeToPatternEvents,
     EVENT_TYPES
   };
 };

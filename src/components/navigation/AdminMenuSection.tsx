@@ -6,15 +6,17 @@ import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useEvents } from "@/hooks/useEvents";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
 }
 
 const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
-  const { menuItems, loading, error } = useModuleVisibility('admin');
+  const { menuItems, loading, error, refreshMenu } = useModuleVisibility('admin');
   const [showContent, setShowContent] = useState(false);
   const { toast } = useToast();
+  const { subscribe, EVENT_TYPES } = useEvents();
   
   // Ne montrer le contenu que si l'utilisateur est administrateur pour éviter le flash
   useEffect(() => {
@@ -22,6 +24,16 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
       setShowContent(true);
     }
   }, [isUserAdmin]);
+  
+  // S'abonner aux événements de changement de statut admin
+  useEffect(() => {
+    const unsubscribe = subscribe(EVENT_TYPES.ADMIN_ACCESS_GRANTED, () => {
+      setShowContent(true);
+      refreshMenu();
+    });
+    
+    return unsubscribe;
+  }, [subscribe, EVENT_TYPES, refreshMenu]);
   
   // Gérer les erreurs
   useEffect(() => {

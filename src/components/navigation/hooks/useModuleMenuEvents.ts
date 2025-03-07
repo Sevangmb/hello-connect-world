@@ -11,7 +11,7 @@ import { useMenu } from "@/hooks/menu";
 export const useModuleMenuEvents = () => {
   const { isUserAdmin, refreshMenu } = useMenu();
   const { toast } = useToast();
-  const { subscribe, EVENT_TYPES } = useEvents();
+  const { subscribe, subscribeToMultiple, EVENT_TYPES } = useEvents();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fonction de rafraîchissement avec debounce intégré
@@ -29,18 +29,22 @@ export const useModuleMenuEvents = () => {
 
   // S'abonner aux événements du menu et des modules
   useEffect(() => {
-    // Événement: Menu mis à jour
-    const unsubscribeMenuUpdated = subscribe(EVENT_TYPES.MENU_UPDATED, () => {
-      console.log("useModuleMenuEvents: Événement MENU_UPDATED reçu");
+    // Ensemble d'événements qui déclenchent un rafraîchissement du menu
+    const menuRefreshEvents = [
+      EVENT_TYPES.MENU_UPDATED,
+      EVENT_TYPES.MODULE_STATUS_CHANGED,
+      EVENT_TYPES.ADMIN_ACCESS_GRANTED,
+      EVENT_TYPES.ADMIN_ACCESS_REVOKED
+    ];
+    
+    // S'abonner à plusieurs événements avec un seul callback
+    const unsubscribeRefreshEvents = subscribeToMultiple(menuRefreshEvents, () => {
       debouncedRefresh();
     });
     
-    // Événement: Statut de module changé
+    // Événement: Statut de module changé (pour les notifications)
     const unsubscribeModuleStatus = subscribe(EVENT_TYPES.MODULE_STATUS_CHANGED, (data: any) => {
-      console.log(`useModuleMenuEvents: Changement de statut du module ${data.moduleCode} détecté`);
-      debouncedRefresh();
-      
-      // Afficher une notification si le module a été désactivé
+      // Afficher une notification si le module a été désactivé ou activé
       if (data.status === 'inactive') {
         toast({
           title: "Module désactivé",
@@ -56,22 +60,13 @@ export const useModuleMenuEvents = () => {
       }
     });
     
-    // Événement: Accès admin accordé
+    // Événement: Accès admin accordé (pour la notification)
     const unsubscribeAdminGranted = subscribe(EVENT_TYPES.ADMIN_ACCESS_GRANTED, () => {
-      console.log("useModuleMenuEvents: Événement ADMIN_ACCESS_GRANTED reçu");
-      debouncedRefresh();
-      
       toast({
         title: "Accès administrateur",
         description: "Vous avez maintenant accès aux fonctionnalités d'administration",
         variant: "default"
       });
-    });
-    
-    // Événement: Accès admin révoqué
-    const unsubscribeAdminRevoked = subscribe(EVENT_TYPES.ADMIN_ACCESS_REVOKED, () => {
-      console.log("useModuleMenuEvents: Événement ADMIN_ACCESS_REVOKED reçu");
-      debouncedRefresh();
     });
     
     // Nettoyage à la désinscription du composant
@@ -82,12 +77,11 @@ export const useModuleMenuEvents = () => {
       }
       
       // Désabonner tous les événements
-      unsubscribeMenuUpdated();
+      unsubscribeRefreshEvents();
       unsubscribeModuleStatus();
       unsubscribeAdminGranted();
-      unsubscribeAdminRevoked();
     };
-  }, [debouncedRefresh, toast, subscribe, EVENT_TYPES]);
+  }, [debouncedRefresh, toast, subscribe, subscribeToMultiple, EVENT_TYPES]);
 
   return { 
     isUserAdmin, 

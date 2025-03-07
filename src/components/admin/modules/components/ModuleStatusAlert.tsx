@@ -16,9 +16,9 @@ export const ModuleStatusAlert: React.FC<ModuleStatusAlertProps> = ({ onDismiss 
 
   // Listen for module status change events
   useEffect(() => {
-    const showSuccessAlert = () => {
+    const handleModuleStatusChange = (data: any) => {
       setAlertType("success");
-      setMessage("Statut des modules mis à jour avec succès.");
+      setMessage(data?.message || "Statut des modules mis à jour avec succès.");
       setShowAlert(true);
       
       // Auto-dismiss after 5 seconds
@@ -28,7 +28,7 @@ export const ModuleStatusAlert: React.FC<ModuleStatusAlertProps> = ({ onDismiss 
       }, 5000);
     };
 
-    const unsubscribe = subscribe(EVENT_TYPES.MODULE_STATUS_CHANGED, showSuccessAlert);
+    const unsubscribe = subscribe(EVENT_TYPES.MODULE_STATUS_CHANGED, handleModuleStatusChange);
     return unsubscribe;
   }, [onDismiss, subscribe, EVENT_TYPES]);
 
