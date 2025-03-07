@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { AppModule, ModuleFeature, ModuleDependency, ModuleStatus } from "./types";
 import { useConnectionChecker } from "./fetcher/connectionChecker";
@@ -23,9 +24,19 @@ export const useModuleCore = () => {
   const fetchModulesData = useCallback(async (force: boolean = false) => {
     setLoading(true);
     try {
-      const moduleData = await fetchModules(force);
-      setModules(moduleData);
-      return moduleData;
+      // Récupérer les modules depuis Supabase
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('*')
+        .order('name');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const moduleData = data || [];
+      setModules(moduleData as AppModule[]);
+      return moduleData as AppModule[];
     } catch (err: any) {
       console.error("Erreur lors du chargement des modules:", err);
       setError(err.message || "Erreur lors du chargement des modules");
@@ -38,9 +49,18 @@ export const useModuleCore = () => {
   // Récupérer les dépendances des modules
   const fetchDependenciesData = useCallback(async () => {
     try {
-      const dependencyData = await fetchDependencies();
-      setDependencies(dependencyData);
-      return dependencyData;
+      // Récupérer les dépendances depuis Supabase
+      const { data, error } = await supabase
+        .from('module_dependencies')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      const dependencyData = data || [];
+      setDependencies(dependencyData as ModuleDependency[]);
+      return dependencyData as ModuleDependency[];
     } catch (err: any) {
       console.error("Erreur lors du chargement des dépendances:", err);
       return [];
@@ -50,7 +70,24 @@ export const useModuleCore = () => {
   // Récupérer les fonctionnalités des modules
   const fetchFeaturesData = useCallback(async () => {
     try {
-      const featureData = await fetchFeatures();
+      // Récupérer les fonctionnalités depuis Supabase
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*');
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Convertir les données en un format utilisable
+      const featureData = data?.reduce((acc, feature) => {
+        if (!acc[feature.module_code]) {
+          acc[feature.module_code] = {};
+        }
+        acc[feature.module_code][feature.feature_code] = feature.is_enabled;
+        return acc;
+      }, {} as Record<string, Record<string, boolean>>) || {};
+      
       setFeatures(featureData);
       return featureData;
     } catch (err: any) {
@@ -107,9 +144,12 @@ export const useModuleCore = () => {
   // Fonction pour mettre à jour un module
   const updateModule = useCallback(async (moduleId: string, status: ModuleStatus): Promise<boolean> => {
     try {
-      // Simuler une mise à jour pour le moment
-      console.log(`Mise à jour du module ${moduleId} avec le statut ${status}`);
-      // En production, appeler une API ou utiliser Supabase ici
+      const { error } = await supabase
+        .from('app_modules')
+        .update({ status })
+        .eq('id', moduleId);
+        
+      if (error) throw error;
       return true;
     } catch (err) {
       console.error("Erreur lors de la mise à jour du module:", err);
@@ -120,9 +160,13 @@ export const useModuleCore = () => {
   // Fonction pour mettre à jour une fonctionnalité
   const updateFeature = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> => {
     try {
-      // Simuler une mise à jour pour le moment
-      console.log(`Mise à jour de la fonctionnalité ${featureCode} du module ${moduleCode} avec l'état ${isEnabled}`);
-      // En production, appeler une API ou utiliser Supabase ici
+      const { error } = await supabase
+        .from('module_features')
+        .update({ is_enabled: isEnabled })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
+        
+      if (error) throw error;
       return true;
     } catch (err) {
       console.error("Erreur lors de la mise à jour de la fonctionnalité:", err);
@@ -133,7 +177,13 @@ export const useModuleCore = () => {
   // Fonction pour mettre à jour une fonctionnalité silencieusement (sans notification)
   const updateFeatureSilent = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean): Promise<boolean> => {
     try {
-      console.log(`Mise à jour silencieuse de la fonctionnalité ${featureCode} du module ${moduleCode} avec l'état ${isEnabled}`);
+      const { error } = await supabase
+        .from('module_features')
+        .update({ is_enabled: isEnabled })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
+        
+      if (error) throw error;
       return true;
     } catch (err) {
       console.error("Erreur lors de la mise à jour silencieuse de la fonctionnalité:", err);
