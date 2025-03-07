@@ -15,7 +15,11 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
     if (!icon) return null;
     
     const IconComponent = getIcon(icon);
-    return IconComponent ? React.createElement(IconComponent, { className: "h-4 w-4 mr-2" }) : null;
+    // Use type assertion to help TypeScript understand this can be a React component
+    if (IconComponent) {
+      return React.createElement(IconComponent as React.ComponentType<any>, { className: "h-4 w-4 mr-2" });
+    }
+    return null;
   };
 
   // Pendant le chargement, nous affichons un squelette pour une meilleure UX

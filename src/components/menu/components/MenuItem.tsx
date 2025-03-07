@@ -28,7 +28,11 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
     if (!item.icon) return null;
     
     const IconComponent = getIcon(item.icon);
-    return IconComponent ? React.createElement(IconComponent, { className: "h-4 w-4 mr-2" }) : null;
+    // Use type assertion to help TypeScript understand this can be a React component
+    if (IconComponent) {
+      return React.createElement(IconComponent as React.ComponentType<any>, { className: "h-4 w-4 mr-2" });
+    }
+    return null;
   };
   
   // Pour les éléments avec des enfants en mode hiérarchique

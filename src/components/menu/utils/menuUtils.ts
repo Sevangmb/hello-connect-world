@@ -26,7 +26,7 @@ export const getIcon = (iconName: string | undefined) => {
   
   // Récupérer l'icône depuis la bibliothèque Lucide
   const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
-  return IconComponent;
+  return IconComponent || null;
 };
 
 /**
