@@ -4,7 +4,7 @@
  * Agit comme une façade pour les autres services et maintient une représentation cohérente des modules
  */
 import { AppModule, ModuleStatus } from "../types";
-import { moduleCacheService } from "./ModuleCacheService";
+import * as moduleCacheService from "./ModuleCacheService";
 import { moduleDbService } from "./ModuleDbService";
 import { moduleValidator } from "./ModuleValidator";
 import { ADMIN_MODULE_CODE } from "../constants";
