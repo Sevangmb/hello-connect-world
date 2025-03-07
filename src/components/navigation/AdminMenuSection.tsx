@@ -61,7 +61,7 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
     return null;
   }
 
-  // Organiser les sections administratives
+  // Organiser les sections administratives selon la nouvelle structure
   const adminSections = [
     { 
       title: "Tableau de bord", 
@@ -69,23 +69,38 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
       defaultExpanded: true
     },
     { 
-      title: "Modules", 
-      moduleCode: "admin_modules",
-      defaultExpanded: false
-    },
-    { 
       title: "Utilisateurs", 
       moduleCode: "admin_users",
       defaultExpanded: false
     },
     { 
-      title: "Marketplace", 
+      title: "Boutiques", 
+      moduleCode: "admin_shops",
+      defaultExpanded: false
+    },
+    { 
+      title: "Vide-Dressing", 
       moduleCode: "admin_marketplace",
       defaultExpanded: false
     },
     { 
       title: "Contenu", 
       moduleCode: "admin_content",
+      defaultExpanded: false
+    },
+    { 
+      title: "Marketing", 
+      moduleCode: "admin_marketing",
+      defaultExpanded: false
+    },
+    { 
+      title: "Statistiques", 
+      moduleCode: "admin_stats",
+      defaultExpanded: false
+    },
+    { 
+      title: "Modules", 
+      moduleCode: "admin_modules",
       defaultExpanded: false
     },
     { 
