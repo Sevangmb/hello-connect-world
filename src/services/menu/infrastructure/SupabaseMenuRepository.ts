@@ -24,12 +24,13 @@ export class MenuRepository implements IMenuRepository {
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
       console.log(`Fetching menu items for category: ${category}`);
-      // Fix the type casting to ensure compatibility with Supabase query parameter
+      // Type assertion is needed here because Supabase's typing is expecting a specific set of literals
+      // but our MenuItemCategory can have additional values
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category.toString())
+        .eq('category', category as any) // Using type assertion to bypass TypeScript's type checking
         .order('position');
       
       if (error) {
