@@ -6,9 +6,22 @@ import { FavoriteCard } from "./FavoriteCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth";
 
+// Define proper interfaces to fix the typing issue
+interface FavoriteItem {
+  id: string;
+  name?: string;
+  type: 'outfit' | 'clothes';
+  image_url?: string | null;
+  created_at: string;
+  brand?: string;
+  category?: string;
+  is_favorite: boolean;
+  user_id: string;
+}
+
 export const FavoritesSection: React.FC = () => {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -40,10 +53,10 @@ export const FavoritesSection: React.FC = () => {
           
         if (clothesError) throw clothesError;
         
-        // Combiner et transformer les données
-        const combinedFavorites = [
-          ...(outfitsData || []).map(item => ({ ...item, type: 'outfit' })),
-          ...(clothesData || []).map(item => ({ ...item, type: 'clothes' }))
+        // Combiner et transformer les données avec des types explicites
+        const combinedFavorites: FavoriteItem[] = [
+          ...(outfitsData || []).map(item => ({ ...item, type: 'outfit' } as FavoriteItem)),
+          ...(clothesData || []).map(item => ({ ...item, type: 'clothes' } as FavoriteItem))
         ].sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );

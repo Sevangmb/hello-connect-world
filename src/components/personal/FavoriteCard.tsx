@@ -1,11 +1,20 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Shirt, Layers, Tag, Star, StarOff } from "lucide-react";
+import { Shirt, Layers, Tag, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+interface FavoriteItem {
+  id: string;
+  name?: string;
+  type: 'outfit' | 'clothes';
+  image_url?: string | null;
+  brand?: string;
+  category?: string;
+}
+
 interface FavoriteCardProps {
-  item: any;
+  item: FavoriteItem;
 }
 
 export const FavoriteCard: React.FC<FavoriteCardProps> = ({ item }) => {
