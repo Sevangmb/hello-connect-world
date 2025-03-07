@@ -4,21 +4,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
 
 // Define a simplified return type for getModulesWithFeatures
+interface ModuleBasicInfo {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  status: ModuleStatus;
+}
+
+interface FeatureBasicInfo {
+  id: string;
+  feature_code: string;
+  feature_name: string;
+  description: string;
+  is_enabled: boolean;
+}
+
 type ModuleWithFeatures = {
-  module: {
-    id: string;
-    name: string;
-    code: string;
-    description?: string;
-    status: ModuleStatus;
-  };
-  features: Array<{
-    id: string;
-    feature_code: string;
-    feature_name: string;
-    description: string;
-    is_enabled: boolean;
-  }>;
+  module: ModuleBasicInfo;
+  features: FeatureBasicInfo[];
 };
 
 export class ModuleRepository implements IModuleRepository {
@@ -211,7 +215,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<ModuleWithFeatures[]> {
     try {
-      // Récupérer les modules
+      // Fetch modules
       const { data: modules, error: modulesError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
@@ -221,7 +225,7 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Récupérer les fonctionnalités
+      // Fetch features
       const { data: features, error: featuresError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
@@ -231,33 +235,37 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Créer la map des modules aux fonctionnalités
-      const moduleFeatureMap: Map<string, ModuleWithFeatures> = new Map();
+      // Create a map of modules to features
+      const moduleFeatureMap = new Map<string, ModuleWithFeatures>();
       
-      if (modules) {
-        modules.forEach(module => {
-          moduleFeatureMap.set(module.code, {
-            module,
-            features: []
-          });
+      // Initialize the map with all modules
+      modules.forEach(module => {
+        moduleFeatureMap.set(module.code, {
+          module: {
+            id: module.id,
+            name: module.name,
+            code: module.code,
+            description: module.description,
+            status: module.status as ModuleStatus
+          },
+          features: []
         });
-      }
+      });
       
-      // Ajouter les fonctionnalités aux modules
+      // Add features to their respective modules
       if (features) {
         features.forEach(feature => {
           const moduleCode = feature.module_code;
-          if (moduleFeatureMap.has(moduleCode)) {
-            const moduleData = moduleFeatureMap.get(moduleCode);
-            if (moduleData) {
-              moduleData.features.push({
-                id: feature.id,
-                feature_code: feature.feature_code,
-                feature_name: feature.feature_name,
-                description: feature.description,
-                is_enabled: feature.is_enabled
-              });
-            }
+          const moduleData = moduleFeatureMap.get(moduleCode);
+          
+          if (moduleData) {
+            moduleData.features.push({
+              id: feature.id,
+              feature_code: feature.feature_code,
+              feature_name: feature.feature_name,
+              description: feature.description,
+              is_enabled: feature.is_enabled
+            });
           }
         });
       }
