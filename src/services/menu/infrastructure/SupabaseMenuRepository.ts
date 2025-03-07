@@ -26,7 +26,7 @@ export class MenuRepository implements IMenuRepository {
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
-        .eq('category', category)
+        .eq('category', category as string) // Cast to string to fix type issue
         .eq('is_active', true)
         .order('position');
       
