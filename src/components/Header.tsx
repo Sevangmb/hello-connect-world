@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,12 @@ import { getUserService } from "@/core/users/infrastructure/userDependencyProvid
 import { supabase } from "@/integrations/supabase/client";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 
-export function Header() {
+// Propriétés du composant Header
+interface HeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export function Header({ onMenuToggle }: HeaderProps = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -97,13 +103,19 @@ export function Header() {
   };
   
   const toggleMobileMenu = () => {
-    setMenuOpen(!menuOpen);
+    if (onMenuToggle) {
+      onMenuToggle();
+    } else {
+      setMenuOpen(!menuOpen);
+    }
   };
   
   const handleNavigate = (path: string) => {
     navigate(path);
     setMenuOpen(false);
   };
+
+  console.log("Header: Rendu avec menuOpen =", menuOpen);
 
   return (
     <header className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm">

@@ -2,45 +2,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import './index.css';
-import { Toaster } from '@/components/ui/toaster';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import App from './App';
-import { AppInitializer } from './components/AppInitializer';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import MainRoutes from './routes/MainRoutes';
+import { Toaster } from './components/ui/toaster';
+import { AppInitializer } from './components/system/AppInitializer';
+import './index.css';
 
-// Configuration optimisée de React Query
+// Création du client React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,              // Réduire les tentatives pour économiser des requêtes
-      refetchOnWindowFocus: false, // Désactiver le rechargement auto lors du retour sur l'onglet
-      staleTime: 5 * 60 * 1000,    // Données fraîches pendant 5 minutes au lieu de 2
-      gcTime: 15 * 60 * 1000,      // Conserver en cache 15 minutes au lieu de 10
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
     },
   },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  // Supprimer StrictMode en production pour éviter les doubles rendus
-  process.env.NODE_ENV === 'production' ? (
+  <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AppInitializer>
-          <App />
+          <MainRoutes />
           <Toaster />
         </AppInitializer>
       </BrowserRouter>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
-  ) : (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <AppInitializer>
-            <App />
-            <Toaster />
-          </AppInitializer>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
-  ),
+  </React.StrictMode>
 );

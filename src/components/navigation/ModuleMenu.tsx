@@ -167,6 +167,9 @@ export const ModuleMenu: React.FC = () => {
     event.preventDefault();
     navigate('/admin');
   };
+
+  // Ajoutons un peu de débogage pour comprendre le problème
+  console.log("ModuleMenu: Rendu avec isUserAdmin =", isUserAdmin);
   
   return (
     <TooltipProvider>

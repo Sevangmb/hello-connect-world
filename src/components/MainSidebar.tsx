@@ -41,6 +41,9 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
     mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none",
     "transition-opacity duration-200 ease-out"
   ), [mobileOpen]);
+
+  // Ajout de logs pour déboguer
+  console.log("MainSidebar: Rendu avec mobileOpen =", mobileOpen);
   
   return (
     <>

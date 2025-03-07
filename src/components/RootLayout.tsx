@@ -1,56 +1,51 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Menu, ShoppingCart } from "lucide-react";
-import { Button } from "./ui/button";
+import { Header } from "./Header";
 import MainSidebar from "./MainSidebar";
-import { CartSidebar } from "./cart/CartSidebar";
+import { Footer } from "./Footer";
+import BottomNav from "./navigation/BottomNav";
 
 export function RootLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  console.log("RootLayout: Rendu avec sidebarOpen =", sidebarOpen);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Menu button sur mobile */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-50 md:hidden"
-        onClick={() => setIsSidebarOpen(true)}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
-
-      {/* Cart button */}
-      <Button
-        variant="outline"
-        size="default"
-        className="fixed top-4 right-4 z-50"
-        onClick={() => setIsCartOpen(true)}
-      >
-        <ShoppingCart className="h-5 w-5 mr-2" />
-        Voir mon panier
-      </Button>
-
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Barre latérale (Menu) */}
       <MainSidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
+        isMobileOpen={sidebarOpen} 
+        onMobileClose={() => setSidebarOpen(false)}
       />
-
-      <div className="md:pl-64 pt-16">
-        <Outlet />
+      
+      {/* Contenu principal */}
+      <div className="flex-1 flex flex-col">
+        {/* En-tête (Header) */}
+        <Header onMenuToggle={toggleSidebar} />
+        
+        {/* Contenu principal */}
+        <main className="flex-1 pt-16 px-4 md:px-8 pb-16 md:pb-8">
+          <div className="container mx-auto h-full py-6">
+            <Outlet />
+          </div>
+        </main>
+        
+        {/* Pied de page */}
+        <Footer />
+        
+        {/* Navigation mobile */}
+        <BottomNav 
+          onMenuClick={() => setSidebarOpen(true)} 
+          className="md:hidden" 
+        />
       </div>
-
-      {isCartOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setIsCartOpen(false)}
-          />
-          <CartSidebar onClose={() => setIsCartOpen(false)} />
-        </>
-      )}
     </div>
   );
 }
+
+export default RootLayout;
