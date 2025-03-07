@@ -23,16 +23,16 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Using Supabase's .eq() with the category as-is, but handle it correctly for the database
+      // Create the base query
       const query = supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
         .order('position');
       
-      // Add the category filter with the right approach for Supabase
-      // @ts-ignore - We know this is safe, Supabase accepts the string value of the enum
-      query.eq('category', category);
+      // Add the category filter - use as string to avoid TypeScript errors
+      // This is safe because Supabase accepts the string value
+      query.eq('category', category as string);
       
       const { data, error } = await query;
       

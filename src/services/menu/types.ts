@@ -1,28 +1,51 @@
+
 /**
  * Types for menu items and related functionality
  */
 
 // Catégories des éléments de menu - Principales catégories du système
 export type MenuItemCategory = 
+  // Menu principal
   | 'main' 
-  | 'admin' 
+  | 'explore'
   | 'personal'
   | 'social'
+  | 'profile'
+  
+  // Sous-catégories - Mon Univers
   | 'wardrobe'
+  | 'outfits'
+  | 'looks'
+  | 'suitcases'
+  | 'favorites'
+  
+  // Sous-catégories - Marketplace
   | 'marketplace'
+  | 'shops'
+  | 'cart'
+  
+  // Sous-catégories - Communauté
+  | 'messages'
+  | 'groups'
+  | 'notifications'
+  | 'friends'
+  
+  // Sous-catégories - Profil
+  | 'settings'
+  | 'help'
+  
+  // Administration
+  | 'admin'
+  | 'admin_users'
+  | 'admin_shops'
+  | 'admin_content'
+  | 'admin_marketing'
+  | 'admin_stats'
+  | 'admin_settings'
+  
+  // Utility categories
   | 'utility'
   | 'system'
-  | 'profile'
-  | 'settings'
-  | 'explore'
-  | 'shop'
-  | 'notifications'
-  | 'messages'
-  | 'friends'
-  | 'challenges'
-  | 'outfits'
-  | 'suitcases'
-  | 'cart'
   | 'search'
   | 'legal'
   | string; // Permet les catégories basées sur les modules

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Search, User, Menu, ShoppingBag } from "lucide-react";
+import { Home, Search, Star, Users, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -36,11 +36,19 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className, onMenuClick }) 
         <span>Explorer</span>
       </NavLink>
       
-      <NavLink to="/boutiques" className={({ isActive }) => 
+      <NavLink to="/personal" className={({ isActive }) => 
+        cn("flex flex-col items-center gap-1 text-xs bg-primary/10 rounded-full p-1", 
+          isActive ? "text-primary" : "text-gray-700")
+      }>
+        <Star className="h-6 w-6" />
+        <span className="font-medium">Perso</span>
+      </NavLink>
+      
+      <NavLink to="/social" className={({ isActive }) => 
         cn("flex flex-col items-center gap-1 text-xs", isActive ? "text-primary" : "text-gray-500")
       }>
-        <ShoppingBag className="h-5 w-5" />
-        <span>Boutique</span>
+        <Users className="h-5 w-5" />
+        <span>Communauté</span>
       </NavLink>
       
       <NavLink to="/profile" className={({ isActive }) => 
@@ -49,15 +57,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className, onMenuClick }) 
         <User className="h-5 w-5" />
         <span>Profil</span>
       </NavLink>
-      
-      <a 
-        href="#" 
-        className="flex flex-col items-center gap-1 text-xs text-gray-500"
-        onClick={handleMenuClick}
-      >
-        <Menu className="h-5 w-5" />
-        <span>Menu</span>
-      </a>
     </div>
   );
 };
