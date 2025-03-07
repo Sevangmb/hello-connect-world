@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy } from 'react';
 import {
   Route,
@@ -21,6 +20,7 @@ const Shops = lazy(() => import('./pages/Shops'));
 const ShopDetail = lazy(() => import('./pages/ShopDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Explore = lazy(() => import('./pages/Explore'));
+const Personal = lazy(() => import('./pages/Personal'));
 
 // Create simple placeholder pages for legal/informational content
 const Legal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Mentions légales</h1><p>Contenu à venir</p></div>;
