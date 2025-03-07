@@ -20,6 +20,7 @@ const AdminShops = lazy(() => import('./pages/admin/AdminShops'));
 const Shops = lazy(() => import('./pages/Shops'));
 const ShopDetail = lazy(() => import('./pages/ShopDetail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Explore = lazy(() => import('./pages/Explore'));
 
 // Create simple placeholder pages for legal/informational content
 const Legal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Mentions légales</h1><p>Contenu à venir</p></div>;
@@ -27,7 +28,6 @@ const Terms = () => <div className="container mx-auto p-8"><h1 className="text-2
 const Privacy = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Politique de confidentialité</h1><p>Contenu à venir</p></div>;
 const Contact = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Contact</h1><p>Contenu à venir</p></div>;
 const About = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">À propos</h1><p>Contenu à venir</p></div>;
-const Explore = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>;
 const Personal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>;
 
 function App() {
