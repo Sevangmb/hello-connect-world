@@ -35,10 +35,15 @@ export const useModuleVisibility = (category: string) => {
       return item.is_visible !== false;
     });
     
-    console.log(`useModuleVisibility: Filtrage des éléments de menu pour la catégorie ${category}:`, 
-      `${filteredItems.length}/${menuItems.length} éléments visibles`);
+    // Trier les éléments par ordre (si spécifié)
+    const sortedItems = [...filteredItems].sort((a, b) => {
+      return (a.order || 999) - (b.order || 999);
+    });
     
-    setVisibleItems(filteredItems);
+    console.log(`useModuleVisibility: Filtrage des éléments de menu pour la catégorie ${category}:`, 
+      `${sortedItems.length}/${menuItems.length} éléments visibles`);
+    
+    setVisibleItems(sortedItems);
   }, [menuItems, isUserAdmin, category, modules, isInitialized]);
   
   // Filtrer les éléments de menu lorsque les dépendances changent

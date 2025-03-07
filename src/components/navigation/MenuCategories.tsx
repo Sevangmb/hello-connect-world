@@ -7,6 +7,7 @@ export const MenuCategories: React.FC = () => {
   // Optimiser en mémorisant les catégories pour éviter les re-rendus inutiles
   const categories = useMemo(() => [
     { id: 'main', title: 'Principales', category: 'main' as MenuItemCategory },
+    { id: 'personal', title: 'Personnel', category: 'personal' as MenuItemCategory },
     { id: 'social', title: 'Social', category: 'social' as MenuItemCategory },
     { id: 'wardrobe', title: 'Garde-robe', category: 'wardrobe' as MenuItemCategory },
     { id: 'marketplace', title: 'Marketplace', category: 'marketplace' as MenuItemCategory },

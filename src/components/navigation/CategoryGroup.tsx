@@ -1,42 +1,29 @@
 
 import React from "react";
-import { DynamicMenu } from "@/components/menu/DynamicMenu";
-import { CartIcon } from "@/components/cart/CartIcon";
-import { CategoryGroupProps } from "./types/moduleMenu";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
+import { CategoryGroupProps } from "./types/moduleMenu";
+import { DynamicMenu } from "@/components/menu/DynamicMenu";
+import { AccordionItem, AccordionTrigger, AccordionContent, Accordion } from "@/components/ui/accordion";
 
-export const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
-  // Utiliser le hook de visibilité pour obtenir les éléments de menu filtrés
-  const { loading, isUserAdmin } = useModuleVisibility(category);
+const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
+  const { menuItems, loading } = useModuleVisibility(category);
   
-  // Ne pas afficher la catégorie admin si l'utilisateur n'est pas admin
-  if (category === 'admin' && !isUserAdmin) {
+  // Ne pas rendre la catégorie si elle n'a pas d'éléments visibles
+  if (!loading && (!menuItems || menuItems.length === 0)) {
     return null;
   }
-  
-  // Ajouter l'icône du panier pour la catégorie marketplace
-  if (category === 'marketplace') {
-    return (
-      <div className="space-y-1 mb-6">
-        <div className="flex items-center justify-between px-3">
-          <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {title}
-          </h3>
-          <CartIcon className="ml-auto text-gray-500 hover:text-primary transition-colors" />
-        </div>
-        <DynamicMenu category={category} />
-      </div>
-    );
-  }
-  
-  // Rendu standard pour les autres catégories
+
   return (
-    <div className="space-y-1 mb-6">
-      <h3 className="px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        {title}
-      </h3>
-      <DynamicMenu category={category} />
-    </div>
+    <Accordion type="single" collapsible defaultValue={category} className="w-full">
+      <AccordionItem value={category} className="border-none">
+        <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
+          {title}
+        </AccordionTrigger>
+        <AccordionContent className="pt-1 pb-2">
+          <DynamicMenu category={category} className="px-1" />
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
 

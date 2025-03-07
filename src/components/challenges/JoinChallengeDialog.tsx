@@ -23,7 +23,9 @@ export const JoinChallengeDialog: React.FC<JoinChallengeDialogProps> = ({
   const [selectedOutfitId, setSelectedOutfitId] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { outfits, loading } = useOutfits();
+  const outfitsResult = useOutfits();
+  const outfits = outfitsResult.outfits || [];
+  const loading = outfitsResult.loading || false;
 
   const handleSubmit = async () => {
     if (!selectedOutfitId) return;

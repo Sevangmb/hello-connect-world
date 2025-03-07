@@ -5,3 +5,16 @@ export interface CategoryGroupProps {
   title: string;
   category: MenuItemCategory;
 }
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  path: string;
+  icon?: string;
+  category: MenuItemCategory;
+}
+
+export interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}

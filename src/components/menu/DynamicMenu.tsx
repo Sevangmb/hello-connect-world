@@ -72,7 +72,11 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Filtrer les éléments de menu visibles
   const visibleMenuItems = useMemo(() => {
-    return menuItems.filter(item => !item.module_code || isMenuItemVisible(item.module_code));
+    if (!menuItems) return [];
+    
+    return menuItems
+      .filter(item => !item.module_code || isMenuItemVisible(item.module_code))
+      .sort((a, b) => (a.order || 999) - (b.order || 999));
   }, [menuItems, isMenuItemVisible]);
 
   // Afficher un état de chargement

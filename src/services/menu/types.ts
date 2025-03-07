@@ -22,6 +22,12 @@ export type MenuItemCategory =
   | 'explore'
   | 'suitcases'
   | 'challenges'
+  | 'notifications'
+  | 'messages'
+  | 'friends'
+  | 'outfits'
+  | 'cart'
+  | 'search'
   | string; // Allow string to support module-based categories
 
 // Élément de menu
@@ -50,3 +56,16 @@ export type CreateMenuItemParams = Omit<MenuItem, 'id' | 'children'>;
 
 // Paramètres de mise à jour d'élément de menu
 export type UpdateMenuItemParams = Partial<Omit<MenuItem, 'id' | 'children'>>;
+
+// Structure du menu par module
+export interface ModuleMenuStructure {
+  moduleCode: string;
+  menuItems: MenuItem[];
+}
+
+// Configuration des menus par module
+export interface MenuModuleConfig {
+  moduleCode: string;
+  categories: MenuItemCategory[];
+  defaultVisible: boolean;
+}
