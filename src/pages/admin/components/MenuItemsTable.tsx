@@ -16,7 +16,7 @@ interface MenuItemsTableProps {
   onEditCancel: () => void;
   onSaveChanges: (id: string) => void;
   onDelete: (id: string) => void;
-  onToggleVisibility: (id: string) => void;
+  onToggleVisibility: (id: string, isVisible: boolean) => void; // Updated to include isVisible parameter
   onNameChange: (value: string) => void;
   onPathChange: (value: string) => void;
 }
@@ -76,7 +76,7 @@ export const MenuItemsTable: React.FC<MenuItemsTableProps> = ({
             onEditCancel={onEditCancel}
             onSaveChanges={() => onSaveChanges(item.id)}
             onDelete={() => onDelete(item.id)}
-            onToggleVisibility={() => onToggleVisibility(item.id)}
+            onToggleVisibility={() => onToggleVisibility(item.id, item.is_visible || false)} // Pass both parameters
             onNameChange={onNameChange}
             onPathChange={onPathChange}
           />
