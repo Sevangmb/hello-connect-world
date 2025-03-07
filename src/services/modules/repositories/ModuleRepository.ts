@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -238,11 +239,12 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Create a map of modules to features
+      // Create an array to hold the results
       const result: ModuleWithFeatures[] = [];
       
-      // Process modules
-      for (const module of modulesData) {
+      // Process each module
+      for (const module of modulesData || []) {
+        // Create the module info object
         const moduleInfo: ModuleBasicInfo = {
           id: module.id,
           name: module.name,
@@ -261,7 +263,7 @@ export class ModuleRepository implements IModuleRepository {
                 id: feature.id,
                 feature_code: feature.feature_code,
                 feature_name: feature.feature_name,
-                description: feature.description,
+                description: feature.description || '',
                 is_enabled: feature.is_enabled
               });
             }
