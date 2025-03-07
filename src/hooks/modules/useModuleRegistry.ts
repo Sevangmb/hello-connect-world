@@ -1,9 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { AppModule } from './types';
-
-const moduleApi = new ModuleApiGateway();
 
 export const useModuleRegistry = () => {
   const [modules, setModules] = useState<AppModule[]>([]);
@@ -14,7 +12,7 @@ export const useModuleRegistry = () => {
   const initializeModules = async () => {
     try {
       setLoading(true);
-      const allModules = await moduleApi.getAllModules();
+      const allModules = await moduleApiGateway.getAllModules();
       setModules(allModules);
       setInitialized(true);
       return allModules;
@@ -34,7 +32,7 @@ export const useModuleRegistry = () => {
   const loadModules = async () => {
     try {
       setLoading(true);
-      const allModules = await moduleApi.getAllModules();
+      const allModules = await moduleApiGateway.getAllModules();
       setModules(allModules);
     } catch (err) {
       console.error('Error loading modules:', err);

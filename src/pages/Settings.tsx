@@ -4,8 +4,12 @@ import { ProfileSettings } from '@/components/profile/ProfileSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotificationPreferences } from '@/components/notifications/NotificationPreferences';
 import { ShopSettings } from '@/components/profile/shop/ShopSettings';
+import { useAuth } from '@/hooks/useAuth';
 
 const Settings = () => {
+  const { user } = useAuth();
+  const shopId = user?.id || ''; // Provide a default shopId using the user's ID
+
   return (
     <div className="container max-w-4xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
@@ -26,7 +30,7 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="shop">
-          <ShopSettings />
+          <ShopSettings shopId={shopId} />
         </TabsContent>
       </Tabs>
     </div>

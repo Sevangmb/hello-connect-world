@@ -1,275 +1,421 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { MenuItem } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
+import { MenuItem, MenuItemCategory } from "../types";
+import { v4 as uuidv4 } from "uuid";
 
-export const seedMenuItems = async () => {
-  try {
-    // Vérifier si le menu a déjà été initialisé
-    const { count, error: countError } = await supabase
-      .from('menu_items')
-      .select('*', { count: 'exact' });
-      
-    if (countError) throw countError;
-    
-    // Si des éléments existent déjà, ne pas réinitialiser
-    if (count && count > 0) {
-      console.log('Menu items already exist, skipping seed');
-      return;
-    }
-    
-    // Créer les éléments de menu pour chaque module
-    const menuItems: Partial<MenuItem>[] = [
-      // Main Module
-      {
-        id: uuidv4(),
-        name: 'Accueil',
-        path: '/',
-        icon: 'Home',
-        category: 'main',
-        module_code: 'core',
-        position: 1,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Explorer',
-        path: '/explore',
-        icon: 'Compass',
-        category: 'main',
-        module_code: 'core',
-        position: 2,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Univers',
-        path: '/personal',
-        icon: 'User',
-        category: 'main',
-        module_code: 'core',
-        position: 3,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Recherche',
-        path: '/search',
-        icon: 'Search',
-        category: 'main',
-        module_code: 'core',
-        position: 4,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
-      },
-      
-      // Social Module
-      {
-        id: uuidv4(),
-        name: 'Défis',
-        path: '/social/challenges',
-        icon: 'Trophy',
-        category: 'social',
-        module_code: 'social',
-        position: 1,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Amis',
-        path: '/social/friends',
-        icon: 'Users',
-        category: 'social',
-        module_code: 'social',
-        position: 2,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Messages',
-        path: '/social/messages',
-        icon: 'MessageSquare',
-        category: 'social',
-        module_code: 'social',
-        position: 3,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Notifications',
-        path: '/notifications',
-        icon: 'Bell',
-        category: 'social',
-        module_code: 'social',
-        position: 4,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      
-      // Wardrobe Module
-      {
-        id: uuidv4(),
-        name: 'Tenues',
-        path: '/wardrobe/outfits',
-        icon: 'Shirt',
-        category: 'wardrobe',
-        module_code: 'wardrobe',
-        position: 1,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Valises',
-        path: '/wardrobe/suitcases',
-        icon: 'Briefcase',
-        category: 'wardrobe',
-        module_code: 'wardrobe',
-        position: 2,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      
-      // Shop Module
-      {
-        id: uuidv4(),
-        name: 'Boutiques',
-        path: '/boutiques',
-        icon: 'Store',
-        category: 'marketplace',
-        module_code: 'shop',
-        position: 1,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Panier',
-        path: '/cart',
-        icon: 'ShoppingCart',
-        category: 'marketplace',
-        module_code: 'shop',
-        position: 2,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      
-      // Admin Module
-      {
-        id: uuidv4(),
-        name: 'Tableau de bord',
-        path: '/admin/dashboard',
-        icon: 'LayoutDashboard',
-        category: 'admin',
-        module_code: 'admin',
-        position: 1,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: true
-      },
-      {
-        id: uuidv4(),
-        name: 'Modules',
-        path: '/admin/modules',
-        icon: 'Layers',
-        category: 'admin',
-        module_code: 'admin',
-        position: 2,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: true
-      },
-      {
-        id: uuidv4(),
-        name: 'Boutiques',
-        path: '/admin/shops',
-        icon: 'Store',
-        category: 'admin',
-        module_code: 'admin',
-        position: 3,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: true
-      },
-      
-      // System Module
-      {
-        id: uuidv4(),
-        name: 'Profil',
-        path: '/profile',
-        icon: 'User',
-        category: 'system',
-        module_code: 'core',
-        position: 1,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Paramètres',
-        path: '/profile/settings',
-        icon: 'Settings',
-        category: 'system',
-        module_code: 'core',
-        position: 2,
-        is_visible: true,
-        requires_auth: true,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'À propos',
-        path: '/about',
-        icon: 'Info',
-        category: 'system',
-        module_code: 'core',
-        position: 3,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
-      },
-      {
-        id: uuidv4(),
-        name: 'Mentions légales',
-        path: '/legal',
-        icon: 'FileText',
-        category: 'system',
-        module_code: 'core',
-        position: 4,
-        is_visible: true,
-        requires_auth: false,
-        requires_admin: false
+/**
+ * Service for seeding the menu items in the database
+ */
+export class MenuSeeder {
+  /**
+   * Seeds the default menu items if none exist
+   */
+  async seedDefaultMenuItems(): Promise<void> {
+    try {
+      // Check if any menu items exist
+      const { count, error } = await supabase
+        .from('menu_items')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error("Error checking menu items:", error);
+        return;
       }
-    ];
-    
-    // Insérer les éléments de menu dans la base de données
-    const { error } = await supabase
-      .from('menu_items')
-      .insert(menuItems);
-      
-    if (error) throw error;
-    
-    console.log('Menu items seeded successfully');
-  } catch (error) {
-    console.error('Error seeding menu items:', error);
+
+      // If menu items already exist, skip seeding
+      if (count && count > 0) {
+        console.log("Menu items already seeded, skipping...");
+        return;
+      }
+
+      // Get current timestamp
+      const now = new Date().toISOString();
+
+      // Define main menu items
+      const mainMenuItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Accueil",
+          path: "/",
+          icon: "home",
+          category: "main",
+          is_visible: true,
+          requires_auth: false,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Recherche",
+          path: "/search",
+          icon: "search",
+          category: "main",
+          is_visible: true,
+          requires_auth: false,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Explorateur",
+          path: "/explore",
+          icon: "compass",
+          category: "main",
+          is_visible: true,
+          requires_auth: false,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Define wardrobe items
+      const wardrobeItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Mes Vêtements",
+          path: "/clothes",
+          icon: "shirt",
+          category: "wardrobe",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "clothes",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Mes Tenues",
+          path: "/outfits",
+          icon: "outfit",
+          category: "wardrobe",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "outfits",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Mes Valises",
+          path: "/suitcases",
+          icon: "suitcase",
+          category: "wardrobe",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "suitcases",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Define social items
+      const socialItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Amis",
+          path: "/friends",
+          icon: "users",
+          category: "social",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "social",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Messages",
+          path: "/messages",
+          icon: "message-circle",
+          category: "social",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "social",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Défis",
+          path: "/social/challenges",
+          icon: "trophy",
+          category: "social",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "challenges",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Groupes",
+          path: "/groups",
+          icon: "users-2",
+          category: "social",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "social",
+          is_active: true,
+          parent_id: null,
+          order: 40,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Define marketplace items
+      const marketplaceItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Boutiques",
+          path: "/boutiques",
+          icon: "shopping-bag",
+          category: "marketplace",
+          is_visible: true,
+          requires_auth: false,
+          module_code: "marketplace",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Magasins",
+          path: "/stores",
+          icon: "store",
+          category: "marketplace",
+          is_visible: true,
+          requires_auth: false,
+          module_code: "marketplace",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Panier",
+          path: "/cart",
+          icon: "shopping-cart",
+          category: "marketplace",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "marketplace",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Define utility items
+      const utilityItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Notifications",
+          path: "/notifications",
+          icon: "bell",
+          category: "utility",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Paramètres",
+          path: "/settings",
+          icon: "settings",
+          category: "utility",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Profil",
+          path: "/profile",
+          icon: "user",
+          category: "utility",
+          is_visible: true,
+          requires_auth: true,
+          module_code: "core",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Define admin items
+      const adminItems: Omit<MenuItem, 'position' | 'children'>[] = [
+        {
+          id: uuidv4(),
+          name: "Tableau de bord",
+          path: "/admin",
+          icon: "layout-dashboard",
+          category: "admin",
+          is_visible: true,
+          requires_auth: true,
+          requires_admin: true,
+          module_code: "admin",
+          is_active: true,
+          parent_id: null,
+          order: 10,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Modules",
+          path: "/admin/modules",
+          icon: "boxes",
+          category: "admin",
+          is_visible: true,
+          requires_auth: true,
+          requires_admin: true,
+          module_code: "admin",
+          is_active: true,
+          parent_id: null,
+          order: 20,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Utilisateurs",
+          path: "/admin/users",
+          icon: "users",
+          category: "admin",
+          is_visible: true,
+          requires_auth: true,
+          requires_admin: true,
+          module_code: "admin",
+          is_active: true,
+          parent_id: null,
+          order: 30,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Contenu",
+          path: "/admin/content",
+          icon: "file-text",
+          category: "admin",
+          is_visible: true,
+          requires_auth: true,
+          requires_admin: true,
+          module_code: "admin",
+          is_active: true,
+          parent_id: null,
+          order: 40,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv4(),
+          name: "Paramètres",
+          path: "/admin/settings",
+          icon: "settings",
+          category: "admin",
+          is_visible: true,
+          requires_auth: true,
+          requires_admin: true,
+          module_code: "admin",
+          is_active: true,
+          parent_id: null,
+          order: 50,
+          created_at: now,
+          updated_at: now,
+        }
+      ];
+
+      // Combine all menu items
+      const allMenuItems = [
+        ...mainMenuItems,
+        ...wardrobeItems,
+        ...socialItems,
+        ...marketplaceItems,
+        ...utilityItems,
+        ...adminItems
+      ];
+
+      // Insert menu items one by one for type safety
+      for (const item of allMenuItems) {
+        const { error } = await supabase
+          .from('menu_items')
+          .insert({
+            id: item.id,
+            name: item.name,
+            path: item.path,
+            icon: item.icon,
+            category: item.category as MenuItemCategory,
+            is_visible: item.is_visible,
+            requires_auth: item.requires_auth,
+            requires_admin: item.requires_admin,
+            module_code: item.module_code,
+            is_active: item.is_active,
+            parent_id: item.parent_id,
+            order: item.order,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          });
+          
+        if (error) {
+          console.error(`Error inserting menu item ${item.name}:`, error);
+        }
+      }
+
+      console.log("Default menu items seeded successfully");
+    } catch (error) {
+      console.error("Error seeding default menu items:", error);
+    }
   }
-};
+}
+
+export const menuSeeder = new MenuSeeder();

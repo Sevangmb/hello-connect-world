@@ -1,13 +1,44 @@
 
 import React from 'react';
+import { useState, useEffect } from 'react';
 import { SuitcaseList } from '@/components/suitcases/components/SuitcaseList';
 import { CreateSuitcaseDialog } from '@/components/suitcases/components/CreateSuitcaseDialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Suitcases = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [suitcases, setSuitcases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSuitcases = async () => {
+      const { data } = await supabase.from('suitcases').select('*');
+      setSuitcases(data || []);
+      setLoading(false);
+    };
+
+    fetchSuitcases();
+  }, []);
+
+  const handleEditSuitcase = (id) => {
+    console.log('Edit suitcase', id);
+  };
+
+  const handleDeleteSuitcase = (id) => {
+    console.log('Delete suitcase', id);
+  };
+
+  const handleCreateSuitcase = async (values) => {
+    try {
+      // Handle suitcase creation
+      console.log('Create suitcase', values);
+      setShowCreateDialog(false);
+    } catch (error) {
+      console.error('Error creating suitcase:', error);
+    }
+  };
 
   return (
     <div className="container max-w-6xl mx-auto p-4">
@@ -19,11 +50,16 @@ const Suitcases = () => {
         </Button>
       </div>
       
-      <SuitcaseList />
+      <SuitcaseList 
+        suitcases={suitcases}
+        onEdit={handleEditSuitcase}
+        onDelete={handleDeleteSuitcase}
+      />
       
       <CreateSuitcaseDialog 
         isOpen={showCreateDialog} 
-        onClose={() => setShowCreateDialog(false)} 
+        onClose={() => setShowCreateDialog(false)}
+        onSubmit={handleCreateSuitcase}
       />
     </div>
   );

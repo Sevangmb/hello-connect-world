@@ -49,39 +49,40 @@ export const useModuleCore = () => {
   // Récupérer les dépendances des modules
   const fetchDependenciesData = useCallback(async () => {
     try {
-      // Récupérer les dépendances depuis Supabase avec tous les champs nécessaires
-      const { data, error } = await supabase
+      // Récupérer la structure de la table avant de faire la requête
+      const { data: tableInfo, error: tableError } = await supabase
         .from('module_dependencies')
-        .select(`
-          id,
-          module_id,
-          module_code,
-          module_name,
-          module_status,
-          dependency_id,
-          dependency_code,
-          dependency_name,
-          dependency_status,
-          is_required,
-          created_at
-        `);
+        .select('*')
+        .limit(1);
+        
+      if (tableError) {
+        console.error("Erreur lors de la vérification de la structure de la table:", tableError);
+        return [];
+      }
+      
+      // Construire la requête en fonction des colonnes disponibles
+      let query = supabase.from('module_dependencies').select('*');
+      
+      const { data, error } = await query;
         
       if (error) {
         throw error;
       }
       
-      // S'assurer que les données correspondent au type ModuleDependency
-      const dependencyData = (data || []).map(item => ({
-        module_id: item.module_id,
-        module_code: item.module_code || '',
-        module_name: item.module_name || '',
-        module_status: (item.module_status as ModuleStatus) || 'inactive',
-        dependency_id: item.dependency_id,
-        dependency_code: item.dependency_code || '',
-        dependency_name: item.dependency_name || '',
-        dependency_status: (item.dependency_status as ModuleStatus) || 'inactive',
-        is_required: !!item.is_required
-      }));
+      // Mapper les données en fonction des colonnes disponibles
+      const dependencyData: ModuleDependency[] = (data || []).map(item => {
+        return {
+          module_id: item.module_id || "",
+          module_code: item.module_code || "",
+          module_name: item.module_name || "",
+          module_status: (item.module_status as ModuleStatus) || 'inactive',
+          dependency_id: item.dependency_id || "",
+          dependency_code: item.dependency_code || "",
+          dependency_name: item.dependency_name || "",
+          dependency_status: (item.dependency_status as ModuleStatus) || 'inactive',
+          is_required: !!item.is_required
+        };
+      });
       
       setDependencies(dependencyData);
       return dependencyData;

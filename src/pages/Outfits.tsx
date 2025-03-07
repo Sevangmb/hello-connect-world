@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { OutfitsList } from '@/components/outfits/OutfitsList';
-import { CreateOutfit } from '@/components/outfits/CreateOutfit';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import OutfitsList from '@/components/outfits/OutfitsList';
+import CreateOutfit from '@/components/outfits/CreateOutfit';
 
 const Outfits = () => {
   const [showCreateOutfit, setShowCreateOutfit] = useState(false);

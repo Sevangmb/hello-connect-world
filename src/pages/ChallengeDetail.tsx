@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, Users, Vote } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { ChallengeHeader } from '@/components/challenges/ChallengeHeader';
 import { ChallengeMetadata } from '@/components/challenges/ChallengeMetadata';
 import { ParticipantsList } from '@/components/challenges/ParticipantsList';
 import { JoinChallengeDialog } from '@/components/challenges/JoinChallengeDialog';
 import { VotingDialog } from '@/components/challenges/VotingDialog';
 import { useChallengeActions } from '@/components/challenges/ChallengeActions';
-import { ArrowLeft, Users, Vote } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
 
 const ChallengeDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,9 +80,20 @@ const ChallengeDetail = () => {
     fetchChallenge();
   }, [id, user]);
 
-  const handleVoteClick = (participantId: string) => {
+  const handleVoteClick = async (participantId: string) => {
     if (challenge?.id) {
-      handleVote(participantId, challenge.id);
+      await handleVote(participantId, challenge.id);
+    }
+  };
+  
+  const handleJoinChallenge = async (outfitId: string, comment: string) => {
+    try {
+      // Handle challenge join logic
+      console.log('Joining challenge', outfitId, comment);
+      setShowJoinDialog(false);
+      setIsParticipant(true);
+    } catch (error) {
+      console.error('Error joining challenge:', error);
     }
   };
 
@@ -111,7 +122,12 @@ const ChallengeDetail = () => {
       
       {challenge ? (
         <>
-          <ChallengeHeader challenge={challenge} />
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">{challenge.title}</h1>
+              <p className="text-gray-600">{challenge.description}</p>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
             <div className="md:col-span-1">
@@ -148,26 +164,34 @@ const ChallengeDetail = () => {
             
             <div className="md:col-span-2">
               <h2 className="text-xl font-bold mb-4">Participants</h2>
-              <ParticipantsList participants={participants} />
+              <ul className="space-y-4">
+                {participants.map((participant) => (
+                  <li key={participant.id} className="bg-white rounded-lg shadow p-4">
+                    <div className="flex items-center">
+                      <div className="font-medium">{participant.profiles.username}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
           
-          <JoinChallengeDialog 
-            isOpen={showJoinDialog} 
-            onClose={() => setShowJoinDialog(false)} 
-            challengeId={challenge.id}
-            onSuccess={() => {
-              setShowJoinDialog(false);
-              setIsParticipant(true);
-            }}
-          />
+          {showJoinDialog && (
+            <JoinChallengeDialog 
+              challengeId={challenge.id}
+              onJoin={handleJoinChallenge}
+              onClose={() => setShowJoinDialog(false)}
+            />
+          )}
           
-          <VotingDialog 
-            isOpen={showVotingDialog} 
-            onClose={() => setShowVotingDialog(false)} 
-            participants={participants}
-            onVote={handleVoteClick}
-          />
+          {showVotingDialog && (
+            <VotingDialog 
+              isOpen={showVotingDialog} 
+              onClose={() => setShowVotingDialog(false)} 
+              participants={participants}
+              onVote={handleVoteClick}
+            />
+          )}
         </>
       ) : (
         <div className="text-center p-8 bg-gray-50 rounded-lg">
