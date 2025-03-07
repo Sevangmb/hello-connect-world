@@ -16,16 +16,15 @@ export class ModuleStatsRepository {
    */
   async getModuleUsageStats(moduleId: string): Promise<ModuleUsageStat | null> {
     try {
-      // Use more explicit query with proper type handling
+      // Use a simpler query with explicit type casting to avoid deep type inference
       const { data, error } = await supabase
         .from('module_usage_stats')
-        .select('*')
+        .select('id, module_id, module_code, usage_count, last_used')
         .eq('module_id', moduleId)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as ModuleUsageStat;
+      return data as ModuleUsageStat | null;
     } catch (error) {
       console.error(`Error fetching usage stats for module ${moduleId}:`, error);
       return null;
@@ -68,21 +67,21 @@ export class ModuleStatsRepository {
         .from('module_usage_stats')
         .select('id, usage_count')
         .eq('module_code', moduleCode)
-        .limit(1);
+        .maybeSingle();
       
       if (queryError) {
         throw queryError;
       }
       
-      if (existingRecord && existingRecord.length > 0) {
+      if (existingRecord) {
         // Update existing record
         const { error: updateError } = await supabase
           .from('module_usage_stats')
           .update({ 
-            usage_count: (existingRecord[0].usage_count || 0) + 1,
+            usage_count: (existingRecord.usage_count || 0) + 1,
             last_used: new Date().toISOString()
           })
-          .eq('id', existingRecord[0].id);
+          .eq('id', existingRecord.id);
           
         if (updateError) throw updateError;
       } else {
