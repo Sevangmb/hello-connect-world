@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import {
   BrowserRouter as Router,
@@ -39,7 +40,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
                 <Route path="/admin/modules" element={<ModuleGuard moduleCode="admin"><AdminModules /></ModuleGuard>} />
-                 <Route path="/admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
+                <Route path="/admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
                 <Route path="/boutiques" element={<ModuleGuard moduleCode="shop"><Shops /></ModuleGuard>} />
                 <Route path="/boutiques/:shopId" element={<ModuleGuard moduleCode="shop"><ShopDetail /></ModuleGuard>} />
                 <Route path="/legal" element={<Legal />} />
@@ -48,15 +49,8 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/404" element={<NotFound />} />
+                <Route path="/cart" element={<ModuleGuard moduleCode="shop"><CartPage /></ModuleGuard>} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
-                {
-                  path: "/cart",
-                  element: (
-                    <ModuleGuard moduleCode="shop">
-                      <CartPage />
-                    </ModuleGuard>
-                  ),
-                },
               </Routes>
             </Suspense>
           </ErrorBoundary>
