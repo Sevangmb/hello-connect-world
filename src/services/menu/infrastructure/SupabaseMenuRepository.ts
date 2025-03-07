@@ -23,12 +23,13 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Cast to string is needed here because Supabase query expects a string
+      // We need to use the category value directly without casting
+      // Supabase will handle the string comparison internally
       const query = supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as unknown as string)
+        .eq('category', category)
         .order('position');
       
       const { data, error } = await query;
