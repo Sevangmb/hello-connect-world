@@ -30,11 +30,11 @@ export interface MenuItem {
   is_visible?: boolean;
   module_code?: string | null;
   requires_auth?: boolean;
-  requires_admin?: boolean; // Added missing property
-  is_active?: boolean; // Added missing property
+  requires_admin?: boolean;
+  is_active?: boolean;
   children?: MenuItem[];
-  position?: number; // Added to match DB schema
-  description?: string; // Added to match DB schema
+  position?: number;
+  description?: string;
   created_at?: string;
   updated_at?: string;
 }

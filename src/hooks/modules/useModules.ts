@@ -4,10 +4,9 @@
  * Ce hook est un point d'entrée public qui agrège plusieurs hooks spécialisés
  */
 
-import { useModuleCore } from "./useModuleCore";
-import { useModuleStatusUpdate } from "./useModuleStatusUpdate";
-import { useEffect, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { AppModule, ModuleStatus } from "./types";
+import { supabase } from '@/integrations/supabase/client';
 import { 
   checkModuleActive, 
   checkModuleDegraded, 
@@ -19,38 +18,88 @@ import {
   updateFeatureStatusSilent as updateFeatureStatusSilentFn
 } from "./status/moduleStatusUpdater";
 import { refreshModulesWithCache } from "./utils/moduleRefresh";
-import { validateModuleStatus } from "./utils/statusValidation";
 import { ADMIN_MODULE_CODE } from "./constants";
 
 export const useModules = () => {
   // État pour suivre les initialisations
   const [isInitialized, setIsInitialized] = useState(false);
+  const [modules, setModules] = useState<AppModule[]>([]);
+  const [features, setFeatures] = useState<Record<string, Record<string, boolean>>>({});
+  const [dependencies, setDependencies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   
-  // Récupérer les fonctionnalités de base
-  const {
-    modules,
-    dependencies,
-    loading,
-    error,
-    features,
-    isModuleActive: baseIsModuleActive,
-    isModuleDegraded: baseIsModuleDegraded,
-    isFeatureEnabled: baseIsFeatureEnabled,
-    updateModule,
-    updateFeature,
-    updateFeatureSilent,
-    fetchModules,
-    fetchDependencies,
-    setModules,
-    connectionStatus
-  } = useModuleCore();
+  // Récupérer tous les modules
+  const fetchModules = useCallback(async () => {
+    try {
+      setLoading(true);
+      setConnectionStatus('checking');
+      
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      setConnectionStatus('connected');
+      setModules(data);
+      return data;
+    } catch (err: any) {
+      console.error('Erreur lors du chargement des modules:', err);
+      setError(err);
+      setConnectionStatus('disconnected');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Récupérer les fonctions de mise à jour de statut
-  const {
-    updateModuleStatus: updateModuleStatusCore,
-    updateFeatureStatus: updateFeatureStatusCore,
-    updateFeatureStatusSilent: updateFeatureStatusSilentCore
-  } = useModuleStatusUpdate();
+  // Récupérer toutes les fonctionnalités
+  const fetchFeatures = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Organiser les fonctionnalités par module
+      const featuresData: Record<string, Record<string, boolean>> = {};
+      data.forEach((feature: any) => {
+        if (!featuresData[feature.module_code]) {
+          featuresData[feature.module_code] = {};
+        }
+        featuresData[feature.module_code][feature.feature_code] = feature.is_enabled;
+      });
+      
+      setFeatures(featuresData);
+      return featuresData;
+    } catch (err: any) {
+      console.error('Erreur lors du chargement des fonctionnalités:', err);
+      setError(err);
+      return {};
+    }
+  }, []);
+
+  // Récupérer les dépendances
+  const fetchDependencies = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('module_dependencies')
+        .select('*');
+      
+      if (error) throw error;
+      
+      setDependencies(data);
+      return data;
+    } catch (err: any) {
+      console.error('Erreur lors du chargement des dépendances:', err);
+      setError(err);
+      return [];
+    }
+  }, []);
 
   // Forcer le chargement initial des modules
   useEffect(() => {
@@ -69,22 +118,82 @@ export const useModules = () => {
         }
       });
     }
-  }, [modules, fetchModules, setModules, isInitialized]);
+  }, [modules, fetchModules, isInitialized]);
 
-  // Utiliser les vérifications de statut des modules depuis les checkers
-  const isModuleActive = (moduleCode: string): boolean => {
-    return checkModuleActive(moduleCode);
-  };
+  // Mise à jour d'un module
+  const updateModule = useCallback(async (moduleId: string, status: ModuleStatus) => {
+    try {
+      const { error } = await supabase
+        .from('app_modules')
+        .update({ status })
+        .eq('id', moduleId);
+      
+      if (error) throw error;
+      
+      // Rafraîchir les modules
+      fetchModules();
+      return true;
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour du module:', err);
+      return false;
+    }
+  }, [fetchModules]);
+
+  // Mise à jour d'une fonctionnalité
+  const updateFeature = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('module_features')
+        .update({ is_enabled: isEnabled })
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode);
+      
+      if (error) throw error;
+      
+      // Rafraîchir les fonctionnalités
+      fetchFeatures();
+      return true;
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour de la fonctionnalité:', err);
+      return false;
+    }
+  }, [fetchFeatures]);
+  
+  // Mise à jour silencieuse
+  const updateFeatureSilent = useCallback(async (moduleCode: string, featureCode: string, isEnabled: boolean) => {
+    try {
+      return await updateFeature(moduleCode, featureCode, isEnabled);
+    } catch (err) {
+      return false;
+    }
+  }, [updateFeature]);
+
+  // Vérifier si un module est actif
+  const isModuleActive = useCallback((moduleCode: string): boolean => {
+    // Vérifier dans la liste des modules
+    const module = modules.find(m => m.code === moduleCode);
+    if (module) {
+      return module.status === 'active';
+    }
+    return false;
+  }, [modules]);
 
   // Vérifier si un module est dégradé
-  const isModuleDegraded = (moduleCode: string): boolean => {
-    return checkModuleDegraded(moduleCode);
-  };
+  const isModuleDegraded = useCallback((moduleCode: string): boolean => {
+    const module = modules.find(m => m.code === moduleCode);
+    if (module) {
+      return module.status === 'degraded';
+    }
+    return false;
+  }, [modules]);
 
   // Vérifier si une fonctionnalité est activée
-  const isFeatureEnabled = (moduleCode: string, featureCode: string): boolean => {
-    return checkFeatureEnabled(moduleCode, featureCode);
-  };
+  const isFeatureEnabled = useCallback((moduleCode: string, featureCode: string): boolean => {
+    if (features[moduleCode]) {
+      return features[moduleCode][featureCode] === true;
+    }
+    return false;
+  }, [features]);
 
   // Wrapper pour mettre à jour le statut d'un module
   const updateModuleStatus = async (moduleId: string, status: ModuleStatus) => {
@@ -119,6 +228,7 @@ export const useModules = () => {
     dependencies,
     loading,
     error,
+    features,
     
     // Fonctions de vérification
     isModuleActive,
@@ -126,13 +236,20 @@ export const useModules = () => {
     isFeatureEnabled,
     
     // Fonctions de mise à jour
+    updateModule,
+    updateFeature,
+    updateFeatureSilent,
     updateModuleStatus,
     updateFeatureStatus,
     updateFeatureStatusSilent,
     
-    // Fonctions de rafraîchissement
+    // Fonctions de chargement
+    fetchModules,
+    fetchDependencies,
+    setModules,
+    
+    // Fonction de rafraîchissement
     refreshModules,
-    refreshDependencies: fetchDependencies,
     
     // Statut de connexion
     connectionStatus,

@@ -1,140 +1,134 @@
 
-import React, { useEffect } from 'react';
-import {
-  ReactFlow,
-  MiniMap,
-  Controls,
-  Background,
-  useNodesState,
-  useEdgesState,
-  MarkerType,
-  Node,
-  Edge,
+import React, { useEffect, useState } from 'react';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  Edge, 
+  Node, 
+  NodeChange, 
+  applyNodeChanges
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './dependency-graph.css';
 import { useModules } from '@/hooks/modules';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { AppModule } from '@/hooks/modules/types';
 
-// Définition du type pour les données du nœud avec un index signature
-interface ModuleNodeData {
-  label: string;
-  status: 'active' | 'inactive' | 'degraded';
-  isCore: boolean;
-  [key: string]: unknown; // Permet d'ajouter des propriétés supplémentaires
+// We need to define node types for our custom nodes
+const nodeTypes = {};
+
+interface ModuleDependencyGraphProps {
+  modules?: AppModule[];
+  dependencies?: any[];
+  loading?: boolean;
 }
 
-export const ModuleDependencyGraph = () => {
-  const { dependencies, modules, loading, error } = useModules();
-  // Utiliser les types génériques natifs de React Flow
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+export const ModuleDependencyGraph: React.FC<ModuleDependencyGraphProps> = ({
+  modules = [],
+  dependencies = [], 
+  loading = false
+}) => {
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [graphInitialized, setGraphInitialized] = useState(false);
 
-  // Construire le graphe à partir des données des modules
+  // Generate graph nodes
   useEffect(() => {
-    if (loading || modules.length === 0) return;
+    if (!loading && modules.length > 0 && dependencies.length > 0 && !graphInitialized) {
+      generateGraph();
+      setGraphInitialized(true);
+    }
+  }, [modules, dependencies, loading, graphInitialized]);
 
-    // Créer les nœuds du graphe
-    const graphNodes: Node[] = modules.map((module, index) => ({
-      id: module.id,
-      type: 'default',
-      position: calculateNodePosition(index, modules.length),
-      data: {
-        label: module.name,
-        status: module.status,
-        isCore: module.is_core
-      },
-      className: `module-node status-${module.status} ${module.is_core ? 'core-module' : ''}`,
-    }));
+  // Update nodes when their status changes
+  useEffect(() => {
+    if (graphInitialized && nodes.length > 0 && modules.length > 0) {
+      const updatedNodes = nodes.map(node => {
+        const module = modules.find(m => m.id === node.id);
+        if (module) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: module.status
+            }
+          };
+        }
+        return node;
+      });
+      setNodes(updatedNodes);
+    }
+  }, [modules, graphInitialized, nodes]);
 
-    // Créer les arêtes (connexions) entre les nœuds
-    const graphEdges: Edge[] = [];
-    dependencies.forEach((dep) => {
-      if (dep.dependency_id) {
-        graphEdges.push({
-          id: `${dep.module_id}-${dep.dependency_id}`,
-          source: dep.module_id,
-          target: dep.dependency_id,
-          type: 'smoothstep',
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-          },
-          animated: dep.is_required,
-          style: { 
-            stroke: dep.is_required ? '#ff4d4f' : '#8c8c8c',
-            strokeWidth: dep.is_required ? 2 : 1,
-          },
-          label: dep.is_required ? 'Requise' : 'Optionnelle',
-          labelStyle: { fill: dep.is_required ? '#ff4d4f' : '#8c8c8c', fontWeight: dep.is_required ? 'bold' : 'normal' },
-        });
-      }
-    });
-
-    setNodes(graphNodes);
-    setEdges(graphEdges);
-  }, [modules, dependencies, loading, setNodes, setEdges]);
-
-  // Calculer la position des nœuds en cercle
-  const calculateNodePosition = (index: number, total: number) => {
-    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.3;
-    const angle = (index / total) * 2 * Math.PI;
-    const x = radius * Math.cos(angle) + radius;
-    const y = radius * Math.sin(angle) + radius;
-    return { x, y };
+  // Generate graph layout
+  const generateGraph = () => {
+    try {
+      // Create nodes from modules
+      const flowNodes: Node[] = modules.map((module, index) => ({
+        id: module.id,
+        type: 'moduleNode',
+        data: { 
+          label: module.name,
+          code: module.code,
+          status: module.status,
+          isCore: module.is_core,
+          isAdmin: module.is_admin
+        },
+        position: { 
+          x: 150 + (index % 3) * 300, 
+          y: 100 + Math.floor(index / 3) * 200 
+        }
+      }));
+      
+      // Create edges from dependencies
+      const flowEdges: Edge[] = dependencies.map((dep, index) => ({
+        id: `e-${index}`,
+        source: dep.module_id,
+        target: dep.dependency_id,
+        type: dep.is_required ? 'required' : 'optional',
+        animated: dep.is_required,
+        style: { 
+          stroke: dep.is_required ? '#ff0000' : '#aaa',
+          strokeWidth: dep.is_required ? 2 : 1
+        }
+      }));
+      
+      setNodes(flowNodes);
+      setEdges(flowEdges);
+    } catch (error) {
+      console.error('Error generating graph:', error);
+      // Convert error to string to avoid ReactNode type issue
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return <div className="error-message">Error: {errorMessage}</div>;
+    }
   };
 
+  // Handle node position changes
+  const onNodesChange = (changes: NodeChange[]) => {
+    setNodes(nodes => applyNodeChanges(changes, nodes));
+  };
+
+  // If loading, show a loading indicator
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Graphe de Dépendances</CardTitle>
-          <CardDescription>Chargement du graphe...</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <div className="p-4 text-center">Loading module dependencies...</div>;
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-500">
-            <AlertCircle className="h-5 w-5" />
-            Erreur
-          </CardTitle>
-          <CardDescription>
-            Impossible de charger le graphe des dépendances: {error}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  // If no data, show a message
+  if (!modules.length || !dependencies.length) {
+    return <div className="p-4 text-center">No module dependencies to display</div>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Graphe de Dépendances</CardTitle>
-        <CardDescription>Visualisez les relations entre les modules</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height: '500px', width: '100%' }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            fitView
-            attributionPosition="bottom-right"
-          >
-            <Controls />
-            <MiniMap zoomable pannable />
-            <Background color="#aaa" gap={16} />
-          </ReactFlow>
-        </div>
-      </CardContent>
-    </Card>
+    <div style={{ width: '100%', height: '600px' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        nodeTypes={nodeTypes}
+        fitView
+      >
+        <Background />
+        <Controls />
+      </ReactFlow>
+    </div>
   );
 };
-
-export default ModuleDependencyGraph;

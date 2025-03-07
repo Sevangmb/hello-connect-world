@@ -1,43 +1,28 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import initializeModules from '@/hooks/modules/ModuleInitializer';
+import { initializeModules } from '@/hooks/modules/ModuleInitializer';
 
-export const InitializeModules: React.FC = () => {
-  const [initialized, setInitialized] = useState(false);
+const InitializeModules = () => {
   const { toast } = useToast();
 
   useEffect(() => {
     const initialize = async () => {
-      if (!initialized) {
-        try {
-          const success = await initializeModules();
-          
-          if (success) {
-            console.log('Modules initialized successfully.');
-          } else {
-            console.error('Failed to initialize modules.');
-            toast({
-              title: 'Erreur',
-              description: 'Impossible d\'initialiser les modules.',
-              variant: 'destructive'
-            });
-          }
-        } catch (error) {
-          console.error('Error during modules initialization:', error);
-          toast({
-            title: 'Erreur',
-            description: 'Une erreur est survenue lors de l\'initialisation des modules.',
-            variant: 'destructive'
-          });
-        } finally {
-          setInitialized(true);
-        }
+      try {
+        await initializeModules();
+        console.log('Modules initialized successfully');
+      } catch (error) {
+        console.error('Error initializing modules:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Initialization Error',
+          description: 'Failed to initialize modules'
+        });
       }
     };
 
     initialize();
-  }, [toast, initialized]);
+  }, [toast]);
 
   return null;
 };

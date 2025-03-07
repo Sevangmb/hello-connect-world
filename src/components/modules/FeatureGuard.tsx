@@ -1,44 +1,41 @@
 
 import React from 'react';
-import { useModuleCore } from '@/hooks/modules/useModuleCore';
-import { ModuleUnavailable } from './ModuleUnavailable';
+import { useModules } from '@/hooks/modules/useModules';
+import ModuleUnavailable from './ModuleUnavailable';
 
 interface FeatureGuardProps {
   moduleCode: string;
   featureCode: string;
-  children: React.ReactNode;
   fallback?: React.ReactNode;
+  children: React.ReactNode;
 }
 
-interface ModuleUnavailableProps {
-  moduleCode: string;
-}
+const FeatureGuard: React.FC<FeatureGuardProps> = ({
+  moduleCode,
+  featureCode,
+  fallback,
+  children
+}) => {
+  const { isFeatureEnabled, isModuleActive, loading } = useModules();
 
-export function FeatureGuard({ 
-  moduleCode, 
-  featureCode, 
-  children, 
-  fallback 
-}: FeatureGuardProps) {
-  const { isFeatureEnabled, isModuleActive } = useModuleCore();
-  
-  // Check if the module is active
-  const moduleIsActive = isModuleActive(moduleCode);
-  
-  // If module is active, check if feature is enabled
-  const featureIsEnabled = moduleIsActive && isFeatureEnabled(moduleCode, featureCode);
-  
-  if (!moduleIsActive) {
-    return fallback ? (
-      <>{fallback}</>
-    ) : (
-      <ModuleUnavailable moduleCode={moduleCode} />
-    );
+  // Show loading state or nothing while loading
+  if (loading) {
+    return null;
   }
-  
-  if (!featureIsEnabled) {
+
+  // Check if the module is active and the feature is enabled
+  const isEnabled = isFeatureEnabled(moduleCode, featureCode);
+  const isActive = isModuleActive(moduleCode);
+
+  if (!isActive) {
+    return fallback ? <>{fallback}</> : <ModuleUnavailable moduleCode={moduleCode} />;
+  }
+
+  if (!isEnabled) {
     return fallback ? <>{fallback}</> : null;
   }
-  
+
   return <>{children}</>;
-}
+};
+
+export default FeatureGuard;

@@ -1,13 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { BaseApiGateway } from './BaseApiGateway';
+import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 
 export class ModuleApiGateway extends BaseApiGateway {
   constructor() {
     super();
   }
 
-  async getModuleStatus(moduleCode: string) {
+  async getModuleStatus(moduleCode: string): Promise<ModuleStatus> {
     try {
       const { data, error } = await supabase
         .from('app_modules')
@@ -20,14 +21,14 @@ export class ModuleApiGateway extends BaseApiGateway {
         return 'inactive';
       }
 
-      return data.status;
+      return data.status as ModuleStatus;
     } catch (error) {
       console.error(`Error in getModuleStatus for ${moduleCode}:`, error);
       return 'inactive';
     }
   }
 
-  async updateModuleStatus(moduleId: string, status: string) {
+  async updateModuleStatus(moduleId: string, status: ModuleStatus) {
     try {
       const { data, error } = await supabase
         .from('app_modules')
@@ -79,18 +80,30 @@ export class ModuleApiGateway extends BaseApiGateway {
 
   async isModuleActive(moduleCode: string): Promise<boolean> {
     try {
-      const { data, error } = await supabase
-        .rpc('is_module_active', { module_code: moduleCode });
-
-      if (error) {
-        console.error(`Error checking if module ${moduleCode} is active:`, error);
-        return false;
-      }
-
-      return data === true;
+      const status = await this.getModuleStatus(moduleCode);
+      return status === 'active';
     } catch (error) {
       console.error(`Exception in isModuleActive for ${moduleCode}:`, error);
       return false;
+    }
+  }
+
+  async getAllModules(): Promise<AppModule[]> {
+    try {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching all modules:', error);
+        return [];
+      }
+
+      return data as AppModule[];
+    } catch (error) {
+      console.error('Exception in getAllModules:', error);
+      return [];
     }
   }
 }

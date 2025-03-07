@@ -22,9 +22,7 @@ const Outfits = () => {
       <OutfitsList />
       
       {showCreateOutfit && (
-        <CreateOutfit 
-          onClose={() => setShowCreateOutfit(false)} 
-        />
+        <CreateOutfit onClose={() => setShowCreateOutfit(false)} />
       )}
     </div>
   );

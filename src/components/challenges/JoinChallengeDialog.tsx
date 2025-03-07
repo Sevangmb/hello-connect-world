@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export interface JoinChallengeDialogProps {
   challengeId: string;
   onJoin: (outfitId: string, comment: string) => Promise<void>;
-  onClose: () => void; // Ajout de cette prop
-  isOpen?: boolean;  // Rendre cette prop optionnelle
+  onClose: () => void;
+  isOpen?: boolean;
 }
 
 export const JoinChallengeDialog: React.FC<JoinChallengeDialogProps> = ({ 
@@ -23,7 +23,7 @@ export const JoinChallengeDialog: React.FC<JoinChallengeDialogProps> = ({
   const [selectedOutfitId, setSelectedOutfitId] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { userOutfits, isLoading } = useOutfits();
+  const { data: userOutfits, isLoading } = useOutfits();
 
   const handleSubmit = async () => {
     if (!selectedOutfitId) return;

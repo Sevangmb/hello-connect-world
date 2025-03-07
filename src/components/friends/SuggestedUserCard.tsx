@@ -9,7 +9,7 @@ import { UserPlus } from 'lucide-react';
 interface SuggestedUserCardProps {
   user: SuggestedUser;
   onSelect: () => void;
-  onAddFriend?: (user: SuggestedUser) => void; // Ajout de cette prop optionnelle
+  onAddFriend?: (user: SuggestedUser) => void;
 }
 
 export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({ user, onSelect, onAddFriend }) => {
