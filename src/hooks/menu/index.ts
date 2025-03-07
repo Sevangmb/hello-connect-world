@@ -6,7 +6,12 @@ import { useMenuFetcher } from './useMenuFetcher';
 import { useMenuCategories } from './useMenuCategories';
 import { useAdminStatus } from './useAdminStatus';
 import { MenuItemCategory } from '@/services/menu/types';
-import { useAllMenuItems, useMenuItemsByCategory, useMenuItemsByModule } from './useMenuItems';
+import { 
+  useAllMenuItems, 
+  useMenuItemsByCategory, 
+  useMenuItemsByModule, 
+  useMenuItemsByParent 
+} from './useMenuItems';
 
 interface UseMenuOptions {
   category?: MenuItemCategory;
@@ -81,6 +86,7 @@ export {
   useAllMenuItems,
   useMenuItemsByCategory,
   useMenuItemsByModule,
+  useMenuItemsByParent,
   useMenuCategories, 
   useAdminStatus 
 };
