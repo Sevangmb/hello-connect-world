@@ -13,7 +13,7 @@ type SimpleMenuItem = {
   children?: SimpleMenuItem[];
 };
 
-// Données statiques pour le menu
+// Données statiques pour le menu - Ajustées pour correspondre aux routes disponibles
 const menuItems: SimpleMenuItem[] = [
   {
     id: "home",
@@ -36,7 +36,7 @@ const menuItems: SimpleMenuItem[] = [
       {
         id: "wardrobe",
         label: "Ma Garde-robe",
-        path: "/wardrobe",
+        path: "/personal",
       },
       {
         id: "outfits",
@@ -53,23 +53,23 @@ const menuItems: SimpleMenuItem[] = [
   {
     id: "social",
     label: "Communauté",
-    path: "/social",
+    path: "/social/challenges",
     icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
     children: [
       {
-        id: "messages",
-        label: "Messages",
-        path: "/messages",
+        id: "challenges",
+        label: "Défis",
+        path: "/social/challenges",
       },
       {
         id: "friends",
         label: "Amis",
-        path: "/friends",
+        path: "/social/friends",
       },
       {
-        id: "groups",
-        label: "Groupes",
-        path: "/groups",
+        id: "messages",
+        label: "Messages",
+        path: "/social/messages",
       }
     ]
   },
@@ -83,11 +83,6 @@ const menuItems: SimpleMenuItem[] = [
         id: "settings",
         label: "Paramètres",
         path: "/profile/settings",
-      },
-      {
-        id: "shop",
-        label: "Ma Boutique",
-        path: "/profile/shop",
       }
     ]
   },
@@ -124,6 +119,18 @@ const menuItems: SimpleMenuItem[] = [
         path: "/admin/settings",
       }
     ]
+  },
+  {
+    id: "search",
+    label: "Recherche",
+    path: "/search",
+    icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    path: "/notifications",
+    icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>,
   }
 ];
 

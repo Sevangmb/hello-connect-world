@@ -27,9 +27,9 @@ const MainRoutes: React.FC = () => {
         <Route path="/*" element={<App />} />
       </Route>
 
-      {/* Route 404 explicite et fallback */}
+      {/* Route 404 explicite */}
       <Route path="/404" element={<NotFound />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

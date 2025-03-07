@@ -10,6 +10,7 @@ import { useAuth } from '@/modules/auth';
 import { ModuleGuard } from '@/components/modules/ModuleGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CartPage } from './components/cart';
+import NotFound from './pages/NotFound';
 
 // Lazy load components
 const Home = lazy(() => import('./pages/Home'));
@@ -19,7 +20,6 @@ const AdminModules = lazy(() => import('./pages/admin/AdminModules'));
 const AdminShops = lazy(() => import('./pages/admin/AdminShops'));
 const Shops = lazy(() => import('./pages/Shops'));
 const ShopDetail = lazy(() => import('./pages/ShopDetail'));
-const NotFound = lazy(() => import('./pages/NotFound'));
 const Explore = lazy(() => import('./pages/Explore'));
 const Personal = lazy(() => import('./pages/Personal'));
 const Challenges = lazy(() => import('./pages/Challenges'));
@@ -112,8 +112,7 @@ function App() {
           <Route path="about" element={<About />} />
           
           {/* Page 404 et redirection */}
-          <Route path="404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>
