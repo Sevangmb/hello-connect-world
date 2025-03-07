@@ -36,7 +36,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ className, onMenuClick }) 
         <span>Explorer</span>
       </NavLink>
       
-      <NavLink to="/shop" className={({ isActive }) => 
+      <NavLink to="/boutiques" className={({ isActive }) => 
         cn("flex flex-col items-center gap-1 text-xs", isActive ? "text-primary" : "text-gray-500")
       }>
         <ShoppingBag className="h-5 w-5" />

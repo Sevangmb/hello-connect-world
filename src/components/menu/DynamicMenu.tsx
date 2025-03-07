@@ -101,6 +101,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   // Fonction pour gérer la navigation sans rechargement
   const handleNavigate = (path: string, event: React.MouseEvent) => {
     event.preventDefault();
+    console.log(`DynamicMenu: Navigation vers ${path}`);
     if (location.pathname !== path) {
       navigate(path);
     }

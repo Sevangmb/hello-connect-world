@@ -11,6 +11,7 @@ export const useNavigation = () => {
     if (event) {
       event.preventDefault();
     }
+    console.log(`Navigation vers: ${path}`);
     navigate(path);
   };
   
