@@ -23,7 +23,7 @@ export const JoinChallengeDialog: React.FC<JoinChallengeDialogProps> = ({
   const [selectedOutfitId, setSelectedOutfitId] = useState('');
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data: userOutfits, isLoading } = useOutfits();
+  const { outfits, loading } = useOutfits();
 
   const handleSubmit = async () => {
     if (!selectedOutfitId) return;
@@ -52,16 +52,16 @@ export const JoinChallengeDialog: React.FC<JoinChallengeDialogProps> = ({
             <Select 
               value={selectedOutfitId} 
               onValueChange={setSelectedOutfitId}
-              disabled={isLoading}
+              disabled={loading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une tenue" />
               </SelectTrigger>
               <SelectContent>
-                {isLoading ? (
+                {loading ? (
                   <SelectItem value="loading" disabled>Chargement...</SelectItem>
-                ) : userOutfits && userOutfits.length > 0 ? (
-                  userOutfits.map(outfit => (
+                ) : outfits && outfits.length > 0 ? (
+                  outfits.map(outfit => (
                     <SelectItem key={outfit.id} value={outfit.id}>
                       {outfit.name}
                     </SelectItem>

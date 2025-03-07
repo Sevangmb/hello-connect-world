@@ -1,270 +1,85 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { MenuItem } from '../types';
+import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Define standard menu items without position or children
-const standardMenuItems: Omit<MenuItem, 'position' | 'children'>[] = [
-  // Core navigation
-  {
-    id: uuidv4(),
-    name: 'Accueil',
-    path: '/home',
-    icon: 'home',
-    category: 'main',
-    parent_id: null,
-    order: 1,
-    is_visible: true,
-    module_code: 'core',
-    requires_auth: false,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Mes vêtements',
-    path: '/clothes',
-    icon: 'shirt',
-    category: 'main',
-    parent_id: null,
-    order: 2,
-    is_visible: true,
-    module_code: 'clothes',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Boutique',
-    path: '/shop',
-    icon: 'shopping-bag',
-    category: 'main',
-    parent_id: null,
-    order: 3,
-    is_visible: true,
-    module_code: 'shop',
-    requires_auth: false,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  // Admin section
-  {
-    id: uuidv4(),
-    name: 'Administration',
-    path: '/admin',
-    icon: 'settings',
-    category: 'admin',
-    parent_id: null,
-    order: 1,
-    is_visible: true,
-    module_code: 'admin',
-    requires_auth: true,
-    requires_admin: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Modules',
-    path: '/admin/modules',
-    icon: 'puzzle',
-    category: 'admin',
-    parent_id: null,
-    order: 2,
-    is_visible: true,
-    module_code: 'admin',
-    requires_auth: true,
-    requires_admin: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Utilisateurs',
-    path: '/admin/users',
-    icon: 'users',
-    category: 'admin',
-    parent_id: null,
-    order: 3,
-    is_visible: true,
-    module_code: 'admin',
-    requires_auth: true,
-    requires_admin: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  // User section
-  {
-    id: uuidv4(),
-    name: 'Mon profil',
-    path: '/profile',
-    icon: 'user',
-    category: 'user',
-    parent_id: null,
-    order: 1,
-    is_visible: true,
-    module_code: 'user',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Paramètres',
-    path: '/settings',
-    icon: 'settings',
-    category: 'user',
-    parent_id: null,
-    order: 2,
-    is_visible: true,
-    module_code: 'user',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Déconnexion',
-    path: '/logout',
-    icon: 'log-out',
-    category: 'user',
-    parent_id: null,
-    order: 3,
-    is_visible: true,
-    module_code: 'auth',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  // Shop section
-  {
-    id: uuidv4(),
-    name: 'Boutique',
-    path: '/shop',
-    icon: 'shopping-bag',
-    category: 'shop',
-    parent_id: null,
-    order: 1,
-    is_visible: true,
-    module_code: 'shop',
-    requires_auth: false,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Panier',
-    path: '/cart',
-    icon: 'shopping-cart',
-    category: 'shop',
-    parent_id: null,
-    order: 2,
-    is_visible: true,
-    module_code: 'cart',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: uuidv4(),
-    name: 'Commandes',
-    path: '/orders',
-    icon: 'package',
-    category: 'shop',
-    parent_id: null,
-    order: 3,
-    is_visible: true,
-    module_code: 'shop',
-    requires_auth: true,
-    requires_admin: false,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
 /**
- * Seeder pour les éléments de menu
- * Initialise les menus standard dans la base de données
+ * Seeds menu items into the database if they don't exist
  */
 export const seedMenuItems = async (): Promise<void> => {
-  try {
-    // Vérifier si les éléments de menu existent déjà
-    const { data: existingMenuItems, error: checkError } = await supabase
-      .from('menu_items')
-      .select('id')
-      .limit(1);
-      
-    if (checkError) {
-      console.error('Error checking existing menu items:', checkError);
-      throw checkError;
-    }
-    
-    // Si des éléments de menu existent déjà, ne pas réinitialiser
-    if (existingMenuItems && existingMenuItems.length > 0) {
-      console.log('Menu items already exist, skipping initialization');
-      return;
-    }
-    
-    console.log('Initializing menu items...');
-    
-    // Insérer les éléments de menu standard
-    const { error } = await supabase
-      .from('menu_items')
-      .insert(standardMenuItems);
-      
-    if (error) {
-      console.error('Error seeding menu items:', error);
-      throw error;
-    }
-    
-    console.log('Menu items initialized successfully');
-  } catch (error) {
-    console.error('Error in seedMenuItems:', error);
-    throw error;
-  }
-};
+  // Check if we already have menu items
+  const { count, error: countError } = await supabase
+    .from('menu_items')
+    .select('*', { count: 'exact', head: true });
 
-// Fonction pour supprimer et réinitialiser les éléments de menu (à utiliser avec précaution)
-export const resetMenuItems = async (): Promise<void> => {
+  if (countError) {
+    console.error('Error checking menu items count:', countError);
+    return;
+  }
+
+  // If we have menu items, skip seeding
+  if (count && count > 0) {
+    console.log(`${count} menu items already exist, skipping seeding`);
+    return;
+  }
+
+  console.log('No menu items found, seeding default menu items...');
+
+  // Prepare all the menu items we want to seed
+  const menuItems: Omit<MenuItem, 'id' | 'children'>[] = [
+    // Main menu items
+    {
+      name: 'Accueil',
+      path: '/',
+      icon: 'Home',
+      category: 'main' as MenuItemCategory,
+      parent_id: null,
+      order: 1,
+      is_visible: true,
+      module_code: 'home',
+      requires_auth: false,
+      requires_admin: false,
+      is_active: true,
+      position: 1,
+      description: 'Page d\'accueil',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    
+    // Add more menu items as needed...
+  ];
+
   try {
-    // Supprimer tous les éléments de menu existants
-    const { error: deleteError } = await supabase
-      .from('menu_items')
-      .delete()
-      .neq('id', '0');  // Condition de sécurité pour s'assurer qu'il y a une condition
+    // Cast each item to the expected type when inserting
+    for (const item of menuItems) {
+      const { error } = await supabase
+        .from('menu_items')
+        .insert({
+          id: uuidv4(),
+          name: item.name,
+          path: item.path,
+          icon: item.icon,
+          category: item.category,
+          parent_id: item.parent_id,
+          order: item.order,
+          is_visible: item.is_visible,
+          module_code: item.module_code,
+          requires_auth: item.requires_auth,
+          requires_admin: item.requires_admin,
+          is_active: item.is_active,
+          position: item.position,
+          description: item.description,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        });
       
-    if (deleteError) {
-      console.error('Error deleting existing menu items:', deleteError);
-      throw deleteError;
+      if (error) {
+        console.error(`Error inserting menu item ${item.name}:`, error);
+      }
     }
     
-    // Réinitialiser les éléments de menu
-    await seedMenuItems();
-    
-    console.log('Menu items reset successfully');
+    console.log(`Successfully seeded ${menuItems.length} menu items`);
   } catch (error) {
-    console.error('Error in resetMenuItems:', error);
-    throw error;
+    console.error('Error seeding menu items:', error);
   }
 };

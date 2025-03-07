@@ -16,6 +16,12 @@ export type MenuItemCategory =
   | 'marketplace'
   | 'social'
   | 'utility'
+  | 'wardrobe'
+  | 'community'
+  | 'personal'
+  | 'explore'
+  | 'suitcases'
+  | 'challenges'
   | string; // Allow string to support module-based categories
 
 // Élément de menu

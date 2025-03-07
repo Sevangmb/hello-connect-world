@@ -10,7 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClothesGrid } from '@/components/clothes/ClothesGrid';
 import { OutfitStatus, OutfitCategory, OutfitSeason } from '@/core/outfits/domain/types';
 
-const CreateOutfit = () => {
+interface CreateOutfitProps {
+  onClose: () => void;
+}
+
+const CreateOutfit: React.FC<CreateOutfitProps> = ({ onClose }) => {
   const navigate = useNavigate();
   const { createOutfit } = useOutfits();
   const [outfitName, setOutfitName] = useState('');
@@ -103,7 +107,7 @@ const CreateOutfit = () => {
       </Tabs>
 
       <div className="mt-4 flex flex-col sm:flex-row gap-4">
-        <Button onClick={() => navigate('/outfits')} variant="outline">
+        <Button onClick={onClose} variant="outline">
           Cancel
         </Button>
         <Button onClick={handleCreateOutfit}>
