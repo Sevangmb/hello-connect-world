@@ -12,27 +12,50 @@ export type MenuItemCategory =
   | 'social'
   | 'profile'
   
-  // Sous-catégories - Mon Univers
-  | 'wardrobe'
-  | 'outfits'
-  | 'looks'
-  | 'suitcases'
-  | 'favorites'
+  // Sous-catégories - Mon Univers (Perso)
+  | 'wardrobe'     // Garde-robe
+  | 'outfits'      // Mes Tenues
+  | 'looks'        // Mes Looks
+  | 'suitcases'    // Mes Valises
+  | 'favorites'    // Mes Favoris
+  | 'add_clothing' // Ajouter un Vêtement
+  | 'create_outfit' // Créer une Tenue
+  | 'publish_look' // Publier un Look
+  
+  // Sous-catégories - Explorer
+  | 'search'       // Recherche
+  | 'trends'       // Tendances
+  | 'popular_outfits' // Tenues Populaires 
+  | 'popular_items'   // Articles Populaires
+  | 'popular_hashtags' // Hashtags Populaires
+  | 'shops'        // Boutiques
+  | 'shop_map'     // Carte des Boutiques
   
   // Sous-catégories - Marketplace
-  | 'marketplace'
-  | 'shops'
-  | 'cart'
+  | 'marketplace'  // Vide-Dressing
+  | 'sell'         // Vendre
+  | 'purchases'    // Achats
+  | 'cart'         // Panier
   
   // Sous-catégories - Communauté
-  | 'messages'
-  | 'groups'
-  | 'notifications'
-  | 'friends'
+  | 'messages'     // Messagerie
+  | 'groups'       // Groupes
+  | 'notifications' // Notifications
+  | 'friends'      // Trouver des Amis
   
   // Sous-catégories - Profil
-  | 'settings'
-  | 'help'
+  | 'my_profile'   // Mon Profil
+  | 'settings'     // Paramètres
+  | 'help'         // Aide & Support
+  | 'logout'       // Déconnexion
+  
+  // Sous-catégories - Paramètres
+  | 'edit_profile' // Modifier le profil
+  | 'privacy'      // Confidentialité
+  | 'security'     // Sécurité
+  | 'notification_settings' // Préférences de notifications
+  | 'preferences'  // Préférences
+  | 'data_storage' // Données et stockage
   
   // Administration
   | 'admin'
@@ -42,11 +65,27 @@ export type MenuItemCategory =
   | 'admin_marketing'
   | 'admin_stats'
   | 'admin_settings'
+  | 'admin_marketplace'
+  | 'admin_transactions'
+  | 'admin_challenges'
+  | 'admin_groups'
+  | 'admin_moderation'
+  | 'admin_campaigns'
+  | 'admin_newsletters'
+  | 'admin_general_stats'
+  | 'admin_financial_stats'
+  | 'admin_roles'
+  | 'admin_config'
+  
+  // Boutique (menu simplifié)
+  | 'shop_dashboard'
+  | 'shop_storefront'
+  | 'shop_orders'
+  | 'shop_messages'
   
   // Utility categories
   | 'utility'
   | 'system'
-  | 'search'
   | 'legal'
   | string; // Permet les catégories basées sur les modules
 

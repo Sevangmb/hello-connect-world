@@ -23,16 +23,16 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Create the base query
-      const query = supabase
+      // Créer la requête Supabase de base sans filtre par catégorie
+      let query = supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
         .order('position');
       
-      // Add the category filter - use as string to avoid TypeScript errors
-      // This is safe because Supabase accepts the string value
-      query.eq('category', category as string);
+      // Ajouter le filtre de catégorie avec le cast approprié
+      // @ts-ignore: Type nécessaire pour la compatibilité avec l'API Supabase
+      query = query.eq('category', category);
       
       const { data, error } = await query;
       
