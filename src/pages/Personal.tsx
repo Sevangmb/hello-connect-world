@@ -122,32 +122,32 @@ const Personal: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Mon Univers</h1>
       
       <Tabs defaultValue="clothes" className="w-full">
-        <TabsList className="mb-4 w-full md:w-auto flex overflow-x-auto pb-1">
-          <TabsTrigger value="clothes">Mes Vêtements</TabsTrigger>
-          <TabsTrigger value="outfits">Mes Tenues</TabsTrigger>
-          <TabsTrigger value="favorites">Mes Favoris</TabsTrigger>
-          <TabsTrigger value="calendar">Calendrier</TabsTrigger>
+        <TabsList className="mb-4 w-full grid grid-cols-4 gap-2">
+          <TabsTrigger value="clothes" className="px-4 py-2">Mes Vêtements</TabsTrigger>
+          <TabsTrigger value="outfits" className="px-4 py-2">Mes Tenues</TabsTrigger>
+          <TabsTrigger value="favorites" className="px-4 py-2">Mes Favoris</TabsTrigger>
+          <TabsTrigger value="calendar" className="px-4 py-2">Calendrier</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="clothes" className="space-y-4">
+        <TabsContent value="clothes" className="mt-2">
           <ModuleGuard moduleCode="clothes" fallback={<ModuleUnavailable name="Vêtements" />}>
             <ClothingSection items={clothingItems} />
           </ModuleGuard>
         </TabsContent>
         
-        <TabsContent value="outfits" className="space-y-4">
+        <TabsContent value="outfits" className="mt-2">
           <ModuleGuard moduleCode="outfits" fallback={<ModuleUnavailable name="Tenues" />}>
             <OutfitsSection outfits={outfits} />
           </ModuleGuard>
         </TabsContent>
         
-        <TabsContent value="favorites" className="space-y-4">
+        <TabsContent value="favorites" className="mt-2">
           <ModuleGuard moduleCode="outfits" fallback={<ModuleUnavailable name="Favoris" />}>
             <FavoritesSection />
           </ModuleGuard>
         </TabsContent>
         
-        <TabsContent value="calendar" className="space-y-4">
+        <TabsContent value="calendar" className="mt-2">
           <ModuleGuard moduleCode="clothes" fallback={<ModuleUnavailable name="Calendrier" />}>
             <CalendarSection />
           </ModuleGuard>
