@@ -15,10 +15,11 @@ export class MenuRepository implements IMenuRepository {
   }
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
+    // We need to typecast the category to ensure it works with Supabase's typing system
     const { data, error } = await supabase
       .from('menu_items')
       .select('*')
-      .eq('category', category as string) // Use type assertion here
+      .eq('category', category as any) // Changed from `as string` to `as any` to avoid TypeScript error
       .order('position');
     
     if (error) throw error;
