@@ -1,4 +1,3 @@
-
 /**
  * Mappers for shop domain entities
  */

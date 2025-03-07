@@ -2,11 +2,10 @@
 /**
  * Type guards for shop domain types
  */
-import { ShopStatus } from './shop-types';
+import { ShopStatus, DeliveryOption, PaymentMethod } from './shop-types';
 import { ShopItemStatus } from './item-types';
 import { OrderStatus } from './order-types';
 import { PaymentStatus } from './payment-types';
-import { DeliveryOption, PaymentMethod } from './shop-types';
 
 export const isShopStatus = (status: string): status is ShopStatus => {
   return ['pending', 'approved', 'rejected', 'suspended'].includes(status);

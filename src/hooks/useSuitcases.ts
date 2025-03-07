@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,7 +67,7 @@ export const useSuitcases = (filter: SuitcaseFilter = {}) => {
 
       // Only use 'active' or 'archived' when inserting to database
       // to match database constraints
-      const dbStatus = newSuitcase.status === 'archived' ? 'archived' : 'active';
+      const dbStatus: 'active' | 'archived' = newSuitcase.status === 'archived' ? 'archived' : 'active';
 
       const suitcaseData = {
         user_id: userId,

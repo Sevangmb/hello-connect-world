@@ -20,7 +20,7 @@ export default function Suitcases() {
   const { toast } = useToast();
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [filters, setFilters] = useState<SuitcaseFilter>({ status: 'active', search: '' });
+  const [filterValues, setFilterValues] = useState<SuitcaseFilter>({ status: 'active', search: '' });
   
   const {
     suitcases,
@@ -29,7 +29,7 @@ export default function Suitcases() {
     createSuitcase,
     updateSuitcase,
     deleteSuitcase
-  } = useSuitcases(filters);
+  } = useSuitcases(filterValues);
   
   // Utiliser notre hook d'animation de transition pour éviter les clignotements
   const isTransitioning = useTransitionState(isLoading);
@@ -39,7 +39,7 @@ export default function Suitcases() {
   }, []);
 
   const handleFilterChange = useCallback((key: keyof SuitcaseFilter, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilterValues(prev => ({ ...prev, [key]: value }));
   }, []);
 
   const handleSuitcaseSelect = useCallback((suitcaseId: string) => {
@@ -93,14 +93,14 @@ export default function Suitcases() {
         <div className="w-full sm:w-1/3">
           <Input
             placeholder="Rechercher une valise..."
-            value={filters.search}
+            value={filterValues.search}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             className="mb-2"
           />
         </div>
         <div className="w-full sm:w-1/3">
           <Select
-            value={filters.status}
+            value={filterValues.status}
             onValueChange={(value) => handleFilterChange('status', value)}
           >
             <SelectTrigger>
@@ -142,7 +142,7 @@ export default function Suitcases() {
                 </div>
                 <h3 className="text-lg font-medium mb-2">Aucune valise trouvée</h3>
                 <p className="text-muted-foreground mb-6 max-w-md">
-                  {filters.status !== 'all' || filters.search
+                  {filterValues.status !== 'all' || filterValues.search
                     ? "Aucune valise ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
                     : "Vous n'avez pas encore créé de valise. Commencez par en créer une pour organiser vos vêtements de voyage."}
                 </p>
@@ -155,13 +155,13 @@ export default function Suitcases() {
               <SuitcaseGrid 
                 suitcases={suitcases} 
                 onSelect={(suitcase) => handleSuitcaseSelect(suitcase.id)}
-                loading={loading}
+                loading={isLoading}
               />
             ) : (
               <SuitcaseList 
                 suitcases={suitcases} 
                 onSelect={(suitcase) => handleSuitcaseSelect(suitcase.id)}
-                loading={loading}
+                loading={isLoading}
               />
             )}
           </div>

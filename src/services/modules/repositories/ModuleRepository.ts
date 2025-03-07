@@ -1,3 +1,4 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -190,7 +191,16 @@ export class ModuleRepository implements IModuleRepository {
   /**
    * Get modules with features
    */
-  public async getModulesWithFeatures(): Promise<any[]> {
+  public async getModulesWithFeatures(): Promise<Array<{
+    module: any;
+    features: Array<{
+      id: string;
+      feature_code: string;
+      feature_name: string;
+      description: string;
+      is_enabled: boolean;
+    }>;
+  }>> {
     try {
       // Récupérer les modules
       const { data: modules, error: modulesError } = await supabase
