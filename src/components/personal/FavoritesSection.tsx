@@ -25,7 +25,7 @@ export const FavoritesSection: React.FC = () => {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { subscribe, EVENT_TYPES } = useEvents();
+  const { subscribe } = useEvents();
   
   useEffect(() => {
     // S'abonner aux mises à jour de favoris
@@ -42,43 +42,40 @@ export const FavoritesSection: React.FC = () => {
     try {
       setLoading(true);
       
-      // Récupérer les tenues favorites
+      // 1. Récupérer les tenues favorites
       const { data: outfitsData, error: outfitsError } = await supabase
         .from("outfits")
-        .select("id, name, created_at, is_favorite, user_id, season, category") // Removed image_url field
+        .select("id, name, created_at, is_favorite, user_id, season, category")
         .eq("user_id", user.id)
         .eq("is_favorite", true)
         .order("created_at", { ascending: false });
         
       if (outfitsError) throw outfitsError;
       
-      // Récupérer les vêtements favoris
+      // 2. Récupérer les vêtements
       const { data: clothesData, error: clothesError } = await supabase
         .from("clothes")
-        .select("id, name, image_url, brand, category, created_at, user_id") // Removed is_favorite field
+        .select("id, name, image_url, brand, category, created_at, user_id")
         .eq("user_id", user.id)
         .eq("archived", false)
         .order("created_at", { ascending: false });
         
       if (clothesError) throw clothesError;
       
-      // Filtre pour les vêtements favoris s'il y a une table intermédiaire ou un champ dans une autre table
+      // 3. Récupérer les vêtements favoris via la table d'association
       const { data: favClothes, error: favClothesError } = await supabase
-        .from("favorite_clothes") // Hypothetical table tracking favorite clothes
+        .from("favorite_clothes")
         .select("clothes_id")
         .eq("user_id", user.id);
         
-      if (favClothesError) {
-        console.error("Erreur lors du chargement des vêtements favoris:", favClothesError);
-        // Continue with empty favorites if not found
-      }
+      if (favClothesError) throw favClothesError;
       
-      // IDs des vêtements favoris
-      const favoriteClothesIds = favClothes ? 
-        new Set(favClothes.map(item => item.clothes_id)) : 
-        new Set();
+      // Créer un ensemble des IDs des vêtements favoris pour un filtrage efficace
+      const favoriteClothesIds = new Set(
+        favClothes?.map(item => item.clothes_id) || []
+      );
       
-      // Transformer les données de tenues
+      // Transformer les données de tenues en objets FavoriteItem
       const outfitItems: FavoriteItem[] = outfitsData ? outfitsData.map((item) => ({
         id: item.id,
         name: item.name,
@@ -90,22 +87,24 @@ export const FavoritesSection: React.FC = () => {
         user_id: item.user_id
       })) : [];
       
-      // Transformer les données de vêtements
-      const clothesItems: FavoriteItem[] = clothesData ? clothesData
-        .filter(item => favoriteClothesIds.has(item.id)) // Filtre les vêtements favoris
-        .map((item) => ({
-          id: item.id,
-          name: item.name,
-          type: 'clothes' as const,
-          image_url: item.image_url,
-          created_at: item.created_at,
-          brand: item.brand,
-          category: item.category,
-          is_favorite: true, // Défini manuellement car nous venons de filtrer les favoris
-          user_id: item.user_id
-        })) : [];
+      // Transformer les données de vêtements en objets FavoriteItem, en filtrant seulement les favoris
+      const clothesItems: FavoriteItem[] = clothesData 
+        ? clothesData
+            .filter(item => favoriteClothesIds.has(item.id))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              type: 'clothes' as const,
+              image_url: item.image_url,
+              created_at: item.created_at,
+              brand: item.brand,
+              category: item.category,
+              is_favorite: true, // Explicitement défini car filtré par les favoris
+              user_id: item.user_id
+            }))
+        : [];
       
-      // Combiner et trier les données
+      // Combiner et trier les données par date de création
       const combinedFavorites: FavoriteItem[] = [...outfitItems, ...clothesItems]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       

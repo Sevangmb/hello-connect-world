@@ -514,6 +514,35 @@ export type Database = {
           },
         ]
       }
+      favorite_clothes: {
+        Row: {
+          clothes_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          clothes_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          clothes_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_clothes_clothes_id_fkey"
+            columns: ["clothes_id"]
+            isOneToOne: false
+            referencedRelation: "clothes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorite_shops: {
         Row: {
           created_at: string
