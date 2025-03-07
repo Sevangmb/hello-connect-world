@@ -24,7 +24,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
   // Query for menu items based on provided options
   const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory);
-  const moduleQuery = useMenuItemsByModule(moduleCode as string);
+  const moduleQuery = useMenuItemsByModule(moduleCode as string, isUserAdmin);
   const allItemsQuery = useAllMenuItems();
 
   // Categories 

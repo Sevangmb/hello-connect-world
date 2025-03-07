@@ -1,4 +1,3 @@
-
 /**
  * Fonctions pour mettre à jour le statut des modules et fonctionnalités
  */
@@ -8,6 +7,7 @@ import { AppModule, ModuleStatus } from "../types";
 import { isAdminModule } from "../utils/statusValidation";
 import { invalidateAllCache } from "../cache/moduleCache";
 import { ADMIN_MODULE_CODE } from "../constants";
+import { eventBus } from "@/core/event-bus/EventBus";
 
 /**
  * Met à jour le statut d'un module en tenant compte des restrictions pour Admin
@@ -17,6 +17,7 @@ export const updateModuleStatus = async (
   status: ModuleStatus,
   modules: AppModule[]
 ): Promise<boolean> => {
+  // Trouver le module à mettre à jour
   const moduleToUpdate = modules.find(m => m.id === moduleId);
   
   // Empêcher la désactivation du module Admin
@@ -26,7 +27,7 @@ export const updateModuleStatus = async (
   }
   
   try {
-    console.log(`Mise à jour du module ${moduleId} vers le statut ${status}`);
+    console.log(`Mise à jour du module ${moduleId} (${moduleToUpdate?.code}) vers le statut ${status}`);
     
     const { error } = await supabase
       .from('app_modules')
@@ -43,6 +44,15 @@ export const updateModuleStatus = async (
     
     // Invalider les caches
     invalidateAllCache();
+    
+    // Publier un événement pour informer les autres composants du changement
+    if (moduleToUpdate) {
+      eventBus.publish('module:status_updated', {
+        moduleId,
+        moduleCode: moduleToUpdate.code,
+        status
+      });
+    }
     
     console.log(`Module ${moduleId} mis à jour avec succès`);
     return true;
@@ -70,6 +80,15 @@ export const updateModuleStatus = async (
       
       // Invalider les caches
       invalidateAllCache();
+      
+      // Publier un événement pour informer les autres composants du changement
+      if (moduleToUpdate) {
+        eventBus.publish('module:status_updated', {
+          moduleId,
+          moduleCode: moduleToUpdate.code,
+          status
+        });
+      }
       
       console.log(`Module ${moduleId} mis à jour avec succès après seconde tentative`);
       return true;

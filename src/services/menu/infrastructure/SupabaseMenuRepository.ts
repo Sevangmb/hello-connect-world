@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
+import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
@@ -27,25 +28,39 @@ export class MenuRepository implements IMenuRepository {
   }
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
-    let query = supabase
-      .from('menu_items')
-      .select('*')
-      .eq('module_code', moduleCode)
-      .eq('is_active', true)
-      .order('position', { ascending: true });
+    try {
+      // Vérifier d'abord si le module est actif
+      const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
-    if (!isAdmin) {
-      query = query.eq('requires_admin', false).eq('is_visible', true);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error(`Error fetching menu items for module ${moduleCode}:`, error);
+      // Si le module n'est pas actif et ce n'est pas un administrateur, retourner un tableau vide
+      if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
+        console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
+        return [];
+      }
+      
+      let query = supabase
+        .from('menu_items')
+        .select('*')
+        .eq('module_code', moduleCode)
+        .eq('is_active', true)
+        .order('position', { ascending: true });
+        
+      if (!isAdmin) {
+        query = query.eq('requires_admin', false).eq('is_visible', true);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error(`Error fetching menu items for module ${moduleCode}:`, error);
+        return [];
+      }
+      
+      return data;
+    } catch (err) {
+      console.error(`Exception lors du chargement des éléments de menu pour le module ${moduleCode}:`, err);
       return [];
     }
-    
-    return data;
   }
   
   async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {

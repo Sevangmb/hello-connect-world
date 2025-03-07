@@ -12,6 +12,7 @@ import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinato
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { CartIcon } from "@/components/cart/CartIcon";
+import { useToast } from "@/hooks/use-toast";
 
 interface CategoryGroupProps {
   title: string;
@@ -20,7 +21,22 @@ interface CategoryGroupProps {
 
 // Composant pour grouper les éléments de menu par catégorie
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
-  const { menuItems, loading, isUserAdmin } = useMenu({ category });
+  const { menuItems, loading, isUserAdmin, refreshMenu } = useMenu({ category });
+  const { isModuleActive } = useModuleRegistry();
+  
+  // Surveiller les changements de statut de module pour rafraîchir le menu
+  useEffect(() => {
+    const handleModuleStatusChange = () => {
+      console.log(`Rafraîchissement du menu pour la catégorie ${category} après changement de statut de module`);
+      refreshMenu();
+    };
+    
+    eventBus.subscribe(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, handleModuleStatusChange);
+    
+    return () => {
+      eventBus.unsubscribe(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, handleModuleStatusChange);
+    };
+  }, [category, refreshMenu]);
   
   // Éviter de monter/démonter les catégories pour réduire le clignotement
   // Ne pas afficher la catégorie admin si l'utilisateur n'est pas admin
@@ -56,10 +72,11 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
 
 // Composant de menu principal avec optimisations pour éviter le clignotement
 export const ModuleMenu: React.FC = () => {
-  const { isModuleDegraded } = useModuleRegistry();
+  const { isModuleDegraded, isModuleActive } = useModuleRegistry();
   const { isUserAdmin, refreshMenu } = useMenu();
   const navigate = useNavigate();
   const [initialized, setInitialized] = useState(false);
+  const { toast } = useToast();
   
   // Optimiser les mises à jour de menu pour éviter le clignotement
   useEffect(() => {
@@ -84,6 +101,7 @@ export const ModuleMenu: React.FC = () => {
       
       // Planifier un rafraîchissement avec un délai
       refreshTimeout = setTimeout(() => {
+        console.log("ModuleMenu: Rafraîchissement du menu suite à un événement");
         refreshMenu();
         refreshTimeout = null;
       }, 300); // Délai pour regrouper les mises à jour rapprochées
@@ -96,7 +114,19 @@ export const ModuleMenu: React.FC = () => {
     
     const unsubscribeModuleStatus = eventBus.subscribe(
       MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, 
-      handleMenuUpdate
+      (data) => {
+        console.log(`ModuleMenu: Changement de statut du module ${data.moduleCode} détecté`);
+        handleMenuUpdate();
+        
+        // Afficher une notification de changement de statut
+        if (data.status === 'inactive') {
+          toast({
+            title: "Module désactivé",
+            description: `Le module ${data.moduleCode} a été désactivé`,
+            variant: "default"
+          });
+        }
+      }
     );
     
     const unsubscribeAdminAccess = eventBus.subscribe(
@@ -121,7 +151,7 @@ export const ModuleMenu: React.FC = () => {
         clearTimeout(refreshTimeout);
       }
     };
-  }, [refreshMenu, isUserAdmin, initialized]);
+  }, [refreshMenu, isUserAdmin, initialized, toast]);
   
   // Optimiser en mémorisant les catégories pour éviter les re-rendus inutiles
   const categories = useMemo(() => [

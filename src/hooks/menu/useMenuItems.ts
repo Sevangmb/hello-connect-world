@@ -28,12 +28,12 @@ export const useMenuItemsByCategory = (category: MenuItemCategory) => {
 };
 
 // Function to get menu items by module
-export const useMenuItemsByModule = (moduleCode: string) => {
+export const useMenuItemsByModule = (moduleCode: string, isAdmin: boolean = false) => {
   return useQuery({
-    queryKey: ['menuItems', 'module', moduleCode],
+    queryKey: ['menuItems', 'module', moduleCode, isAdmin],
     queryFn: async () => {
       const menuService = getMenuService();
-      return await menuService.getMenuItemsByModule(moduleCode);
+      return await menuService.getMenuItemsByModule(moduleCode, isAdmin);
     },
     enabled: !!moduleCode
   });
