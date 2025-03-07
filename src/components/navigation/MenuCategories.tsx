@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import CategoryGroup from "./CategoryGroup";
 import { MenuItemCategory, MenuCategory } from "@/services/menu/types";
+import { MenuStructureTransformer } from "@/services/menu/infrastructure/utils/MenuStructureTransformer";
 
 export const MenuCategories: React.FC = () => {
   // Optimiser en mémorisant les catégories pour éviter les re-rendus inutiles
@@ -14,58 +15,58 @@ export const MenuCategories: React.FC = () => {
     { id: 'profile', title: 'Profil', category: 'profile', icon: 'User', order: 5 },
     
     // Catégories sous "Accueil"
-    { id: 'weather', title: 'Météo du Jour', category: 'weather', icon: 'Cloud', order: 10 },
-    { id: 'ai_suggestions', title: 'Suggestions IA', category: 'ai_suggestions', icon: 'Sparkles', order: 11 },
-    { id: 'feed', title: 'Fil d\'Actualité', category: 'feed', icon: 'LayoutList', order: 12 },
-    { id: 'challenges_banner', title: 'Défis', category: 'challenges_banner', icon: 'Trophy', order: 13 },
+    { id: 'weather', title: 'Météo du Jour', category: 'weather', icon: 'Cloud', order: 10, parent: 'main' },
+    { id: 'ai_suggestions', title: 'Suggestions IA', category: 'ai_suggestions', icon: 'Sparkles', order: 11, parent: 'main' },
+    { id: 'feed', title: 'Fil d\'Actualité', category: 'feed', icon: 'LayoutList', order: 12, parent: 'main' },
+    { id: 'challenges_banner', title: 'Défis', category: 'challenges_banner', icon: 'Trophy', order: 13, parent: 'main' },
     
     // Catégories sous "Explorer"
-    { id: 'global_search', title: 'Recherche Globale', category: 'global_search', icon: 'Search', order: 20 },
-    { id: 'trends', title: 'Tendances', category: 'trends', icon: 'TrendingUp', order: 21 },
-    { id: 'popular_outfits', title: 'Tenues Populaires', category: 'popular_outfits', icon: 'Shirt', order: 22 },
-    { id: 'popular_items', title: 'Articles Populaires', category: 'popular_items', icon: 'ShoppingBag', order: 23 },
-    { id: 'popular_hashtags', title: 'Hashtags Populaires', category: 'popular_hashtags', icon: 'Hash', order: 24 },
-    { id: 'shops', title: 'Boutiques', category: 'shops', icon: 'Store', order: 25 },
-    { id: 'shop_map', title: 'Carte des Boutiques', category: 'shop_map', icon: 'Map', order: 26 },
+    { id: 'global_search', title: 'Recherche Globale', category: 'global_search', icon: 'Search', order: 20, parent: 'explore' },
+    { id: 'trends', title: 'Tendances', category: 'trends', icon: 'TrendingUp', order: 21, parent: 'explore' },
+    { id: 'popular_outfits', title: 'Tenues Populaires', category: 'popular_outfits', icon: 'Shirt', order: 22, parent: 'explore' },
+    { id: 'popular_items', title: 'Articles Populaires', category: 'popular_items', icon: 'ShoppingBag', order: 23, parent: 'explore' },
+    { id: 'popular_hashtags', title: 'Hashtags Populaires', category: 'popular_hashtags', icon: 'Hash', order: 24, parent: 'explore' },
+    { id: 'shops', title: 'Boutiques', category: 'shops', icon: 'Store', order: 25, parent: 'explore' },
+    { id: 'shop_map', title: 'Carte des Boutiques', category: 'shop_map', icon: 'Map', order: 26, parent: 'explore' },
     
     // Catégories sous "Perso" (Mon Univers)
-    { id: 'wardrobe', title: 'Ma Garde-robe', category: 'wardrobe', icon: 'ShirtIcon', order: 30 },
-    { id: 'outfits', title: 'Mes Tenues', category: 'outfits', icon: 'Layers', order: 31 },
-    { id: 'looks', title: 'Mes Looks', category: 'looks', icon: 'Camera', order: 32 },
-    { id: 'suitcases', title: 'Mes Valises', category: 'suitcases', icon: 'Suitcase', order: 33 },
-    { id: 'favorites', title: 'Mes Favoris', category: 'favorites', icon: 'Heart', order: 34 },
+    { id: 'wardrobe', title: 'Ma Garde-robe', category: 'wardrobe', icon: 'ShirtIcon', order: 30, parent: 'personal' },
+    { id: 'outfits', title: 'Mes Tenues', category: 'outfits', icon: 'Layers', order: 31, parent: 'personal' },
+    { id: 'looks', title: 'Mes Looks', category: 'looks', icon: 'Camera', order: 32, parent: 'personal' },
+    { id: 'suitcases', title: 'Mes Valises', category: 'suitcases', icon: 'Suitcase', order: 33, parent: 'personal' },
+    { id: 'favorites', title: 'Mes Favoris', category: 'favorites', icon: 'Heart', order: 34, parent: 'personal' },
     { id: 'favorite_items', title: 'Articles Favoris', category: 'favorite_items', icon: 'Tag', order: 341, parent: 'favorites' },
     { id: 'favorite_outfits', title: 'Tenues Favorites', category: 'favorite_outfits', icon: 'Layers', order: 342, parent: 'favorites' },
     { id: 'favorite_users', title: 'Utilisateurs Favoris', category: 'favorite_users', icon: 'Users', order: 343, parent: 'favorites' },
     { id: 'favorite_shops', title: 'Boutiques Favorites', category: 'favorite_shops', icon: 'Store', order: 344, parent: 'favorites' },
-    { id: 'add_clothing', title: 'Ajouter un Vêtement', category: 'add_clothing', icon: 'Plus', order: 35 },
+    { id: 'add_clothing', title: 'Ajouter un Vêtement', category: 'add_clothing', icon: 'Plus', order: 35, parent: 'personal' },
     { id: 'scan_label', title: 'Scanner Étiquette', category: 'scan_label', icon: 'Scan', order: 351, parent: 'add_clothing' },
     { id: 'take_photo', title: 'Prendre une Photo', category: 'take_photo', icon: 'Camera', order: 352, parent: 'add_clothing' },
     { id: 'import_gallery', title: 'Importer depuis Galerie', category: 'import_gallery', icon: 'Image', order: 353, parent: 'add_clothing' },
     { id: 'manual_entry', title: 'Saisie Manuelle', category: 'manual_entry', icon: 'Pencil', order: 354, parent: 'add_clothing' },
-    { id: 'create_outfit', title: 'Créer une Tenue', category: 'create_outfit', icon: 'Scissors', order: 36 },
-    { id: 'publish_look', title: 'Publier un Look', category: 'publish_look', icon: 'Share2', order: 37 },
+    { id: 'create_outfit', title: 'Créer une Tenue', category: 'create_outfit', icon: 'Scissors', order: 36, parent: 'personal' },
+    { id: 'publish_look', title: 'Publier un Look', category: 'publish_look', icon: 'Share2', order: 37, parent: 'personal' },
     
     // Catégories sous "Communauté"
-    { id: 'messages', title: 'Messagerie', category: 'messages', icon: 'MessageSquare', order: 40 },
-    { id: 'groups', title: 'Groupes', category: 'groups', icon: 'Users', order: 41 },
-    { id: 'notifications', title: 'Notifications', category: 'notifications', icon: 'Bell', order: 42 },
-    { id: 'friends', title: 'Trouver des Amis', category: 'friends', icon: 'UserPlus', order: 43 },
+    { id: 'messages', title: 'Messagerie', category: 'messages', icon: 'MessageSquare', order: 40, parent: 'social' },
+    { id: 'groups', title: 'Groupes', category: 'groups', icon: 'Users', order: 41, parent: 'social' },
+    { id: 'notifications', title: 'Notifications', category: 'notifications', icon: 'Bell', order: 42, parent: 'social' },
+    { id: 'friends', title: 'Trouver des Amis', category: 'friends', icon: 'UserPlus', order: 43, parent: 'social' },
     
     // Catégories sous "Profil"
-    { id: 'my_profile', title: 'Mon Profil', category: 'my_profile', icon: 'User', order: 50 },
-    { id: 'marketplace', title: 'Vide-Dressing', category: 'marketplace', icon: 'ShoppingBag', order: 51 },
+    { id: 'my_profile', title: 'Mon Profil', category: 'my_profile', icon: 'User', order: 50, parent: 'profile' },
+    { id: 'marketplace', title: 'Vide-Dressing', category: 'marketplace', icon: 'ShoppingBag', order: 51, parent: 'profile' },
     { id: 'sell', title: 'Vendre', category: 'sell', icon: 'Tag', order: 511, parent: 'marketplace' },
     { id: 'purchases', title: 'Achats', category: 'purchases', icon: 'CreditCard', order: 512, parent: 'marketplace' },
-    { id: 'settings', title: 'Paramètres', category: 'settings', icon: 'Settings', order: 52 },
+    { id: 'settings', title: 'Paramètres', category: 'settings', icon: 'Settings', order: 52, parent: 'profile' },
     { id: 'edit_profile', title: 'Modifier le profil', category: 'edit_profile', icon: 'Edit', order: 521, parent: 'settings' },
     { id: 'privacy', title: 'Confidentialité', category: 'privacy', icon: 'Lock', order: 522, parent: 'settings' },
     { id: 'security', title: 'Sécurité', category: 'security', icon: 'Shield', order: 523, parent: 'settings' },
     { id: 'notification_settings', title: 'Préférences de notifications', category: 'notification_settings', icon: 'Bell', order: 524, parent: 'settings' },
     { id: 'preferences', title: 'Préférences', category: 'preferences', icon: 'Sliders', order: 525, parent: 'settings' },
     { id: 'data_storage', title: 'Données et stockage', category: 'data_storage', icon: 'Database', order: 526, parent: 'settings' },
-    { id: 'help', title: 'Aide & Support', category: 'help', icon: 'HelpCircle', order: 53 },
-    { id: 'logout', title: 'Déconnexion', category: 'logout', icon: 'LogOut', order: 54 },
+    { id: 'help', title: 'Aide & Support', category: 'help', icon: 'HelpCircle', order: 53, parent: 'profile' },
+    { id: 'logout', title: 'Déconnexion', category: 'logout', icon: 'LogOut', order: 54, parent: 'profile' },
     
     // Menu Boutique (simplifié)
     { id: 'shop_dashboard', title: 'Tableau de Bord Boutique', category: 'shop_dashboard', icon: 'LayoutDashboard', order: 70 },
@@ -109,43 +110,32 @@ export const MenuCategories: React.FC = () => {
       .filter(cat => ['main', 'explore', 'personal', 'social', 'profile'].includes(cat.id))
       .sort((a, b) => (a.order || 999) - (b.order || 999));
     
-    // Extraire les sous-catégories (niveau 2) par catégorie parente
-    const getChildCategories = (parentId: string) => {
-      return categories
-        .filter(cat => !cat.parent && ['weather', 'ai_suggestions', 'feed', 'challenges_banner'].includes(cat.id))
+    // Créer un objet qui mappe les catégories principales à leurs sous-catégories
+    const categoryMap = mainCategories.reduce((acc, category) => {
+      // Récupérer les sous-catégories de niveau 1 pour cette catégorie principale
+      const subcategories = categories
+        .filter(cat => cat.parent === category.id)
         .sort((a, b) => (a.order || 999) - (b.order || 999));
-    };
+      
+      acc[category.id] = subcategories;
+      return acc;
+    }, {} as Record<string, MenuCategory[]>);
     
-    // Créer des groupes de menus organisés
+    // Ajouter les catégories d'administration
+    const adminCategories = categories
+      .filter(cat => cat.id === 'admin' || cat.parent === 'admin')
+      .sort((a, b) => (a.order || 999) - (b.order || 999));
+    
+    // Ajouter les catégories de boutique
+    const shopCategories = categories
+      .filter(cat => cat.id.startsWith('shop_'))
+      .sort((a, b) => (a.order || 999) - (b.order || 999));
+    
     return {
       main: mainCategories,
-      homeSubcategories: categories.filter(cat => 
-        ['weather', 'ai_suggestions', 'feed', 'challenges_banner'].includes(cat.id)
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      exploreSubcategories: categories.filter(cat => 
-        ['global_search', 'trends', 'popular_outfits', 'popular_items', 'popular_hashtags', 'shops', 'shop_map'].includes(cat.id)
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      personalSubcategories: categories.filter(cat => 
-        ['wardrobe', 'outfits', 'looks', 'suitcases', 'favorites', 'add_clothing', 'create_outfit', 'publish_look'].includes(cat.id) && !cat.parent
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      socialSubcategories: categories.filter(cat => 
-        ['messages', 'groups', 'notifications', 'friends'].includes(cat.id)
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      profileSubcategories: categories.filter(cat => 
-        ['my_profile', 'marketplace', 'settings', 'help', 'logout'].includes(cat.id)
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      shopCategories: categories.filter(cat => 
-        ['shop_dashboard', 'shop_storefront', 'shop_orders', 'shop_messages'].includes(cat.id)
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
-      
-      adminCategories: categories.filter(cat => 
-        cat.id === 'admin' || (cat.parent === 'admin')
-      ).sort((a, b) => (a.order || 999) - (b.order || 999)),
+      categoryMap,
+      adminCategories,
+      shopCategories
     };
   }, [categories]);
 
@@ -156,10 +146,29 @@ export const MenuCategories: React.FC = () => {
         <CategoryGroup 
           key={cat.id} 
           title={cat.title} 
-          category={cat.category} 
+          category={cat.category as MenuItemCategory} 
           icon={cat.icon} 
         />
       ))}
+      
+      {/* Ajouter une section pour les boutiques si l'utilisateur est un vendeur/boutique */}
+      {menuGroups.shopCategories.length > 0 && (
+        <div className="mt-6">
+          <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Boutique
+          </h3>
+          <div className="mt-1">
+            {menuGroups.shopCategories.map(cat => (
+              <CategoryGroup 
+                key={cat.id} 
+                title={cat.title} 
+                category={cat.category as MenuItemCategory} 
+                icon={cat.icon} 
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

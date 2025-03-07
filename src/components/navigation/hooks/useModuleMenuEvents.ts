@@ -1,89 +1,88 @@
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { eventBus } from "@/core/event-bus/EventBus";
-import { MODULE_MENU_EVENTS, moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
-import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
-import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
+import { useAdminStatus } from "@/hooks/menu/useAdminStatus";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Shop {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface ModuleMenuHookResult {
+  isUserAdmin: boolean;
+  isShopOwner: boolean;
+  activeShop: Shop | null;
+  navigateToRoute: (route: string) => void;
+}
 
 /**
- * Hook pour gérer les événements liés au menu des modules
+ * Hook pour gérer les événements et l'état du menu
  */
-export const useModuleMenuEvents = () => {
-  const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
-  const [isUserAuthenticated, setIsUserAuthenticated] = useState<boolean>(false);
-  const { toast } = useToast();
-  
+export const useModuleMenuEvents = (): ModuleMenuHookResult => {
+  const { isUserAdmin } = useAdminStatus();
+  const [isShopOwner, setIsShopOwner] = useState(false);
+  const [activeShop, setActiveShop] = useState<Shop | null>(null);
+  const navigate = useNavigate();
+
+  // Fonction pour naviguer vers une route
+  const navigateToRoute = (route: string) => {
+    navigate(route);
+  };
+
+  // Vérifier si l'utilisateur est propriétaire d'une boutique
   useEffect(() => {
-    // Vérifier le statut administrateur au chargement
-    const checkAdminStatus = async () => {
+    const checkShopOwnership = async () => {
       try {
-        const authService = getAuthService();
-        const userService = getUserService();
-        
-        const user = await authService.getCurrentUser();
+        // Récupérer l'utilisateur connecté
+        const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          setIsUserAuthenticated(false);
+          setIsShopOwner(false);
+          setActiveShop(null);
           return;
         }
         
-        setIsUserAuthenticated(true);
+        // Chercher les boutiques de l'utilisateur
+        const { data: shops, error } = await supabase
+          .from('shops')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .limit(1);
         
-        // En mode développement, on peut bypasser la vérification
-        if (process.env.NODE_ENV === 'development') {
-          const devBypass = localStorage.getItem('dev_admin_bypass');
-          if (devBypass === 'true') {
-            console.warn("DEV MODE: Admin bypass enabled");
-            setIsUserAdmin(true);
-            moduleMenuCoordinator.enableAdminAccess();
-            return;
-          }
+        if (error) {
+          console.error('Erreur lors de la récupération des boutiques:', error);
+          setIsShopOwner(false);
+          setActiveShop(null);
+          return;
         }
         
-        // Vérifier si l'utilisateur est admin avec le service utilisateur
-        const isAdmin = await userService.isUserAdmin(user.id);
-        setIsUserAdmin(isAdmin);
-        
-        if (isAdmin) {
-          moduleMenuCoordinator.enableAdminAccess();
+        if (shops && shops.length > 0) {
+          setIsShopOwner(true);
+          setActiveShop(shops[0]);
         } else {
-          moduleMenuCoordinator.disableAdminAccess();
+          setIsShopOwner(false);
+          setActiveShop(null);
         }
       } catch (error) {
-        console.error("Erreur lors de la vérification du statut admin:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de vérifier vos privilèges d'administration",
-          variant: "destructive",
-        });
+        console.error('Erreur lors de la vérification du statut de boutique:', error);
+        setIsShopOwner(false);
+        setActiveShop(null);
       }
     };
     
-    checkAdminStatus();
-    
-    // S'abonner aux événements de changement de statut admin
-    const adminGrantedHandler = () => {
-      console.log("Admin access granted event received");
-      setIsUserAdmin(true);
-    };
-    
-    const adminRevokedHandler = () => {
-      console.log("Admin access revoked event received");
-      setIsUserAdmin(false);
-    };
-    
-    const unsubscribeGranted = eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, adminGrantedHandler);
-    const unsubscribeRevoked = eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, adminRevokedHandler);
-    
-    return () => {
-      unsubscribeGranted();
-      unsubscribeRevoked();
-    };
-  }, [toast]);
-  
+    // Uniquement exécuter si l'utilisateur est connecté
+    if (isUserAdmin !== undefined) {
+      checkShopOwnership();
+    }
+  }, [isUserAdmin]);
+
   return {
     isUserAdmin,
-    isUserAuthenticated,
+    isShopOwner,
+    activeShop,
+    navigateToRoute
   };
 };

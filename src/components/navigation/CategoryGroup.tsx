@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { CategoryGroupProps } from "./types/moduleMenu";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { AccordionItem, AccordionTrigger, AccordionContent, Accordion } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getIcon } from "@/components/menu/utils/menuUtils";
+import { MenuStructureTransformer } from "@/services/menu/infrastructure/utils/MenuStructureTransformer";
 
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) => {
   const { menuItems, loading, error } = useModuleVisibility(category);
@@ -21,6 +22,17 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
       return React.createElement(IconComponent as React.ComponentType<any>, { className: "h-4 w-4 mr-2" });
     }
     return null;
+  };
+  
+  // Déterminer si cette catégorie devrait être hiérarchique
+  const shouldBeHierarchical = () => {
+    const hierarchicalCategories = [
+      'admin', 'settings', 'favorites', 'add_clothing', 'marketplace',
+      'admin_users', 'admin_shops', 'admin_content', 'admin_marketing',
+      'admin_stats', 'admin_settings', 'admin_marketplace'
+    ];
+    
+    return hierarchicalCategories.includes(category);
   };
 
   // Pendant le chargement, nous affichons un squelette pour une meilleure UX
@@ -70,13 +82,15 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
   // Déterminer si c'est une catégorie principale pour l'état par défaut
   const isMainCategory = ['main', 'explore', 'personal', 'social', 'profile'].includes(category);
   
+  // Vérifier s'il y a des sous-catégories pour cette catégorie
+  const hasSubcategories = MenuStructureTransformer.getSubcategoriesForSection(category).length > 0 ||
+                        MenuStructureTransformer.getLevel2Subcategories(category).length > 0;
+  
   // Ne pas rendre la catégorie si elle n'a pas d'éléments visibles et ce n'est pas une catégorie principale
-  if (!isMainCategory && (!menuItems || menuItems.length === 0)) {
+  // et elle n'a pas de sous-catégories
+  if (!isMainCategory && (!menuItems || menuItems.length === 0) && !hasSubcategories) {
     return null;
   }
-  
-  // Déterminer si la catégorie devrait être hiérarchique
-  const shouldBeHierarchical = category === 'admin' || category === 'settings' || category === 'favorites' || category === 'add_clothing';
 
   return (
     <Accordion 
@@ -99,7 +113,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
           <DynamicMenu 
             category={category} 
             className="px-1" 
-            hierarchical={shouldBeHierarchical}
+            hierarchical={shouldBeHierarchical()}
           />
         </AccordionContent>
       </AccordionItem>
