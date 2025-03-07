@@ -1,8 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
@@ -16,15 +14,13 @@ export class MenuRepository implements IMenuRepository {
       if (error) throw error;
       return data as MenuItem[];
     } catch (error) {
-      console.error('Erreur lors de la récupération de tous les éléments de menu:', error);
+      console.error('Erreur lors de la récupération des éléments de menu:', error);
       throw error;
     }
   }
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Plutôt que de tenter d'utiliser l'enum directement, utilisons un filtre côté client
-      // pour éviter les problèmes avec les catégories non définies dans l'enum de la base de données
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -33,7 +29,6 @@ export class MenuRepository implements IMenuRepository {
       
       if (error) throw error;
       
-      // Filtrer côté client avec la catégorie fournie
       return (data as MenuItem[]).filter(item => item.category === category);
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
@@ -43,10 +38,8 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
-      // Vérifier d'abord si le module est actif
       const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
-      // Si le module n'est pas actif et ce n'est pas un administrateur, retourner un tableau vide
       if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
         console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
         return [];
@@ -100,10 +93,9 @@ export class MenuRepository implements IMenuRepository {
   
   async createMenuItem(item: CreateMenuItemParams): Promise<MenuItem | null> {
     try {
-      // Use type assertion to handle category type differences
       const { data, error } = await supabase
         .from('menu_items')
-        .insert([item as any]) // Use type assertion here
+        .insert([item as any])
         .select()
         .single();
         
@@ -121,10 +113,9 @@ export class MenuRepository implements IMenuRepository {
   
   async updateMenuItem(id: string, updates: UpdateMenuItemParams): Promise<MenuItem | null> {
     try {
-      // Use type assertion to handle category type differences
       const { data, error } = await supabase
         .from('menu_items')
-        .update(updates as any) // Use type assertion here
+        .update(updates as any)
         .eq('id', id)
         .select()
         .single();
