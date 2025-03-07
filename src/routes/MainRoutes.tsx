@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
 import App from '@/App';
 import Auth from '@/pages/Auth';
@@ -12,16 +12,22 @@ const MainRoutes: React.FC = () => {
   
   return (
     <Routes>
+      {/* Routes d'authentification */}
       <Route path="/auth" element={<Auth />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       
       {/* Routes principales avec RootLayout comme wrapper */}
       <Route element={<RootLayout />}>
+        {/* Route par défaut qui redirige vers App */}
+        <Route index element={<Navigate to="/" replace />} />
+        
+        {/* Routes contenues dans App */}
         <Route path="/*" element={<App />} />
       </Route>
 
-      {/* Page 404 explicite - redondante avec le /* dans App mais utile pour le débogage */}
+      {/* Page 404 explicite pour les routes non gérées */}
       <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 };

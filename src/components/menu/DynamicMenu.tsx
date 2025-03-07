@@ -99,14 +99,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
-  // Fonction de navigation directe via useNavigate
-  const handleClick = (path: string, event: React.MouseEvent) => {
-    // Empêcher le comportement par défaut 
-    if (event) {
-      event.preventDefault();
-    }
+  // Fonction pour gérer les clics sur les éléments de menu
+  const handleMenuItemClick = (path: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     
-    console.log(`DynamicMenu: Navigation vers ${path}`);
+    console.log(`DynamicMenu: Clic sur élément de menu avec chemin ${path}`);
     
     // Utiliser la fonction navigateTo du hook personnalisé
     navigateTo(path, event);
@@ -123,7 +121,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
             "justify-start font-medium",
             isActive(item.path) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
           )}
-          onClick={(e) => handleClick(item.path, e)}
+          onClick={(e) => handleMenuItemClick(item.path, e)}
         >
           {getIcon(item.icon)}
           <span>{item.name}</span>

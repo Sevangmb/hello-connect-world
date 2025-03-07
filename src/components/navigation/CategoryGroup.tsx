@@ -1,6 +1,5 @@
 
 import React from "react";
-import { AlertCircle } from "lucide-react";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { CartIcon } from "@/components/cart/CartIcon";
 import { CategoryGroupProps } from "./types/moduleMenu";

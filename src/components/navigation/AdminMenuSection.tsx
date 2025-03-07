@@ -18,8 +18,11 @@ export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
     return null;
   }
 
-  // Utiliser le hook de navigation pour la navigation
-  const handleNavigateToAdmin = (event: React.MouseEvent) => {
+  // Gérer le clic sur le bouton de console d'administration
+  const handleAdminConsoleClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
     console.log("Navigation vers la console d'admin");
     navigateTo('/admin/dashboard', event);
   };
@@ -29,7 +32,7 @@ export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
       <CategoryGroup title="Administration" category="admin" />
       <div className="px-3 py-2 mt-2">
         <Button 
-          onClick={handleNavigateToAdmin}
+          onClick={handleAdminConsoleClick}
           variant="outline" 
           className="w-full bg-primary/5 hover:bg-primary/10 text-primary"
         >

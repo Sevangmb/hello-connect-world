@@ -3,6 +3,7 @@ import { useMenu } from "@/hooks/menu";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { MenuItem } from "@/services/menu/types";
 import { useEffect, useState } from "react";
+import { useModules } from "@/hooks/modules/useModules";
 
 /**
  * Hook pour gérer la visibilité des modules dans le menu
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 export const useModuleVisibility = (category: string) => {
   const { menuItems, loading, isUserAdmin, refreshMenu } = useMenu({ category });
   const [visibleItems, setVisibleItems] = useState<MenuItem[]>([]);
+  const { modules } = useModules();
   
   // Filtrer les éléments en fonction de la visibilité du module
   useEffect(() => {
@@ -26,15 +28,18 @@ export const useModuleVisibility = (category: string) => {
       if (item.module_code) {
         return moduleMenuCoordinator.isModuleVisibleInMenu(
           item.module_code, 
-          [] // Nous passons un tableau vide car le coordinateur a son propre cache interne
+          modules // Passer les modules chargés
         );
       }
       
       return item.is_visible !== false;
     });
     
+    console.log(`useModuleVisibility: Filtrage des éléments de menu pour la catégorie ${category}:`, 
+      `${filteredItems.length}/${menuItems.length} éléments visibles`);
+    
     setVisibleItems(filteredItems);
-  }, [menuItems, isUserAdmin]);
+  }, [menuItems, isUserAdmin, category, modules]);
   
   return {
     menuItems: visibleItems,
