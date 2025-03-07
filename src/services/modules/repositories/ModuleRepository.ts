@@ -3,7 +3,7 @@ import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
 
-// Définir un type de retour plus simple pour getModulesWithFeatures pour éviter l'instantiation de type trop profonde
+// Define a simplified return type for getModulesWithFeatures
 type ModuleWithFeatures = {
   module: {
     id: string;
@@ -232,7 +232,7 @@ export class ModuleRepository implements IModuleRepository {
       }
       
       // Créer la map des modules aux fonctionnalités
-      const moduleFeatureMap = new Map<string, ModuleWithFeatures>();
+      const moduleFeatureMap: Map<string, ModuleWithFeatures> = new Map();
       
       if (modules) {
         modules.forEach(module => {
