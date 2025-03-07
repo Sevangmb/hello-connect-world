@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -216,17 +215,21 @@ export class ModuleRepository implements IModuleRepository {
   public async getModulesWithFeatures(): Promise<ModuleWithFeatures[]> {
     try {
       // Fetch modules
-      const { data: modules, error: modulesError } = await supabase
+      const { data: modulesData, error: modulesError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
       
-      if (modulesError || !modules) {
+      if (modulesError) {
         console.error('Error fetching modules:', modulesError);
         return [];
       }
       
+      if (!modulesData) {
+        return [];
+      }
+      
       // Fetch features
-      const { data: features, error: featuresError } = await supabase
+      const { data: featuresData, error: featuresError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
         
@@ -236,41 +239,43 @@ export class ModuleRepository implements IModuleRepository {
       }
       
       // Create a map of modules to features
-      const moduleFeatureMap = new Map<string, ModuleWithFeatures>();
+      const result: ModuleWithFeatures[] = [];
       
-      // Initialize the map with all modules
-      modules.forEach(module => {
-        moduleFeatureMap.set(module.code, {
-          module: {
-            id: module.id,
-            name: module.name,
-            code: module.code,
-            description: module.description,
-            status: module.status as ModuleStatus
-          },
-          features: []
-        });
-      });
-      
-      // Add features to their respective modules
-      if (features) {
-        features.forEach(feature => {
-          const moduleCode = feature.module_code;
-          const moduleData = moduleFeatureMap.get(moduleCode);
-          
-          if (moduleData) {
-            moduleData.features.push({
-              id: feature.id,
-              feature_code: feature.feature_code,
-              feature_name: feature.feature_name,
-              description: feature.description,
-              is_enabled: feature.is_enabled
-            });
+      // Process modules
+      for (const module of modulesData) {
+        const moduleInfo: ModuleBasicInfo = {
+          id: module.id,
+          name: module.name,
+          code: module.code,
+          description: module.description,
+          status: module.status as ModuleStatus
+        };
+        
+        // Find features for this module
+        const moduleFeatures: FeatureBasicInfo[] = [];
+        
+        if (featuresData) {
+          for (const feature of featuresData) {
+            if (feature.module_code === module.code) {
+              moduleFeatures.push({
+                id: feature.id,
+                feature_code: feature.feature_code,
+                feature_name: feature.feature_name,
+                description: feature.description,
+                is_enabled: feature.is_enabled
+              });
+            }
           }
+        }
+        
+        // Add this module with its features to the result
+        result.push({
+          module: moduleInfo,
+          features: moduleFeatures
         });
       }
       
-      return Array.from(moduleFeatureMap.values());
+      return result;
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];
