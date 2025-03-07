@@ -94,10 +94,7 @@ export class MenuStructureTransformer {
       settings: '/profile/settings',
       weather: '/weather',
       ai_suggestions: '/suggestions',
-      shop_map: '/boutiques',
-      
-      // Valises spécifiquement
-      suitcases: '/wardrobe/suitcases'
+      shop_map: '/boutiques'
     };
     
     return routeMapping[menuCategory] || `/${menuCategory}`;
