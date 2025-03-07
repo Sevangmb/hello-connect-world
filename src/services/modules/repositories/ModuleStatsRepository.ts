@@ -20,10 +20,10 @@ export class ModuleStatsRepository {
         .from('module_usage_stats')
         .select('*')
         .eq('module_id', moduleId)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
-      return data || null;
+      return data as ModuleUsageStat;
     } catch (error) {
       console.error(`Error fetching usage stats for module ${moduleId}:`, error);
       return null;
