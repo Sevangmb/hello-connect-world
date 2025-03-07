@@ -1,20 +1,26 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { ModuleRepository } from '../repositories/ModuleRepository';
 import { FeatureRepository } from '../repositories/FeatureRepository';
 import { ModuleFeatureRepository } from '../repositories/ModuleFeatureRepository';
 import { moduleOptimizer } from '@/services/performance/ModuleOptimizer';
 import { IModuleService } from '../domain/interfaces/IModuleService';
-import { supabase } from '@/integrations/supabase/client';
+import { ModuleStatsRepository } from '../repositories/ModuleStatsRepository';
+import { ModuleDependencyRepository } from '../repositories/ModuleDependencyRepository';
 
 export class ModuleServiceImpl implements IModuleService {
   private moduleRepository: ModuleRepository;
   private featureRepository: FeatureRepository;
   private moduleFeatureRepository: ModuleFeatureRepository;
+  private moduleStatsRepository: ModuleStatsRepository;
+  private moduleDependencyRepository: ModuleDependencyRepository;
   
   constructor(moduleRepository: ModuleRepository) {
     this.moduleRepository = moduleRepository;
     this.featureRepository = new FeatureRepository();
     this.moduleFeatureRepository = new ModuleFeatureRepository();
+    this.moduleStatsRepository = new ModuleStatsRepository();
+    this.moduleDependencyRepository = new ModuleDependencyRepository();
   }
 
   /**
@@ -149,7 +155,7 @@ export class ModuleServiceImpl implements IModuleService {
    */
   public async getModuleDependencies(moduleId: string): Promise<any[]> {
     try {
-      return await this.moduleRepository.getModuleDependencies(moduleId);
+      return await this.moduleDependencyRepository.getModuleDependencies(moduleId);
     } catch (error) {
       console.error(`Error getting module dependencies: ${error}`);
       return [];
@@ -161,7 +167,7 @@ export class ModuleServiceImpl implements IModuleService {
    */
   public async recordModuleUsage(moduleCode: string): Promise<void> {
     try {
-      await supabase.rpc('increment_module_usage', { module_code: moduleCode });
+      await this.moduleStatsRepository.recordModuleUsage(moduleCode);
     } catch (error) {
       console.error('Error recording module usage:', error);
     }

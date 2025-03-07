@@ -1,11 +1,20 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+// Define explicit types for module usage stats
+interface ModuleUsageStat {
+  id: string;
+  module_id: string;
+  module_code: string;
+  usage_count: number;
+  last_used: string;
+}
+
 export class ModuleStatsRepository {
   /**
    * Get module usage stats
    */
-  async getModuleUsageStats(moduleId: string): Promise<any> {
+  async getModuleUsageStats(moduleId: string): Promise<ModuleUsageStat | null> {
     try {
       const { data, error } = await supabase
         .from('module_usage_stats')
