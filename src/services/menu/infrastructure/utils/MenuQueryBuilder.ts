@@ -23,7 +23,8 @@ export class MenuQueryBuilder {
    */
   static async getItemsByCategory(category: MenuItemCategory) {
     // Explicitement caster la catégorie en string pour Supabase
-    const categoryString = String(category);
+    // Utiliser la syntaxe "as const" pour assurer la compatibilité du type
+    const categoryString = category as string;
     
     return supabase
       .from('menu_items')
@@ -84,10 +85,11 @@ export class MenuQueryBuilder {
    */
   static async createItem(item: CreateMenuItemParams) {
     // Créer une copie de l'objet avec category comme string pour Supabase
+    // Utiliser type assertion pour résoudre le problème de type
     const itemForDb = {
       ...item,
-      // Convertir explicitement la catégorie en string si elle existe
-      category: item.category ? String(item.category) : undefined
+      // Forcer le type de la catégorie à any puis à string pour Supabase
+      category: item.category ? (item.category as any) : undefined
     };
     
     return supabase
@@ -104,8 +106,8 @@ export class MenuQueryBuilder {
     // Créer une copie de l'objet pour les mises à jour
     const updatesForDb = {
       ...updates,
-      // Convertir explicitement la catégorie en string si elle existe dans les mises à jour
-      category: updates.category ? String(updates.category) : undefined
+      // Forcer le type de la catégorie à any puis à string pour Supabase
+      category: updates.category ? (updates.category as any) : undefined
     };
 
     return supabase
