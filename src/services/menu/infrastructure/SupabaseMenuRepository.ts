@@ -81,7 +81,7 @@ export class MenuRepository implements IMenuRepository {
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as unknown as string) // Correction: utilisation de unknown comme intermédiaire
+        .eq('category', category) // Correction: TypeScript will correctly handle this as a string in runtime
         .order('position');
       
       if (error) {
