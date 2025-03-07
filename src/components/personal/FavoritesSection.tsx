@@ -6,31 +6,6 @@ import { FavoriteCard } from "./FavoriteCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth";
 
-// Interface pour les données brutes des tenues
-interface OutfitData {
-  id: string;
-  name?: string;
-  image_url?: string | null;
-  created_at: string;
-  is_favorite: boolean;
-  user_id: string;
-  // Autres propriétés possibles des tenues
-}
-
-// Interface pour les données brutes des vêtements
-interface ClothesData {
-  id: string;
-  name: string;
-  image_url?: string | null;
-  brand?: string;
-  category?: string;
-  created_at: string;
-  is_favorite: boolean;
-  user_id: string;
-  archived: boolean;
-  // Autres propriétés possibles des vêtements
-}
-
 // Interface unifiée pour les éléments favoris
 interface FavoriteItem {
   id: string;
@@ -79,22 +54,22 @@ export const FavoritesSection: React.FC = () => {
         if (clothesError) throw clothesError;
         
         // Transformer les données de tenues
-        const outfitItems: FavoriteItem[] = (outfitsData || []).map(item => ({
+        const outfitItems: FavoriteItem[] = (outfitsData || []).map((item: any) => ({
           id: item.id,
           name: item.name,
           type: 'outfit' as const,
-          image_url: item.image_url,
+          image_url: item.image_url || null,
           created_at: item.created_at,
           is_favorite: item.is_favorite,
           user_id: item.user_id
         }));
         
         // Transformer les données de vêtements
-        const clothesItems: FavoriteItem[] = (clothesData || []).map(item => ({
+        const clothesItems: FavoriteItem[] = (clothesData || []).map((item: any) => ({
           id: item.id,
           name: item.name,
           type: 'clothes' as const,
-          image_url: item.image_url,
+          image_url: item.image_url || null,
           created_at: item.created_at,
           brand: item.brand,
           category: item.category,
