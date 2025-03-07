@@ -31,7 +31,7 @@ export function useConnectionChecker() {
         }
 
         // Tenter une requête simple pour vérifier la connexion
-        // Utiliser une table existante au lieu de 'health_checks'
+        // Utiliser la table app_modules au lieu de health_checks qui n'existe pas
         const { data, error } = await supabase
           .from('app_modules')
           .select('*')
@@ -88,7 +88,7 @@ export function useConnectionChecker() {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, []);
+  }, [connectionStatus]);
 
   return { connectionStatus, error };
 }
