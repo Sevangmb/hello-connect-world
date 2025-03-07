@@ -12,6 +12,10 @@ export type MenuItemCategory =
   | 'profile' 
   | 'settings'
   | 'legal'
+  | 'system'
+  | 'marketplace'
+  | 'social'
+  | 'utility'
   | string; // Allow string to support module-based categories
 
 // Élément de menu
@@ -26,7 +30,11 @@ export interface MenuItem {
   is_visible?: boolean;
   module_code?: string | null;
   requires_auth?: boolean;
+  requires_admin?: boolean; // Added missing property
+  is_active?: boolean; // Added missing property
   children?: MenuItem[];
+  position?: number; // Added to match DB schema
+  description?: string; // Added to match DB schema
 }
 
 // Paramètres de création d'élément de menu

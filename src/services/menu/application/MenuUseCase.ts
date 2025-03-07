@@ -1,6 +1,6 @@
 
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
-import { MenuItem, MenuItemCategory } from '../types';
+import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
 
 /**
  * MenuUseCase class for handling menu-related logic
@@ -50,14 +50,14 @@ export class MenuUseCase {
   /**
    * Create a new menu item
    */
-  async createMenuItem(menuItemData: any) {
+  async createMenuItem(menuItemData: CreateMenuItemParams) {
     return await this.menuRepository.createMenuItem(menuItemData);
   }
 
   /**
    * Update a menu item
    */
-  async updateMenuItem(itemId: string, menuItemData: any) {
+  async updateMenuItem(itemId: string, menuItemData: UpdateMenuItemParams) {
     return await this.menuRepository.updateMenuItem(itemId, menuItemData);
   }
 

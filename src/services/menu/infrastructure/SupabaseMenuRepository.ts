@@ -1,6 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
-import { MenuItem, MenuItemCategory } from '../types';
+import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
@@ -17,7 +18,7 @@ export class MenuRepository implements IMenuRepository {
     const { data, error } = await supabase
       .from('menu_items')
       .select('*')
-      .eq('category', category)
+      .eq('category', category as string) // Use type assertion here
       .order('position');
     
     if (error) throw error;
@@ -62,10 +63,11 @@ export class MenuRepository implements IMenuRepository {
     return data;
   }
   
-  async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem | null> {
+  async createMenuItem(item: CreateMenuItemParams): Promise<MenuItem | null> {
+    // Use type assertion to handle category type differences
     const { data, error } = await supabase
       .from('menu_items')
-      .insert([item])
+      .insert([item as any]) // Use type assertion here
       .select()
       .single();
       
@@ -77,10 +79,11 @@ export class MenuRepository implements IMenuRepository {
     return data;
   }
   
-  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | null> {
+  async updateMenuItem(id: string, updates: UpdateMenuItemParams): Promise<MenuItem | null> {
+    // Use type assertion to handle category type differences
     const { data, error } = await supabase
       .from('menu_items')
-      .update(updates)
+      .update(updates as any) // Use type assertion here
       .eq('id', id)
       .select()
       .single();
