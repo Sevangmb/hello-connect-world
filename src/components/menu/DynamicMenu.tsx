@@ -1,6 +1,6 @@
 
 import React, { useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { useModules } from "@/hooks/modules/useModules";
+import { useNavigation } from "@/components/navigation/hooks/useNavigation";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -28,7 +29,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     moduleCode,
     hierarchical,
   });
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
   const location = useLocation();
   const { modules } = useModules();
 
@@ -98,13 +99,10 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     );
   }
 
-  // Fonction pour gérer la navigation sans rechargement
-  const handleNavigate = (path: string, event: React.MouseEvent) => {
-    event.preventDefault();
+  // Fonction pour gérer la navigation
+  const handleClick = (path: string, event: React.MouseEvent) => {
     console.log(`DynamicMenu: Navigation vers ${path}`);
-    if (location.pathname !== path) {
-      navigate(path);
-    }
+    navigateTo(path, event);
   };
 
   return (
@@ -118,7 +116,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
             "justify-start font-medium",
             isActive(item.path) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
           )}
-          onClick={(e) => handleNavigate(item.path, e)}
+          onClick={(e) => handleClick(item.path, e)}
         >
           {getIcon(item.icon)}
           <span>{item.name}</span>
