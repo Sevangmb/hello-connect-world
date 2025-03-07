@@ -8,6 +8,21 @@ import AdminLogin from '@/pages/AdminLogin';
 import NotFound from '@/pages/NotFound';
 import Home from '@/pages/Home';
 
+// Pages de modules
+import CoreModule from '@/pages/modules/CoreModule';
+import WardrobeModule from '@/pages/modules/WardrobeModule';
+import SocialModule from '@/pages/modules/SocialModule';
+import ShopModule from '@/pages/modules/ShopModule';
+import AdminModule from '@/pages/modules/AdminModule';
+import AIModule from '@/pages/modules/AIModule';
+import OCRModule from '@/pages/modules/OCRModule';
+import MarketplaceModule from '@/pages/modules/MarketplaceModule';
+
+// Pages de fonctionnalités
+import ScanLabelFeature from '@/pages/features/ScanLabelFeature';
+import OutfitSuggestionFeature from '@/pages/features/OutfitSuggestionFeature';
+import VirtualTryOnFeature from '@/pages/features/VirtualTryOnFeature';
+
 const MainRoutes: React.FC = () => {
   console.log("MainRoutes: Rendu des routes principales");
   
@@ -22,6 +37,31 @@ const MainRoutes: React.FC = () => {
         {/* Route racine explicite pour Home */}
         <Route index element={<Home />} />
         <Route path="/" element={<Home />} />
+        
+        {/* Routes de modules */}
+        <Route path="/module">
+          <Route path="core" element={<CoreModule />} />
+          <Route path="wardrobe" element={<WardrobeModule />} />
+          <Route path="social" element={<SocialModule />} />
+          <Route path="shop" element={<ShopModule />} />
+          <Route path="admin" element={<AdminModule />} />
+          <Route path="ai" element={<AIModule />} />
+          <Route path="ocr" element={<OCRModule />} />
+          <Route path="marketplace" element={<MarketplaceModule />} />
+        </Route>
+        
+        {/* Routes de fonctionnalités */}
+        <Route path="/feature">
+          <Route path="scan-label" element={<ScanLabelFeature />} />
+          <Route path="outfit-suggestion" element={<OutfitSuggestionFeature />} />
+          <Route path="virtual-try-on" element={<VirtualTryOnFeature />} />
+        </Route>
+        
+        {/* Raccourcis directs pour certaines fonctionnalités */}
+        <Route path="/scan-label" element={<ScanLabelFeature />} />
+        <Route path="/outfit-suggestion" element={<OutfitSuggestionFeature />} />
+        <Route path="/virtual-try-on" element={<VirtualTryOnFeature />} />
+        <Route path="/ocr" element={<OCRModule />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
