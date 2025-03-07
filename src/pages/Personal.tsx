@@ -36,11 +36,11 @@ const Personal: React.FC = () => {
           .select("*")
           .eq("user_id", user.id)
           .eq("archived", false)
-          .order("created_at", { ascending: false })
-          .limit(9);
+          .order("created_at", { ascending: false });
         
         if (clothesError) throw clothesError;
         setClothingItems(clothesData || []);
+        console.log("Personal: Vêtements chargés:", clothesData?.length || 0);
         
         // Récupérer les tenues
         const { data: outfitsData, error: outfitsError } = await supabase
@@ -52,6 +52,7 @@ const Personal: React.FC = () => {
         
         if (outfitsError) throw outfitsError;
         setOutfits(outfitsData || []);
+        console.log("Personal: Tenues chargées:", outfitsData?.length || 0);
         
         console.log("Personal: Données chargées avec succès");
       } catch (error) {
