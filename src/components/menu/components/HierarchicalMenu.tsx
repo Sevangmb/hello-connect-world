@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MenuItem } from "@/services/menu/types";
 import { MenuItemComponent } from "./MenuItem";
@@ -19,6 +19,8 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
   onNavigate,
   currentPath
 }) => {
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  
   // Organiser les éléments en une hiérarchie
   const buildHierarchy = (items: MenuItem[]): MenuItem[] => {
     const rootItems: MenuItem[] = [];
@@ -51,7 +53,16 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
       }
     });
     
-    return rootItems;
+    // Trier les éléments par ordre (si disponible)
+    return rootItems.sort((a, b) => (a.order || 999) - (b.order || 999));
+  };
+  
+  // Fonction pour basculer l'état d'expansion d'un élément
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
   };
   
   const hierarchicalItems = buildHierarchy(menuItems);
@@ -61,9 +72,12 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
       {hierarchicalItems.map((item) => {
         const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
         const isItemActive = isActiveRoute(normalizedPath, currentPath);
+        const hasChildren = item.children && item.children.length > 0;
         
         // Si l'élément a des enfants, utiliser le composant SubMenu
-        if (item.children && item.children.length > 0) {
+        if (hasChildren) {
+          const isExpanded = expandedItems[item.id] || isItemActive;
+          
           return (
             <SubMenu
               key={item.id}
@@ -72,6 +86,8 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
               isActive={isItemActive}
               onNavigate={onNavigate}
               currentPath={currentPath}
+              isExpanded={isExpanded}
+              onToggleExpand={() => toggleItemExpansion(item.id)}
             />
           );
         }

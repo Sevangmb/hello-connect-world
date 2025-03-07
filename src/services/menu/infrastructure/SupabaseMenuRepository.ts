@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -25,12 +26,13 @@ export class MenuRepository implements IMenuRepository {
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
-        .eq('is_active', true) 
+        .eq('category', category)
+        .eq('is_active', true)
         .order('position');
       
       if (error) throw error;
       
-      return (data as MenuItem[]).filter(item => item.category === category);
+      return data as MenuItem[];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
       throw error;
@@ -39,20 +41,25 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
+      // Vérifier si le module est actif via le moduleApiGateway
       const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
+      // Si le module n'est pas actif et que l'utilisateur n'est pas admin,
+      // et que ce n'est pas le module admin, retourner un tableau vide
       if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
         console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
         return [];
       }
       
+      // Construire la requête en fonction du statut admin
       let query = supabase
         .from('menu_items')
         .select('*')
         .eq('module_code', moduleCode)
         .eq('is_active', true)
         .order('position', { ascending: true });
-        
+      
+      // Si l'utilisateur n'est pas admin, filtrer les éléments qui nécessitent des droits admin
       if (!isAdmin) {
         query = query.eq('requires_admin', false).eq('is_visible', true);
       }
@@ -60,11 +67,11 @@ export class MenuRepository implements IMenuRepository {
       const { data, error } = await query;
       
       if (error) {
-        console.error(`Error fetching menu items for module ${moduleCode}:`, error);
+        console.error(`Erreur lors de la récupération des éléments de menu pour le module ${moduleCode}:`, error);
         throw error;
       }
       
-      return data;
+      return data || [];
     } catch (err) {
       console.error(`Exception lors du chargement des éléments de menu pour le module ${moduleCode}:`, err);
       throw err;
@@ -81,11 +88,11 @@ export class MenuRepository implements IMenuRepository {
         .order('position', { ascending: true });
         
       if (error) {
-        console.error(`Error fetching menu items for parent ${parentId}:`, error);
+        console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
         throw error;
       }
       
-      return data;
+      return data || [];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
       throw error;

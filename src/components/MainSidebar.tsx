@@ -23,7 +23,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
   const sidebarClasses = useMemo(() => cn(
     "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-200 pt-5 pb-4 flex flex-col",
     "md:z-30 md:pt-20 md:translate-x-0 transition-transform duration-200 ease-out",
-    isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+    isMobileOpen ? "translate-x-0 shadow-lg" : "-translate-x-full md:translate-x-0",
     className
   ), [isMobileOpen, className]);
   
@@ -35,11 +35,13 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
 
   return (
     <>
+      {/* Overlay pour mobile */}
       <div 
         className={overlayClasses}
         onClick={onMobileClose}
       />
       
+      {/* Sidebar principal */}
       <aside className={sidebarClasses}>
         {/* En-tête avec logo */}
         <div className="px-4 flex items-center justify-between md:hidden">
@@ -64,7 +66,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
         </div>
         
         {/* Profil utilisateur */}
-        <div className="px-3 mt-2 mb-1">
+        <div className="px-3 mt-2 mb-2">
           <UserButton className="w-full" />
         </div>
       </aside>

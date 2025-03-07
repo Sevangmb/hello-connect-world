@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItem } from "@/services/menu/types";
-import { ChevronDown, ChevronRight } from "lucide-react";
 import { MenuItemComponent } from "./MenuItem";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { isActiveRoute } from "../utils/menuUtils";
 
 interface SubMenuProps {
@@ -13,6 +13,8 @@ interface SubMenuProps {
   isActive: boolean;
   onNavigate: (path: string, event: React.MouseEvent) => void;
   currentPath: string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export const SubMenu: React.FC<SubMenuProps> = ({
@@ -20,78 +22,75 @@ export const SubMenu: React.FC<SubMenuProps> = ({
   children,
   isActive,
   onNavigate,
-  currentPath
+  currentPath,
+  isExpanded = false,
+  onToggleExpand
 }) => {
-  const [isOpen, setIsOpen] = useState(isActive);
-  
-  // Déterminer si au moins un enfant est actif
+  // Vérifier si un sous-élément est actif
   const hasActiveChild = children.some(child => {
     const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
     return isActiveRoute(childPath, currentPath);
   });
   
-  // Ouvrir automatiquement si un enfant est actif
-  React.useEffect(() => {
-    if (hasActiveChild && !isOpen) {
-      setIsOpen(true);
-    }
-  }, [hasActiveChild, isOpen]);
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsOpen(!isOpen);
-  };
-
+  // Si un enfant est actif, considérer le parent comme actif
+  const isParentActive = isActive || hasActiveChild;
+  
+  // Utiliser l'état d'expansion (défini par le parent ou automatiquement basé sur l'activité)
+  const shouldExpand = isExpanded || isParentActive;
+  
+  // Obtenir le chemin normalisé
   const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
-
+  
   return (
-    <div className="w-full space-y-1">
+    <div className="space-y-1">
       <Button
-        variant={isActive || hasActiveChild ? "secondary" : "ghost"}
+        variant="ghost"
         size="sm"
         className={cn(
-          "justify-between font-medium w-full py-2",
-          (isActive || hasActiveChild) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+          "justify-between font-medium w-full py-2 px-3 rounded-md",
+          isParentActive 
+            ? "bg-primary/10 text-primary hover:bg-primary/15" 
+            : "text-gray-700 hover:text-primary hover:bg-primary/5"
         )}
         onClick={(e) => {
-          if (normalizedPath && normalizedPath !== '#') {
-            onNavigate(normalizedPath, e);
+          // Si onToggleExpand est fourni, l'utiliser pour basculer l'expansion
+          if (onToggleExpand) {
+            e.preventDefault();
+            onToggleExpand();
           } else {
-            handleToggle(e);
+            // Sinon, naviguer vers la page
+            onNavigate(normalizedPath, e);
           }
         }}
       >
-        <span className="flex items-center truncate">
+        <span className="flex items-center text-sm">
           {item.icon && (
-            <span className="mr-2">
-              {React.createElement(
-                // @ts-ignore - Les icônes sont dynamiques
-                require("lucide-react")[item.icon] || (() => null),
-                { className: "h-4 w-4" }
-              )}
+            <span className="mr-2 text-inherit">
+              {/* Render icon component here if needed */}
             </span>
           )}
           <span className="truncate">{item.name}</span>
         </span>
-        <button onClick={handleToggle} className="p-1">
-          {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        </button>
+        {children.length > 0 && (
+          shouldExpand 
+            ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-inherit" /> 
+            : <ChevronRight className="h-4 w-4 flex-shrink-0 text-inherit" />
+        )}
       </Button>
       
-      {isOpen && (
-        <div className="pl-4 ml-2 border-l-2 border-gray-200 space-y-1">
+      {shouldExpand && children.length > 0 && (
+        <div className="ml-4 pl-2 border-l border-gray-200 space-y-1">
           {children.map(child => {
             const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
             const isChildActive = isActiveRoute(childPath, currentPath);
+            const hasGrandchildren = child.children && child.children.length > 0;
             
-            // Vérifier si l'enfant a lui-même des enfants
-            if (child.children && child.children.length > 0) {
+            if (hasGrandchildren) {
               return (
                 <SubMenu
                   key={child.id}
                   item={child}
-                  children={child.children}
+                  children={child.children || []}
                   isActive={isChildActive}
                   onNavigate={onNavigate}
                   currentPath={currentPath}
@@ -105,7 +104,7 @@ export const SubMenu: React.FC<SubMenuProps> = ({
                 item={child}
                 isActive={isChildActive}
                 onNavigate={onNavigate}
-                hierarchical={false}
+                hierarchical={true}
               />
             );
           })}

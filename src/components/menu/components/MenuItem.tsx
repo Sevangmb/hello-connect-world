@@ -3,7 +3,6 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItem as MenuItemType } from "@/services/menu/types";
-import { ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getIcon } from "../utils/menuUtils";
 
@@ -28,72 +27,46 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
     if (!item.icon) return null;
     
     const IconComponent = getIcon(item.icon);
-    // Use type assertion to help TypeScript understand this can be a React component
     if (IconComponent) {
-      return React.createElement(IconComponent as React.ComponentType<any>, { className: "h-4 w-4 mr-2" });
+      return React.createElement(IconComponent as React.ComponentType<any>, { 
+        className: "h-4 w-4 mr-2 flex-shrink-0" 
+      });
     }
     return null;
   };
   
-  // Pour les éléments avec des enfants en mode hiérarchique
-  if (hierarchical && item.children && item.children.length > 0) {
-    return (
-      <div className="space-y-1">
-        <Button
-          variant={isActive ? "secondary" : "ghost"}
-          size="sm"
-          className={cn(
-            "justify-between font-medium w-full py-2",
-            isActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
-          )}
-          onClick={(e) => onNavigate(normalizedPath, e)}
-        >
-          <span className="flex items-center">
-            {renderIcon()}
-            <span className="truncate">{item.name}</span>
-          </span>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-        <div className="pl-4 border-l-2 border-gray-200 ml-3 space-y-1">
-          {item.children.map(child => {
-            const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
-            
-            return (
-              <MenuItemComponent
-                key={child.id}
-                item={child}
-                isActive={false} // Calculé dans le composant parent
-                onNavigate={onNavigate}
-                hierarchical={false}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+  // Style de base pour tous les boutons de menu
+  const baseButtonClasses = "justify-start text-sm font-medium w-full py-2 rounded-md transition-colors";
   
-  // Pour les éléments simples sans enfants ou non hiérarchiques
+  // Classes additionnelles basées sur l'état actif et le mode hiérarchique
+  const additionalClasses = isActive
+    ? "bg-primary/10 text-primary hover:bg-primary/15"
+    : "text-gray-700 hover:text-primary hover:bg-primary/5";
+  
+  // Classes spécifiques au mode hiérarchique
+  const hierarchicalClasses = hierarchical
+    ? "px-2"
+    : "px-3";
+  
   return (
     <TooltipProvider>
       <Tooltip delayDuration={300}>
         <TooltipTrigger asChild>
           <Button
-            variant={isActive ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
-            className={cn(
-              "justify-start font-medium w-full py-2",
-              isActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
-            )}
+            className={cn(baseButtonClasses, additionalClasses, hierarchicalClasses)}
             onClick={(e) => onNavigate(normalizedPath, e)}
           >
             {renderIcon()}
             <span className="truncate">{item.name}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="right">
-          <p>{item.description || item.name}</p>
-        </TooltipContent>
+        {item.description && (
+          <TooltipContent side="right" align="center" className="max-w-xs">
+            <p className="text-sm">{item.description}</p>
+          </TooltipContent>
+        )}
       </Tooltip>
     </TooltipProvider>
   );

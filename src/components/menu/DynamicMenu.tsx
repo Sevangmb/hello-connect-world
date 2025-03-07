@@ -79,8 +79,6 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
       targetPath = `/${targetPath}`;
     }
     
-    console.log(`DynamicMenu: Navigation vers ${targetPath}`);
-    
     // Forcer la navigation même si on est déjà sur le chemin
     if (location.pathname === targetPath) {
       // Pour forcer un rafraîchissement sans recharger la page
@@ -91,24 +89,19 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     }
   };
 
-  // Afficher un état de chargement
-  if (loading) {
-    return <MenuLoadingState className={className} />;
+  // Afficher un état de chargement (minimal et silencieux)
+  if (loading && !menuItems.length) {
+    return <div className="p-2 text-center text-gray-400 text-sm italic">Chargement...</div>;
   }
 
-  // Afficher un état d'erreur
+  // Afficher un état d'erreur (minimal)
   if (error) {
-    return <MenuErrorState />;
-  }
-
-  // Afficher l'état non-initialisé
-  if (!modulesInitialized) {
-    return <MenuEmptyState isInitialized={false} />;
+    return <div className="p-2 text-center text-red-500 text-sm">Erreur de chargement</div>;
   }
 
   // Afficher l'état vide
   if (visibleMenuItems.length === 0) {
-    return <MenuEmptyState isUserAdmin={isUserAdmin} category={category} />;
+    return <div className="p-2 text-center text-gray-400 text-sm italic">Aucun élément</div>;
   }
 
   // Rendre le menu hiérarchique ou standard
