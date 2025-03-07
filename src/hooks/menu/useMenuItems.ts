@@ -1,5 +1,4 @@
 
-// Update the menu items implementation to fix the arguments error
 import { useQuery } from '@tanstack/react-query';
 import { getMenuService } from '@/services/menu/infrastructure/menuServiceProvider';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
@@ -65,15 +64,17 @@ export const useMenuItemsByCategory = (category: MenuItemCategory) => {
 };
 
 // Function to get menu items by module
-export const useMenuItemsByModule = (moduleCode: string) => {
+export const useMenuItemsByModule = (moduleCode: string, isAdmin: boolean = false) => {
   const { toast } = useToast();
   
   return useQuery({
-    queryKey: ['menuItems', 'module', moduleCode],
+    queryKey: ['menuItems', 'module', moduleCode, isAdmin],
     queryFn: async () => {
       try {
+        console.log(`Fetching menu items for module: ${moduleCode}, isAdmin: ${isAdmin}`);
         const menuService = getMenuService();
-        const items = await menuService.getMenuItemsByModule(moduleCode);
+        const items = await menuService.getMenuItemsByModule(moduleCode, isAdmin);
+        console.log(`Retrieved ${items.length} items for module ${moduleCode}`);
         return items;
       } catch (error) {
         console.error(`Erreur lors de la récupération des éléments de menu pour le module ${moduleCode}:`, error);
@@ -100,8 +101,10 @@ export const useMenuItemsByParent = (parentId: string | null) => {
     queryKey: ['menuItems', 'parent', parentId],
     queryFn: async () => {
       try {
+        console.log(`Fetching menu items with parent_id: ${parentId}`);
         const menuService = getMenuService();
         const items = await menuService.getMenuItemsByParent(parentId);
+        console.log(`Retrieved ${items.length} child items for parent ${parentId}`);
         return items;
       } catch (error) {
         console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);

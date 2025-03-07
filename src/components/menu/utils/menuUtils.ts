@@ -8,13 +8,15 @@ import * as LucideIcons from "lucide-react";
 export const isActiveRoute = (path: string, currentPath: string): boolean => {
   // Normaliser le chemin pour la comparaison
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedCurrentPath = currentPath.startsWith('/') ? currentPath : `/${currentPath}`;
   
   if (normalizedPath === '/') {
-    return currentPath === '/' || currentPath === '';
+    return normalizedCurrentPath === '/' || normalizedCurrentPath === '';
   }
   
-  return currentPath === normalizedPath || 
-         currentPath.startsWith(`${normalizedPath}/`);
+  // Vérifier si le chemin actuel correspond exactement ou est un sous-chemin
+  return normalizedCurrentPath === normalizedPath || 
+         normalizedCurrentPath.startsWith(`${normalizedPath}/`);
 };
 
 /**
@@ -31,6 +33,7 @@ export const getIcon = (iconName: string | undefined) => {
 
 /**
  * Liste des routes valides existantes pour vérification
+ * Cette liste est extensible selon les besoins de l'application
  */
 export const validRoutes = [
   '/',
@@ -43,10 +46,13 @@ export const validRoutes = [
   '/social/challenges',
   '/social/friends',
   '/social/messages',
+  '/social/groups',
+  '/wardrobe',
   '/wardrobe/outfits',
   '/wardrobe/suitcases',
   '/boutiques',
   '/cart',
+  '/admin',
   '/admin/dashboard',
   '/admin/modules', 
   '/admin/users',
@@ -87,9 +93,74 @@ export const validRoutes = [
 export const routeExists = (path: string): boolean => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
+  // Check if path exactly matches a route or is a sub-route
   return validRoutes.some(route => 
     route === normalizedPath || 
     route.startsWith(`${normalizedPath}/`) ||
     normalizedPath.startsWith(`${route}/`)
   );
+};
+
+/**
+ * Construire une hiérarchie de menus
+ */
+export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
+  if (!items || items.length === 0) {
+    return [];
+  }
+  
+  // Map pour stocker les items par ID pour un accès rapide
+  const itemMap = new Map<string, MenuItem & { children: MenuItem[] }>();
+  
+  // Première passe : créer une copie de chaque item avec un tableau children vide
+  items.forEach(item => {
+    itemMap.set(item.id, { ...item, children: [] });
+  });
+  
+  // Identifier les items racine (sans parent)
+  const rootItems: MenuItem[] = [];
+  
+  // Deuxième passe : construire la hiérarchie
+  items.forEach(item => {
+    const itemCopy = itemMap.get(item.id);
+    if (!itemCopy) return;
+    
+    if (item.parent_id && itemMap.has(item.parent_id)) {
+      // Cet item a un parent valide, l'ajouter comme enfant
+      const parent = itemMap.get(item.parent_id);
+      if (parent) {
+        parent.children.push(itemCopy);
+      }
+    } else {
+      // C'est un item racine
+      rootItems.push(itemCopy);
+    }
+  });
+  
+  // Trier les items racine et les enfants par position/ordre
+  const sortItems = (items: MenuItem[]) => {
+    return items.sort((a, b) => {
+      if (a.position !== undefined && b.position !== undefined) {
+        return a.position - b.position;
+      }
+      return (a.order || 999) - (b.order || 999);
+    });
+  };
+  
+  // Trier les items racine
+  const sortedRootItems = sortItems(rootItems);
+  
+  // Trier récursivement tous les enfants
+  const sortChildrenRecursively = (items: MenuItem[]) => {
+    items.forEach(item => {
+      if (item.children && item.children.length > 0) {
+        item.children = sortItems(item.children);
+        sortChildrenRecursively(item.children);
+      }
+    });
+  };
+  
+  sortChildrenRecursively(sortedRootItems);
+  
+  return sortedRootItems;
 };

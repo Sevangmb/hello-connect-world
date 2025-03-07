@@ -1,6 +1,7 @@
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MenuItem } from '@/services/menu/types';
+import { useMenuItemsByParent } from './useMenuItems';
 
 interface UseMenuProcessorOptions {
   menuItems: MenuItem[];
@@ -22,6 +23,11 @@ export const useMenuProcessor = ({
   setError,
   toast
 }: UseMenuProcessorOptions) => {
+  
+  // Identifier les éléments racine (sans parent_id)
+  const rootItemIds = useMemo(() => {
+    return new Set(rawItems.filter(item => !item.parent_id).map(item => item.id));
+  }, [rawItems]);
   
   // Filtrer et traiter les éléments du menu
   useEffect(() => {
@@ -46,7 +52,7 @@ export const useMenuProcessor = ({
 
       // Gérer la structure hiérarchique si nécessaire
       if (hierarchical) {
-        // Implémentation simple de la hiérarchie
+        // Créer une carte pour un accès rapide aux éléments
         const itemsMap = new Map<string, MenuItem & { children: MenuItem[] }>();
         
         // Première passe : créer des entrées pour chaque élément
@@ -64,13 +70,34 @@ export const useMenuProcessor = ({
             if (parent) {
               parent.children.push(item);
             }
-          } else {
+          } else if (rootItemIds.has(item.id) || !item.parent_id) {
             // Élément racine
             rootItems.push(item);
           }
         });
         
-        setMenuItems(rootItems);
+        // Trier les éléments racine par position/ordre
+        const sortedRootItems = rootItems.sort((a, b) => {
+          if (a.position !== undefined && b.position !== undefined) {
+            return a.position - b.position;
+          }
+          return (a.order || 999) - (b.order || 999);
+        });
+        
+        // Trier les enfants de chaque élément
+        itemsMap.forEach(item => {
+          if (item.children.length > 0) {
+            item.children.sort((a, b) => {
+              if (a.position !== undefined && b.position !== undefined) {
+                return a.position - b.position;
+              }
+              return (a.order || 999) - (b.order || 999);
+            });
+          }
+        });
+        
+        console.log(`Menu processor: Found ${rootItems.length} root items and ${filteredItems.length - rootItems.length} child items`);
+        setMenuItems(sortedRootItems);
       } else {
         setMenuItems(filteredItems);
       }
@@ -87,5 +114,5 @@ export const useMenuProcessor = ({
         variant: "destructive"
       });
     }
-  }, [rawItems, isUserAdmin, hierarchical, setMenuItems, setError, toast]);
+  }, [rawItems, isUserAdmin, hierarchical, setMenuItems, setError, toast, rootItemIds]);
 };

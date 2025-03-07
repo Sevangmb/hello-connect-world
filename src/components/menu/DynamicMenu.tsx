@@ -51,9 +51,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Filtrer les éléments de menu visibles et vérifier si les routes existent
   const visibleMenuItems = useMemo(() => {
-    if (!menuItems || !modulesInitialized) return [];
+    if (!menuItems || !modulesInitialized) {
+      console.log(`No visible menu items: menuItems.length=${menuItems?.length || 0}, modulesInitialized=${modulesInitialized}`);
+      return [];
+    }
     
-    return menuItems
+    const filtered = menuItems
       .filter(item => {
         // Vérifier si le module est visible
         const moduleVisible = !item.module_code || isMenuItemVisible(item.module_code);
@@ -64,10 +67,26 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         // Vérifier si la route existe
         const validRoute = routeExists(normalizedPath);
         
-        return moduleVisible && validRoute && item.is_visible !== false;
+        const isVisible = moduleVisible && validRoute && item.is_visible !== false;
+        
+        if (!isVisible) {
+          console.log(`Menu item "${item.name}" is filtered out:`, 
+            `moduleVisible=${moduleVisible}, validRoute=${validRoute}, is_visible=${item.is_visible}`);
+        }
+        
+        return isVisible;
       })
-      .sort((a, b) => (a.order || 999) - (b.order || 999));
-  }, [menuItems, isMenuItemVisible, modulesInitialized]);
+      .sort((a, b) => {
+        // Utiliser position si défini, sinon order
+        if (a.position !== undefined && b.position !== undefined) {
+          return a.position - b.position;
+        }
+        return (a.order || 999) - (b.order || 999);
+      });
+    
+    console.log(`Filtered ${filtered.length}/${menuItems.length} visible menu items for category: ${category || 'all'}`);
+    return filtered;
+  }, [menuItems, isMenuItemVisible, modulesInitialized, category]);
 
   // Gérer la navigation
   const handleNavigate = (path: string, event: React.MouseEvent) => {
@@ -78,6 +97,8 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     if (!targetPath.startsWith('/')) {
       targetPath = `/${targetPath}`;
     }
+    
+    console.log(`Navigating to: ${targetPath}`);
     
     // Forcer la navigation même si on est déjà sur le chemin
     if (location.pathname === targetPath) {
@@ -91,21 +112,21 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Afficher un état de chargement (minimal et silencieux)
   if (loading && !menuItems.length) {
-    return <div className="p-2 text-center text-gray-400 text-sm italic">Chargement...</div>;
+    return <MenuLoadingState />;
   }
 
   // Afficher un état d'erreur (minimal)
   if (error) {
-    return <div className="p-2 text-center text-red-500 text-sm">Erreur de chargement</div>;
+    return <MenuErrorState error={error} />;
   }
 
   // Afficher l'état vide
   if (visibleMenuItems.length === 0) {
-    return <div className="p-2 text-center text-gray-400 text-sm italic">Aucun élément</div>;
+    return <MenuEmptyState category={category} />;
   }
 
   // Rendre le menu hiérarchique ou standard
-  return hierarchical && category === 'admin' ? (
+  return hierarchical ? (
     <HierarchicalMenu 
       menuItems={visibleMenuItems} 
       className={className} 

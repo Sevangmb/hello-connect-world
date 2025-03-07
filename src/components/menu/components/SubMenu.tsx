@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItem } from "@/services/menu/types";
@@ -26,20 +26,64 @@ export const SubMenu: React.FC<SubMenuProps> = ({
   isExpanded = false,
   onToggleExpand
 }) => {
-  // Vérifier si un sous-élément est actif
-  const hasActiveChild = children.some(child => {
+  const [subExpandedItems, setSubExpandedItems] = useState<Record<string, boolean>>({});
+  const [processedChildren, setProcessedChildren] = useState<MenuItem[]>([]);
+  
+  // Check if any child is active
+  useEffect(() => {
+    const hasActiveChild = children.some(child => {
+      const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
+      const isChildActive = isActiveRoute(childPath, currentPath);
+      
+      // Auto-expand parent if child is active
+      if (isChildActive && onToggleExpand && !isExpanded) {
+        onToggleExpand();
+      }
+      
+      return isChildActive;
+    });
+    
+    // Sort children by position or order
+    const sortedChildren = [...children].sort((a, b) => {
+      if (a.position !== undefined && b.position !== undefined) {
+        return a.position - b.position;
+      }
+      return (a.order || 999) - (b.order || 999);
+    });
+    
+    setProcessedChildren(sortedChildren);
+    
+    // Auto-expand children that are active
+    const newExpandedState: Record<string, boolean> = {};
+    children.forEach(child => {
+      const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
+      if (isActiveRoute(childPath, currentPath)) {
+        newExpandedState[child.id] = true;
+      }
+    });
+    
+    setSubExpandedItems(prev => ({...prev, ...newExpandedState}));
+  }, [children, currentPath, isExpanded, onToggleExpand]);
+  
+  // If parent has active child, consider it active
+  const isParentActive = isActive || processedChildren.some(child => {
     const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
     return isActiveRoute(childPath, currentPath);
   });
   
-  // Si un enfant est actif, considérer le parent comme actif
-  const isParentActive = isActive || hasActiveChild;
-  
-  // Utiliser l'état d'expansion (défini par le parent ou automatiquement basé sur l'activité)
+  // Use the expansion state
   const shouldExpand = isExpanded || isParentActive;
   
-  // Obtenir le chemin normalisé
+  // Normalize path
   const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+  
+  // Toggle function for sub-items
+  const toggleSubItemExpansion = (itemId: string) => {
+    setSubExpandedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
   
   return (
     <div className="space-y-1">
@@ -53,12 +97,12 @@ export const SubMenu: React.FC<SubMenuProps> = ({
             : "text-gray-700 hover:text-primary hover:bg-primary/5"
         )}
         onClick={(e) => {
-          // Si onToggleExpand est fourni, l'utiliser pour basculer l'expansion
-          if (onToggleExpand) {
+          // Toggle expansion if children exist
+          if (onToggleExpand && processedChildren.length > 0) {
             e.preventDefault();
             onToggleExpand();
           } else {
-            // Sinon, naviguer vers la page
+            // Navigate to the page if no children or no toggle handler
             onNavigate(normalizedPath, e);
           }
         }}
@@ -66,23 +110,26 @@ export const SubMenu: React.FC<SubMenuProps> = ({
         <span className="flex items-center text-sm">
           {item.icon && (
             <span className="mr-2 text-inherit">
-              {/* Render icon component here if needed */}
+              {/* Icon would be rendered here */}
             </span>
           )}
           <span className="truncate">{item.name}</span>
         </span>
-        {children.length > 0 && (
+        {processedChildren.length > 0 && (
           shouldExpand 
             ? <ChevronDown className="h-4 w-4 flex-shrink-0 text-inherit" /> 
             : <ChevronRight className="h-4 w-4 flex-shrink-0 text-inherit" />
         )}
       </Button>
       
-      {shouldExpand && children.length > 0 && (
+      {shouldExpand && processedChildren.length > 0 && (
         <div className="ml-4 pl-2 border-l border-gray-200 space-y-1">
-          {children.map(child => {
+          {processedChildren.map(child => {
             const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
             const isChildActive = isActiveRoute(childPath, currentPath);
+            const isChildExpanded = subExpandedItems[child.id] || isChildActive;
+            
+            // Check if this child has its own children
             const hasGrandchildren = child.children && child.children.length > 0;
             
             if (hasGrandchildren) {
@@ -94,6 +141,8 @@ export const SubMenu: React.FC<SubMenuProps> = ({
                   isActive={isChildActive}
                   onNavigate={onNavigate}
                   currentPath={currentPath}
+                  isExpanded={isChildExpanded}
+                  onToggleExpand={() => toggleSubItemExpansion(child.id)}
                 />
               );
             }

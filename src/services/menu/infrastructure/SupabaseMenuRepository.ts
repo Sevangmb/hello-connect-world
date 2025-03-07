@@ -24,13 +24,12 @@ export class MenuRepository implements IMenuRepository {
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
       console.log(`Fetching menu items for category: ${category}`);
-      // Type assertion is needed here because Supabase's typing is expecting a specific set of literals
-      // but our MenuItemCategory can have additional values
+      
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as any) // Using type assertion to bypass TypeScript's type checking
+        .eq('category', category as any) // Using type assertion for flexibility
         .order('position');
       
       if (error) {
@@ -82,6 +81,8 @@ export class MenuRepository implements IMenuRepository {
   
   async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
     try {
+      console.log(`Fetching menu items with parent_id: ${parentId}`);
+      
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -94,6 +95,7 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
+      console.log(`Retrieved ${data?.length || 0} child menu items for parent ${parentId}`);
       return data || [];
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
