@@ -117,7 +117,8 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   // Afficher un état d'erreur (minimal)
   if (error) {
-    return <MenuErrorState error={error} />;
+    // Correction ici: utiliser message au lieu de error
+    return <MenuErrorState message={error} />;
   }
 
   // Afficher l'état vide
