@@ -18,15 +18,11 @@ const MainRoutes: React.FC = () => {
       
       {/* Routes principales avec RootLayout comme wrapper */}
       <Route element={<RootLayout />}>
-        {/* Route par défaut qui redirige vers App */}
-        <Route index element={<Navigate to="/" replace />} />
-        
-        {/* Routes contenues dans App */}
+        {/* App contient toutes les routes imbriquées */}
         <Route path="/*" element={<App />} />
       </Route>
 
       {/* Page 404 explicite pour les routes non gérées */}
-      <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

@@ -30,10 +30,12 @@ export const useNavigation = () => {
       return;
     }
     
+    // Normaliser le chemin (supprimer le slash initial si présent)
+    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    
     // Effectuer la navigation
     try {
-      // Utiliser navigate sans options supplémentaires pour une navigation simple
-      navigate(path);
+      navigate(normalizedPath);
     } catch (error) {
       console.error(`Erreur lors de la navigation vers ${path}:`, error);
     }

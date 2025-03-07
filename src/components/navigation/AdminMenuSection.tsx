@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import CategoryGroup from "./CategoryGroup";
-import { useNavigation } from "./hooks/useNavigation";
+import { useNavigate } from "react-router-dom";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
@@ -11,7 +11,7 @@ interface AdminMenuSectionProps {
 export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
   isUserAdmin
 }) => {
-  const { navigateTo } = useNavigation();
+  const navigate = useNavigate();
 
   // Retourner null si l'utilisateur n'est pas admin
   if (!isUserAdmin) {
@@ -24,7 +24,7 @@ export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
     event.stopPropagation();
     
     console.log("Navigation vers la console d'admin");
-    navigateTo('/admin/dashboard', event);
+    navigate("admin/dashboard");
   };
 
   return (

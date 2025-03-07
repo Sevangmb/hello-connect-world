@@ -3,7 +3,8 @@ import React, { Suspense, lazy } from 'react';
 import {
   Route,
   Routes,
-  Navigate
+  Navigate,
+  useNavigate
 } from 'react-router-dom';
 import { useAuth } from '@/modules/auth';
 import { ModuleGuard } from '@/components/modules/ModuleGuard';
@@ -13,7 +14,7 @@ import { CartPage } from './components/cart';
 // Lazy load components
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Admin = lazy(() => import('./pages/admin/AdminDashboard')); // Changed from Admin to AdminDashboard
+const Admin = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminModules = lazy(() => import('./pages/admin/AdminModules'));
 const AdminShops = lazy(() => import('./pages/admin/AdminShops'));
 const Shops = lazy(() => import('./pages/Shops'));
@@ -29,6 +30,7 @@ const About = () => <div className="container mx-auto p-8"><h1 className="text-2
 
 function App() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Create a fallback UI for error boundary
   const fallbackUI = (
@@ -37,7 +39,7 @@ function App() {
         <h2 className="text-2xl font-bold text-red-600 mb-4">Une erreur est survenue</h2>
         <p className="mb-4">Nous sommes désolés pour ce désagrément.</p>
         <button 
-          onClick={() => window.location.href = '/'} 
+          onClick={() => navigate('/')} 
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Retour à l'accueil
@@ -48,23 +50,25 @@ function App() {
 
   return (
     <ErrorBoundary fallback={fallbackUI}>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>}>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
-          <Route path="/admin/modules" element={<ModuleGuard moduleCode="admin"><AdminModules /></ModuleGuard>} />
-          <Route path="/admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
-          <Route path="/boutiques" element={<ModuleGuard moduleCode="shop"><Shops /></ModuleGuard>} />
-          <Route path="/boutiques/:shopId" element={<ModuleGuard moduleCode="shop"><ShopDetail /></ModuleGuard>} />
-          <Route path="/legal" element={<Legal />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/404" element={<NotFound />} />
-          <Route path="/cart" element={<ModuleGuard moduleCode="shop"><CartPage /></ModuleGuard>} />
-          <Route path="*" element={<Navigate to="/404" replace />} />
+          <Route index element={<Home />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="admin" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
+          <Route path="admin/modules" element={<ModuleGuard moduleCode="admin"><AdminModules /></ModuleGuard>} />
+          <Route path="admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
+          <Route path="admin/dashboard" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
+          <Route path="boutiques" element={<ModuleGuard moduleCode="shop"><Shops /></ModuleGuard>} />
+          <Route path="boutiques/:shopId" element={<ModuleGuard moduleCode="shop"><ShopDetail /></ModuleGuard>} />
+          <Route path="legal" element={<Legal />} />
+          <Route path="terms" element={<Terms />} />
+          <Route path="privacy" element={<Privacy />} />
+          <Route path="contact" element={<Contact />} />
+          <Route path="about" element={<About />} />
+          <Route path="cart" element={<ModuleGuard moduleCode="shop"><CartPage /></ModuleGuard>} />
+          <Route path="explore" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>} />
+          <Route path="personal" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

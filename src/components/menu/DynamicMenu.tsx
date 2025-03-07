@@ -1,6 +1,6 @@
 
 import React, { useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { useModules } from "@/hooks/modules/useModules";
-import { useNavigation } from "@/components/navigation/hooks/useNavigation";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -29,7 +28,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     moduleCode,
     hierarchical,
   });
-  const { navigateTo } = useNavigation();
+  const navigate = useNavigate();
   const location = useLocation();
   const { modules } = useModules();
 
@@ -104,10 +103,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     event.preventDefault();
     event.stopPropagation();
     
-    console.log(`DynamicMenu: Clic sur élément de menu avec chemin ${path}`);
+    console.log(`DynamicMenu: Navigation vers ${path}`);
     
-    // Utiliser la fonction navigateTo du hook personnalisé
-    navigateTo(path, event);
+    try {
+      // Utiliser le hook navigate pour la navigation SPA
+      navigate(path);
+    } catch (error) {
+      console.error(`Erreur lors de la navigation vers ${path}:`, error);
+    }
   };
 
   return (
