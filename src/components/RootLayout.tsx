@@ -24,7 +24,7 @@ export function RootLayout() {
       />
       
       {/* Contenu principal */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-64">
         {/* En-tête (Header) */}
         <Header onMenuToggle={toggleSidebar} />
         

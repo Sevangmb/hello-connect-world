@@ -137,7 +137,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
             variant={isActive(normalizedPath) ? "secondary" : "ghost"}
             size="sm"
             className={cn(
-              "justify-start font-medium",
+              "justify-start font-medium w-full py-2",
               isActive(normalizedPath) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
             )}
             onClick={(e) => handleNavigate(normalizedPath, e)}
