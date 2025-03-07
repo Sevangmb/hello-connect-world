@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { eventBus, EventCallback } from "@/core/event-bus/EventBus";
 import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinator";
 import { useToast } from "@/hooks/use-toast";
@@ -13,24 +13,28 @@ export const useModuleMenuEvents = () => {
   const { isUserAdmin, refreshMenu } = useMenu();
   const { toast } = useToast();
 
+  // Fonction de rafraîchissement avec débounce intégré
+  const debouncedRefresh = useCallback(() => {
+    let timeout: NodeJS.Timeout | null = null;
+    
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      
+      timeout = setTimeout(() => {
+        console.log("ModuleMenu: Rafraîchissement du menu suite à un événement");
+        refreshMenu();
+        timeout = null;
+      }, 300);
+    };
+  }, [refreshMenu]);
+
   // S'abonner aux événements du menu et des modules
   useEffect(() => {
     // Utiliser un objet pour stocker les abonnements
     const subscriptions = new Map();
-    let refreshTimeout: NodeJS.Timeout | null = null;
-    
-    // Fonction commune pour rafraîchir le menu avec un délai pour éviter les refreshs trop fréquents
-    const scheduleMenuRefresh = () => {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-      }
-      
-      refreshTimeout = setTimeout(() => {
-        console.log("ModuleMenu: Rafraîchissement du menu suite à un événement");
-        refreshMenu();
-        refreshTimeout = null;
-      }, 300);
-    };
+    const refresh = debouncedRefresh();
     
     // S'abonner aux événements avec une fonction commune
     const subscribeToEvent = (eventName: string, handler: EventCallback<any>) => {
@@ -40,12 +44,14 @@ export const useModuleMenuEvents = () => {
     };
     
     // Événement: Menu mis à jour
-    subscribeToEvent(MODULE_MENU_EVENTS.MENU_UPDATED, scheduleMenuRefresh);
+    subscribeToEvent(MODULE_MENU_EVENTS.MENU_UPDATED, () => {
+      refresh();
+    });
     
     // Événement: Statut de module changé
     subscribeToEvent(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, (data) => {
       console.log(`ModuleMenu: Changement de statut du module ${data.moduleCode} détecté`);
-      scheduleMenuRefresh();
+      refresh();
       
       // Afficher une notification si le module a été désactivé
       if (data.status === 'inactive') {
@@ -58,22 +64,21 @@ export const useModuleMenuEvents = () => {
     });
     
     // Événement: Accès admin accordé
-    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, scheduleMenuRefresh);
+    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, () => {
+      refresh();
+    });
     
     // Événement: Accès admin révoqué
-    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, scheduleMenuRefresh);
+    subscribeToEvent(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, () => {
+      refresh();
+    });
     
     // Nettoyage à la désinscription du composant
     return () => {
       // Désabonner tous les événements
       subscriptions.forEach(unsubscribe => unsubscribe());
-      
-      // Annuler tout timeout en attente
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-      }
     };
-  }, [refreshMenu, toast]);
+  }, [debouncedRefresh, toast]);
 
   return { isUserAdmin, refreshMenu };
 };

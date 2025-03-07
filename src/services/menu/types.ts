@@ -3,7 +3,7 @@
  * Types for menu items and related functionality
  */
 
-// Catégories des éléments de menu
+// Catégories des éléments de menu - Assurons-nous que toutes les catégories sont définies
 export type MenuItemCategory = 
   | 'main' 
   | 'admin' 
@@ -68,4 +68,16 @@ export interface MenuModuleConfig {
   moduleCode: string;
   categories: MenuItemCategory[];
   defaultVisible: boolean;
+}
+
+// Interface pour la structure d'un élément de menu hiérarchique
+export interface HierarchicalMenuItem extends MenuItem {
+  children: HierarchicalMenuItem[];
+}
+
+// Interface pour représenter un état de menu (comme un snapshot)
+export interface MenuState {
+  items: MenuItem[];
+  timestamp: number;
+  version: number;
 }

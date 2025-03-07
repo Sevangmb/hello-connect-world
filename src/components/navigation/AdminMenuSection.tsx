@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Shield } from "lucide-react";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
@@ -11,10 +12,18 @@ interface AdminMenuSectionProps {
 
 const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
   const { menuItems, loading } = useModuleVisibility('admin');
+  const [showContent, setShowContent] = useState(false);
+  
+  // Ne montrer le contenu que si l'utilisateur est administrateur pour éviter le flash
+  useEffect(() => {
+    if (isUserAdmin) {
+      setShowContent(true);
+    }
+  }, [isUserAdmin]);
   
   // Ne pas rendre le menu admin si l'utilisateur n'est pas administrateur
   // ou s'il n'y a pas d'éléments de menu admin
-  if (!isUserAdmin || (!loading && (!menuItems || menuItems.length === 0))) {
+  if (!showContent || (!loading && (!menuItems || menuItems.length === 0))) {
     return null;
   }
 
@@ -28,10 +37,18 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
           </span>
         </AccordionTrigger>
         <AccordionContent className="pt-1 pb-2">
-          <DynamicMenu 
-            category="admin" 
-            className="px-1" 
-          />
+          {loading ? (
+            <div className="space-y-2 px-1">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full rounded" />
+              ))}
+            </div>
+          ) : (
+            <DynamicMenu 
+              category="admin" 
+              className="px-1" 
+            />
+          )}
         </AccordionContent>
       </AccordionItem>
     </Accordion>

@@ -30,7 +30,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   });
   const navigate = useNavigate();
   const location = useLocation();
-  const { modules } = useModules();
+  const { modules, isInitialized } = useModules();
 
   // Vérifier si un chemin est actif
   const isActive = (path: string) => {
@@ -47,7 +47,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   };
 
   // Récupérer l'icône à partir de la bibliothèque Lucide
-  const getIcon = (iconName: string | null) => {
+  const getIcon = (iconName: string | undefined) => {
     if (!iconName) return null;
     
     // @ts-ignore - Les icônes sont dynamiques
@@ -55,9 +55,9 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     return IconComponent ? <IconComponent className="h-5 w-5 mr-2" /> : null;
   };
   
-  // Mémoiser la vérification de visibilité des modules
+  // Mémoriser la vérification de visibilité des modules
   const isMenuItemVisible = useMemo(() => {
-    return (moduleCode: string | null) => {
+    return (moduleCode: string | null | undefined) => {
       if (!moduleCode) return true;
       
       // Si c'est un module admin et que l'utilisateur est admin, toujours visible
@@ -70,20 +70,61 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     };
   }, [isUserAdmin, modules]);
 
-  // Filtrer les éléments de menu visibles
+  // Filtrer les éléments de menu visibles et vérifier si les routes existent
   const visibleMenuItems = useMemo(() => {
-    if (!menuItems) return [];
+    if (!menuItems || !isInitialized) return [];
+    
+    // Routes valides disponibles dans l'application
+    const validRoutes = [
+      '/',
+      '/explore',
+      '/personal',
+      '/profile',
+      '/profile/settings',
+      '/search',
+      '/notifications',
+      '/social/challenges',
+      '/social/friends',
+      '/social/messages',
+      '/wardrobe/outfits',
+      '/wardrobe/suitcases',
+      '/boutiques',
+      '/cart',
+      '/admin/dashboard',
+      '/admin/modules',
+      '/admin/shops',
+      '/legal',
+      '/terms',
+      '/privacy',
+      '/contact',
+      '/about'
+    ];
     
     return menuItems
-      .filter(item => !item.module_code || isMenuItemVisible(item.module_code))
+      .filter(item => {
+        // Vérifier si le module est visible
+        const moduleVisible = !item.module_code || isMenuItemVisible(item.module_code);
+        
+        // Normaliser le chemin
+        const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+        
+        // Vérifier si la route existe (soit directement soit comme préfixe)
+        const routeExists = validRoutes.some(route => 
+          route === normalizedPath || 
+          route.startsWith(`${normalizedPath}/`) ||
+          normalizedPath.startsWith(`${route}/`)
+        );
+        
+        return moduleVisible && routeExists;
+      })
       .sort((a, b) => (a.order || 999) - (b.order || 999));
-  }, [menuItems, isMenuItemVisible]);
+  }, [menuItems, isMenuItemVisible, isInitialized]);
 
   // Afficher un état de chargement
   if (loading) {
     return (
       <div className={cn("space-y-2", className)}>
-        {[...Array(5)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center space-x-2 p-2 h-9">
             <Skeleton className="h-5 w-5 rounded-full" />
             <Skeleton className="h-5 w-32" />
@@ -95,6 +136,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   if (error) {
     return <div className="text-red-500 text-sm py-2">{error}</div>;
+  }
+
+  if (!isInitialized) {
+    return (
+      <div className="text-gray-500 text-sm py-2">
+        Chargement des éléments de menu...
+      </div>
+    );
   }
 
   if (visibleMenuItems.length === 0) {

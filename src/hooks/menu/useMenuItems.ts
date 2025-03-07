@@ -9,9 +9,16 @@ export const useAllMenuItems = () => {
   return useQuery({
     queryKey: ['menuItems', 'all'],
     queryFn: async () => {
-      const menuService = getMenuService();
-      return await menuService.getAllMenuItems();
-    }
+      try {
+        const menuService = getMenuService();
+        return await menuService.getAllMenuItems();
+      } catch (error) {
+        console.error('Erreur lors de la récupération de tous les éléments de menu:', error);
+        return [];
+      }
+    },
+    staleTime: 60000, // 1 minute
+    retry: 2
   });
 };
 
@@ -20,24 +27,37 @@ export const useMenuItemsByCategory = (category: MenuItemCategory) => {
   return useQuery({
     queryKey: ['menuItems', 'category', category],
     queryFn: async () => {
-      const menuService = getMenuService();
-      return await menuService.getMenuItemsByCategory(category);
+      try {
+        const menuService = getMenuService();
+        return await menuService.getMenuItemsByCategory(category);
+      } catch (error) {
+        console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
+        return [];
+      }
     },
-    enabled: !!category
+    enabled: !!category,
+    staleTime: 60000, // 1 minute
+    retry: 2
   });
 };
 
 // Function to get menu items by module
-export const useMenuItemsByModule = (moduleCode: string, isAdmin: boolean = false) => {
+export const useMenuItemsByModule = (moduleCode: string) => {
   return useQuery({
-    queryKey: ['menuItems', 'module', moduleCode, isAdmin],
+    queryKey: ['menuItems', 'module', moduleCode],
     queryFn: async () => {
-      const menuService = getMenuService();
-      // Fix the arguments error by only passing moduleCode
-      // The actual implementation will handle isAdmin internally
-      return await menuService.getMenuItemsByModule(moduleCode);
+      try {
+        const menuService = getMenuService();
+        // Nous ne passons plus explicitement isAdmin ici, il sera géré en interne
+        return await menuService.getMenuItemsByModule(moduleCode);
+      } catch (error) {
+        console.error(`Erreur lors de la récupération des éléments de menu pour le module ${moduleCode}:`, error);
+        return [];
+      }
     },
-    enabled: !!moduleCode
+    enabled: !!moduleCode,
+    staleTime: 60000, // 1 minute
+    retry: 2
   });
 };
 
@@ -46,11 +66,17 @@ export const useMenuItemsByParent = (parentId: string | null) => {
   return useQuery({
     queryKey: ['menuItems', 'parent', parentId],
     queryFn: async () => {
-      // Import the repository here to avoid circular dependencies
-      const { MenuRepository } = await import('@/services/menu/infrastructure/SupabaseMenuRepository');
-      const menuRepository = new MenuRepository();
-      return await menuRepository.getMenuItemsByParent(parentId);
+      try {
+        // Import the repository here to avoid circular dependencies
+        const menuService = getMenuService();
+        return await menuService.getMenuItemsByParent(parentId);
+      } catch (error) {
+        console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
+        return [];
+      }
     },
-    enabled: parentId !== undefined
+    enabled: parentId !== undefined,
+    staleTime: 60000, // 1 minute
+    retry: 2
   });
 };

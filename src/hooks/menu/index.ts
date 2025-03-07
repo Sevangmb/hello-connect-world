@@ -19,13 +19,14 @@ export const useMenu = (options: UseMenuOptions = {}) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   // Obtenir le statut d'administrateur
   const { isUserAdmin } = useAdminStatus();
 
   // Requêtes pour les éléments de menu
   const categoryQuery = useMenuItemsByCategory(category as MenuItemCategory);
-  const moduleQuery = useMenuItemsByModule(moduleCode as string, isUserAdmin);
+  const moduleQuery = useMenuItemsByModule(moduleCode as string);
   const allItemsQuery = useAllMenuItems();
 
   // Catégories de menu
@@ -33,7 +34,9 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
   // Fonction pour rafraîchir les données du menu
   const refreshMenu = useCallback(() => {
+    setLoading(true);
     console.log("useMenu: Rafraîchissement du menu");
+    
     if (category) {
       categoryQuery.refetch();
     } else if (moduleCode) {
@@ -41,7 +44,14 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     } else {
       allItemsQuery.refetch();
     }
-  }, [category, moduleCode, categoryQuery, moduleQuery, allItemsQuery]);
+    
+    // Force loading to stop after 3 seconds in case of issues
+    setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+      }
+    }, 3000);
+  }, [category, moduleCode, categoryQuery, moduleQuery, allItemsQuery, loading]);
 
   // Écouter les événements de mise à jour du menu
   useEffect(() => {
@@ -61,50 +71,101 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
   // Effet pour définir les éléments de menu en fonction des résultats de la requête
   useEffect(() => {
-    try {
-      setLoading(true);
-      let items: MenuItem[] = [];
+    const processMenuItems = async () => {
+      try {
+        setLoading(true);
+        let items: MenuItem[] = [];
 
-      // Obtenir les éléments en fonction des options
-      if (category) {
-        items = categoryQuery.data || [];
-      } else if (moduleCode) {
-        items = moduleQuery.data || [];
-      } else {
-        items = allItemsQuery.data || [];
-      }
-
-      // Filtrer en fonction des autorisations de l'utilisateur
-      const filteredItems = items.filter(item => {
-        if (item.requires_admin && !isUserAdmin) {
-          return false;
+        // Obtenir les éléments en fonction des options
+        if (category && categoryQuery.data) {
+          items = categoryQuery.data;
+        } else if (moduleCode && moduleQuery.data) {
+          items = moduleQuery.data;
+        } else if (allItemsQuery.data) {
+          items = allItemsQuery.data;
         }
-        return true;
-      });
 
-      // Gérer la structure hiérarchique si nécessaire
-      if (hierarchical) {
-        // Structure arborescente (amélioration future)
-        setMenuItems(filteredItems);
-      } else {
-        setMenuItems(filteredItems);
+        // Si on n'a pas d'items mais que les requêtes sont chargées, on considère que c'est un problème
+        if (items.length === 0 && 
+            ((category && !categoryQuery.isLoading) || 
+             (moduleCode && !moduleQuery.isLoading) || 
+             (!category && !moduleCode && !allItemsQuery.isLoading))) {
+          // En cas d'erreur, on définit un tableau vide mais on ne bloque pas l'UI
+          console.warn(`useMenu: Aucun élément de menu trouvé pour ${category || moduleCode || 'tous'}`);
+        }
+
+        // Filtrer en fonction des autorisations de l'utilisateur
+        const filteredItems = items.filter(item => {
+          // Valider que l'item n'est pas null
+          if (!item) return false;
+          
+          // Ne pas montrer les éléments qui nécessitent d'être admin si l'utilisateur n'est pas admin
+          if (item.requires_admin && !isUserAdmin) {
+            return false;
+          }
+          
+          // Ne pas montrer les éléments inactifs
+          if (item.is_active === false) {
+            return false;
+          }
+          
+          return item.is_visible !== false;
+        });
+
+        // Gérer la structure hiérarchique si nécessaire
+        if (hierarchical) {
+          // Implémentation simple de la hiérarchie - On pourrait améliorer cela dans un refactoring
+          const itemsMap = new Map<string, MenuItem & { children: MenuItem[] }>();
+          
+          // Première passe : créer des entrées pour chaque élément
+          filteredItems.forEach(item => {
+            itemsMap.set(item.id, { ...item, children: [] });
+          });
+          
+          // Deuxième passe : construire la hiérarchie
+          const rootItems: MenuItem[] = [];
+          
+          filteredItems.forEach(item => {
+            if (item.parent_id && itemsMap.has(item.parent_id)) {
+              // Ajouter à l'élément parent
+              const parent = itemsMap.get(item.parent_id);
+              if (parent) {
+                parent.children.push(item);
+              }
+            } else {
+              // Élément racine
+              rootItems.push(item);
+            }
+          });
+          
+          setMenuItems(rootItems);
+        } else {
+          setMenuItems(filteredItems);
+        }
+
+        setError(null);
+        setInitialized(true);
+      } catch (err: any) {
+        console.error("Erreur lors du traitement des éléments de menu:", err);
+        setError(err.message || "Échec du chargement des éléments de menu");
+        setMenuItems([]);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setError(null);
-    } catch (err) {
-      console.error("Erreur lors du traitement des éléments de menu:", err);
-      setError("Échec du chargement des éléments de menu");
-    } finally {
-      setLoading(false);
-    }
+    processMenuItems();
   }, [
     category, 
     moduleCode, 
     hierarchical, 
     isUserAdmin,
     categoryQuery.data,
+    categoryQuery.isLoading,
     moduleQuery.data,
-    allItemsQuery.data
+    moduleQuery.isLoading,
+    allItemsQuery.data,
+    allItemsQuery.isLoading
   ]);
 
   return {
@@ -113,7 +174,8 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     error,
     isUserAdmin,
     categories: menuCategories,
-    refreshMenu
+    refreshMenu,
+    initialized
   };
 };
 

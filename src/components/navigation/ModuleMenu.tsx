@@ -5,6 +5,7 @@ import MenuCategories from "./MenuCategories";
 import AdminMenuSection from "./AdminMenuSection";
 import { useModuleMenuEvents } from "./hooks/useModuleMenuEvents";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Composant de menu principal - séparé selon les principes de la Clean Architecture
@@ -17,9 +18,12 @@ export const ModuleMenu: React.FC = () => {
   return (
     <TooltipProvider>
       <ScrollArea className="h-full w-full">
-        <div className="flex flex-col gap-2 w-full pr-3">
+        <div className="flex flex-col gap-1 w-full pr-3">
           {/* Menus par catégorie */}
           <MenuCategories />
+          
+          {/* Séparateur avant le menu d'administration */}
+          {isUserAdmin && <Separator className="my-2" />}
           
           {/* Menu d'administration - uniquement rendu si admin */}
           <AdminMenuSection isUserAdmin={isUserAdmin} />
