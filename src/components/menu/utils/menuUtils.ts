@@ -23,8 +23,8 @@ export const isActiveRoute = (path: string, currentPath: string): boolean => {
 export const getIcon = (iconName: string | undefined, className: string = "h-5 w-5 mr-2") => {
   if (!iconName) return null;
   
-  // @ts-ignore - Les icônes sont dynamiques
-  const IconComponent = LucideIcons[iconName];
+  // Récupérer l'icône depuis la bibliothèque Lucide
+  const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
   return IconComponent ? <IconComponent className={className} /> : null;
 };
 
