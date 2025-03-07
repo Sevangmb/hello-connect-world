@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { eventBus } from "@/core/event-bus/EventBus";
+import { eventBus, EventCallback } from "@/core/event-bus/EventBus";
 import { MODULE_MENU_EVENTS } from "@/services/coordination/ModuleMenuCoordinator";
 import { useToast } from "@/hooks/use-toast";
 import { useMenu } from "@/hooks/menu";
@@ -33,7 +33,7 @@ export const useModuleMenuEvents = () => {
     };
     
     // S'abonner aux événements avec une fonction commune
-    const subscribeToEvent = (eventName: string, handler: Function) => {
+    const subscribeToEvent = (eventName: string, handler: EventCallback<any>) => {
       const unsubscribe = eventBus.subscribe(eventName, handler);
       subscriptions.set(eventName, unsubscribe);
       return unsubscribe;
