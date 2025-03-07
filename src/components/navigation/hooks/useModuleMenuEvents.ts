@@ -73,12 +73,12 @@ export const useModuleMenuEvents = () => {
       setIsUserAdmin(false);
     };
     
-    eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, adminGrantedHandler);
-    eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, adminRevokedHandler);
+    const unsubscribeGranted = eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, adminGrantedHandler);
+    const unsubscribeRevoked = eventBus.subscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, adminRevokedHandler);
     
     return () => {
-      eventBus.unsubscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_GRANTED, adminGrantedHandler);
-      eventBus.unsubscribe(MODULE_MENU_EVENTS.ADMIN_ACCESS_REVOKED, adminRevokedHandler);
+      unsubscribeGranted();
+      unsubscribeRevoked();
     };
   }, [toast]);
   

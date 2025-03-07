@@ -1,68 +1,85 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { MenuItem, MenuItemCategory } from '../../types';
+import { supabase } from "@/integrations/supabase/client";
+import { MenuItem } from "../../types";
 
 /**
- * Builder for menu item queries to Supabase
+ * Classe utilitaire pour construire des requêtes Supabase pour les menus
  */
 export class MenuQueryBuilder {
   /**
-   * Get all active menu items
+   * Récupère tous les éléments de menu
    */
-  static getAllItems() {
+  static async getAllItems() {
     return supabase
       .from('menu_items')
       .select('*')
-      .eq('is_active', true)
-      .order('position');
+      .order('position', { ascending: true })
+      .order('order', { ascending: true })
+      .order('name', { ascending: true });
   }
   
   /**
-   * Get menu items by category
+   * Récupère les éléments de menu par catégorie
    */
-  static getItemsByCategory(category: MenuItemCategory) {
+  static async getItemsByCategory(category: string) {
     return supabase
       .from('menu_items')
       .select('*')
-      .eq('is_active', true)
-      .eq('category', category as any) // Using 'as any' to bypass TypeScript's strict typing
-      .order('position');
+      .eq('category', category)
+      .order('position', { ascending: true })
+      .order('order', { ascending: true })
+      .order('name', { ascending: true });
   }
   
   /**
-   * Get menu items by module
+   * Récupère les éléments de menu par module
    */
-  static getItemsByModule(moduleCode: string, isAdmin: boolean = false) {
+  static async getItemsByModule(moduleCode: string, isAdmin: boolean = false) {
     let query = supabase
       .from('menu_items')
       .select('*')
       .eq('module_code', moduleCode)
-      .eq('is_active', true)
-      .order('position', { ascending: true });
-    
-    if (!isAdmin) {
-      query = query.eq('requires_admin', false).eq('is_visible', true);
+      .order('position', { ascending: true })
+      .order('order', { ascending: true })
+      .order('name', { ascending: true });
+      
+    if (isAdmin) {
+      // Si on recherche des éléments admin, ne pas filtrer par requires_admin
+    } else {
+      // Sinon, exclure les éléments qui nécessitent des privilèges admin
+      query = query.eq('requires_admin', false);
     }
     
     return query;
   }
   
   /**
-   * Get menu items by parent id
+   * Récupère les éléments de menu par parent
    */
-  static getItemsByParent(parentId: string | null) {
+  static async getItemsByParent(parentId: string | null) {
+    if (parentId === null) {
+      return supabase
+        .from('menu_items')
+        .select('*')
+        .is('parent_id', null)
+        .order('position', { ascending: true })
+        .order('order', { ascending: true })
+        .order('name', { ascending: true });
+    }
+    
     return supabase
       .from('menu_items')
       .select('*')
       .eq('parent_id', parentId)
-      .eq('is_active', true)
-      .order('position', { ascending: true });
+      .order('position', { ascending: true })
+      .order('order', { ascending: true })
+      .order('name', { ascending: true });
   }
   
   /**
-   * Create a new menu item
+   * Crée un élément de menu
    */
-  static createItem(item: any) {
+  static async createItem(item: Omit<MenuItem, 'id'>) {
     return supabase
       .from('menu_items')
       .insert([item])
@@ -71,9 +88,9 @@ export class MenuQueryBuilder {
   }
   
   /**
-   * Update an existing menu item
+   * Met à jour un élément de menu
    */
-  static updateItem(id: string, updates: any) {
+  static async updateItem(id: string, updates: Partial<MenuItem>) {
     return supabase
       .from('menu_items')
       .update(updates)
@@ -83,9 +100,9 @@ export class MenuQueryBuilder {
   }
   
   /**
-   * Delete a menu item
+   * Supprime un élément de menu
    */
-  static deleteItem(id: string) {
+  static async deleteItem(id: string) {
     return supabase
       .from('menu_items')
       .delete()

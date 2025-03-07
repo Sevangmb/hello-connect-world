@@ -93,4 +93,18 @@ export class MenuCacheService {
   parentKey(parentId: string | null): string {
     return `parent_${parentId || 'null'}`;
   }
+  
+  /**
+   * Récupère des éléments du cache - alias pour get
+   */
+  getCachedItems(key: CacheKey): CacheValue | undefined {
+    return this.get(key);
+  }
+  
+  /**
+   * Met à jour le cache - alias pour set
+   */
+  updateCache(key: CacheKey, value: CacheValue): void {
+    this.set(key, value);
+  }
 }
