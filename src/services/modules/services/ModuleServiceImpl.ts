@@ -15,12 +15,18 @@ export class ModuleServiceImpl implements IModuleService {
   private moduleStatsRepository: ModuleStatsRepository;
   private moduleDependencyRepository: ModuleDependencyRepository;
   
-  constructor(moduleRepository: ModuleRepository) {
+  constructor(
+    moduleRepository: ModuleRepository,
+    featureRepository: FeatureRepository,
+    moduleFeatureRepository: ModuleFeatureRepository,
+    moduleStatsRepository: ModuleStatsRepository,
+    moduleDependencyRepository: ModuleDependencyRepository
+  ) {
     this.moduleRepository = moduleRepository;
-    this.featureRepository = new FeatureRepository();
-    this.moduleFeatureRepository = new ModuleFeatureRepository();
-    this.moduleStatsRepository = new ModuleStatsRepository();
-    this.moduleDependencyRepository = new ModuleDependencyRepository();
+    this.featureRepository = featureRepository;
+    this.moduleFeatureRepository = moduleFeatureRepository;
+    this.moduleStatsRepository = moduleStatsRepository;
+    this.moduleDependencyRepository = moduleDependencyRepository;
   }
 
   /**

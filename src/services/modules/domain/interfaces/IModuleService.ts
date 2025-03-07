@@ -1,6 +1,6 @@
 
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { ModuleWithFeatures } from '../repositories/ModuleFeatureRepository';
+import { ModuleWithFeatures } from '../../repositories/ModuleFeatureRepository';
 
 export interface IModuleService {
   initializeModules(): Promise<AppModule[]>;

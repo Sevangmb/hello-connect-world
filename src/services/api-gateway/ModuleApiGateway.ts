@@ -1,15 +1,12 @@
-
-import { ModuleServiceImpl } from '../modules/services/ModuleServiceImpl';
 import { IModuleService } from '../modules/domain/interfaces/IModuleService';
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { ModuleRepository } from '../modules/repositories/ModuleRepository';
+import { getModuleService } from '../modules/infrastructure/moduleServiceProvider';
 
 export class ModuleApiGateway {
   private moduleService: IModuleService;
 
   constructor(moduleService?: IModuleService) {
-    const moduleRepository = new ModuleRepository();
-    this.moduleService = moduleService || new ModuleServiceImpl(moduleRepository);
+    this.moduleService = moduleService || getModuleService();
   }
 
   public async getAllModules(): Promise<AppModule[]> {
