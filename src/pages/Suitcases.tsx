@@ -1,174 +1,164 @@
 
-import React, { useState, Suspense, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useTransitionState } from '@/hooks/useTransitionState';
-import { useSuitcases } from '@/hooks/useSuitcases';
-import { SuitcaseGrid } from '@/components/suitcases/components/SuitcaseGrid';
-import { LoadingState } from '@/components/ui/loading-state';
-import { SuitcaseViewToggle } from '@/components/suitcases/components/SuitcaseViewToggle';
-import { SuitcaseList } from '@/components/suitcases/components/SuitcaseList';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSuitcases } from '../hooks/useSuitcases';
+import { SuitcaseGrid } from '../components/suitcases/components/SuitcaseGrid';
+import { SuitcaseList } from '../components/suitcases/components/SuitcaseList';
+import { SuitcaseViewToggle } from '../components/suitcases/components/SuitcaseViewToggle';
+import { SuitcaseFilters } from '../components/suitcases/components/SuitcaseFilters';
+import { SuitcaseSearchBar } from '../components/suitcases/components/SuitcaseSearchBar';
+import { CreateSuitcaseDialog } from '../components/suitcases/components/CreateSuitcaseDialog';
+import { EmptySuitcases } from '../components/suitcases/components/EmptySuitcases';
+import { LoadingSuitcases } from '../components/suitcases/components/LoadingSuitcases';
+import { Button } from '../components/ui/button';
 import { Plus } from 'lucide-react';
-import { SuitcaseFilter } from '@/components/suitcases/types';
-import { SUITCASE_STATUSES } from '@/components/suitcases/constants/status';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { SuitcaseFilter, SuitcaseStatus } from '../components/suitcases/types';
 
-export default function Suitcases() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [view, setView] = useState<'list' | 'grid'>('grid');
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [filterValues, setFilterValues] = useState<SuitcaseFilter>({ status: 'active', search: '' });
-  
-  const {
-    suitcases,
-    isLoading,
-    error,
-    createSuitcase,
-    updateSuitcase,
-    deleteSuitcase
-  } = useSuitcases(filterValues);
-  
-  // Utiliser notre hook d'animation de transition pour éviter les clignotements
-  const isTransitioning = useTransitionState(isLoading);
+const Suitcases = () => {
+  const navigate = useNavigate();
+  const { suitcases, isLoading, error, createSuitcase, updateSuitcase, deleteSuitcase } = useSuitcases();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filterValues, setFilterValues] = useState<SuitcaseFilter>({
+    status: 'all',
+    search: '',
+    sortBy: 'date'
+  });
 
-  const handleViewChange = useCallback((newView: 'list' | 'grid') => {
-    setView(newView);
-  }, []);
+  const handleStatusFilterChange = (status: string) => {
+    setFilterValues(prev => ({ ...prev, status }));
+  };
 
-  const handleFilterChange = useCallback((key: keyof SuitcaseFilter, value: string) => {
-    setFilterValues(prev => ({ ...prev, [key]: value }));
-  }, []);
+  const handleSearchChange = (search: string) => {
+    setFilterValues(prev => ({ ...prev, search }));
+  };
 
-  const handleSuitcaseSelect = useCallback((suitcaseId: string) => {
-    console.log('Suitcase selected:', suitcaseId);
-    // Ajouter la navigation vers la page de détail de la valise
-  }, []);
+  const handleSortChange = (sortBy: string) => {
+    setFilterValues(prev => ({ ...prev, sortBy }));
+  };
 
-  const handleCreateSuitcase = useCallback(async (data: any) => {
-    try {
-      await createSuitcase.mutateAsync(data);
-      toast({
-        title: "Valise créée",
-        description: "Votre nouvelle valise a été créée avec succès."
-      });
-      setCreateDialogOpen(false);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la création de la valise."
-      });
+  const handleCreateSuitcase = (data: any) => {
+    createSuitcase.mutate(data, {
+      onSuccess: (newSuitcase) => {
+        setIsDialogOpen(false);
+        // Rediriger vers la page de détail de la valise
+        navigate(`/suitcases/${newSuitcase.id}`);
+      }
+    });
+  };
+
+  // Filtrer les valises en fonction des critères
+  const filteredSuitcases = suitcases.filter(suitcase => {
+    // Filtre par statut
+    if (filterValues.status !== 'all' && suitcase.status !== filterValues.status) {
+      return false;
     }
-  }, [createSuitcase, toast]);
+    
+    // Filtre par recherche
+    if (filterValues.search && !suitcase.name.toLowerCase().includes(filterValues.search.toLowerCase())) {
+      return false;
+    }
+    
+    return true;
+  });
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="text-red-500 mb-4">Une erreur est survenue lors du chargement des valises.</div>
-        <Button onClick={() => window.location.reload()}>Rafraîchir la page</Button>
-      </div>
-    );
-  }
+  // Trier les valises
+  const sortedSuitcases = [...filteredSuitcases].sort((a, b) => {
+    if (filterValues.sortBy === 'date') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    } else if (filterValues.sortBy === 'name') {
+      return a.name.localeCompare(b.name);
+    } else if (filterValues.sortBy === 'status') {
+      return a.status.localeCompare(b.status);
+    }
+    return 0;
+  });
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Mes valises</h1>
-        <div className="flex space-x-2">
-          <SuitcaseViewToggle 
-            currentView={view} 
-            onViewChange={handleViewChange} 
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Mes Valises</h1>
+          <p className="text-muted-foreground">
+            Organisez vos vêtements pour chaque voyage
+          </p>
+        </div>
+        <Button 
+          onClick={() => setIsDialogOpen(true)}
+          className="mt-4 md:mt-0"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle valise
+        </Button>
+      </div>
+
+      {/* Filtres et barre de recherche */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <SuitcaseSearchBar 
+          value={filterValues.search} 
+          onChange={handleSearchChange} 
+        />
+        <div className="flex gap-4">
+          <SuitcaseFilters 
+            status={filterValues.status} 
+            sortBy={filterValues.sortBy}
+            onStatusChange={handleStatusFilterChange}
+            onSortChange={handleSortChange}
           />
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <SuitcaseViewToggle 
+            viewMode={viewMode} 
+            onChange={setViewMode} 
+          />
+        </div>
+      </div>
+
+      {/* Contenu principal */}
+      {isLoading ? (
+        <LoadingSuitcases />
+      ) : error ? (
+        <div className="bg-red-50 p-6 rounded-lg text-center">
+          <h3 className="text-lg font-medium text-red-800 mb-2">Erreur de chargement</h3>
+          <p className="text-red-600">{error.message}</p>
+        </div>
+      ) : sortedSuitcases.length === 0 ? (
+        <div className="bg-muted/50 p-8 rounded-lg text-center">
+          <div className="mx-auto w-16 h-16 mb-4 text-muted-foreground">
+            {/* Icône de valise vide */}
+          </div>
+          <h3 className="text-lg font-medium mb-2">Aucune valise trouvée</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">
+            {(filterValues.status !== 'all' || filterValues.search !== '') 
+              ? "Aucune valise ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
+              : "Vous n'avez pas encore créé de valise. Commencez par en créer une pour organiser vos vêtements de voyage."}
+          </p>
+          <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Nouvelle valise
+            Créer une valise
           </Button>
         </div>
-      </div>
+      ) : viewMode === 'grid' ? (
+        <SuitcaseGrid 
+          suitcases={sortedSuitcases} 
+          onEdit={(id) => navigate(`/suitcases/${id}`)}
+          onDelete={(id) => deleteSuitcase.mutate(id)}
+        />
+      ) : (
+        <SuitcaseList 
+          suitcases={sortedSuitcases} 
+          onEdit={(id) => navigate(`/suitcases/${id}`)}
+          onDelete={(id) => deleteSuitcase.mutate(id)}
+        />
+      )}
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="w-full sm:w-1/3">
-          <Input
-            placeholder="Rechercher une valise..."
-            value={filterValues.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            className="mb-2"
-          />
-        </div>
-        <div className="w-full sm:w-1/3">
-          <Select
-            value={filterValues.status}
-            onValueChange={(value) => handleFilterChange('status', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrer par statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              {Object.entries(SUITCASE_STATUSES).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <Suspense fallback={<LoadingState count={8} layout={view} />}>
-        {isTransitioning ? (
-          <LoadingState count={8} layout={view} />
-        ) : (
-          <div className="animate-fade-in">
-            {suitcases.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="bg-primary-foreground p-6 rounded-full mb-4">
-                  <svg
-                    className="h-12 w-12 text-muted-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium mb-2">Aucune valise trouvée</h3>
-                <p className="text-muted-foreground mb-6 max-w-md">
-                  {filterValues.status !== 'all' && filterValues.search
-                    ? "Aucune valise ne correspond à vos critères de recherche. Essayez de modifier vos filtres."
-                    : "Vous n'avez pas encore créé de valise. Commencez par en créer une pour organiser vos vêtements de voyage."}
-                </p>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer ma première valise
-                </Button>
-              </div>
-            ) : view === 'grid' ? (
-              <SuitcaseGrid 
-                suitcases={suitcases} 
-                onSelect={(suitcase) => handleSuitcaseSelect(suitcase.id)}
-                loading={isLoading}
-              />
-            ) : (
-              <SuitcaseList 
-                suitcases={suitcases} 
-                onSelect={(suitcase) => handleSuitcaseSelect(suitcase.id)}
-                loading={isLoading}
-              />
-            )}
-          </div>
-        )}
-      </Suspense>
-
-      {/* Dialog for creating a new suitcase would go here */}
+      {/* Dialog de création de valise */}
+      <CreateSuitcaseDialog 
+        isOpen={isDialogOpen} 
+        onClose={() => setIsDialogOpen(false)}
+        onSubmit={handleCreateSuitcase}
+        isLoading={createSuitcase.isPending}
+      />
     </div>
   );
-}
+};
+
+export default Suitcases;

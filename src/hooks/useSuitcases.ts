@@ -1,195 +1,183 @@
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser } from '@/integrations/supabase/client';
-import { Suitcase, SuitcaseFilter, SuitcaseStatus } from '@/components/suitcases/types';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { SuitcaseStatus } from '@/components/suitcases/types';
 
-const fetchSuitcases = async (userId: string, filter: SuitcaseFilter = {}): Promise<Suitcase[]> => {
-  let query = supabase
-    .from('suitcases')
-    .select('*')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false });
+export interface Suitcase {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  status: SuitcaseStatus;
+  created_at: string;
+  updated_at: string;
+  parent_id?: string;
+}
 
-  if (filter.status) {
-    // Make sure we only use valid status values for database query
-    // Database might only accept 'active' or 'archived'
-    const validStatus = filter.status === 'active' || filter.status === 'archived' 
-      ? filter.status 
-      : 'active';
-    query = query.eq('status', validStatus);
-  }
-
-  if (filter.search) {
-    query = query.ilike('name', `%${filter.search}%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Error fetching suitcases:', error);
-    throw new Error('Failed to fetch suitcases');
-  }
-
-  return data as Suitcase[];
-};
-
-export const useSuitcases = (filter: SuitcaseFilter = {}) => {
+export const useSuitcases = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // Get current user
-  getCurrentUser().then(user => {
-    if (user?.id) {
-      setUserId(user.id);
+  
+  // Cette fonction ajoute des logs de débogage pour suivre le processus de chargement
+  const fetchSuitcases = async (): Promise<Suitcase[]> => {
+    console.log('Début de récupération des valises...');
+    
+    if (!user) {
+      console.log('Aucun utilisateur connecté, retour liste vide');
+      return [];
     }
+    
+    try {
+      console.log('Requête Supabase en cours...');
+      const { data, error } = await supabase
+        .from('suitcases')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Erreur Supabase lors de la récupération:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log(`Récupération terminée: ${data ? data.length : 0} valises trouvées`);
+      return data || [];
+    } catch (error: any) {
+      console.error('Exception lors de la récupération des valises:', error);
+      throw new Error(error.message || 'Erreur lors de la récupération des valises');
+    }
+  };
+  
+  // Utiliser React Query pour gérer le chargement et la mise en cache
+  const { data: suitcases = [], isLoading, error } = useQuery({
+    queryKey: ['suitcases', user?.id],
+    queryFn: fetchSuitcases,
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes de fraîcheur
+    refetchOnWindowFocus: false,
   });
-
-  const query = useQuery({
-    queryKey: ['suitcases', userId, filter],
-    queryFn: () => userId ? fetchSuitcases(userId, filter) : Promise.resolve([]),
-    enabled: !!userId,
-    staleTime: 60000,
-  });
-
+  
+  // Créer une nouvelle valise
   const createSuitcase = useMutation({
-    mutationFn: async (newSuitcase: {
+    mutationFn: async (newSuitcase: { 
       name: string;
       description?: string;
       start_date?: string;
       end_date?: string;
       status?: SuitcaseStatus;
     }) => {
-      if (!userId) throw new Error('User not authenticated');
-
-      // Only use 'active' or 'archived' when inserting to database
-      // to match database constraints
-      const dbStatus: 'active' | 'archived' = newSuitcase.status === 'archived' ? 'archived' : 'active';
-
+      if (!user) throw new Error('Vous devez être connecté pour créer une valise');
+      
       const suitcaseData = {
-        user_id: userId,
+        user_id: user.id,
         name: newSuitcase.name,
         description: newSuitcase.description || '',
-        start_date: newSuitcase.start_date,
-        end_date: newSuitcase.end_date,
-        status: dbStatus,
+        start_date: newSuitcase.start_date || null,
+        end_date: newSuitcase.end_date || null,
+        status: (newSuitcase.status || 'active') as 'active' | 'archived',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-
+      
+      console.log('Création de valise en cours:', suitcaseData);
+      
       const { data, error } = await supabase
         .from('suitcases')
-        .insert(suitcaseData)
+        .insert([suitcaseData])
         .select()
         .single();
-
+        
       if (error) {
-        console.error('Error creating suitcase:', error);
-        throw new Error('Failed to create suitcase');
+        console.error('Erreur lors de la création de la valise:', error);
+        throw new Error(error.message);
       }
-
+      
+      console.log('Valise créée avec succès:', data);
       return data as Suitcase;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
-      toast({
-        title: "Valise créée",
-        description: "Votre valise a été créée avec succès",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: `Erreur lors de la création de la valise: ${error.message}`,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['suitcases', user?.id] });
     }
   });
-
+  
+  // Mettre à jour une valise existante
   const updateSuitcase = useMutation({
-    mutationFn: async ({
-      id,
-      ...updates
-    }: {
+    mutationFn: async (updatedSuitcase: {
       id: string;
       name?: string;
       description?: string;
       start_date?: string;
       end_date?: string;
-      status?: 'active' | 'archived';
+      status?: SuitcaseStatus;
     }) => {
+      if (!user) throw new Error('Vous devez être connecté pour modifier une valise');
+      
+      const { id, ...updateData } = updatedSuitcase;
+      updateData.updated_at = new Date().toISOString();
+      
+      if (updateData.status) {
+        updateData.status = updateData.status as 'active' | 'archived';
+      }
+      
+      console.log('Mise à jour de valise en cours:', { id, ...updateData });
+      
       const { data, error } = await supabase
         .from('suitcases')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
-
+        
       if (error) {
-        console.error('Error updating suitcase:', error);
-        throw new Error('Failed to update suitcase');
+        console.error('Erreur lors de la mise à jour de la valise:', error);
+        throw new Error(error.message);
       }
-
+      
+      console.log('Valise mise à jour avec succès:', data);
       return data as Suitcase;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
-      toast({
-        title: "Valise mise à jour",
-        description: "Votre valise a été mise à jour avec succès",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: `Erreur lors de la mise à jour de la valise: ${error.message}`,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['suitcases', user?.id] });
     }
   });
-
+  
+  // Supprimer une valise
   const deleteSuitcase = useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Vous devez être connecté pour supprimer une valise');
+      
+      console.log('Suppression de valise en cours:', id);
+      
       const { error } = await supabase
         .from('suitcases')
         .delete()
-        .eq('id', id);
-
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
       if (error) {
-        console.error('Error deleting suitcase:', error);
-        throw new Error('Failed to delete suitcase');
+        console.error('Erreur lors de la suppression de la valise:', error);
+        throw new Error(error.message);
       }
-
+      
+      console.log('Valise supprimée avec succès');
       return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcases'] });
-      toast({
-        title: "Valise supprimée",
-        description: "Votre valise a été supprimée avec succès",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erreur",
-        description: `Erreur lors de la suppression de la valise: ${error.message}`,
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries({ queryKey: ['suitcases', user?.id] });
     }
   });
-
+  
   return {
-    suitcases: query.data || [],
-    isLoading: query.isLoading,
-    error: query.error,
+    suitcases,
+    isLoading,
+    error: error as Error,
     createSuitcase,
     updateSuitcase,
-    deleteSuitcase,
+    deleteSuitcase
   };
 };
