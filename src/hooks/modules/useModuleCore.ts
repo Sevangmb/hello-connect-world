@@ -4,7 +4,7 @@
  * This file contains the main hook for modules management
  */
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useModuleDataFetcher, ConnectionStatus } from "./fetcher";
 import { useStatusManager } from "./statusManager";
 import { useModuleActive } from "./useModuleActive";
@@ -16,6 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 // Cache pour optimiser les performances entre les rendus
 const modulesCache = new Map<string, {data: AppModule[], timestamp: number}>();
 const CACHE_VALIDITY = 60000; // 1 minute
+const initAttemptRef = { current: 0 };
+const isMountedRef = { current: true };
+const initialLoadAttemptedRef = { current: false };
 
 /**
  * Main hook for module management
@@ -29,9 +32,6 @@ export const useModuleCore = () => {
   const [localModules, setLocalModules] = useState<AppModule[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [forcedInitComplete, setForcedInitComplete] = useState(false);
-  const initAttempts = useRef(0);
-  const isMountedRef = useRef(true);
-  const initialLoadAttemptedRef = useRef(false);
   
   // Récupérer les données des modules et dépendances
   const {
@@ -62,13 +62,13 @@ export const useModuleCore = () => {
     }
     
     // Limiter les tentatives de rechargement
-    if (initAttempts.current > 3 && !force) {
+    if (initAttemptRef.current > 3 && !force) {
       console.log('Trop de tentatives de chargement, utilisation du cache si disponible');
       const cache = modulesCache.get(cacheKey);
       if (cache) return cache.data;
     }
     
-    initAttempts.current += 1;
+    initAttemptRef.current += 1;
     
     // Récupérer les données
     const result = await fetchModules();
@@ -100,13 +100,6 @@ export const useModuleCore = () => {
 
   // Configurer les effets et abonnements, empêcher les rechargements multiples
   useModuleEffects(modules, setModules, cachedFetchModules, fetchDependencies, fetchFeatures);
-
-  // Nettoyer lors du démontage du composant
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   // Utiliser les modules du cache si disponibles, sinon charger depuis Supabase
   useEffect(() => {
@@ -150,7 +143,7 @@ export const useModuleCore = () => {
           
           // Essayer ensuite l'API des modules, mais pas si on a déjà des modules du cache
           if (localModules.length === 0 && !moduleApi.loading && moduleApi.isInitialized) {
-            const modulesData = await moduleApi.refreshModules(initAttempts.current > 1);
+            const modulesData = await moduleApi.refreshModules(initAttemptRef.current > 1);
             console.log("Modules chargés depuis l'API:", modulesData?.length || 0);
             
             if (modulesData && modulesData.length > 0 && isMountedRef.current) {
@@ -204,10 +197,11 @@ export const useModuleCore = () => {
   // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
   // mais limiter à une seule tentative pour éviter les boucles
   useEffect(() => {
-    const rechargementAttemptéRef = useRef(false);
+    // Utilisez une variable locale au lieu de useRef
+    let rechargementAttempted = false;
     
-    if (isInitialized && isMountedRef.current && (localModules.length === 0 || modules.length === 0) && !rechargementAttemptéRef.current) {
-      rechargementAttemptéRef.current = true;
+    if (isInitialized && isMountedRef.current && (localModules.length === 0 || modules.length === 0) && !rechargementAttempted) {
+      rechargementAttempted = true;
       
       const timer = setTimeout(async () => {
         console.log("Tentative de rechargement des modules après timeout");
@@ -254,6 +248,13 @@ export const useModuleCore = () => {
       return () => clearTimeout(timer);
     }
   }, [isInitialized, localModules.length, modules.length, cachedFetchModules, setModules, forcedInitComplete]);
+
+  // Nettoyer lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Mémoïser les modules pour de meilleures performances et éviter les re-rendus inutiles
   const memoizedModules = useMemo(() => 
