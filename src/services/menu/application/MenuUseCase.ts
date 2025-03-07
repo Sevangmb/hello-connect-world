@@ -1,6 +1,6 @@
 
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
-import { MenuItem } from '../types';
+import { MenuItem, MenuItemCategory } from '../types';
 
 /**
  * MenuUseCase class for handling menu-related logic
@@ -22,7 +22,7 @@ export class MenuUseCase {
   /**
    * Get menu items by category
    */
-  async getMenuItemsByCategory(category: string) {
+  async getMenuItemsByCategory(category: MenuItemCategory) {
     return await this.menuRepository.getMenuItemsByCategory(category);
   }
 

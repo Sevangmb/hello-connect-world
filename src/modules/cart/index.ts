@@ -1,21 +1,20 @@
 
-/**
- * Module de panier - Point d'entrée unique
- * Exporte tous les composants, hooks et utilitaires liés au panier
- */
+import { useCart } from '@/hooks/cart';
+import { CartPage } from '@/components/cart/CartPage';
+import { CartIcon } from '@/components/cart/CartIcon';
+import { CartSidebar } from '@/components/cart/CartSidebar';
+import { CartItem } from '@/core/shop/domain/types/cart-types';
 
-// Composants
-export { CartItemsList } from '@/components/cart/CartItemsList';
-export { CartSidebar } from '@/components/cart/CartSidebar';
-export { CartSummary } from '@/components/cart/CartSummary';
-export { CheckoutButton } from '@/components/cart/CheckoutButton';
+// Re-export cart components
+export {
+  CartPage,
+  CartIcon,
+  CartSidebar,
+  useCart
+};
 
-// Hooks
-export { useCart } from '@/hooks/useCart';
-export { useCheckout } from '@/hooks/useCheckout';
+// Re-export types
+export type { CartItem };
 
-// API et types
-export * from '@/hooks/cart/index';
-export * from '@/hooks/cart/types';
-export * from '@/hooks/cart/queries';
-export * from '@/hooks/cart/mutations';
+// Import types from hooks/cart explicitly but don't re-export to avoid conflicts
+import type { AddToCartParams, UpdateQuantityParams } from '@/hooks/cart';

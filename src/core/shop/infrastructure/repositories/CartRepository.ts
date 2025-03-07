@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, DbCartItem } from '@/core/shop/domain/types/cart-types';
 
@@ -35,7 +34,7 @@ export class CartRepository {
       throw error;
     }
     
-    return data as CartItem[];
+    return data as unknown as CartItem[];
   }
   
   /**
@@ -83,7 +82,7 @@ export class CartRepository {
         throw updateError;
       }
       
-      return updatedItem as CartItem;
+      return updatedItem as unknown as CartItem;
     }
     
     // Sinon, ajouter un nouvel élément
@@ -116,7 +115,7 @@ export class CartRepository {
       throw insertError;
     }
     
-    return newItem as CartItem;
+    return newItem as unknown as CartItem;
   }
   
   /**
@@ -147,7 +146,7 @@ export class CartRepository {
       throw error;
     }
     
-    return data as CartItem;
+    return data as unknown as CartItem;
   }
   
   /**

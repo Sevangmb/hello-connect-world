@@ -162,4 +162,4 @@ export function useCart(userId: string | null) {
   };
 }
 
-export type { AddToCartParams, UpdateQuantityParams };
+// No duplicate type exports here
