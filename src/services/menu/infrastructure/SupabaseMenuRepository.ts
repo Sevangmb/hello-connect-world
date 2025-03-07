@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -11,7 +10,6 @@ export class MenuRepository implements IMenuRepository {
   private _cachedParents: Record<string, MenuItem[]> = {};
   private _lastCacheTime = 0;
   
-  // Durée de validité du cache en ms (10 secondes)
   private readonly CACHE_TTL = 10000;
   
   private isCacheValid(): boolean {
@@ -28,7 +26,6 @@ export class MenuRepository implements IMenuRepository {
 
   async getAllMenuItems(): Promise<MenuItem[]> {
     try {
-      // Utiliser le cache si valide
       if (this.isCacheValid() && this._cachedAllItems) {
         console.log('Repository: Using cached menu items');
         return this._cachedAllItems;
@@ -46,7 +43,6 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      // Mettre à jour le cache
       this._cachedAllItems = data as MenuItem[] || [];
       this._lastCacheTime = Date.now();
       
@@ -60,7 +56,6 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Vérifier si cette catégorie est en cache et si le cache est valide
       if (this.isCacheValid() && this._cachedCategories[category]) {
         console.log(`Repository: Using cached menu items for category: ${category}`);
         return this._cachedCategories[category];
@@ -68,7 +63,6 @@ export class MenuRepository implements IMenuRepository {
       
       console.log(`Repository: Fetching menu items for category: ${category}`);
       
-      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
       if (this.isCacheValid() && this._cachedAllItems) {
         const filteredItems = this._cachedAllItems.filter(item => item.category === category);
         this._cachedCategories[category] = filteredItems;
@@ -76,12 +70,11 @@ export class MenuRepository implements IMenuRepository {
         return filteredItems;
       }
       
-      // Sinon, faire une requête spécifique
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category) // Correction: TypeScript will correctly handle this as a string in runtime
+        .eq<string>('category', category)
         .order('position');
       
       if (error) {
@@ -89,7 +82,6 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      // Mettre à jour le cache de cette catégorie
       const items = data as MenuItem[] || [];
       this._cachedCategories[category] = items;
       
@@ -105,7 +97,6 @@ export class MenuRepository implements IMenuRepository {
     try {
       const cacheKey = `${moduleCode}_${isAdmin ? 'admin' : 'user'}`;
       
-      // Vérifier si ce module est en cache et si le cache est valide
       if (this.isCacheValid() && this._cachedModules[cacheKey]) {
         console.log(`Repository: Using cached menu items for module: ${moduleCode}`);
         return this._cachedModules[cacheKey];
@@ -120,7 +111,6 @@ export class MenuRepository implements IMenuRepository {
         return [];
       }
       
-      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
       if (this.isCacheValid() && this._cachedAllItems) {
         let filteredItems = this._cachedAllItems.filter(item => item.module_code === moduleCode);
         
@@ -135,7 +125,6 @@ export class MenuRepository implements IMenuRepository {
         return filteredItems;
       }
       
-      // Sinon, faire une requête spécifique
       let query = supabase
         .from('menu_items')
         .select('*')
@@ -154,7 +143,6 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      // Mettre à jour le cache de ce module
       const items = data || [];
       this._cachedModules[cacheKey] = items;
       
@@ -170,7 +158,6 @@ export class MenuRepository implements IMenuRepository {
     try {
       const cacheKey = parentId || 'root';
       
-      // Vérifier si ces enfants sont en cache et si le cache est valide
       if (this.isCacheValid() && this._cachedParents[cacheKey]) {
         console.log(`Repository: Using cached menu items for parent: ${parentId || 'root'}`);
         return this._cachedParents[cacheKey];
@@ -178,7 +165,6 @@ export class MenuRepository implements IMenuRepository {
       
       console.log(`Repository: Fetching menu items with parent_id: ${parentId || 'root'}`);
       
-      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
       if (this.isCacheValid() && this._cachedAllItems) {
         const filteredItems = this._cachedAllItems.filter(item => {
           if (parentId === null) {
@@ -192,7 +178,6 @@ export class MenuRepository implements IMenuRepository {
         return filteredItems;
       }
       
-      // Sinon, faire une requête spécifique
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -205,7 +190,6 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      // Mettre à jour le cache pour ce parent
       const items = data || [];
       this._cachedParents[cacheKey] = items;
       
@@ -230,7 +214,6 @@ export class MenuRepository implements IMenuRepository {
         return null;
       }
       
-      // Invalider le cache après modification
       this.resetCache();
       
       return data;
@@ -254,7 +237,6 @@ export class MenuRepository implements IMenuRepository {
         return null;
       }
       
-      // Invalider le cache après modification
       this.resetCache();
       
       return data;
@@ -276,7 +258,6 @@ export class MenuRepository implements IMenuRepository {
         return false;
       }
       
-      // Invalider le cache après modification
       this.resetCache();
       
       return true;
