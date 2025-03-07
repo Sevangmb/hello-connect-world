@@ -6,16 +6,16 @@ import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { AccordionItem, AccordionTrigger, AccordionContent, Accordion } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import * as LucideIcons from "lucide-react";
+import { getIcon } from "@/components/menu/utils/menuUtils";
 
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) => {
   const { menuItems, loading, error } = useModuleVisibility(category);
   
-  // Récupérer l'icône à partir de la bibliothèque Lucide
-  const getIcon = () => {
+  // Récupérer et rendre l'icône à partir de la bibliothèque Lucide
+  const renderIcon = () => {
     if (!icon) return null;
     
-    // @ts-ignore - dynamique basé sur le nom
-    const IconComponent = LucideIcons[icon];
+    const IconComponent = getIcon(icon);
     return IconComponent ? <IconComponent className="h-4 w-4 mr-2" /> : null;
   };
 
@@ -25,7 +25,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={category} className="border-none">
           <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
-            {getIcon()}
+            {renderIcon()}
             {title}
           </AccordionTrigger>
           <AccordionContent className="pt-1 pb-2">
@@ -46,7 +46,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={category} className="border-none">
           <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
-            {getIcon()}
+            {renderIcon()}
             {title}
           </AccordionTrigger>
           <AccordionContent className="pt-1 pb-2">
@@ -68,7 +68,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
     <Accordion type="single" collapsible defaultValue={category} className="w-full">
       <AccordionItem value={category} className="border-none">
         <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline flex items-center">
-          {getIcon()}
+          {renderIcon()}
           <span>{title}</span>
         </AccordionTrigger>
         <AccordionContent className="pt-1 pb-2">

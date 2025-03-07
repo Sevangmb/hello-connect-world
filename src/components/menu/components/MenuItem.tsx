@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { MenuItem as MenuItemType } from "@/services/menu/types";
 import { ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { getIcon } from "../utils/menuUtils";
 
 interface MenuItemProps {
   item: MenuItemType;
@@ -23,17 +24,11 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
   const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
   
   // Obtenir l'icône si elle existe
-  const getIcon = () => {
+  const renderIcon = () => {
     if (!item.icon) return null;
     
-    try {
-      // Dynamically import the icon from Lucide
-      const Icon = require("lucide-react")[item.icon];
-      return Icon ? <Icon className="h-4 w-4 mr-2" /> : null;
-    } catch (error) {
-      console.warn(`Icon ${item.icon} not found`);
-      return null;
-    }
+    const IconComponent = getIcon(item.icon);
+    return IconComponent ? <IconComponent className="h-4 w-4 mr-2" /> : null;
   };
   
   // Pour les éléments avec des enfants en mode hiérarchique
@@ -50,7 +45,7 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
           onClick={(e) => onNavigate(normalizedPath, e)}
         >
           <span className="flex items-center">
-            {getIcon()}
+            {renderIcon()}
             <span className="truncate">{item.name}</span>
           </span>
           <ChevronRight className="h-4 w-4" />
@@ -88,7 +83,7 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
             )}
             onClick={(e) => onNavigate(normalizedPath, e)}
           >
-            {getIcon()}
+            {renderIcon()}
             <span className="truncate">{item.name}</span>
           </Button>
         </TooltipTrigger>
