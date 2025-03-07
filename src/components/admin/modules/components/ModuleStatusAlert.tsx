@@ -18,7 +18,13 @@ export const ModuleStatusAlert: React.FC<ModuleStatusAlertProps> = ({ onDismiss 
   useEffect(() => {
     const handleModuleStatusChange = (data: any) => {
       setAlertType("success");
-      setMessage(data?.message || "Statut des modules mis à jour avec succès.");
+      if (data?.status === "inactive") {
+        setMessage(`Le module ${data?.moduleCode || ""} a été désactivé.`);
+      } else if (data?.status === "active") {
+        setMessage(`Le module ${data?.moduleCode || ""} a été activé.`);
+      } else {
+        setMessage(data?.message || "Statut des modules mis à jour avec succès.");
+      }
       setShowAlert(true);
       
       // Auto-dismiss after 5 seconds

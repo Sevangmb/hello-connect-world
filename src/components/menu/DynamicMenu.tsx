@@ -9,7 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { useModules } from "@/hooks/modules/useModules";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -93,6 +93,21 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
       '/admin/users',
       '/admin/shops',
       '/admin/settings',
+      '/admin/menus',
+      '/admin/stats',
+      '/admin/analytics',
+      '/admin/marketing',
+      '/admin/content',
+      '/admin/backups',
+      '/admin/notifications',
+      '/admin/moderation',
+      '/admin/reports',
+      '/admin/marketplace',
+      '/admin/payments',
+      '/admin/orders',
+      '/admin/api-keys',
+      '/admin/help',
+      '/admin/waitlist',
       '/legal',
       '/terms',
       '/privacy',
@@ -195,6 +210,80 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     }
   };
 
+  // Rendu pour les menus hiérarchiques
+  if (hierarchical && category === 'admin') {
+    return (
+      <nav className={cn("flex flex-col space-y-1", className)}>
+        {visibleMenuItems.map((item) => {
+          // Normaliser le chemin pour la comparaison
+          const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+          const isItemActive = isActive(normalizedPath);
+          
+          // Pour les éléments avec des enfants
+          if (item.children && item.children.length > 0) {
+            return (
+              <div key={item.id} className="space-y-1">
+                <Button
+                  variant={isItemActive ? "secondary" : "ghost"}
+                  size="sm"
+                  className={cn(
+                    "justify-between font-medium w-full py-2",
+                    isItemActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+                  )}
+                  onClick={(e) => handleNavigate(normalizedPath, e)}
+                >
+                  <span className="flex items-center">
+                    {getIcon(item.icon)}
+                    <span>{item.name}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <div className="pl-4 border-l-2 border-gray-200 ml-3 space-y-1">
+                  {item.children.map(child => {
+                    const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
+                    return (
+                      <Button
+                        key={child.id}
+                        variant={isActive(childPath) ? "secondary" : "ghost"}
+                        size="sm"
+                        className={cn(
+                          "justify-start font-normal w-full py-1.5 text-sm",
+                          isActive(childPath) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+                        )}
+                        onClick={(e) => handleNavigate(childPath, e)}
+                      >
+                        {getIcon(child.icon)}
+                        <span>{child.name}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+          
+          // Pour les éléments simples sans enfants
+          return (
+            <Button
+              key={item.id}
+              variant={isItemActive ? "secondary" : "ghost"}
+              size="sm"
+              className={cn(
+                "justify-start font-medium w-full py-2",
+                isItemActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+              )}
+              onClick={(e) => handleNavigate(normalizedPath, e)}
+            >
+              {getIcon(item.icon)}
+              <span>{item.name}</span>
+            </Button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  // Rendu standard pour les menus non hiérarchiques
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
       {visibleMenuItems.map((item) => {

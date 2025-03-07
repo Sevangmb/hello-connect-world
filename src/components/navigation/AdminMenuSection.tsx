@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useEvents } from "@/hooks/useEvents";
+import { useMenuItemsByCategory } from "@/hooks/menu/useMenuItems";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
@@ -17,6 +18,9 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
   const [showContent, setShowContent] = useState(false);
   const { toast } = useToast();
   const { subscribe, EVENT_TYPES } = useEvents();
+  
+  // Charger tous les sous-menus admin
+  const { data: allAdminMenuItems, isLoading: isLoadingAdminItems } = useMenuItemsByCategory('admin');
   
   // Ne montrer le contenu que si l'utilisateur est administrateur pour éviter le flash
   useEffect(() => {
@@ -47,8 +51,7 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
   }, [error, isUserAdmin, toast]);
   
   // Ne pas rendre le menu admin si l'utilisateur n'est pas administrateur
-  // ou s'il n'y a pas d'éléments de menu admin
-  if (!showContent || (!loading && (!menuItems || menuItems.length === 0))) {
+  if (!showContent) {
     return null;
   }
 
@@ -62,9 +65,9 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
           </span>
         </AccordionTrigger>
         <AccordionContent className="pt-1 pb-2">
-          {loading ? (
+          {loading || isLoadingAdminItems ? (
             <div className="space-y-2 px-1">
-              {[...Array(3)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full rounded" />
               ))}
             </div>
@@ -75,7 +78,8 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
           ) : (
             <DynamicMenu 
               category="admin" 
-              className="px-1" 
+              className="px-1"
+              hierarchical={true}
             />
           )}
         </AccordionContent>
