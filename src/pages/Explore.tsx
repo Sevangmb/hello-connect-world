@@ -1,10 +1,38 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
+import { useModules } from "@/hooks/modules/useModules";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
-const Explore = () => {
+const Explore: React.FC = () => {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { modules, isModuleActive } = useModules();
+
+  // Effet pour simuler un chargement initial et vérifier que les modules sont chargés
+  useEffect(() => {
+    // Vérifier que les modules sont chargés avant d'arrêter le chargement
+    if (modules && modules.length > 0) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [modules]);
+
+  // Page de chargement
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 flex items-center justify-center h-[80vh]">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-500">Chargement de l'explorateur...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Explorer</h1>
@@ -31,7 +59,7 @@ const Explore = () => {
         </TabsContent>
         
         <TabsContent value="hashtags" className="space-y-4">
-          <ModuleGuard moduleCode="hashtags" fallback={<ModuleUnavailable name="Hashtags" />}>
+          <ModuleGuard moduleCode="social" fallback={<ModuleUnavailable name="Hashtags" />}>
             <HashtagsSection />
           </ModuleGuard>
         </TabsContent>
@@ -52,28 +80,82 @@ const Explore = () => {
   );
 };
 
-// Section components with placeholder content
-const PostsSection = () => (
-  <Card className="p-6">
-    <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {[...Array(6)].map((_, i) => (
-        <PostCard key={i} />
-      ))}
-    </div>
+// Component for displaying unavailable modules
+const ModuleUnavailable = ({ name }: { name: string }) => (
+  <Card className="p-6 bg-amber-50 border-amber-200">
+    <h2 className="text-amber-800 font-semibold mb-2">Module {name} indisponible</h2>
+    <p className="text-amber-700">
+      Ce module est actuellement désactivé ou en cours de maintenance.
+    </p>
   </Card>
 );
 
-const NewsSection = () => (
-  <Card className="p-6">
-    <h2 className="text-xl font-semibold mb-4">Dernières actualités</h2>
-    <div className="space-y-4">
-      {[...Array(5)].map((_, i) => (
-        <NewsCard key={i} />
-      ))}
-    </div>
-  </Card>
-);
+// Section components with placeholder content
+const PostsSection = () => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
+        <div className="flex items-center justify-center py-10">
+          <LoadingSpinner />
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <PostCard key={i} />
+        ))}
+      </div>
+    </Card>
+  );
+};
+
+const NewsSection = () => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Dernières actualités</h2>
+        <div className="flex items-center justify-center py-10">
+          <LoadingSpinner />
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-xl font-semibold mb-4">Dernières actualités</h2>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <NewsCard key={i} />
+        ))}
+      </div>
+    </Card>
+  );
+};
 
 const HashtagsSection = () => (
   <Card className="p-6">
@@ -105,16 +187,6 @@ const TrendingSection = () => (
         <TrendingCard key={i} />
       ))}
     </div>
-  </Card>
-);
-
-// Component for displaying unavailable modules
-const ModuleUnavailable = ({ name }: { name: string }) => (
-  <Card className="p-6 bg-amber-50 border-amber-200">
-    <h2 className="text-amber-800 font-semibold mb-2">Module {name} indisponible</h2>
-    <p className="text-amber-700">
-      Ce module est actuellement désactivé ou en cours de maintenance.
-    </p>
   </Card>
 );
 
