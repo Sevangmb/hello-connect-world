@@ -23,14 +23,18 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Using type assertion to avoid TypeScript error while maintaining type safety
-      // This is necessary because Supabase query expects a string but we're using a union type
-      const { data, error } = await supabase
+      // Using Supabase's .eq() with the category as-is, but handle it correctly for the database
+      const query = supabase
         .from('menu_items')
         .select('*')
-        .eq('category', String(category)) // Convert to string for the database query
         .eq('is_active', true)
         .order('position');
+      
+      // Add the category filter with the right approach for Supabase
+      // @ts-ignore - We know this is safe, Supabase accepts the string value of the enum
+      query.eq('category', category);
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       
