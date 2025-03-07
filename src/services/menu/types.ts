@@ -12,6 +12,22 @@ export type MenuItemCategory =
   | 'social'
   | 'profile'
   
+  // Sous-catégories - Accueil
+  | 'weather'
+  | 'ai_suggestions'
+  | 'feed'
+  | 'challenges_banner'
+  
+  // Sous-catégories - Explorer
+  | 'global_search'
+  | 'trends'
+  | 'popular_outfits'
+  | 'popular_items'
+  | 'popular_hashtags'
+  | 'shops'
+  | 'shop_map'
+  | 'search'
+  
   // Sous-catégories - Mon Univers (Perso)
   | 'wardrobe'     // Garde-robe
   | 'outfits'      // Mes Tenues
@@ -22,21 +38,6 @@ export type MenuItemCategory =
   | 'create_outfit' // Créer une Tenue
   | 'publish_look' // Publier un Look
   
-  // Sous-catégories - Explorer
-  | 'search'       // Recherche
-  | 'trends'       // Tendances
-  | 'popular_outfits' // Tenues Populaires 
-  | 'popular_items'   // Articles Populaires
-  | 'popular_hashtags' // Hashtags Populaires
-  | 'shops'        // Boutiques
-  | 'shop_map'     // Carte des Boutiques
-  
-  // Sous-catégories - Marketplace
-  | 'marketplace'  // Vide-Dressing
-  | 'sell'         // Vendre
-  | 'purchases'    // Achats
-  | 'cart'         // Panier
-  
   // Sous-catégories - Communauté
   | 'messages'     // Messagerie
   | 'groups'       // Groupes
@@ -45,6 +46,10 @@ export type MenuItemCategory =
   
   // Sous-catégories - Profil
   | 'my_profile'   // Mon Profil
+  | 'marketplace'  // Vide-Dressing
+  | 'sell'         // Vendre
+  | 'purchases'    // Achats
+  | 'cart'         // Panier
   | 'settings'     // Paramètres
   | 'help'         // Aide & Support
   | 'logout'       // Déconnexion
@@ -57,8 +62,15 @@ export type MenuItemCategory =
   | 'preferences'  // Préférences
   | 'data_storage' // Données et stockage
   
+  // Boutique (menu simplifié)
+  | 'shop_dashboard'
+  | 'shop_storefront'
+  | 'shop_orders'
+  | 'shop_messages'
+  
   // Administration
   | 'admin'
+  | 'admin_dashboard'
   | 'admin_users'
   | 'admin_shops'
   | 'admin_content'
@@ -76,12 +88,6 @@ export type MenuItemCategory =
   | 'admin_financial_stats'
   | 'admin_roles'
   | 'admin_config'
-  
-  // Boutique (menu simplifié)
-  | 'shop_dashboard'
-  | 'shop_storefront'
-  | 'shop_orders'
-  | 'shop_messages'
   
   // Utility categories
   | 'utility'

@@ -28,8 +28,10 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={category} className="border-none">
           <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
-            {renderIcon()}
-            {title}
+            <span className="flex items-center">
+              {renderIcon()}
+              {title}
+            </span>
           </AccordionTrigger>
           <AccordionContent className="pt-1 pb-2">
             <div className="space-y-2 px-1">
@@ -49,8 +51,10 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value={category} className="border-none">
           <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
-            {renderIcon()}
-            {title}
+            <span className="flex items-center">
+              {renderIcon()}
+              {title}
+            </span>
           </AccordionTrigger>
           <AccordionContent className="pt-1 pb-2">
             <div className="text-sm text-red-500 px-3">
@@ -62,17 +66,22 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
     );
   }
 
-  // Ne pas rendre la catégorie si elle n'a pas d'éléments visibles
-  if (!menuItems || menuItems.length === 0) {
+  // Déterminer si c'est une catégorie principale pour l'état par défaut
+  const isMainCategory = ['main', 'explore', 'personal', 'social', 'profile'].includes(category);
+  
+  // Ne pas rendre la catégorie si elle n'a pas d'éléments visibles et ce n'est pas une catégorie principale
+  if (!isMainCategory && (!menuItems || menuItems.length === 0)) {
     return null;
   }
 
   return (
-    <Accordion type="single" collapsible defaultValue={category} className="w-full">
+    <Accordion type="single" collapsible defaultValue={isMainCategory ? category : undefined} className="w-full">
       <AccordionItem value={category} className="border-none">
-        <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline flex items-center">
-          {renderIcon()}
-          <span>{title}</span>
+        <AccordionTrigger className="py-2 px-3 text-sm font-medium text-gray-500 hover:text-gray-900 hover:no-underline">
+          <span className="flex items-center">
+            {renderIcon()}
+            <span>{title}</span>
+          </span>
         </AccordionTrigger>
         <AccordionContent className="pt-1 pb-2">
           <DynamicMenu category={category} className="px-1" />
