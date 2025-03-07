@@ -80,9 +80,16 @@ export class MenuQueryBuilder {
    * Crée un élément de menu
    */
   static async createItem(item: CreateMenuItemParams) {
+    // On doit traiter l'objet comme n'importe quel objet de type Record<string, any>
+    // pour satisfaire l'API Supabase, tout en conservant les types dans notre code
+    const itemForDb = {
+      ...item,
+      category: item.category as string // Cast explicite pour Supabase
+    };
+    
     return supabase
       .from('menu_items')
-      .insert([{ ...item, category: item.category as string }]) // Cast to string for Supabase
+      .insert([itemForDb])
       .select()
       .single();
   }
@@ -91,15 +98,19 @@ export class MenuQueryBuilder {
    * Met à jour un élément de menu
    */
   static async updateItem(id: string, updates: UpdateMenuItemParams) {
-    // If category is present, we need to cast it
-    const updatesWithStringCategory = {
-      ...updates,
-      ...(updates.category && { category: updates.category as string })
+    // Si la catégorie est présente, nous devons la caster
+    const updatesForDb = {
+      ...updates
     };
+    
+    // Si category est présent, le caster en string
+    if (updates.category) {
+      updatesForDb.category = updates.category as string;
+    }
 
     return supabase
       .from('menu_items')
-      .update(updatesWithStringCategory)
+      .update(updatesForDb)
       .eq('id', id)
       .select()
       .single();
