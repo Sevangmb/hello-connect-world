@@ -20,26 +20,27 @@ export default function Suitcases() {
   const { toast } = useToast();
   const [view, setView] = useState<'list' | 'grid'>('grid');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<SuitcaseFilter>({ status: 'active', search: '' });
   
   const {
     suitcases,
-    loading,
+    isLoading,
     error,
-    filters,
-    applyFilters,
-    createSuitcase
-  } = useSuitcases(user?.id || '');
+    createSuitcase,
+    updateSuitcase,
+    deleteSuitcase
+  } = useSuitcases(filters);
   
   // Utiliser notre hook d'animation de transition pour éviter les clignotements
-  const isTransitioning = useTransitionState(loading);
+  const isTransitioning = useTransitionState(isLoading);
 
   const handleViewChange = useCallback((newView: 'list' | 'grid') => {
     setView(newView);
   }, []);
 
   const handleFilterChange = useCallback((key: keyof SuitcaseFilter, value: string) => {
-    applyFilters({ [key]: value } as Partial<SuitcaseFilter>);
-  }, [applyFilters]);
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
 
   const handleSuitcaseSelect = useCallback((suitcaseId: string) => {
     console.log('Suitcase selected:', suitcaseId);
@@ -48,7 +49,7 @@ export default function Suitcases() {
 
   const handleCreateSuitcase = useCallback(async (data: any) => {
     try {
-      await createSuitcase(data);
+      await createSuitcase.mutateAsync(data);
       toast({
         title: "Valise créée",
         description: "Votre nouvelle valise a été créée avec succès."

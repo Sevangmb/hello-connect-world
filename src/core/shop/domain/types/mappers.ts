@@ -2,11 +2,17 @@
 /**
  * Mappers for shop domain entities
  */
-import { Shop, ShopReview, ShopSettings, isDeliveryOption, isPaymentMethod } from './shop-types';
-import { ShopItem, isShopItemStatus } from './item-types';
-import { Order, DbOrder, isOrderStatus } from './order-types';
-import { isPaymentStatus } from './payment-types';
-import { isShopStatus } from './type-guards';
+import { Shop, ShopReview, ShopSettings } from './shop-types';
+import { ShopItem } from './item-types';
+import { Order, DbOrder } from './order-types';
+import { 
+  isShopStatus, 
+  isShopItemStatus, 
+  isOrderStatus, 
+  isPaymentStatus, 
+  isDeliveryOption, 
+  isPaymentMethod 
+} from './type-guards';
 
 /**
  * Fonctions de mappage pour convertir les données brutes en objets de domaine typés

@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { UseMutationResult } from '@tanstack/react-query';
 
@@ -91,4 +90,12 @@ export interface SuitcaseCalendarItemsHookResult {
   addCalendarItem: UseMutationResult<any, Error, any, unknown>;
   updateCalendarItem: UseMutationResult<any, Error, any, unknown>;
   removeCalendarItem: UseMutationResult<any, Error, string, unknown>;
+}
+
+export interface SuitcaseItemsEmptyProps {
+  onAddItems: () => void;
+}
+
+export interface SuitcaseItemsHeaderProps {
+  onAddItems: () => void;
 }

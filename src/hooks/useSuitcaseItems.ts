@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { SuitcaseItem } from '@/components/suitcases/types';
@@ -89,15 +88,21 @@ export const useSuitcaseItems = (suitcaseId: string) => {
     mutationFn: async ({ 
       id, 
       quantity,
-      folder_id
+      folder_id,
+      is_packed,
+      notes
     }: {
       id: string;
       quantity?: number;
       folder_id?: string;
+      is_packed?: boolean;
+      notes?: string;
     }) => {
       const updates: any = {};
       if (quantity !== undefined) updates.quantity = quantity;
       if (folder_id !== undefined) updates.folder_id = folder_id;
+      if (is_packed !== undefined) updates.is_packed = is_packed;
+      if (notes !== undefined) updates.notes = notes;
 
       const { data, error } = await supabase
         .from('suitcase_items')

@@ -1,4 +1,3 @@
-
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
@@ -248,6 +247,29 @@ export class ModuleRepository implements IModuleRepository {
     } catch (error) {
       console.error('Error fetching modules with features:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get module status
+   */
+  async getModuleStatus(moduleCode: string): Promise<ModuleStatus> {
+    try {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('status')
+        .eq('code', moduleCode)
+        .single();
+
+      if (error) {
+        console.error(`Error fetching module status: ${error.message}`);
+        return 'inactive';
+      }
+
+      return data?.status || 'inactive';
+    } catch (error) {
+      console.error(`Error in getModuleStatus: ${error}`);
+      return 'inactive';
     }
   }
 }

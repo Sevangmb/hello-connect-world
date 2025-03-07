@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +13,8 @@ const fetchSuitcases = async (userId: string, filter: SuitcaseFilter = {}): Prom
     .order('updated_at', { ascending: false });
 
   if (filter.status) {
-    // Make sure we only use valid status values
+    // Make sure we only use valid status values for database query
+    // Database might only accept 'active' or 'archived'
     const validStatus = filter.status === 'active' || filter.status === 'archived' 
       ? filter.status 
       : 'active';
@@ -64,13 +64,17 @@ export const useSuitcases = (filter: SuitcaseFilter = {}) => {
     }) => {
       if (!userId) throw new Error('User not authenticated');
 
+      // Only use 'active' or 'archived' when inserting to database
+      // to match database constraints
+      const dbStatus = newSuitcase.status === 'archived' ? 'archived' : 'active';
+
       const suitcaseData = {
         user_id: userId,
-        name: newSuitcase.name, // Make name required
-        description: newSuitcase.description,
+        name: newSuitcase.name,
+        description: newSuitcase.description || '',
         start_date: newSuitcase.start_date,
         end_date: newSuitcase.end_date,
-        status: newSuitcase.status || 'active',
+        status: dbStatus,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };

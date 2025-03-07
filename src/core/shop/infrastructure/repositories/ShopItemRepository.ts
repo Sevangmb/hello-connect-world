@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ShopItem, mapShopItem, mapShopItems } from '../../domain/types';
 
@@ -33,28 +32,27 @@ export class ShopItemRepository {
     return mapShopItem(data);
   }
 
-  async createShopItem(item: Omit<ShopItem, "id" | "created_at" | "updated_at">): Promise<ShopItem | null> {
+  async createShopItem(shopItem: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem> {
     const { data, error } = await supabase
       .from('shop_items')
       .insert({
-        shop_id: item.shop_id,
-        name: item.name,
-        description: item.description,
-        image_url: item.image_url,
-        price: item.price,
-        original_price: item.original_price,
-        stock: item.stock,
-        status: item.status
+        shop_id: shopItem.shop_id,
+        name: shopItem.name,
+        description: shopItem.description || '',
+        image_url: shopItem.image_url || '',
+        price: shopItem.price,
+        original_price: shopItem.original_price || null,
+        stock: shopItem.stock || 0,
+        status: shopItem.status || 'available',
+        clothes_id: shopItem.clothes_id || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .select('*, shops:shop_id(name,id)')
+      .select()
       .single();
 
-    if (error) {
-      console.error('Error creating shop item:', error);
-      return null;
-    }
-
-    return mapShopItem(data);
+    if (error) throw new Error(`Error creating shop item: ${error.message}`);
+    return mapShopItem(data) as ShopItem;
   }
 
   async updateShopItem(id: string, updates: Partial<ShopItem>): Promise<ShopItem | null> {
