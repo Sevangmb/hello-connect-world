@@ -1,43 +1,53 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { SuitcaseCalendar as CalendarComponent } from '@/components/suitcases/components/SuitcaseCalendar';
 import { useSuitcase } from '@/hooks/useSuitcase';
-import { SuitcaseCalendar } from '@/components/suitcases/components/SuitcaseCalendar';
-import { Card } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-const SuitcaseCalendarPage: React.FC = () => {
+export default function SuitcaseCalendar() {
   const { id } = useParams<{ id: string }>();
-  const { data: suitcase, isLoading } = useSuitcase(id || '');
+  const { suitcase, loading, error } = useSuitcase(id || '');
 
-  if (isLoading) {
+  if (!id) {
     return (
-      <div className="container mx-auto py-6 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          ID de valise manquant. Veuillez sélectionner une valise.
+        </AlertDescription>
+      </Alert>
     );
   }
 
-  if (!suitcase) {
+  if (loading) {
+    return <Card><CardContent className="p-6">Chargement des données...</CardContent></Card>;
+  }
+
+  if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Card className="p-6">
-          <div className="text-center text-muted-foreground">
-            Valise non trouvée
-          </div>
-        </Card>
-      </div>
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Erreur lors du chargement de la valise: {error.message}
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">Calendrier: {suitcase.name}</h1>
-      <Card className="p-6">
-        <SuitcaseCalendar suitcaseId={suitcase.id} />
-      </Card>
+    <div className="container py-8">
+      <h1 className="text-2xl font-bold mb-6">
+        Calendrier: {suitcase?.name || 'Valise'}
+      </h1>
+      <CalendarComponent 
+        suitcaseId={id} 
+        suitcase={suitcase}
+        loading={loading}
+        error={error}
+      />
     </div>
   );
-};
-
-export default SuitcaseCalendarPage;
+}

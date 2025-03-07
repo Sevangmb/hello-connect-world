@@ -94,6 +94,10 @@ export class ModuleRepository implements IModuleRepository {
       
       if (dependencyError) throw dependencyError;
       
+      if (!dependencyData || dependencyData.length === 0) {
+        return [];
+      }
+      
       // Récupérer les détails des modules de dépendance
       const dependencies = [];
       
@@ -209,15 +213,17 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Mapper les modules aux fonctionnalités
+      // Créer la map des modules aux fonctionnalités
       const moduleFeatureMap = new Map();
       
-      modules.forEach(module => {
-        moduleFeatureMap.set(module.code, {
-          module,
-          features: []
+      if (modules) {
+        modules.forEach(module => {
+          moduleFeatureMap.set(module.code, {
+            module,
+            features: []
+          });
         });
-      });
+      }
       
       // Ajouter les fonctionnalités aux modules
       if (features) {

@@ -1,103 +1,177 @@
 
 import React from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { CreateSuitcaseFormProps, CreateSuitcaseData } from '../types';
 
-export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({ 
-  onSubmit,
-  onSuccess,
-  isLoading
-}) => {
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
-  } = useForm<CreateSuitcaseData>();
+const formSchema = z.object({
+  name: z.string().min(1, 'Le nom est requis'),
+  description: z.string().optional(),
+  start_date: z.date().optional(),
+  end_date: z.date().optional(),
+});
 
-  const handleFormSubmit = (data: CreateSuitcaseData) => {
-    onSubmit(data);
-    if (onSuccess) {
-      onSuccess();
-    }
+export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({ 
+  onSubmit, 
+  onCancel, 
+  initialData,
+  isSubmitting = false
+}) => {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      start_date: initialData?.start_date ? new Date(initialData.start_date) : undefined,
+      end_date: initialData?.end_date ? new Date(initialData.end_date) : undefined,
+    },
+  });
+
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    const formData: CreateSuitcaseData = {
+      name: values.name,
+      description: values.description,
+      start_date: values.start_date?.toISOString(),
+      end_date: values.end_date?.toISOString(),
+    };
+    onSubmit(formData);
   };
 
   return (
-    <DialogContent className="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle>Créer une valise</DialogTitle>
-        <DialogDescription>
-          Remplissez les informations pour créer une nouvelle valise.
-        </DialogDescription>
-      </DialogHeader>
-
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nom de la valise</Label>
-          <Input 
-            id="name"
-            placeholder="Vacances d'été..."
-            {...register('name', { required: 'Le nom est obligatoire' })}
-          />
-          {errors.name && (
-            <p className="text-sm text-red-500">{errors.name.message}</p>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nom de la valise</FormLabel>
+              <FormControl>
+                <Input placeholder="Voyage à Paris" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </div>
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Description (optionnelle)</Label>
-          <Textarea 
-            id="description"
-            placeholder="Décrivez l'objectif de cette valise..."
-            {...register('description')}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optionnel)</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Détails sur le voyage..." {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date de début</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PP")
+                        ) : (
+                          <span>Choisir une date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="end_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date de fin</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PP")
+                        ) : (
+                          <span>Choisir une date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                      disabled={(date) => {
+                        const startDate = form.getValues("start_date");
+                        return startDate ? date < startDate : false;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="start_date">Date de début</Label>
-            <Input 
-              id="start_date"
-              type="date"
-              {...register('start_date')}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="end_date">Date de fin</Label>
-            <Input 
-              id="end_date"
-              type="date"
-              {...register('end_date')}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onSuccess}
-          >
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
-          <Button 
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Création...' : 'Créer'}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {initialData ? 'Mettre à jour' : 'Créer'}
           </Button>
         </div>
       </form>
-    </DialogContent>
+    </Form>
   );
 };

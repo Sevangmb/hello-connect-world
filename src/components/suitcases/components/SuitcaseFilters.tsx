@@ -1,70 +1,92 @@
 
-import React, { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import React from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { SuitcaseFiltersProps } from '../types';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Search, X } from 'lucide-react';
+import { SuitcaseFilter } from '../types';
 
-export const SuitcaseFilters: React.FC<SuitcaseFiltersProps> = ({
-  filters,
-  statusLabels,
-  onStatusChange,
-  onClearSearch
+interface SuitcaseFiltersProps {
+  filters: SuitcaseFilter;
+  onFiltersChange: (filters: SuitcaseFilter) => void;
+}
+
+export const SuitcaseFilters: React.FC<SuitcaseFiltersProps> = ({ 
+  filters, 
+  onFiltersChange 
 }) => {
-  const [searchTerm, setSearchTerm] = useState(filters.search);
+  const [searchValue, setSearchValue] = React.useState(filters.search || '');
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Logique de recherche ici
+  const handleStatusChange = (value: string) => {
+    onFiltersChange({
+      ...filters,
+      status: value as any
+    });
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearchValue(e.target.value);
   };
 
-  const handleClearSearch = () => {
-    setSearchTerm('');
-    onClearSearch();
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onFiltersChange({
+      ...filters,
+      search: searchValue
+    });
+  };
+
+  const clearSearch = () => {
+    setSearchValue('');
+    onFiltersChange({
+      ...filters,
+      search: ''
+    });
   };
 
   return (
-    <div className="w-full md:w-auto">
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-        <form onSubmit={handleSearch} className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Rechercher une valise..."
-            className="w-full pl-8 pr-8"
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </form>
+    <div className="space-y-4">
+      <Tabs 
+        defaultValue={filters.status || 'active'}
+        className="w-full"
+        onValueChange={handleStatusChange}
+      >
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="active">Actives</TabsTrigger>
+          <TabsTrigger value="archived">Archivées</TabsTrigger>
+          <TabsTrigger value="completed">Terminées</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-        <div className="flex space-x-1">
-          {Object.entries(statusLabels).map(([status, label]) => (
-            <button
-              key={status}
-              className={`px-3 py-1 text-sm rounded-md ${
-                filters.status === status
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-              }`}
-              onClick={() => onStatusChange(status)}
-            >
-              {label}
-            </button>
-          ))}
+      <form onSubmit={handleSearchSubmit} className="flex items-end space-x-2">
+        <div className="flex-grow">
+          <Label htmlFor="search">Rechercher</Label>
+          <div className="relative">
+            <Input
+              id="search"
+              type="text"
+              placeholder="Nom de la valise..."
+              value={searchValue}
+              onChange={handleSearchChange}
+              className="pr-8"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+        <Button type="submit">
+          <Search className="h-4 w-4 mr-2" />
+          Rechercher
+        </Button>
+      </form>
     </div>
   );
 };
