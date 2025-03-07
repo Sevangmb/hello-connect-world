@@ -1,5 +1,5 @@
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMenu } from "@/hooks/menu";
 import { MenuItemCategory } from "@/services/menu/types";
@@ -11,6 +11,8 @@ import { MenuEmptyState } from "./components/MenuEmptyState";
 import { HierarchicalMenu } from "./components/HierarchicalMenu";
 import { StandardMenu } from "./components/StandardMenu";
 import { routeExists } from "./utils/menuUtils";
+import { eventBus, EVENTS } from "@/services/events/EventBus";
+import { MenuStructureTransformer } from "@/services/menu/infrastructure/utils/MenuStructureTransformer";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -34,6 +36,18 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { modules, isInitialized: modulesInitialized } = useModules();
+  
+  // S'abonner aux événements de navigation
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe(EVENTS.NAVIGATION.ROUTE_CHANGED, (data) => {
+      console.log("Route changed event received in DynamicMenu:", data);
+      // On pourrait rafraîchir le menu ou mettre à jour l'état actif ici
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   
   // Mémoriser la vérification de visibilité des modules
   const isMenuItemVisible = useMemo(() => {
@@ -67,8 +81,13 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         // Vérifier si le module est visible
         const moduleVisible = !item.module_code || isMenuItemVisible(item.module_code);
         
-        // Normaliser le chemin
-        const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+        // Normaliser le chemin si spécifié, sinon utiliser la transformation
+        let itemPath = item.path;
+        if (!itemPath || itemPath === '#') {
+          itemPath = MenuStructureTransformer.getRoutePathForMenuItem(item.category);
+        }
+        
+        const normalizedPath = itemPath.startsWith('/') ? itemPath : `/${itemPath}`;
         
         // Vérifier si la route existe
         const validRoute = routeExists(normalizedPath);
@@ -105,6 +124,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     }
     
     console.log(`Navigating to: ${targetPath}`);
+    
+    // Publier l'événement de changement de route
+    eventBus.publish(EVENTS.NAVIGATION.ROUTE_CHANGED, {
+      from: location.pathname,
+      to: targetPath
+    });
     
     // Forcer la navigation même si on est déjà sur le chemin
     if (location.pathname === targetPath) {

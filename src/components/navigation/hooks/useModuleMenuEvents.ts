@@ -28,6 +28,7 @@ export const useModuleMenuEvents = (): ModuleMenuHookResult => {
 
   // Fonction pour naviguer vers une route
   const navigateToRoute = (route: string) => {
+    console.log(`Navigation vers: ${route}`);
     navigate(route);
   };
 

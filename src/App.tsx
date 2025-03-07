@@ -1,16 +1,18 @@
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import {
   Route,
   Routes,
   Navigate,
-  useNavigate
+  useNavigate,
+  useLocation
 } from 'react-router-dom';
 import { useAuth } from '@/modules/auth';
 import { ModuleGuard } from '@/components/modules/ModuleGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CartPage } from './components/cart';
 import NotFound from './pages/NotFound';
+import { eventBus, EVENTS } from './services/events/EventBus';
 
 // Lazy load components
 const Home = lazy(() => import('./pages/Home'));
@@ -44,6 +46,15 @@ const About = () => <div className="container mx-auto p-8"><h1 className="text-2
 function App() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Publier les événements de navigation
+  useEffect(() => {
+    eventBus.publish(EVENTS.NAVIGATION.ROUTE_CHANGED, {
+      path: location.pathname,
+      timestamp: Date.now()
+    });
+  }, [location.pathname]);
 
   // Create a fallback UI for error boundary
   const fallbackUI = (
@@ -65,8 +76,6 @@ function App() {
     <ErrorBoundary fallback={fallbackUI}>
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>}>
         <Routes>
-          {/* Home est déjà géré dans MainRoutes */}
-          
           {/* Pages principales */}
           <Route path="profile" element={<Profile />} />
           <Route path="profile/settings" element={<Settings />} />
@@ -92,6 +101,12 @@ function App() {
             <Route path="suitcases" element={<ModuleGuard moduleCode="wardrobe"><Suitcases /></ModuleGuard>} />
             <Route path="suitcases/:id" element={<ModuleGuard moduleCode="wardrobe"><SuitcaseDetail /></ModuleGuard>} />
           </Route>
+          
+          {/* Redirection pour compatibilité avec les anciens liens */}
+          <Route path="suitcases" element={<Navigate to="/wardrobe/suitcases" replace />} />
+          <Route path="suitcases/:id" element={<Navigate to={`/wardrobe/suitcases/${location.pathname.split('/').pop()}`} replace />} />
+          <Route path="outfits" element={<Navigate to="/wardrobe/outfits" replace />} />
+          <Route path="outfits/:id" element={<Navigate to={`/wardrobe/outfits/${location.pathname.split('/').pop()}`} replace />} />
           
           {/* Routes du module Admin */}
           <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />

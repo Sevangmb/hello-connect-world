@@ -23,8 +23,19 @@ import ScanLabelFeature from '@/pages/features/ScanLabelFeature';
 import OutfitSuggestionFeature from '@/pages/features/OutfitSuggestionFeature';
 import VirtualTryOnFeature from '@/pages/features/VirtualTryOnFeature';
 
+// Import du service d'événements
+import { eventBus, EVENTS } from '@/services/events/EventBus';
+
 const MainRoutes: React.FC = () => {
   console.log("MainRoutes: Rendu des routes principales");
+  
+  // Publier un événement lors du rendu initial des routes
+  React.useEffect(() => {
+    eventBus.publish(EVENTS.MODULE.INITIALIZED, {
+      module: 'routes',
+      timestamp: Date.now()
+    });
+  }, []);
   
   return (
     <Routes>
@@ -62,6 +73,9 @@ const MainRoutes: React.FC = () => {
         <Route path="/outfit-suggestion" element={<OutfitSuggestionFeature />} />
         <Route path="/virtual-try-on" element={<VirtualTryOnFeature />} />
         <Route path="/ocr" element={<OCRModule />} />
+        
+        {/* Ajout d'une redirection explicite pour le chemin des valises */}
+        <Route path="/suitcases" element={<Navigate to="/wardrobe/suitcases" replace />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
