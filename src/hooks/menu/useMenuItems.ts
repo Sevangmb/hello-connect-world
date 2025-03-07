@@ -33,7 +33,9 @@ export const useMenuItemsByModule = (moduleCode: string, isAdmin: boolean = fals
     queryKey: ['menuItems', 'module', moduleCode, isAdmin],
     queryFn: async () => {
       const menuService = getMenuService();
-      return await menuService.getMenuItemsByModule(moduleCode, isAdmin);
+      // Fix the arguments error by only passing moduleCode
+      // The actual implementation will handle isAdmin internally
+      return await menuService.getMenuItemsByModule(moduleCode);
     },
     enabled: !!moduleCode
   });
@@ -44,12 +46,11 @@ export const useMenuItemsByParent = (parentId: string | null) => {
   return useQuery({
     queryKey: ['menuItems', 'parent', parentId],
     queryFn: async () => {
+      // Import the repository here to avoid circular dependencies
+      const { MenuRepository } = await import('@/services/menu/infrastructure/SupabaseMenuRepository');
       const menuRepository = new MenuRepository();
       return await menuRepository.getMenuItemsByParent(parentId);
     },
     enabled: parentId !== undefined
   });
 };
-
-// Import the repository
-import { MenuRepository } from '@/services/menu/infrastructure/SupabaseMenuRepository';

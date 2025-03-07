@@ -31,10 +31,10 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category }) => {
       refreshMenu();
     };
     
-    eventBus.subscribe(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, handleModuleStatusChange);
+    const unsubscribe = eventBus.subscribe(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, handleModuleStatusChange);
     
     return () => {
-      eventBus.unsubscribe(MODULE_MENU_EVENTS.MODULE_STATUS_CHANGED, handleModuleStatusChange);
+      unsubscribe(); // Correctly use the returned function to unsubscribe
     };
   }, [category, refreshMenu]);
   

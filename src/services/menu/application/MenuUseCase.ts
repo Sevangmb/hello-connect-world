@@ -2,69 +2,34 @@
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
 
-/**
- * MenuUseCase class for handling menu-related logic
- */
 export class MenuUseCase {
-  private menuRepository: IMenuRepository;
+  constructor(private menuRepository: IMenuRepository) {}
 
-  constructor(menuRepository: IMenuRepository) {
-    this.menuRepository = menuRepository;
+  async getAllMenuItems(): Promise<MenuItem[]> {
+    return this.menuRepository.getAllMenuItems();
   }
 
-  /**
-   * Get all menu items
-   */
-  async getAllMenuItems() {
-    return await this.menuRepository.getAllMenuItems();
+  async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
+    return this.menuRepository.getMenuItemsByCategory(category);
   }
 
-  /**
-   * Get menu items by category
-   */
-  async getMenuItemsByCategory(category: MenuItemCategory) {
-    return await this.menuRepository.getMenuItemsByCategory(category);
+  async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
+    return this.menuRepository.getMenuItemsByModule(moduleCode, isAdmin);
   }
 
-  /**
-   * Get menu items by module
-   */
-  async getMenuItemsByModule(moduleCode: string) {
-    return await this.menuRepository.getMenuItemsByModule(moduleCode);
+  async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
+    return this.menuRepository.getMenuItemsByParent(parentId);
   }
 
-  /**
-   * Get admin menu items
-   */
-  async getAdminMenuItems() {
-    return await this.menuRepository.getMenuItemsByCategory('admin');
+  async createMenuItem(item: CreateMenuItemParams): Promise<MenuItem | null> {
+    return this.menuRepository.createMenuItem(item);
   }
 
-  /**
-   * Set menu item visibility
-   */
-  async setMenuItemVisibility(itemId: string, isVisible: boolean) {
-    return await this.menuRepository.updateMenuItem(itemId, { is_visible: isVisible });
+  async updateMenuItem(id: string, updates: UpdateMenuItemParams): Promise<MenuItem | null> {
+    return this.menuRepository.updateMenuItem(id, updates);
   }
 
-  /**
-   * Create a new menu item
-   */
-  async createMenuItem(menuItemData: CreateMenuItemParams) {
-    return await this.menuRepository.createMenuItem(menuItemData);
-  }
-
-  /**
-   * Update a menu item
-   */
-  async updateMenuItem(itemId: string, menuItemData: UpdateMenuItemParams) {
-    return await this.menuRepository.updateMenuItem(itemId, menuItemData);
-  }
-
-  /**
-   * Delete a menu item
-   */
-  async deleteMenuItem(itemId: string) {
-    return await this.menuRepository.deleteMenuItem(itemId);
+  async deleteMenuItem(id: string): Promise<boolean> {
+    return this.menuRepository.deleteMenuItem(id);
   }
 }
