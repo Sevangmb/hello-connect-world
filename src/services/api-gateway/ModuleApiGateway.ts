@@ -5,7 +5,7 @@ import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 
 export class ModuleApiGateway extends BaseApiGateway {
   constructor() {
-    super();
+    super('ModuleService'); // Pass the service name to the parent constructor
   }
 
   async getModuleStatus(moduleCode: string): Promise<ModuleStatus> {
