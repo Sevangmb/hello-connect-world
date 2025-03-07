@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { MenuItem } from "../../types";
+import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from "../../types";
 
 /**
  * Classe utilitaire pour construire des requêtes Supabase pour les menus
@@ -21,11 +21,11 @@ export class MenuQueryBuilder {
   /**
    * Récupère les éléments de menu par catégorie
    */
-  static async getItemsByCategory(category: string) {
+  static async getItemsByCategory(category: MenuItemCategory) {
     return supabase
       .from('menu_items')
       .select('*')
-      .eq('category', category)
+      .eq('category', category as string) // Cast to string to satisfy Supabase API
       .order('position', { ascending: true })
       .order('order', { ascending: true })
       .order('name', { ascending: true });
@@ -79,10 +79,10 @@ export class MenuQueryBuilder {
   /**
    * Crée un élément de menu
    */
-  static async createItem(item: Omit<MenuItem, 'id'>) {
+  static async createItem(item: CreateMenuItemParams) {
     return supabase
       .from('menu_items')
-      .insert([item])
+      .insert([{ ...item, category: item.category as string }]) // Cast to string for Supabase
       .select()
       .single();
   }
@@ -90,10 +90,16 @@ export class MenuQueryBuilder {
   /**
    * Met à jour un élément de menu
    */
-  static async updateItem(id: string, updates: Partial<MenuItem>) {
+  static async updateItem(id: string, updates: UpdateMenuItemParams) {
+    // If category is present, we need to cast it
+    const updatesWithStringCategory = {
+      ...updates,
+      ...(updates.category && { category: updates.category as string })
+    };
+
     return supabase
       .from('menu_items')
-      .update(updates)
+      .update(updatesWithStringCategory)
       .eq('id', id)
       .select()
       .single();
