@@ -84,7 +84,7 @@ export class MenuQueryBuilder {
    */
   static async createItem(item: CreateMenuItemParams) {
     // Créer une copie de l'objet avec category comme string pour Supabase
-    const itemForDb: Record<string, any> = {
+    const itemForDb = {
       ...item
     };
     
@@ -105,7 +105,7 @@ export class MenuQueryBuilder {
    */
   static async updateItem(id: string, updates: UpdateMenuItemParams) {
     // Créer une copie de l'objet pour les mises à jour
-    const updatesForDb: Record<string, any> = {
+    const updatesForDb = {
       ...updates
     };
     
