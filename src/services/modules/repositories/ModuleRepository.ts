@@ -1,8 +1,9 @@
+
 import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
 
-// Define a simplified return type for getModulesWithFeatures
+// Define simple, non-recursive types for the return values
 interface ModuleBasicInfo {
   id: string;
   name: string;
@@ -19,10 +20,10 @@ interface FeatureBasicInfo {
   is_enabled: boolean;
 }
 
-type ModuleWithFeatures = {
+interface ModuleWithFeatures {
   module: ModuleBasicInfo;
   features: FeatureBasicInfo[];
-};
+}
 
 export class ModuleRepository implements IModuleRepository {
   /**
@@ -214,7 +215,7 @@ export class ModuleRepository implements IModuleRepository {
    */
   public async getModulesWithFeatures(): Promise<ModuleWithFeatures[]> {
     try {
-      // Fetch modules
+      // First, fetch all modules
       const { data: modulesData, error: modulesError } = await supabase
         .from('app_modules')
         .select('id, name, code, description, status');
@@ -224,7 +225,11 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Fetch features
+      if (!modulesData || modulesData.length === 0) {
+        return [];
+      }
+      
+      // Then fetch all features
       const { data: featuresData, error: featuresError } = await supabase
         .from('module_features')
         .select('id, feature_code, feature_name, description, is_enabled, module_code');
@@ -234,15 +239,11 @@ export class ModuleRepository implements IModuleRepository {
         return [];
       }
       
-      // Create result array without using Maps or complex type manipulations
+      // Build the result array directly with proper typing
       const result: ModuleWithFeatures[] = [];
       
-      if (!modulesData) {
-        return [];
-      }
-      
-      // For each module, create an entry with its features
-      modulesData.forEach((module) => {
+      // Process each module
+      for (const module of modulesData) {
         const moduleInfo: ModuleBasicInfo = {
           id: module.id,
           name: module.name,
@@ -255,7 +256,9 @@ export class ModuleRepository implements IModuleRepository {
         const moduleFeatures: FeatureBasicInfo[] = [];
         
         if (featuresData) {
-          featuresData.forEach((feature) => {
+          // Use explicit iteration instead of array methods to avoid complex type inference
+          for (let i = 0; i < featuresData.length; i++) {
+            const feature = featuresData[i];
             if (feature.module_code === module.code) {
               moduleFeatures.push({
                 id: feature.id,
@@ -265,7 +268,7 @@ export class ModuleRepository implements IModuleRepository {
                 is_enabled: feature.is_enabled
               });
             }
-          });
+          }
         }
         
         // Add this module with its features to the result
@@ -273,7 +276,7 @@ export class ModuleRepository implements IModuleRepository {
           module: moduleInfo,
           features: moduleFeatures
         });
-      });
+      }
       
       return result;
     } catch (error) {
