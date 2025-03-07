@@ -31,6 +31,11 @@ export interface IShopService {
    */
   updateShop(shopId: string, shopData: Partial<Shop>): Promise<Shop | null>;
   
+  /**
+   * Crée une boutique
+   */
+  createShop(shop: Partial<Shop>): Promise<Shop | null>;
+  
   // ===== Méthodes liées aux paramètres =====
   
   /**
@@ -58,7 +63,7 @@ export interface IShopService {
   /**
    * Crée un nouvel article de boutique
    */
-  createShopItem(item: Omit<ShopItem, 'id' | 'created_at' | 'updated_at'>): Promise<ShopItem | null>;
+  createShopItem(item: Omit<ShopItem, "id" | "created_at" | "updated_at">): Promise<ShopItem | null>;
   
   /**
    * Met à jour un article de boutique
@@ -112,15 +117,15 @@ export interface IShopService {
   /**
    * Crée une commande
    */
-  createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order | null>;
+  createOrder(order: Omit<Order, "id" | "created_at" | "updated_at">): Promise<Order | null>;
   
   /**
    * Met à jour le statut d'une commande
    */
-  updateOrderStatus(orderId: string, status: OrderStatus): Promise<boolean>;
+  updateOrderStatus(orderId: string, status: string): Promise<boolean>;
   
   /**
    * Met à jour le statut de paiement d'une commande
    */
-  updatePaymentStatus(orderId: string, status: PaymentStatus): Promise<boolean>;
+  updatePaymentStatus(orderId: string, status: string): Promise<boolean>;
 }

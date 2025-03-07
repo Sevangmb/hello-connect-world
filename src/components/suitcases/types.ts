@@ -2,7 +2,7 @@
 import { ReactNode } from 'react';
 import { UseMutationResult } from '@tanstack/react-query';
 
-export type SuitcaseStatus = 'active' | 'archived' | 'completed';
+export type SuitcaseStatus = 'active' | 'archived' | 'completed' | 'deleted';
 
 export interface Suitcase {
   id: string;
@@ -15,6 +15,7 @@ export interface Suitcase {
   created_at: string;
   updated_at: string;
   parent_id?: string;
+  destination?: string;
 }
 
 export interface SuitcaseItem {
@@ -25,6 +26,7 @@ export interface SuitcaseItem {
   folder_id?: string;
   created_at: string;
   is_packed?: boolean;
+  notes?: string;
   clothes?: {
     id: string;
     name: string;
@@ -71,13 +73,15 @@ export interface CreateSuitcaseData {
   description?: string;
   start_date?: string;
   end_date?: string;
+  destination?: string;
 }
 
 export interface CreateSuitcaseFormProps {
   onSubmit: (data: CreateSuitcaseData) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   initialData?: Partial<CreateSuitcaseData>;
   isSubmitting?: boolean;
+  onSuccess?: () => void;
 }
 
 export interface SuitcaseCalendarItemsHookResult {

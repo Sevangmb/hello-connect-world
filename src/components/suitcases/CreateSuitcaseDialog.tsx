@@ -22,8 +22,9 @@ export const CreateSuitcaseDialog: React.FC<CreateSuitcaseDialogProps> = ({
         </DialogHeader>
         <CreateSuitcaseForm 
           onSubmit={onSubmit} 
-          isLoading={false} 
+          onCancel={onClose}
           onSuccess={onClose}
+          isSubmitting={false}
         />
       </DialogContent>
     </Dialog>

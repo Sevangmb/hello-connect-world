@@ -24,10 +24,10 @@ export const isPaymentStatus = (status: string): status is PaymentStatus => {
   return ['pending', 'paid', 'refunded', 'failed'].includes(status);
 };
 
-export const isDeliveryOption = (option: string): status is DeliveryOption => {
+export const isDeliveryOption = (option: string): option is DeliveryOption => {
   return ['pickup', 'delivery', 'both'].includes(option);
 };
 
-export const isPaymentMethod = (method: string): status is PaymentMethod => {
+export const isPaymentMethod = (method: string): method is PaymentMethod => {
   return ['card', 'paypal', 'bank_transfer', 'cash'].includes(method);
 };
