@@ -22,12 +22,13 @@ export class MenuQueryBuilder {
    * Récupère les éléments de menu par catégorie
    */
   static async getItemsByCategory(category: MenuItemCategory) {
-    // Utiliser un cast plus direct pour résoudre l'erreur de type
-    // TypeScript ne peut pas inférer que nous faisons une requête SQL où category est juste une colonne
+    // Convertir la catégorie en string simple pour éviter les problèmes de typage avec Supabase
+    const categoryAsString = String(category);
+    
     return supabase
       .from('menu_items')
       .select('*')
-      .eq('category', category as unknown as any) // Cast direct pour éviter l'erreur TypeScript
+      .eq('category', categoryAsString) // Utiliser la conversion en string
       .order('position', { ascending: true })
       .order('order', { ascending: true })
       .order('name', { ascending: true });
@@ -82,12 +83,11 @@ export class MenuQueryBuilder {
    * Crée un élément de menu
    */
   static async createItem(item: CreateMenuItemParams) {
-    // Créer une copie de l'objet avec category comme string pour Supabase
-    // Utiliser type assertion pour résoudre le problème de type
+    // Traiter la catégorie pour s'assurer qu'elle est compatible avec Supabase
     const itemForDb = {
       ...item,
-      // Forcer le type de la catégorie à any puis à string pour Supabase
-      category: item.category ? (item.category as any) : undefined
+      // Convertir la catégorie en string pour éviter les problèmes de typage
+      category: item.category ? String(item.category) : undefined
     };
     
     return supabase
@@ -101,11 +101,11 @@ export class MenuQueryBuilder {
    * Met à jour un élément de menu
    */
   static async updateItem(id: string, updates: UpdateMenuItemParams) {
-    // Créer une copie de l'objet pour les mises à jour
+    // Traiter la catégorie pour s'assurer qu'elle est compatible avec Supabase
     const updatesForDb = {
       ...updates,
-      // Forcer le type de la catégorie à any puis à string pour Supabase
-      category: updates.category ? (updates.category as any) : undefined
+      // Convertir la catégorie en string pour éviter les problèmes de typage
+      category: updates.category ? String(updates.category) : undefined
     };
 
     return supabase
