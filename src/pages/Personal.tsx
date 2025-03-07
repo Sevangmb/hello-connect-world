@@ -16,16 +16,22 @@ import { CalendarSection } from "@/components/personal/CalendarSection";
 const Personal: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasError, setHasError] = useState<boolean>(false);
   const [clothingItems, setClothingItems] = useState<any[]>([]);
   const [outfits, setOutfits] = useState<any[]>([]);
   
   useEffect(() => {
     console.log("Personal: Initialisation du chargement");
     
+    // Référence pour savoir si le composant est toujours monté
+    let isMounted = true;
+    
     const fetchData = async () => {
       if (!user) {
         console.log("Personal: Utilisateur non connecté, arrêt du chargement");
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
         return;
       }
       
@@ -39,8 +45,11 @@ const Personal: React.FC = () => {
           .order("created_at", { ascending: false });
         
         if (clothesError) throw clothesError;
-        setClothingItems(clothesData || []);
-        console.log("Personal: Vêtements chargés:", clothesData?.length || 0);
+        
+        if (isMounted) {
+          setClothingItems(clothesData || []);
+          console.log("Personal: Vêtements chargés:", clothesData?.length || 0);
+        }
         
         // Récupérer les tenues
         const { data: outfitsData, error: outfitsError } = await supabase
@@ -51,15 +60,19 @@ const Personal: React.FC = () => {
           .limit(6);
         
         if (outfitsError) throw outfitsError;
-        setOutfits(outfitsData || []);
-        console.log("Personal: Tenues chargées:", outfitsData?.length || 0);
         
-        console.log("Personal: Données chargées avec succès");
+        if (isMounted) {
+          setOutfits(outfitsData || []);
+          console.log("Personal: Tenues chargées:", outfitsData?.length || 0);
+          console.log("Personal: Données chargées avec succès");
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error);
-      } finally {
-        setIsLoading(false);
-        console.log("Personal: Fin du chargement");
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
       }
     };
     
@@ -67,13 +80,14 @@ const Personal: React.FC = () => {
     
     // Force le chargement à se terminer après un délai maximum
     const timer = setTimeout(() => {
-      if (isLoading) {
+      if (isMounted && isLoading) {
         console.log("Personal: Fin du chargement forcée après timeout");
         setIsLoading(false);
       }
     }, 2000);
     
     return () => {
+      isMounted = false;
       clearTimeout(timer);
       console.log("Personal: Nettoyage du timer");
     };
@@ -85,6 +99,19 @@ const Personal: React.FC = () => {
         <div className="text-center">
           <LoadingSpinner size="lg" className="mx-auto mb-4" />
           <p className="text-gray-500">Chargement de votre univers...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 text-center">
+          <h2 className="text-red-800 font-semibold mb-2">Erreur de chargement</h2>
+          <p className="text-red-700">
+            Une erreur est survenue lors du chargement de vos données. Veuillez rafraîchir la page ou réessayer plus tard.
+          </p>
         </div>
       </div>
     );

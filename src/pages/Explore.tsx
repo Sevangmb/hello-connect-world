@@ -15,23 +15,28 @@ import { ModuleUnavailable } from "@/components/explore/ModuleUnavailable";
 
 const Explore: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { modules } = useModules();
+  const { modules, isInitialized } = useModules();
 
   useEffect(() => {
     console.log("Explorer: Initialisation du chargement");
     
+    // Marquer comme non chargé jusqu'à ce que les modules soient initialisés
+    if (isInitialized) {
+      console.log("Explorer: Modules initialisés, fin du chargement");
+      setIsLoading(false);
+    }
+    
+    // Définir un délai maximum pour le chargement
     const timer = setTimeout(() => {
       console.log("Explorer: Fin du chargement forcée après timeout");
       setIsLoading(false);
     }, 1500);
     
-    if (modules && modules.length > 0) {
-      console.log("Explorer: Modules chargés, fin du chargement");
-      setIsLoading(false);
-    }
-    
-    return () => clearTimeout(timer);
-  }, [modules]);
+    return () => {
+      clearTimeout(timer);
+      console.log("Explorer: Nettoyage du timer");
+    };
+  }, [isInitialized]);
 
   if (isLoading) {
     return (

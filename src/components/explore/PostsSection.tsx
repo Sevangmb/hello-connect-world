@@ -5,18 +5,47 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export const PostsSection = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     console.log("PostsSection: Initialisation du chargement");
-    const timer = setTimeout(() => {
-      console.log("PostsSection: Fin du chargement");
-      setIsLoading(false);
-    }, 800);
     
-    // Nettoyage du timer pour éviter les fuites mémoire
+    // Utiliser une référence pour suivre si le composant est monté
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      try {
+        // Simuler un chargement de données
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        if (isMounted) {
+          setIsLoading(false);
+          console.log("PostsSection: Chargement terminé avec succès");
+        }
+      } catch (error) {
+        console.error("PostsSection: Erreur lors du chargement", error);
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchData();
+    
+    // Force le chargement à se terminer après un délai maximum
+    const timer = setTimeout(() => {
+      if (isMounted && isLoading) {
+        console.log("PostsSection: Fin du chargement forcée après timeout");
+        setIsLoading(false);
+      }
+    }, 3000);
+    
+    // Nettoyage lors du démontage du composant
     return () => {
+      isMounted = false;
       clearTimeout(timer);
-      console.log("PostsSection: Nettoyage du timer");
+      console.log("PostsSection: Nettoyage du timer et des abonnements");
     };
   }, []);
 
@@ -26,6 +55,17 @@ export const PostsSection = () => {
         <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
         <div className="flex items-center justify-center py-10">
           <LoadingSpinner />
+        </div>
+      </Card>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Publications récentes</h2>
+        <div className="text-center py-10 text-gray-500">
+          Impossible de charger les publications. Veuillez réessayer plus tard.
         </div>
       </Card>
     );
