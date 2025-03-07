@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItem as MenuItemType } from "@/services/menu/types";
 import { ChevronRight } from "lucide-react";
-import { getIcon, isActiveRoute } from "../utils/menuUtils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MenuItemProps {
   item: MenuItemType;
@@ -22,6 +22,20 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
   // Normaliser le chemin pour la comparaison
   const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
   
+  // Obtenir l'icône si elle existe
+  const getIcon = () => {
+    if (!item.icon) return null;
+    
+    try {
+      // Dynamically import the icon from Lucide
+      const Icon = require("lucide-react")[item.icon];
+      return Icon ? <Icon className="h-4 w-4 mr-2" /> : null;
+    } catch (error) {
+      console.warn(`Icon ${item.icon} not found`);
+      return null;
+    }
+  };
+  
   // Pour les éléments avec des enfants en mode hiérarchique
   if (hierarchical && item.children && item.children.length > 0) {
     return (
@@ -36,30 +50,23 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
           onClick={(e) => onNavigate(normalizedPath, e)}
         >
           <span className="flex items-center">
-            {getIcon(item.icon)}
-            <span>{item.name}</span>
+            {getIcon()}
+            <span className="truncate">{item.name}</span>
           </span>
           <ChevronRight className="h-4 w-4" />
         </Button>
         <div className="pl-4 border-l-2 border-gray-200 ml-3 space-y-1">
           {item.children.map(child => {
             const childPath = child.path.startsWith('/') ? child.path : `/${child.path}`;
-            const isChildActive = isActiveRoute(childPath, window.location.pathname);
             
             return (
-              <Button
+              <MenuItemComponent
                 key={child.id}
-                variant={isChildActive ? "secondary" : "ghost"}
-                size="sm"
-                className={cn(
-                  "justify-start font-normal w-full py-1.5 text-sm",
-                  isChildActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
-                )}
-                onClick={(e) => onNavigate(childPath, e)}
-              >
-                {getIcon(child.icon)}
-                <span>{child.name}</span>
-              </Button>
+                item={child}
+                isActive={false} // Calculé dans le composant parent
+                onNavigate={onNavigate}
+                hierarchical={false}
+              />
             );
           })}
         </div>
@@ -67,19 +74,28 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
     );
   }
   
-  // Pour les éléments simples sans enfants
+  // Pour les éléments simples sans enfants ou non hiérarchiques
   return (
-    <Button
-      variant={isActive ? "secondary" : "ghost"}
-      size="sm"
-      className={cn(
-        "justify-start font-medium w-full py-2",
-        isActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
-      )}
-      onClick={(e) => onNavigate(normalizedPath, e)}
-    >
-      {getIcon(item.icon)}
-      <span>{item.name}</span>
-    </Button>
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <Button
+            variant={isActive ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "justify-start font-medium w-full py-2",
+              isActive ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+            )}
+            onClick={(e) => onNavigate(normalizedPath, e)}
+          >
+            {getIcon()}
+            <span className="truncate">{item.name}</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          <p>{item.description || item.name}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };

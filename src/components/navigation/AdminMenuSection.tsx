@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Shield } from "lucide-react";
+import { Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -16,6 +16,7 @@ interface AdminMenuSectionProps {
 const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
   const { menuItems, loading, error, refreshMenu } = useModuleVisibility('admin');
   const [showContent, setShowContent] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const { toast } = useToast();
   const { subscribe, EVENT_TYPES } = useEvents();
   
@@ -50,10 +51,49 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
     }
   }, [error, isUserAdmin, toast]);
   
+  // Fonction pour basculer l'expansion du menu
+  const toggleExpansion = () => {
+    setIsExpanded(!isExpanded);
+  };
+  
   // Ne pas rendre le menu admin si l'utilisateur n'est pas administrateur
   if (!showContent) {
     return null;
   }
+
+  // Organiser les sections administratives
+  const adminSections = [
+    { 
+      title: "Tableau de bord", 
+      moduleCode: "admin_dashboard",
+      defaultExpanded: true
+    },
+    { 
+      title: "Modules", 
+      moduleCode: "admin_modules",
+      defaultExpanded: false
+    },
+    { 
+      title: "Utilisateurs", 
+      moduleCode: "admin_users",
+      defaultExpanded: false
+    },
+    { 
+      title: "Marketplace", 
+      moduleCode: "admin_marketplace",
+      defaultExpanded: false
+    },
+    { 
+      title: "Contenu", 
+      moduleCode: "admin_content",
+      defaultExpanded: false
+    },
+    { 
+      title: "Paramètres", 
+      moduleCode: "admin_settings",
+      defaultExpanded: false
+    }
+  ];
 
   return (
     <Accordion type="single" collapsible defaultValue="admin" className="w-full">
@@ -76,11 +116,13 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
               {error}
             </div>
           ) : (
-            <DynamicMenu 
-              category="admin" 
-              className="px-1"
-              hierarchical={true}
-            />
+            <div className="px-1 space-y-1">
+              {/* Menu principal d'administration avec structure hiérarchique */}
+              <DynamicMenu 
+                category="admin" 
+                hierarchical={true}
+              />
+            </div>
           )}
         </AccordionContent>
       </AccordionItem>
