@@ -60,7 +60,7 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
         
         <Separator className="my-4 md:hidden" />
         
-        {/* Menu principal */}
+        {/* Menu principal simplifié */}
         <div className="flex-1 px-3 overflow-y-auto">
           <ModuleMenu />
         </div>

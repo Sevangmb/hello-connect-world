@@ -1,38 +1,67 @@
 
-import React from "react";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import MenuCategories from "./MenuCategories";
-import AdminMenuSection from "./AdminMenuSection";
-import { useModuleMenuEvents } from "./hooks/useModuleMenuEvents";
+import React, { useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ShopMenuSection } from "./ShopMenuSection";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useModuleMenuEvents } from "./hooks/useModuleMenuEvents";
+import { SimpleModuleMenu } from "./SimpleModuleMenu";
 
 /**
- * Composant de menu principal avec une expérience utilisateur améliorée
+ * Menu principal simplifié et optimisé par modules
  */
 export const ModuleMenu: React.FC = () => {
-  // Obtenir les données nécessaires à partir du hook
-  const { isUserAdmin, isShopOwner } = useModuleMenuEvents();
+  const { isUserAdmin, isShopOwner, activeShop } = useModuleMenuEvents();
   
+  // Groupes de modules à afficher
+  const moduleGroups = useMemo(() => {
+    return {
+      main: ['main', 'explore', 'personal', 'social', 'profile'],
+      shop: isShopOwner ? ['shop_dashboard', 'shop_storefront', 'shop_orders', 'shop_messages'] : [],
+      admin: isUserAdmin ? ['admin'] : []
+    };
+  }, [isUserAdmin, isShopOwner]);
+
   return (
     <TooltipProvider>
       <ScrollArea className="h-full w-full">
         <div className="flex flex-col gap-1 w-full pr-3">
-          {/* Menus par catégorie */}
-          <MenuCategories />
+          {/* Menu principal */}
+          <SimpleModuleMenu 
+            modules={moduleGroups.main}
+            title="Menu principal"
+          />
           
-          {/* Séparateur avant les menus spéciaux */}
-          {(isUserAdmin || isShopOwner) && <Separator className="my-3" />}
+          {/* Menu boutique */}
+          {isShopOwner && (
+            <>
+              <Separator className="my-2" />
+              <div className="px-2 py-1">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase">
+                  {activeShop?.name || 'Ma Boutique'}
+                </h3>
+              </div>
+              <SimpleModuleMenu 
+                modules={moduleGroups.shop}
+                title="Boutique"
+              />
+            </>
+          )}
           
-          {/* Menu de boutique - uniquement rendu si propriétaire de boutique */}
-          {isShopOwner && <ShopMenuSection />}
-          
-          {/* Séparateur entre shop et admin */}
-          {isUserAdmin && isShopOwner && <Separator className="my-3" />}
-          
-          {/* Menu d'administration - uniquement rendu si admin */}
-          {isUserAdmin && <AdminMenuSection isUserAdmin={isUserAdmin} />}
+          {/* Menu admin */}
+          {isUserAdmin && (
+            <>
+              <Separator className="my-2" />
+              <div className="px-2 py-1">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase">
+                  Administration
+                </h3>
+              </div>
+              <SimpleModuleMenu 
+                modules={moduleGroups.admin}
+                title="Admin"
+              />
+            </>
+          )}
         </div>
       </ScrollArea>
     </TooltipProvider>

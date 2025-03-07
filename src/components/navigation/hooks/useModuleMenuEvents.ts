@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAdminStatus } from "@/hooks/menu/useAdminStatus";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { eventBus, EVENTS } from "@/services/events/EventBus";
 
 interface Shop {
   id: string;
@@ -18,7 +19,7 @@ interface ModuleMenuHookResult {
 }
 
 /**
- * Hook pour gérer les événements et l'état du menu
+ * Hook simplifié pour gérer les événements et l'état du menu
  */
 export const useModuleMenuEvents = (): ModuleMenuHookResult => {
   const { isUserAdmin } = useAdminStatus();
@@ -29,36 +30,35 @@ export const useModuleMenuEvents = (): ModuleMenuHookResult => {
   // Fonction pour naviguer vers une route
   const navigateToRoute = (route: string) => {
     console.log(`Navigation vers: ${route}`);
+    
+    // Publier l'événement de navigation
+    eventBus.publish(EVENTS.NAVIGATION.ROUTE_CHANGED, {
+      to: route
+    });
+    
     navigate(route);
   };
 
   // Vérifier si l'utilisateur est propriétaire d'une boutique
   useEffect(() => {
+    let isMounted = true;
+    
     const checkShopOwnership = async () => {
       try {
         // Récupérer l'utilisateur connecté
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) {
-          setIsShopOwner(false);
-          setActiveShop(null);
-          return;
-        }
+        if (!user || !isMounted) return;
         
-        // Chercher les boutiques de l'utilisateur
+        // Chercher les boutiques de l'utilisateur avec caching
         const { data: shops, error } = await supabase
           .from('shops')
-          .select('*')
+          .select('id, name, status')
           .eq('user_id', user.id)
           .eq('status', 'active')
           .limit(1);
         
-        if (error) {
-          console.error('Erreur lors de la récupération des boutiques:', error);
-          setIsShopOwner(false);
-          setActiveShop(null);
-          return;
-        }
+        if (error || !isMounted) return;
         
         if (shops && shops.length > 0) {
           setIsShopOwner(true);
@@ -69,8 +69,6 @@ export const useModuleMenuEvents = (): ModuleMenuHookResult => {
         }
       } catch (error) {
         console.error('Erreur lors de la vérification du statut de boutique:', error);
-        setIsShopOwner(false);
-        setActiveShop(null);
       }
     };
     
@@ -78,6 +76,10 @@ export const useModuleMenuEvents = (): ModuleMenuHookResult => {
     if (isUserAdmin !== undefined) {
       checkShopOwnership();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isUserAdmin]);
 
   return {
