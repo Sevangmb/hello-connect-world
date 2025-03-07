@@ -6,25 +6,37 @@ import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 
 export class MenuRepository implements IMenuRepository {
   async getAllMenuItems(): Promise<MenuItem[]> {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .order('position');
-    
-    if (error) throw error;
-    return data as MenuItem[];
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('is_active', true)
+        .order('position');
+      
+      if (error) throw error;
+      return data as MenuItem[];
+    } catch (error) {
+      console.error('Erreur lors de la récupération de tous les éléments de menu:', error);
+      throw error;
+    }
   }
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
-    // We need to typecast the category to ensure it works with Supabase's typing system
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('category', category as any) // Changed from `as string` to `as any` to avoid TypeScript error
-      .order('position');
-    
-    if (error) throw error;
-    return data as MenuItem[];
+    try {
+      // We need to typecast the category to ensure it works with Supabase's typing system
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('category', category as any)
+        .eq('is_active', true) 
+        .order('position');
+      
+      if (error) throw error;
+      return data as MenuItem[];
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
+      throw error;
+    }
   }
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
@@ -53,77 +65,97 @@ export class MenuRepository implements IMenuRepository {
       
       if (error) {
         console.error(`Error fetching menu items for module ${moduleCode}:`, error);
-        return [];
+        throw error;
       }
       
       return data;
     } catch (err) {
       console.error(`Exception lors du chargement des éléments de menu pour le module ${moduleCode}:`, err);
-      return [];
+      throw err;
     }
   }
   
   async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .eq('parent_id', parentId)
-      .eq('is_active', true)
-      .order('position', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('parent_id', parentId)
+        .eq('is_active', true)
+        .order('position', { ascending: true });
+        
+      if (error) {
+        console.error(`Error fetching menu items for parent ${parentId}:`, error);
+        throw error;
+      }
       
-    if (error) {
-      console.error(`Error fetching menu items for parent ${parentId}:`, error);
-      return [];
+      return data;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
+      throw error;
     }
-    
-    return data;
   }
   
   async createMenuItem(item: CreateMenuItemParams): Promise<MenuItem | null> {
-    // Use type assertion to handle category type differences
-    const { data, error } = await supabase
-      .from('menu_items')
-      .insert([item as any]) // Use type assertion here
-      .select()
-      .single();
+    try {
+      // Use type assertion to handle category type differences
+      const { data, error } = await supabase
+        .from('menu_items')
+        .insert([item as any]) // Use type assertion here
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error creating menu item:', error);
+        return null;
+      }
       
-    if (error) {
-      console.error('Error creating menu item:', error);
+      return data;
+    } catch (error) {
+      console.error('Erreur lors de la création d\'un élément de menu:', error);
       return null;
     }
-    
-    return data;
   }
   
   async updateMenuItem(id: string, updates: UpdateMenuItemParams): Promise<MenuItem | null> {
-    // Use type assertion to handle category type differences
-    const { data, error } = await supabase
-      .from('menu_items')
-      .update(updates as any) // Use type assertion here
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      // Use type assertion to handle category type differences
+      const { data, error } = await supabase
+        .from('menu_items')
+        .update(updates as any) // Use type assertion here
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error(`Error updating menu item ${id}:`, error);
+        return null;
+      }
       
-    if (error) {
-      console.error(`Error updating menu item ${id}:`, error);
+      return data;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de l'élément de menu ${id}:`, error);
       return null;
     }
-    
-    return data;
   }
   
   async deleteMenuItem(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('menu_items')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error(`Error deleting menu item ${id}:`, error);
+        return false;
+      }
       
-    if (error) {
-      console.error(`Error deleting menu item ${id}:`, error);
+      return true;
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de l'élément de menu ${id}:`, error);
       return false;
     }
-    
-    return true;
   }
 }
 

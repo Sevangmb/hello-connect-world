@@ -70,12 +70,9 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     };
   }, [isUserAdmin, modules]);
 
-  // Filtrer les éléments de menu visibles et vérifier si les routes existent
-  const visibleMenuItems = useMemo(() => {
-    if (!menuItems || !isInitialized) return [];
-    
-    // Routes valides disponibles dans l'application
-    const validRoutes = [
+  // Liste des routes valides existantes
+  const validRoutes = useMemo(() => {
+    return [
       '/',
       '/explore',
       '/personal',
@@ -91,14 +88,28 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
       '/boutiques',
       '/cart',
       '/admin/dashboard',
-      '/admin/modules',
+      '/admin/modules', 
+      '/admin/users',
       '/admin/shops',
+      '/admin/settings',
       '/legal',
       '/terms',
       '/privacy',
       '/contact',
-      '/about'
+      '/about',
+      '/stores',
+      '/shop',
+      '/challenges',
+      '/messages',
+      '/friends',
+      '/outfits',
+      '/suitcases'
     ];
+  }, []);
+
+  // Filtrer les éléments de menu visibles et vérifier si les routes existent
+  const visibleMenuItems = useMemo(() => {
+    if (!menuItems || !isInitialized) return [];
     
     return menuItems
       .filter(item => {
@@ -115,10 +126,10 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
           normalizedPath.startsWith(`${route}/`)
         );
         
-        return moduleVisible && routeExists;
+        return moduleVisible && routeExists && item.is_visible !== false;
       })
       .sort((a, b) => (a.order || 999) - (b.order || 999));
-  }, [menuItems, isMenuItemVisible, isInitialized]);
+  }, [menuItems, isMenuItemVisible, isInitialized, validRoutes]);
 
   // Afficher un état de chargement
   if (loading) {
@@ -203,5 +214,3 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     </nav>
   );
 };
-
-export default DynamicMenu;

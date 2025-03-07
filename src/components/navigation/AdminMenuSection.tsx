@@ -5,14 +5,16 @@ import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { useModuleVisibility } from "./hooks/useModuleVisibility";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminMenuSectionProps {
   isUserAdmin: boolean;
 }
 
 const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
-  const { menuItems, loading } = useModuleVisibility('admin');
+  const { menuItems, loading, error } = useModuleVisibility('admin');
   const [showContent, setShowContent] = useState(false);
+  const { toast } = useToast();
   
   // Ne montrer le contenu que si l'utilisateur est administrateur pour éviter le flash
   useEffect(() => {
@@ -20,6 +22,17 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
       setShowContent(true);
     }
   }, [isUserAdmin]);
+  
+  // Gérer les erreurs
+  useEffect(() => {
+    if (error && isUserAdmin) {
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger le menu d'administration",
+        variant: "destructive"
+      });
+    }
+  }, [error, isUserAdmin, toast]);
   
   // Ne pas rendre le menu admin si l'utilisateur n'est pas administrateur
   // ou s'il n'y a pas d'éléments de menu admin
@@ -42,6 +55,10 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ isUserAdmin }) => {
               {[...Array(3)].map((_, i) => (
                 <Skeleton key={i} className="h-8 w-full rounded" />
               ))}
+            </div>
+          ) : error ? (
+            <div className="text-red-500 text-sm px-3 py-2">
+              {error}
             </div>
           ) : (
             <DynamicMenu 

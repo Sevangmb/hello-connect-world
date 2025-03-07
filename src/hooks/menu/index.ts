@@ -6,6 +6,7 @@ import { useAdminStatus } from './useAdminStatus';
 import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { MODULE_MENU_EVENTS } from '@/services/coordination/ModuleMenuCoordinator';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseMenuOptions {
   category?: MenuItemCategory;
@@ -20,6 +21,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const { toast } = useToast();
 
   // Obtenir le statut d'administrateur
   const { isUserAdmin } = useAdminStatus();
@@ -45,12 +47,13 @@ export const useMenu = (options: UseMenuOptions = {}) => {
       allItemsQuery.refetch();
     }
     
-    // Force loading to stop after 3 seconds in case of issues
+    // Force loading to stop after 5 seconds in case of issues
     setTimeout(() => {
       if (loading) {
         setLoading(false);
+        setError("Timeout de chargement dépassé");
       }
-    }, 3000);
+    }, 5000);
   }, [category, moduleCode, categoryQuery, moduleQuery, allItemsQuery, loading]);
 
   // Écouter les événements de mise à jour du menu
@@ -64,7 +67,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     const unsubscribe = eventBus.subscribe(MODULE_MENU_EVENTS.MENU_UPDATED, onMenuUpdated);
     
     return () => {
-      // Call the unsubscribe function directly, not as a method on eventBus
+      // Call the unsubscribe function directly
       unsubscribe();
     };
   }, [refreshMenu]);
@@ -86,11 +89,15 @@ export const useMenu = (options: UseMenuOptions = {}) => {
         }
 
         // Si on n'a pas d'items mais que les requêtes sont chargées, on considère que c'est un problème
-        if (items.length === 0 && 
-            ((category && !categoryQuery.isLoading) || 
-             (moduleCode && !moduleQuery.isLoading) || 
-             (!category && !moduleCode && !allItemsQuery.isLoading))) {
-          // En cas d'erreur, on définit un tableau vide mais on ne bloque pas l'UI
+        const noItems = items.length === 0;
+        const queriesLoaded = (
+          (category && !categoryQuery.isLoading) || 
+          (moduleCode && !moduleQuery.isLoading) || 
+          (!category && !moduleCode && !allItemsQuery.isLoading)
+        );
+        
+        if (noItems && queriesLoaded) {
+          // En cas d'absence d'éléments, on affiche un avertissement mais on ne bloque pas l'UI
           console.warn(`useMenu: Aucun élément de menu trouvé pour ${category || moduleCode || 'tous'}`);
         }
 
@@ -114,7 +121,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
         // Gérer la structure hiérarchique si nécessaire
         if (hierarchical) {
-          // Implémentation simple de la hiérarchie - On pourrait améliorer cela dans un refactoring
+          // Implémentation simple de la hiérarchie
           const itemsMap = new Map<string, MenuItem & { children: MenuItem[] }>();
           
           // Première passe : créer des entrées pour chaque élément
@@ -149,6 +156,12 @@ export const useMenu = (options: UseMenuOptions = {}) => {
         console.error("Erreur lors du traitement des éléments de menu:", err);
         setError(err.message || "Échec du chargement des éléments de menu");
         setMenuItems([]);
+        
+        toast({
+          title: "Erreur de chargement",
+          description: "Problème lors du traitement des éléments de menu",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
@@ -165,7 +178,8 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     moduleQuery.data,
     moduleQuery.isLoading,
     allItemsQuery.data,
-    allItemsQuery.isLoading
+    allItemsQuery.isLoading,
+    toast
   ]);
 
   return {

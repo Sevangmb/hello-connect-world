@@ -3,31 +3,29 @@
  * Types for menu items and related functionality
  */
 
-// Catégories des éléments de menu - Assurons-nous que toutes les catégories sont définies
+// Catégories des éléments de menu - Principales catégories du système
 export type MenuItemCategory = 
   | 'main' 
   | 'admin' 
-  | 'user' 
-  | 'shop' 
-  | 'profile' 
-  | 'settings'
-  | 'legal'
-  | 'system'
-  | 'marketplace'
-  | 'social'
-  | 'utility'
-  | 'wardrobe'
-  | 'community'
   | 'personal'
+  | 'social'
+  | 'wardrobe'
+  | 'marketplace'
+  | 'utility'
+  | 'system'
+  | 'profile'
+  | 'settings'
   | 'explore'
-  | 'suitcases'
-  | 'challenges'
+  | 'shop'
   | 'notifications'
   | 'messages'
   | 'friends'
+  | 'challenges'
   | 'outfits'
+  | 'suitcases'
   | 'cart'
   | 'search'
+  | 'legal'
   | string; // Allow string to support module-based categories
 
 // Élément de menu
@@ -80,4 +78,13 @@ export interface MenuState {
   items: MenuItem[];
   timestamp: number;
   version: number;
+}
+
+// Structure des catégories de menu pour l'affichage
+export interface MenuCategory {
+  id: string;
+  title: string;
+  category: MenuItemCategory;
+  icon?: string;
+  order?: number;
 }
