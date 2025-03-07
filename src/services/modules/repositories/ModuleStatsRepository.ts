@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 // Define explicit types for module usage stats
 interface ModuleUsageStat {
   id: string;
-  module_id?: string;
   module_code: string;
   usage_count: number;
   last_used: string;
@@ -16,11 +15,12 @@ export class ModuleStatsRepository {
    */
   async getModuleUsageStats(moduleId: string): Promise<ModuleUsageStat | null> {
     try {
-      // Use a simpler query with explicit type casting to avoid deep type inference
+      // Query by module_code instead of module_id since that's the column that exists
+      // Use explicit type casting to avoid deep type inference
       const { data, error } = await supabase
         .from('module_usage_stats')
-        .select('id, module_id, module_code, usage_count, last_used')
-        .eq('module_id', moduleId)
+        .select('id, module_code, usage_count, last_used')
+        .eq('module_code', moduleId)
         .maybeSingle();
 
       if (error) throw error;
