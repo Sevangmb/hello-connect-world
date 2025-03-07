@@ -50,7 +50,7 @@ export class ModuleApiGateway extends BaseApiGateway {
 
   async updateFeatureStatus(featureId: string, isEnabled: boolean) {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('module_features')
         .update({ is_enabled: isEnabled })
         .eq('id', featureId)
@@ -61,7 +61,7 @@ export class ModuleApiGateway extends BaseApiGateway {
         return null;
       }
 
-      return data;
+      return true;
     } catch (error) {
       console.error(`Error in updateFeatureStatus for ${featureId}:`, error);
       return null;
@@ -70,8 +70,7 @@ export class ModuleApiGateway extends BaseApiGateway {
 
   async updateFeatureStatusSilent(featureId: string, isEnabled: boolean) {
     try {
-      await this.updateFeatureStatus(featureId, isEnabled);
-      return true;
+      return await this.updateFeatureStatus(featureId, isEnabled);
     } catch (error) {
       console.error('Error in updateFeatureStatusSilent:', error);
       return false;

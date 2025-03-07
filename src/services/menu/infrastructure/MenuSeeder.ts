@@ -26,7 +26,7 @@ export const seedMenuItems = async (): Promise<void> => {
   console.log('No menu items found, seeding default menu items...');
 
   // Prepare all the menu items we want to seed
-  const menuItems: Omit<MenuItem, 'id' | 'children'>[] = [
+  const menuItems: Array<Omit<MenuItem, 'id' | 'children'>> = [
     // Main menu items
     {
       name: 'Accueil',
@@ -52,26 +52,28 @@ export const seedMenuItems = async (): Promise<void> => {
   try {
     // Cast each item to the expected type when inserting
     for (const item of menuItems) {
+      const insertData = {
+        id: uuidv4(),
+        name: item.name,
+        path: item.path,
+        icon: item.icon,
+        category: item.category as any, // Cast to any to avoid type issues
+        parent_id: item.parent_id,
+        order: item.order,
+        is_visible: item.is_visible,
+        module_code: item.module_code,
+        requires_auth: item.requires_auth,
+        requires_admin: item.requires_admin,
+        is_active: item.is_active,
+        position: item.position,
+        description: item.description,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      };
+      
       const { error } = await supabase
         .from('menu_items')
-        .insert({
-          id: uuidv4(),
-          name: item.name,
-          path: item.path,
-          icon: item.icon,
-          category: item.category,
-          parent_id: item.parent_id,
-          order: item.order,
-          is_visible: item.is_visible,
-          module_code: item.module_code,
-          requires_auth: item.requires_auth,
-          requires_admin: item.requires_admin,
-          is_active: item.is_active,
-          position: item.position,
-          description: item.description,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-        });
+        .insert(insertData);
       
       if (error) {
         console.error(`Error inserting menu item ${item.name}:`, error);

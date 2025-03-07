@@ -26,7 +26,7 @@ export const FeatureGuard: React.FC<FeatureGuardProps> = ({
   }
   
   // Then check if the feature is enabled
-  const isFeatureEnabledStatus = isFeatureEnabled(featureCode);
+  const isFeatureEnabledStatus = isFeatureEnabled(moduleCode, featureCode);
   
   if (!isFeatureEnabledStatus) {
     return fallback || <ModuleUnavailable moduleCode={moduleCode} />;

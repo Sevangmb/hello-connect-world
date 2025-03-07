@@ -8,7 +8,7 @@ import { UserPlus } from 'lucide-react';
 
 interface SuggestedUserCardProps {
   user: SuggestedUser;
-  onSelect: () => void;
+  onSelect?: () => void;
   onAddFriend?: () => void;
 }
 
@@ -16,7 +16,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({ user, onSe
   const handleAction = () => {
     if (onAddFriend) {
       onAddFriend();
-    } else {
+    } else if (onSelect) {
       onSelect();
     }
   };
