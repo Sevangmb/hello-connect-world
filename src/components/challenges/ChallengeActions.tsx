@@ -68,7 +68,7 @@ export const useChallengeActions = () => {
         .from("challenge_votes")
         .select("*")
         .eq("participant_id", participantId)
-        .eq("user_id", user.id)
+        .eq("voter_id", user.id)
         .maybeSingle();
 
       if (existingVote) {
@@ -90,8 +90,8 @@ export const useChallengeActions = () => {
           .from("challenge_votes")
           .insert({
             participant_id: participantId,
-            user_id: user.id,
-            challenge_id: challengeId
+            voter_id: user.id,
+            challenge_id: challengeId || ''
           });
 
         if (error) throw error;

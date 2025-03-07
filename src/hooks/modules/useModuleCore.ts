@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { AppModule, ModuleFeature, ModuleDependency, ModuleStatus } from "./types";
-import { fetchModules, fetchDependencies, fetchFeatures } from "./fetcher";
 import { useConnectionChecker } from "./fetcher/connectionChecker";
 import { ADMIN_MODULE_CODE } from "./constants";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Hook de base pour la gestion des modules
