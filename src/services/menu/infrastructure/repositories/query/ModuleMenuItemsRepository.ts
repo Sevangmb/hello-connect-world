@@ -1,68 +1,44 @@
 
-import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
-import { MenuCacheService } from '../../services/MenuCacheService';
-import { MenuCacheKeys } from '../../constants/CacheKeys';
-import { MenuQueryBuilder } from '../../utils/MenuQueryBuilder';
 import { MenuItem } from '../../../types';
+import { MenuCacheService } from '../../services/MenuCacheService';
+import { MenuQueryBuilder } from '../../utils/MenuQueryBuilder';
 
 /**
- * Repository pour les éléments de menu par module
+ * Repository spécialisé pour récupérer les éléments de menu par module
  */
 export class ModuleMenuItemsRepository {
   constructor(private cacheService: MenuCacheService) {}
-
+  
   /**
    * Récupère les éléments de menu par module
    */
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
-      const cacheKey = MenuCacheKeys.getModuleKey(moduleCode, isAdmin);
+      // Vérifier le cache d'abord
+      const cacheKey = this.cacheService.moduleKey(moduleCode, isAdmin);
+      const cachedItems = this.cacheService.get(cacheKey);
       
-      const cachedItems = this.cacheService.getCachedItems(cacheKey);
       if (cachedItems) {
-        console.log(`Repository: Utilisation des éléments en cache pour le module: ${moduleCode}`);
+        console.log(`ModuleMenuItemsRepository: Retrieved items for module ${moduleCode} from cache`);
         return cachedItems;
       }
       
-      console.log(`Repository: Récupération des éléments pour le module ${moduleCode}, isAdmin: ${isAdmin}`);
-      const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
-      
-      if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
-        console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
-        this.cacheService.updateCache(cacheKey, []);
-        return [];
-      }
-      
-      const allItemsCached = this.cacheService.getCachedItems(MenuCacheKeys.ALL_ITEMS_KEY);
-      if (allItemsCached) {
-        let filteredItems = allItemsCached.filter(item => item.module_code === moduleCode);
-        
-        if (!isAdmin) {
-          filteredItems = filteredItems.filter(item => 
-            !item.requires_admin && item.is_visible !== false
-          );
-        }
-        
-        this.cacheService.updateCache(cacheKey, filteredItems);
-        console.log(`Repository: Filtré ${filteredItems.length} éléments pour le module ${moduleCode} depuis le cache`);
-        return filteredItems;
-      }
-      
+      // Si non trouvé dans le cache, faire une requête à Supabase
       const { data, error } = await MenuQueryBuilder.getItemsByModule(moduleCode, isAdmin);
       
       if (error) {
-        console.error(`Repository error for module ${moduleCode}:`, error);
-        throw error;
+        console.error(`Error fetching menu items for module ${moduleCode}:`, error);
+        return [];
       }
       
-      const items = data || [];
-      this.cacheService.updateCache(cacheKey, items);
+      // Stocker dans le cache avant de retourner
+      this.cacheService.set(cacheKey, data || []);
       
-      console.log(`Repository: Récupéré ${items.length} éléments pour le module ${moduleCode}`);
-      return items;
-    } catch (err) {
-      console.error(`Exception lors du chargement des éléments pour le module ${moduleCode}:`, err);
-      throw err;
+      console.log(`ModuleMenuItemsRepository: Retrieved ${data?.length || 0} items for module ${moduleCode} from database`);
+      return data || [];
+    } catch (error) {
+      console.error(`Erreur dans ModuleMenuItemsRepository.getMenuItemsByModule pour le module ${moduleCode}:`, error);
+      return [];
     }
   }
 }

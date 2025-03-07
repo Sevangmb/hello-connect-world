@@ -1,54 +1,44 @@
 
-import { MenuItemCategory, MenuItem } from '../../../types';
+import { MenuItem, MenuItemCategory } from '../../../types';
 import { MenuCacheService } from '../../services/MenuCacheService';
-import { MenuCacheKeys } from '../../constants/CacheKeys';
 import { MenuQueryBuilder } from '../../utils/MenuQueryBuilder';
 
 /**
- * Repository pour les éléments de menu par catégorie
+ * Repository spécialisé pour récupérer les éléments de menu par catégorie
  */
 export class CategoryMenuItemsRepository {
   constructor(private cacheService: MenuCacheService) {}
-
+  
   /**
    * Récupère les éléments de menu par catégorie
    */
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      const cacheKey = MenuCacheKeys.getCategoryKey(category);
+      // Vérifier le cache d'abord
+      const cacheKey = this.cacheService.categoryKey(category);
+      const cachedItems = this.cacheService.get(cacheKey);
       
-      const cachedItems = this.cacheService.getCachedItems(cacheKey);
       if (cachedItems) {
-        console.log(`Repository: Utilisation des éléments en cache pour la catégorie: ${category}`);
+        console.log(`CategoryMenuItemsRepository: Retrieved items for category ${category} from cache`);
         return cachedItems;
       }
       
-      console.log(`Repository: Récupération des éléments pour la catégorie: ${category}`);
-      
-      const allItemsCached = this.cacheService.getCachedItems(MenuCacheKeys.ALL_ITEMS_KEY);
-      if (allItemsCached) {
-        const filteredItems = allItemsCached.filter(item => item.category === category);
-        
-        this.cacheService.updateCache(cacheKey, filteredItems);
-        console.log(`Repository: Filtré ${filteredItems.length} éléments pour la catégorie ${category} depuis le cache`);
-        return filteredItems;
-      }
-      
+      // Si non trouvé dans le cache, faire une requête à Supabase
       const { data, error } = await MenuQueryBuilder.getItemsByCategory(category);
       
       if (error) {
-        console.error(`Repository error for category ${category}:`, error);
-        throw error;
+        console.error(`Error fetching menu items for category ${category}:`, error);
+        return [];
       }
       
-      const items = data as MenuItem[] || [];
-      this.cacheService.updateCache(cacheKey, items);
+      // Stocker dans le cache avant de retourner
+      this.cacheService.set(cacheKey, data || []);
       
-      console.log(`Repository: Récupéré ${items.length} éléments pour la catégorie ${category}`);
-      return items;
+      console.log(`CategoryMenuItemsRepository: Retrieved ${data?.length || 0} items for category ${category} from database`);
+      return data || [];
     } catch (error) {
-      console.error(`Erreur lors de la récupération des éléments pour la catégorie ${category}:`, error);
-      throw error;
+      console.error(`Erreur dans CategoryMenuItemsRepository.getMenuItemsByCategory pour la catégorie ${category}:`, error);
+      return [];
     }
   }
 }

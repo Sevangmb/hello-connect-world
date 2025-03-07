@@ -1,48 +1,96 @@
 
-import { MenuItem } from '../../types';
+import { MenuItem, MenuItemCategory } from '../../types';
+
+type CacheKey = string;
+type CacheValue = MenuItem[];
 
 /**
- * Service de cache pour les éléments de menu
+ * Service pour gérer le cache des éléments de menu
+ * Optimise les performances en mettant en cache les résultats des requêtes
  */
 export class MenuCacheService {
-  private _cachedItems: Record<string, MenuItem[]> = {};
-  private _lastCacheTime = 0;
-  
-  private readonly CACHE_TTL = 10000; // 10 secondes de durée de vie du cache
+  private cache: Map<CacheKey, CacheValue> = new Map();
+  private timeoutIds: Map<CacheKey, NodeJS.Timeout> = new Map();
+  private MAX_CACHE_AGE = 1000 * 60 * 5; // 5 minutes
   
   /**
-   * Vérifie si le cache est toujours valide
+   * Réinitialise tout le cache
    */
-  public isCacheValid(cacheKey: string): boolean {
-    return !!this._cachedItems[cacheKey] && 
-           Date.now() - this._lastCacheTime < this.CACHE_TTL;
+  resetCache(): void {
+    this.cache.clear();
+    
+    // Nettoyer tous les timeouts
+    this.timeoutIds.forEach(timeout => clearTimeout(timeout));
+    this.timeoutIds.clear();
+    
+    console.log('Menu cache reset');
   }
   
   /**
-   * Réinitialise le cache entier
+   * Récupère des éléments du cache
    */
-  public resetCache(): void {
-    this._cachedItems = {};
-    this._lastCacheTime = 0;
-    console.log('Cache du menu réinitialisé');
+  get(key: CacheKey): CacheValue | undefined {
+    return this.cache.get(key);
   }
   
   /**
-   * Met à jour le cache avec de nouvelles données
+   * Stocke des éléments dans le cache
    */
-  public updateCache(cacheKey: string, data: MenuItem[]): void {
-    this._cachedItems[cacheKey] = data;
-    this._lastCacheTime = Date.now();
-    console.log(`Cache mis à jour pour la clé: ${cacheKey} avec ${data.length} éléments`);
-  }
-  
-  /**
-   * Récupère les éléments du cache
-   */
-  public getCachedItems(cacheKey: string): MenuItem[] | null {
-    if (this.isCacheValid(cacheKey)) {
-      return this._cachedItems[cacheKey];
+  set(key: CacheKey, value: CacheValue): void {
+    this.cache.set(key, value);
+    
+    // Nettoyer l'ancien timeout s'il existe
+    if (this.timeoutIds.has(key)) {
+      clearTimeout(this.timeoutIds.get(key)!);
     }
-    return null;
+    
+    // Définir un timeout pour expirer cet élément de cache
+    const timeoutId = setTimeout(() => {
+      this.cache.delete(key);
+      this.timeoutIds.delete(key);
+    }, this.MAX_CACHE_AGE);
+    
+    this.timeoutIds.set(key, timeoutId);
+  }
+  
+  /**
+   * Supprime un élément spécifique du cache
+   */
+  delete(key: CacheKey): void {
+    this.cache.delete(key);
+    
+    // Nettoyer le timeout
+    if (this.timeoutIds.has(key)) {
+      clearTimeout(this.timeoutIds.get(key)!);
+      this.timeoutIds.delete(key);
+    }
+  }
+  
+  /**
+   * Génère une clé de cache pour tous les éléments
+   */
+  allItemsKey(): string {
+    return 'all_items';
+  }
+  
+  /**
+   * Génère une clé de cache pour les éléments par catégorie
+   */
+  categoryKey(category: MenuItemCategory): string {
+    return `category_${category}`;
+  }
+  
+  /**
+   * Génère une clé de cache pour les éléments par module
+   */
+  moduleKey(moduleCode: string, isAdmin: boolean = false): string {
+    return `module_${moduleCode}_${isAdmin ? 'admin' : 'user'}`;
+  }
+  
+  /**
+   * Génère une clé de cache pour les éléments par parent
+   */
+  parentKey(parentId: string | null): string {
+    return `parent_${parentId || 'null'}`;
   }
 }

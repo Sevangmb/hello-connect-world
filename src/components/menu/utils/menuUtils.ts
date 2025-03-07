@@ -1,190 +1,64 @@
 
-import { MenuItem } from "@/services/menu/types";
-import * as LucideIcons from "lucide-react";
+import { memoize } from 'lodash';
+import { icons } from 'lucide-react';
 
 /**
- * Vérifier si un chemin est actif dans la navigation
+ * Vérifie si le chemin courant correspond à la route active
  */
-export const isActiveRoute = (path: string, currentPath: string): boolean => {
-  // Normaliser le chemin pour la comparaison
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const normalizedCurrentPath = currentPath.startsWith('/') ? currentPath : `/${currentPath}`;
+export const isActiveRoute = (routePath: string, currentPath: string): boolean => {
+  // Normalisation des chemins
+  const normalizedRoute = routePath.endsWith('/') ? routePath.slice(0, -1) : routePath;
+  const normalizedCurrent = currentPath.endsWith('/') ? currentPath.slice(0, -1) : currentPath;
   
-  if (normalizedPath === '/') {
-    return normalizedCurrentPath === '/' || normalizedCurrentPath === '' || normalizedCurrentPath === '/index';
+  // Vérification exacte pour la page d'accueil
+  if (normalizedRoute === '/' || normalizedRoute === '') {
+    return normalizedCurrent === '/' || normalizedCurrent === '';
   }
   
-  // Vérifier si le chemin actuel correspond exactement ou est un sous-chemin
-  return normalizedCurrentPath === normalizedPath || 
-         normalizedCurrentPath.startsWith(`${normalizedPath}/`);
+  // Vérification exacte pour tous les autres chemins
+  return normalizedCurrent === normalizedRoute || 
+    // Ou vérification que le chemin courant commence par le chemin de la route
+    // (pour les routes imbriquées)
+    normalizedCurrent.startsWith(`${normalizedRoute}/`);
 };
 
 /**
- * Récupérer l'icône à partir de la bibliothèque Lucide
- * Retourne le composant d'icône (et non le JSX)
- */
-export const getIcon = (iconName: string | undefined) => {
-  if (!iconName) return null;
-  
-  // Récupérer l'icône depuis la bibliothèque Lucide
-  const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
-  return IconComponent || null;
-};
-
-/**
- * Liste des routes valides existantes pour vérification
- * Cette liste est extensible selon les besoins de l'application
- */
-export const validRoutes = [
-  '/',
-  '/index',
-  '/explore',
-  '/personal',
-  '/profile',
-  '/profile/settings',
-  '/search',
-  '/notifications',
-  '/social/challenges',
-  '/social/friends',
-  '/social/messages',
-  '/social/groups',
-  '/wardrobe',
-  '/wardrobe/outfits',
-  '/wardrobe/suitcases',
-  '/boutiques',
-  '/cart',
-  '/admin',
-  '/admin/dashboard',
-  '/admin/modules', 
-  '/admin/users',
-  '/admin/shops',
-  '/admin/settings',
-  '/admin/menus',
-  '/admin/stats',
-  '/admin/analytics',
-  '/admin/marketing',
-  '/admin/content',
-  '/admin/backups',
-  '/admin/notifications',
-  '/admin/moderation',
-  '/admin/reports',
-  '/admin/marketplace',
-  '/admin/payments',
-  '/admin/orders',
-  '/admin/api-keys',
-  '/admin/help',
-  '/admin/waitlist',
-  '/legal',
-  '/terms',
-  '/privacy',
-  '/contact',
-  '/about',
-  '/stores',
-  '/shop',
-  '/challenges',
-  '/messages',
-  '/friends',
-  '/outfits',
-  '/suitcases',
-  // Routes de base (pour être plus permissif)
-  '/community',
-  '/settings',
-  '/home'
-];
-
-/**
- * Vérifier si une route existe
- * Cette implémentation est très permissive pour le développement
+ * Vérifie si une route existe dans l'application
+ * Note: Pour une vérification complète dans une application réelle, on pourrait 
+ * utiliser la liste des routes disponibles dans React Router
  */
 export const routeExists = (path: string): boolean => {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  // Simplification de la vérification: nous supposons que toutes les routes
+  // disponibles dans l'application sont valides
   
-  // En mode développement, accepter toutes les routes
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-  
-  // Pour le path racine, toujours valide
-  if (normalizedPath === '/' || normalizedPath === '/index') {
-    return true;
-  }
-  
-  // Vérifier si le chemin correspond exactement ou est un sous-chemin d'une route valide
-  return validRoutes.some(route => 
-    route === normalizedPath || 
-    normalizedPath.startsWith(`${route}/`) ||
-    route.startsWith(`${normalizedPath}/`)
-  );
+  // Mais nous filtrons les chemins qui semblent invalides
+  const invalidPaths = [undefined, null, '', '#', 'javascript:void(0)'];
+  return !invalidPaths.includes(path as any);
 };
 
 /**
- * Construire une hiérarchie de menus
+ * Récupère l'icône à partir de la bibliothèque Lucide React
  */
-export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
-  if (!items || items.length === 0) {
-    console.log("buildMenuHierarchy: No items to process");
-    return [];
-  }
-  
-  console.log(`buildMenuHierarchy: Building hierarchy for ${items.length} items`);
-  
-  // Map pour stocker les items par ID pour un accès rapide
-  const itemMap = new Map<string, MenuItem & { children?: MenuItem[] }>();
-  
-  // Première passe : créer une copie de chaque item avec un tableau children vide
-  items.forEach(item => {
-    if (item && item.id) {
-      itemMap.set(item.id, { ...item, children: [] });
-    }
-  });
-  
-  // Identifier les items racine (sans parent)
-  const rootItems: MenuItem[] = [];
-  
-  // Deuxième passe : construire la hiérarchie
-  items.forEach(item => {
-    if (!item) return;
-    
-    const itemCopy = itemMap.get(item.id);
-    if (!itemCopy) return;
-    
-    if (item.parent_id && itemMap.has(item.parent_id)) {
-      // Cet item a un parent valide, l'ajouter comme enfant
-      const parent = itemMap.get(item.parent_id);
-      if (parent && parent.children) {
-        parent.children.push(itemCopy);
-      }
-    } else {
-      // C'est un item racine
-      rootItems.push(itemCopy);
-    }
-  });
-  
-  // Trier les items racine et les enfants par position/ordre
-  const sortItems = (items: MenuItem[]): MenuItem[] => {
-    return [...items].sort((a, b) => {
-      if (a.position !== undefined && b.position !== undefined) {
-        return a.position - b.position;
-      }
-      return (a.order || 999) - (b.order || 999);
-    });
-  };
-  
-  // Trier les items racine
-  const sortedRootItems = sortItems(rootItems);
-  
-  // Trier récursivement tous les enfants
-  const sortChildrenRecursively = (items: MenuItem[]) => {
-    items.forEach(item => {
-      if (item.children && item.children.length > 0) {
-        item.children = sortItems(item.children);
-        sortChildrenRecursively(item.children);
-      }
-    });
-  };
-  
-  sortChildrenRecursively(sortedRootItems);
-  
-  console.log(`buildMenuHierarchy: Finished with ${sortedRootItems.length} root items`);
-  return sortedRootItems;
+export const getIcon = memoize((iconName: string | undefined) => {
+  if (!iconName) return null;
+  return (icons as any)[iconName];
+});
+
+/**
+ * Transforme un texte en kebab-case (pour les URLs)
+ */
+export const toKebabCase = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+};
+
+/**
+ * Transforme un texte en camelCase (pour les noms de variables)
+ */
+export const toCamelCase = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[\s-_]+(.)/g, (_, c) => c.toUpperCase());
 };

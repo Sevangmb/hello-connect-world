@@ -1,43 +1,44 @@
 
-import { MenuQueryBuilder } from '../../utils/MenuQueryBuilder';
-import { MenuCacheService } from '../../services/MenuCacheService';
-import { MenuCacheKeys } from '../../constants/CacheKeys';
 import { MenuItem } from '../../../types';
+import { MenuCacheService } from '../../services/MenuCacheService';
+import { MenuQueryBuilder } from '../../utils/MenuQueryBuilder';
 
 /**
- * Repository pour la récupération de tous les éléments de menu
+ * Repository spécialisé pour récupérer tous les éléments de menu
  */
 export class AllMenuItemsRepository {
   constructor(private cacheService: MenuCacheService) {}
-
+  
   /**
    * Récupère tous les éléments de menu
    */
   async getAllMenuItems(): Promise<MenuItem[]> {
     try {
-      const cachedItems = this.cacheService.getCachedItems(MenuCacheKeys.ALL_ITEMS_KEY);
+      // Essayer de récupérer depuis le cache d'abord
+      const cacheKey = this.cacheService.allItemsKey();
+      const cachedItems = this.cacheService.get(cacheKey);
       
       if (cachedItems) {
-        console.log('Repository: Utilisation des éléments de menu en cache');
+        console.log('AllMenuItemsRepository: Retrieved items from cache');
         return cachedItems;
       }
       
-      console.log('Repository: Récupération de tous les éléments de menu');
+      // Si non trouvé dans le cache, faire une requête à Supabase
       const { data, error } = await MenuQueryBuilder.getAllItems();
       
       if (error) {
-        console.error('Repository error:', error);
-        throw error;
+        console.error('Error fetching all menu items:', error);
+        return [];
       }
       
-      const items = data as MenuItem[] || [];
-      this.cacheService.updateCache(MenuCacheKeys.ALL_ITEMS_KEY, items);
+      // Stocker dans le cache avant de retourner
+      this.cacheService.set(cacheKey, data || []);
       
-      console.log(`Repository: Récupéré ${items.length} éléments de menu`);
-      return items;
+      console.log(`AllMenuItemsRepository: Retrieved ${data?.length || 0} items from database`);
+      return data || [];
     } catch (error) {
-      console.error('Erreur lors de la récupération des éléments de menu:', error);
-      throw error;
+      console.error('Erreur dans AllMenuItemsRepository.getAllMenuItems:', error);
+      return [];
     }
   }
 }
