@@ -22,14 +22,12 @@ export class MenuQueryBuilder {
    * Récupère les éléments de menu par catégorie
    */
   static async getItemsByCategory(category: MenuItemCategory) {
-    // Explicitement caster la catégorie en string pour Supabase
-    // Utiliser la syntaxe "as const" pour assurer la compatibilité du type
-    const categoryString = category as string;
-    
+    // Utiliser un cast plus direct pour résoudre l'erreur de type
+    // TypeScript ne peut pas inférer que nous faisons une requête SQL où category est juste une colonne
     return supabase
       .from('menu_items')
       .select('*')
-      .eq('category', categoryString) // Utiliser la variable castée
+      .eq('category', category as unknown as any) // Cast direct pour éviter l'erreur TypeScript
       .order('position', { ascending: true })
       .order('order', { ascending: true })
       .order('name', { ascending: true });
