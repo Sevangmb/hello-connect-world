@@ -35,62 +35,73 @@ export const useMenuProcessor = ({
   
   // Filtrer et traiter les éléments du menu
   useEffect(() => {
-    try {
-      if (!rawItems || rawItems.length === 0) {
-        console.log("useMenuProcessor: No raw menu items to process");
-        setMenuItems([]);
-        return;
-      }
-      
-      console.log(`useMenuProcessor: Processing ${rawItems.length} menu items, hierarchical: ${hierarchical}`);
-      
-      // Filtrer en fonction des autorisations de l'utilisateur
-      const filteredItems = rawItems.filter(item => {
-        // Valider que l'item n'est pas null
-        if (!item) return false;
-        
-        // Ne pas montrer les éléments qui nécessitent d'être admin si l'utilisateur n'est pas admin
-        if (item.requires_admin && !isUserAdmin) {
-          return false;
+    const processMenuItems = async () => {
+      try {
+        if (!rawItems || rawItems.length === 0) {
+          console.log("useMenuProcessor: No raw menu items to process");
+          setMenuItems([]);
+          return;
         }
         
-        // Ne pas montrer les éléments inactifs
-        if (item.is_active === false) {
-          return false;
-        }
+        console.log(`useMenuProcessor: Processing ${rawItems.length} menu items, hierarchical: ${hierarchical}`);
         
-        return item.is_visible !== false;
-      });
-
-      // Gérer la structure hiérarchique si nécessaire
-      if (hierarchical) {
-        const hierarchicalItems = buildMenuHierarchy(filteredItems);
-        console.log(`Menu processor: Found ${hierarchicalItems.length} root items in hierarchy`);
-        setMenuItems(hierarchicalItems);
-      } else {
-        // Pour les menus non hiérarchiques, trier simplement par position/ordre
-        const sortedItems = [...filteredItems].sort((a, b) => {
-          if (a.position !== undefined && b.position !== undefined) {
-            return a.position - b.position;
+        // Filtrer en fonction des autorisations de l'utilisateur
+        const filteredItems = rawItems.filter(item => {
+          // Valider que l'item n'est pas null
+          if (!item) return false;
+          
+          // Ne pas montrer les éléments qui nécessitent d'être admin si l'utilisateur n'est pas admin
+          if (item.requires_admin && !isUserAdmin) {
+            return false;
           }
-          return (a.order || 999) - (b.order || 999);
+          
+          // Ne pas montrer les éléments inactifs
+          if (item.is_active === false) {
+            return false;
+          }
+          
+          return item.is_visible !== false;
         });
-        
-        console.log(`Menu processor: Sorted ${sortedItems.length} non-hierarchical items`);
-        setMenuItems(sortedItems);
-      }
 
-      setError(null);
-    } catch (err: any) {
-      console.error("Erreur lors du traitement des éléments de menu:", err);
-      setError(err.message || "Échec du traitement des éléments de menu");
-      setMenuItems([]);
-      
-      toast({
-        title: "Erreur de traitement",
-        description: "Problème lors du traitement des éléments de menu",
-        variant: "destructive"
-      });
-    }
+        // Gérer la structure hiérarchique si nécessaire
+        if (hierarchical) {
+          // Si nous n'avons pas d'éléments après filtrage, ne pas traiter davantage
+          if (filteredItems.length === 0) {
+            setMenuItems([]);
+            return;
+          }
+          
+          const hierarchicalItems = buildMenuHierarchy(filteredItems);
+          console.log(`Menu processor: Found ${hierarchicalItems.length} root items in hierarchy`);
+          setMenuItems(hierarchicalItems);
+        } else {
+          // Pour les menus non hiérarchiques, trier simplement par position/ordre
+          const sortedItems = [...filteredItems].sort((a, b) => {
+            if (a.position !== undefined && b.position !== undefined) {
+              return a.position - b.position;
+            }
+            return (a.order || 999) - (b.order || 999);
+          });
+          
+          console.log(`Menu processor: Sorted ${sortedItems.length} non-hierarchical items`);
+          setMenuItems(sortedItems);
+        }
+
+        setError(null);
+      } catch (err: any) {
+        console.error("Erreur lors du traitement des éléments de menu:", err);
+        setError(err.message || "Échec du traitement des éléments de menu");
+        setMenuItems([]);
+        
+        toast({
+          title: "Erreur de traitement",
+          description: "Problème lors du traitement des éléments de menu",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    // Lancer le traitement des éléments de menu
+    processMenuItems();
   }, [rawItems, isUserAdmin, hierarchical, setMenuItems, setError, toast, rootItemIds]);
 };

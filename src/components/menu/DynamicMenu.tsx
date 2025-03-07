@@ -53,7 +53,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   // Filtrer les éléments de menu visibles et vérifier si les routes existent
   const visibleMenuItems = useMemo(() => {
     if (!menuItems || menuItems.length === 0) {
-      console.log("DynamicMenu: No menu items available");
+      console.log(`DynamicMenu: No menu items available for category: ${category || 'all'}`);
       return [];
     }
     
@@ -76,7 +76,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
         const isVisible = moduleVisible && validRoute && item.is_visible !== false;
         
         if (!isVisible) {
-          console.log(`Menu item "${item.name}" is filtered out:`, 
+          console.log(`Menu item "${item.name}" filtered out:`, 
             `moduleVisible=${moduleVisible}, validRoute=${validRoute}, is_visible=${item.is_visible}`);
         }
         

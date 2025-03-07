@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { MenuItem } from "@/services/menu/types";
 import { MenuItemComponent } from "./MenuItem";
@@ -21,42 +21,55 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
   currentPath
 }) => {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  const [processedItems, setProcessedItems] = useState<MenuItem[]>([]);
   
-  // Organiser les éléments de menu au montage
-  useEffect(() => {
+  // Mémoriser les éléments de menu et la structure hiérarchique
+  const { rootItems, itemsWithChildren } = useMemo(() => {
     if (!menuItems || menuItems.length === 0) {
       console.log("HierarchicalMenu: No menu items provided");
-      setProcessedItems([]);
-      return;
+      return { rootItems: [], itemsWithChildren: new Set() };
     }
 
     console.log(`HierarchicalMenu: Processing ${menuItems.length} menu items`);
     
-    // Filter out items with parent_id (they will be fetched in MenuItemWithChildren)
+    // Identifier les éléments racine (sans parent_id)
     const rootItems = menuItems.filter(item => !item.parent_id);
     console.log(`HierarchicalMenu: Found ${rootItems.length} root items`);
     
-    const sortedItems = rootItems.sort((a, b) => {
+    // Identifier les éléments qui ont des enfants
+    const parentIds = new Set(
+      menuItems
+        .filter(item => item.parent_id)
+        .map(item => item.parent_id)
+    );
+    
+    // Trier les éléments racine
+    const sortedRootItems = rootItems.sort((a, b) => {
       if (a.position !== undefined && b.position !== undefined) {
         return a.position - b.position;
       }
       return (a.order || 999) - (b.order || 999);
     });
     
-    setProcessedItems(sortedItems);
-    
-    // Automatically expand items based on current path
+    return { 
+      rootItems: sortedRootItems,
+      itemsWithChildren: parentIds
+    };
+  }, [menuItems]);
+  
+  // Initialiser les états d'expansion lors du chargement ou changement de chemin
+  useEffect(() => {
+    // Trouver les éléments qui devraient être ouverts en fonction du chemin actuel
     const newExpandedState: Record<string, boolean> = {};
+    
     rootItems.forEach(item => {
       const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
-      if (isActiveRoute(normalizedPath, currentPath)) {
+      if (isActiveRoute(normalizedPath, currentPath) || currentPath === '/') {
         newExpandedState[item.id] = true;
       }
     });
     
     setExpandedItems(prev => ({...prev, ...newExpandedState}));
-  }, [menuItems, currentPath]);
+  }, [rootItems, currentPath]);
   
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItems(prev => ({
@@ -75,30 +88,25 @@ export const HierarchicalMenu: React.FC<HierarchicalMenuProps> = ({
 
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
-      {processedItems.length > 0 ? (
-        processedItems.map((item) => {
-          const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
-          const isItemActive = isActiveRoute(normalizedPath, currentPath);
-          const isExpanded = expandedItems[item.id] || isItemActive;
-          
-          return (
-            <MenuItemWithChildren
-              key={item.id}
-              item={item}
-              isActive={isItemActive}
-              isExpanded={isExpanded}
-              onToggleExpand={() => toggleItemExpansion(item.id)}
-              onNavigate={onNavigate}
-              currentPath={currentPath}
-              level={0}
-            />
-          );
-        })
-      ) : (
-        <div className="text-gray-500 text-sm py-2">
-          Aucun élément de menu disponible
-        </div>
-      )}
+      {rootItems.map((item) => {
+        const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+        const isItemActive = isActiveRoute(normalizedPath, currentPath);
+        const isExpanded = expandedItems[item.id] || isItemActive;
+        const hasChildren = itemsWithChildren.has(item.id);
+        
+        return (
+          <MenuItemWithChildren
+            key={item.id}
+            item={item}
+            isActive={isItemActive}
+            isExpanded={isExpanded}
+            onToggleExpand={() => toggleItemExpansion(item.id)}
+            onNavigate={onNavigate}
+            currentPath={currentPath}
+            hasKnownChildren={hasChildren}
+          />
+        );
+      })}
     </nav>
   );
 };
@@ -110,7 +118,7 @@ interface MenuItemWithChildrenProps {
   onToggleExpand: () => void;
   onNavigate: (path: string, event: React.MouseEvent) => void;
   currentPath: string;
-  level: number;
+  hasKnownChildren?: boolean;
 }
 
 const MenuItemWithChildren: React.FC<MenuItemWithChildrenProps> = ({
@@ -120,26 +128,28 @@ const MenuItemWithChildren: React.FC<MenuItemWithChildrenProps> = ({
   onToggleExpand,
   onNavigate,
   currentPath,
-  level
+  hasKnownChildren = false
 }) => {
-  const { data: childItems = [], isLoading, error } = useMenuItemsByParent(item.id);
-  const [hasChildren, setHasChildren] = useState<boolean>(false);
+  const { data: childItems = [], isLoading } = useMenuItemsByParent(item.id);
+  const [childrenExist, setChildrenExist] = useState<boolean>(hasKnownChildren);
   
   useEffect(() => {
     if (!isLoading) {
-      // Vérifier si des enfants existent
-      const childrenExist = childItems && childItems.length > 0;
+      const hasChildren = childItems && childItems.length > 0;
       console.log(`MenuItemWithChildren: Item ${item.name} has ${childItems?.length || 0} children`);
-      setHasChildren(childrenExist);
+      setChildrenExist(hasChildren);
     }
   }, [childItems, isLoading, item.name]);
   
-  if (isLoading && level === 0) {
-    return <div className="py-2 px-4 text-sm text-gray-400">Chargement...</div>;
-  }
+  // Si on sait que cet élément a des enfants ou si on a chargé des enfants
+  const hasChildren = hasKnownChildren || childrenExist;
   
-  if (error) {
-    console.error("Error loading child items:", error);
+  if (isLoading && !childItems.length) {
+    return (
+      <div className="py-2 px-3 text-sm text-gray-400 animate-pulse">
+        Chargement de {item.name}...
+      </div>
+    );
   }
   
   if (hasChildren) {
@@ -158,7 +168,6 @@ const MenuItemWithChildren: React.FC<MenuItemWithChildrenProps> = ({
   
   return (
     <MenuItemComponent
-      key={item.id}
       item={item}
       isActive={isActive}
       onNavigate={onNavigate}

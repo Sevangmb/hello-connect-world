@@ -32,11 +32,31 @@ export const MenuEmptyState: React.FC<MenuEmptyStateProps> = ({
     );
   }
 
+  // Message spécifique par catégorie
+  const getCategoryMessage = () => {
+    switch (category) {
+      case 'main':
+        return "Aucun élément dans le menu d'accueil";
+      case 'explore':
+        return "Aucun élément dans le menu d'exploration";
+      case 'personal':
+        return "Aucun élément dans votre menu personnel";
+      case 'social':
+        return "Aucun élément dans le menu communautaire";
+      case 'profile':
+        return "Aucun élément dans le menu de profil";
+      case 'admin':
+        return "Aucun élément dans le menu d'administration";
+      default:
+        return "Aucun élément de menu disponible pour cette section";
+    }
+  };
+
   // Message standard pour les autres cas
   return (
     <div className="text-gray-500 text-sm py-2 flex items-center">
       <AlertCircle className="h-4 w-4 mr-2 text-gray-400" />
-      Aucun élément de menu disponible
+      {getCategoryMessage()}
     </div>
   );
 };

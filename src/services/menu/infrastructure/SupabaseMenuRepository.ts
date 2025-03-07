@@ -5,8 +5,35 @@ import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
 import { MenuItem, MenuItemCategory, CreateMenuItemParams, UpdateMenuItemParams } from '../types';
 
 export class MenuRepository implements IMenuRepository {
+  private _cachedAllItems: MenuItem[] | null = null;
+  private _cachedCategories: Record<string, MenuItem[]> = {};
+  private _cachedModules: Record<string, MenuItem[]> = {};
+  private _cachedParents: Record<string, MenuItem[]> = {};
+  private _lastCacheTime = 0;
+  
+  // Durée de validité du cache en ms (10 secondes)
+  private readonly CACHE_TTL = 10000;
+  
+  private isCacheValid(): boolean {
+    return this._cachedAllItems !== null && Date.now() - this._lastCacheTime < this.CACHE_TTL;
+  }
+  
+  private resetCache(): void {
+    this._cachedAllItems = null;
+    this._cachedCategories = {};
+    this._cachedModules = {};
+    this._cachedParents = {};
+    this._lastCacheTime = 0;
+  }
+
   async getAllMenuItems(): Promise<MenuItem[]> {
     try {
+      // Utiliser le cache si valide
+      if (this.isCacheValid() && this._cachedAllItems) {
+        console.log('Repository: Using cached menu items');
+        return this._cachedAllItems;
+      }
+      
       console.log('Repository: Fetching all menu items');
       const { data, error } = await supabase
         .from('menu_items')
@@ -19,8 +46,12 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      console.log(`Repository: Retrieved ${data?.length || 0} menu items`);
-      return data as MenuItem[] || [];
+      // Mettre à jour le cache
+      this._cachedAllItems = data as MenuItem[] || [];
+      this._lastCacheTime = Date.now();
+      
+      console.log(`Repository: Retrieved ${this._cachedAllItems.length} menu items`);
+      return this._cachedAllItems;
     } catch (error) {
       console.error('Erreur lors de la récupération des éléments de menu:', error);
       throw error;
@@ -29,13 +60,28 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
+      // Vérifier si cette catégorie est en cache et si le cache est valide
+      if (this.isCacheValid() && this._cachedCategories[category]) {
+        console.log(`Repository: Using cached menu items for category: ${category}`);
+        return this._cachedCategories[category];
+      }
+      
       console.log(`Repository: Fetching menu items for category: ${category}`);
       
+      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
+      if (this.isCacheValid() && this._cachedAllItems) {
+        const filteredItems = this._cachedAllItems.filter(item => item.category === category);
+        this._cachedCategories[category] = filteredItems;
+        console.log(`Repository: Filtered ${filteredItems.length} items for category ${category} from cache`);
+        return filteredItems;
+      }
+      
+      // Sinon, faire une requête spécifique
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as any) // Using type assertion for flexibility
+        .eq('category', category)
         .order('position');
       
       if (error) {
@@ -43,8 +89,12 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      console.log(`Repository: Retrieved ${data?.length || 0} menu items for category ${category}`);
-      return data as MenuItem[] || [];
+      // Mettre à jour le cache de cette catégorie
+      const items = data as MenuItem[] || [];
+      this._cachedCategories[category] = items;
+      
+      console.log(`Repository: Retrieved ${items.length} menu items for category ${category}`);
+      return items;
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
       throw error;
@@ -53,14 +103,39 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
+      const cacheKey = `${moduleCode}_${isAdmin ? 'admin' : 'user'}`;
+      
+      // Vérifier si ce module est en cache et si le cache est valide
+      if (this.isCacheValid() && this._cachedModules[cacheKey]) {
+        console.log(`Repository: Using cached menu items for module: ${moduleCode}`);
+        return this._cachedModules[cacheKey];
+      }
+      
       console.log(`Repository: Fetching items for module ${moduleCode}, isAdmin: ${isAdmin}`);
       const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
       if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
         console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
+        this._cachedModules[cacheKey] = [];
         return [];
       }
       
+      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
+      if (this.isCacheValid() && this._cachedAllItems) {
+        let filteredItems = this._cachedAllItems.filter(item => item.module_code === moduleCode);
+        
+        if (!isAdmin) {
+          filteredItems = filteredItems.filter(item => 
+            !item.requires_admin && item.is_visible !== false
+          );
+        }
+        
+        this._cachedModules[cacheKey] = filteredItems;
+        console.log(`Repository: Filtered ${filteredItems.length} items for module ${moduleCode} from cache`);
+        return filteredItems;
+      }
+      
+      // Sinon, faire une requête spécifique
       let query = supabase
         .from('menu_items')
         .select('*')
@@ -79,8 +154,12 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      console.log(`Repository: Retrieved ${data?.length || 0} items for module ${moduleCode}`);
-      return data || [];
+      // Mettre à jour le cache de ce module
+      const items = data || [];
+      this._cachedModules[cacheKey] = items;
+      
+      console.log(`Repository: Retrieved ${items.length} items for module ${moduleCode}`);
+      return items;
     } catch (err) {
       console.error(`Exception lors du chargement des éléments de menu pour le module ${moduleCode}:`, err);
       throw err;
@@ -89,8 +168,31 @@ export class MenuRepository implements IMenuRepository {
   
   async getMenuItemsByParent(parentId: string | null): Promise<MenuItem[]> {
     try {
-      console.log(`Repository: Fetching menu items with parent_id: ${parentId}`);
+      const cacheKey = parentId || 'root';
       
+      // Vérifier si ces enfants sont en cache et si le cache est valide
+      if (this.isCacheValid() && this._cachedParents[cacheKey]) {
+        console.log(`Repository: Using cached menu items for parent: ${parentId || 'root'}`);
+        return this._cachedParents[cacheKey];
+      }
+      
+      console.log(`Repository: Fetching menu items with parent_id: ${parentId || 'root'}`);
+      
+      // Si tous les éléments sont en cache valide, filtrer plutôt que de faire une requête
+      if (this.isCacheValid() && this._cachedAllItems) {
+        const filteredItems = this._cachedAllItems.filter(item => {
+          if (parentId === null) {
+            return item.parent_id === null || !item.parent_id;
+          }
+          return item.parent_id === parentId;
+        });
+        
+        this._cachedParents[cacheKey] = filteredItems;
+        console.log(`Repository: Filtered ${filteredItems.length} child items for parent ${parentId || 'root'} from cache`);
+        return filteredItems;
+      }
+      
+      // Sinon, faire une requête spécifique
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
@@ -103,8 +205,12 @@ export class MenuRepository implements IMenuRepository {
         throw error;
       }
       
-      console.log(`Repository: Retrieved ${data?.length || 0} child menu items for parent ${parentId}`);
-      return data || [];
+      // Mettre à jour le cache pour ce parent
+      const items = data || [];
+      this._cachedParents[cacheKey] = items;
+      
+      console.log(`Repository: Retrieved ${items.length} child menu items for parent ${parentId || 'root'}`);
+      return items;
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour le parent ${parentId}:`, error);
       throw error;
@@ -123,6 +229,9 @@ export class MenuRepository implements IMenuRepository {
         console.error('Error creating menu item:', error);
         return null;
       }
+      
+      // Invalider le cache après modification
+      this.resetCache();
       
       return data;
     } catch (error) {
@@ -145,6 +254,9 @@ export class MenuRepository implements IMenuRepository {
         return null;
       }
       
+      // Invalider le cache après modification
+      this.resetCache();
+      
       return data;
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de l'élément de menu ${id}:`, error);
@@ -163,6 +275,9 @@ export class MenuRepository implements IMenuRepository {
         console.error(`Error deleting menu item ${id}:`, error);
         return false;
       }
+      
+      // Invalider le cache après modification
+      this.resetCache();
       
       return true;
     } catch (error) {

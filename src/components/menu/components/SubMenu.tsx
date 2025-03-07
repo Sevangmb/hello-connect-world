@@ -1,3 +1,4 @@
+
 import React from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,10 @@ export const SubMenu: React.FC<SubMenuProps> = ({
         <div className="flex items-center">
           {item.icon && (
             <span className="mr-2 h-4 w-4">
-              {/* Ici, vous pouvez rendre l'icône */}
+              {React.createElement(
+                require("lucide-react")[item.icon] || (() => null),
+                { className: "h-4 w-4" }
+              )}
             </span>
           )}
           <span>{item.name}</span>

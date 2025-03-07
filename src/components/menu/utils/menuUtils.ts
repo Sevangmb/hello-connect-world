@@ -11,7 +11,7 @@ export const isActiveRoute = (path: string, currentPath: string): boolean => {
   const normalizedCurrentPath = currentPath.startsWith('/') ? currentPath : `/${currentPath}`;
   
   if (normalizedPath === '/') {
-    return normalizedCurrentPath === '/' || normalizedCurrentPath === '';
+    return normalizedCurrentPath === '/' || normalizedCurrentPath === '' || normalizedCurrentPath === '/index';
   }
   
   // Vérifier si le chemin actuel correspond exactement ou est un sous-chemin
@@ -37,6 +37,7 @@ export const getIcon = (iconName: string | undefined) => {
  */
 export const validRoutes = [
   '/',
+  '/index',
   '/explore',
   '/personal',
   '/profile',
@@ -93,30 +94,27 @@ export const validRoutes = [
 
 /**
  * Vérifier si une route existe
- * Cette implémentation est plus permissive pour permettre aux développeurs
- * d'ajouter des nouvelles routes sans bloquer le menu
+ * Cette implémentation est très permissive pour le développement
  */
 export const routeExists = (path: string): boolean => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // En mode développement ou lorsque validRoutes est vide, accepter toutes les routes
-  if (validRoutes.length === 0 || process.env.NODE_ENV === 'development') {
+  // En mode développement, accepter toutes les routes
+  if (process.env.NODE_ENV === 'development') {
     return true;
   }
   
-  // Check if path exactly matches a route or is a sub-route
-  const exists = validRoutes.some(route => 
-    route === normalizedPath || 
-    route.startsWith(`${normalizedPath}/`) ||
-    normalizedPath.startsWith(`${route}/`)
-  );
-  
-  // Log uniquement si la route n'existe pas
-  if (!exists) {
-    console.warn(`Route not found in validRoutes: ${normalizedPath}`);
+  // Pour le path racine, toujours valide
+  if (normalizedPath === '/' || normalizedPath === '/index') {
+    return true;
   }
   
-  return exists;
+  // Vérifier si le chemin correspond exactement ou est un sous-chemin d'une route valide
+  return validRoutes.some(route => 
+    route === normalizedPath || 
+    normalizedPath.startsWith(`${route}/`) ||
+    route.startsWith(`${normalizedPath}/`)
+  );
 };
 
 /**
@@ -135,7 +133,9 @@ export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
   
   // Première passe : créer une copie de chaque item avec un tableau children vide
   items.forEach(item => {
-    itemMap.set(item.id, { ...item, children: [] });
+    if (item && item.id) {
+      itemMap.set(item.id, { ...item, children: [] });
+    }
   });
   
   // Identifier les items racine (sans parent)
@@ -143,6 +143,8 @@ export const buildMenuHierarchy = (items: MenuItem[]): MenuItem[] => {
   
   // Deuxième passe : construire la hiérarchie
   items.forEach(item => {
+    if (!item) return;
+    
     const itemCopy = itemMap.get(item.id);
     if (!itemCopy) return;
     
