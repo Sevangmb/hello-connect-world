@@ -22,7 +22,8 @@ const MainRoutes: React.FC = () => {
         <Route path="/*" element={<App />} />
       </Route>
 
-      {/* Page 404 explicite pour les routes non gérées */}
+      {/* Page 404 pour les routes non gérées */}
+      <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );

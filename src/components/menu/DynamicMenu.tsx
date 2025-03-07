@@ -37,7 +37,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     if (path === '/') {
       return location.pathname === '/';
     }
-    return location.pathname.startsWith(path);
+    
+    // Normaliser le chemin pour éviter les problèmes de correspondance
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const normalizedCurrentPath = location.pathname.startsWith('/') 
+      ? location.pathname 
+      : `/${location.pathname}`;
+      
+    return normalizedCurrentPath.startsWith(normalizedPath);
   };
 
   // Récupérer l'icône à partir de la bibliothèque Lucide
@@ -103,11 +110,14 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
     event.preventDefault();
     event.stopPropagation();
     
-    console.log(`DynamicMenu: Navigation vers ${path}`);
+    // Normaliser le chemin pour la navigation
+    const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    console.log(`DynamicMenu: Navigation vers ${normalizedPath}`);
     
     try {
       // Utiliser le hook navigate pour la navigation SPA
-      navigate(path);
+      navigate(`/${normalizedPath}`);
     } catch (error) {
       console.error(`Erreur lors de la navigation vers ${path}:`, error);
     }
@@ -115,21 +125,26 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
 
   return (
     <nav className={cn("flex flex-col space-y-1", className)}>
-      {visibleMenuItems.map((item) => (
-        <Button
-          key={item.id}
-          variant={isActive(item.path) ? "secondary" : "ghost"}
-          size="sm"
-          className={cn(
-            "justify-start font-medium",
-            isActive(item.path) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
-          )}
-          onClick={(e) => handleMenuItemClick(item.path, e)}
-        >
-          {getIcon(item.icon)}
-          <span>{item.name}</span>
-        </Button>
-      ))}
+      {visibleMenuItems.map((item) => {
+        // Normaliser le chemin pour la comparaison
+        const normalizedPath = item.path.startsWith('/') ? item.path : `/${item.path}`;
+        
+        return (
+          <Button
+            key={item.id}
+            variant={isActive(normalizedPath) ? "secondary" : "ghost"}
+            size="sm"
+            className={cn(
+              "justify-start font-medium",
+              isActive(normalizedPath) ? "bg-primary/10 text-primary" : "text-gray-600 hover:text-primary hover:bg-primary/5"
+            )}
+            onClick={(e) => handleMenuItemClick(item.path, e)}
+          >
+            {getIcon(item.icon)}
+            <span>{item.name}</span>
+          </Button>
+        );
+      })}
     </nav>
   );
 };

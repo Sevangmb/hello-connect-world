@@ -52,23 +52,33 @@ function App() {
     <ErrorBoundary fallback={fallbackUI}>
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>}>
         <Routes>
+          {/* Pages principales */}
           <Route index element={<Home />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="explore" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>} />
+          <Route path="personal" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>} />
+          
+          {/* Routes du module Admin */}
           <Route path="admin" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
           <Route path="admin/modules" element={<ModuleGuard moduleCode="admin"><AdminModules /></ModuleGuard>} />
           <Route path="admin/shops" element={<ModuleGuard moduleCode="admin"><AdminShops /></ModuleGuard>} />
           <Route path="admin/dashboard" element={<ModuleGuard moduleCode="admin"><Admin /></ModuleGuard>} />
+          
+          {/* Routes du module Shop */}
           <Route path="boutiques" element={<ModuleGuard moduleCode="shop"><Shops /></ModuleGuard>} />
           <Route path="boutiques/:shopId" element={<ModuleGuard moduleCode="shop"><ShopDetail /></ModuleGuard>} />
+          <Route path="cart" element={<ModuleGuard moduleCode="shop"><CartPage /></ModuleGuard>} />
+          
+          {/* Pages informatives */}
           <Route path="legal" element={<Legal />} />
           <Route path="terms" element={<Terms />} />
           <Route path="privacy" element={<Privacy />} />
           <Route path="contact" element={<Contact />} />
           <Route path="about" element={<About />} />
-          <Route path="cart" element={<ModuleGuard moduleCode="shop"><CartPage /></ModuleGuard>} />
-          <Route path="explore" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Explorer</h1><p>Contenu de l'exploration à venir</p></div>} />
-          <Route path="personal" element={<div className="container mx-auto p-8"><h1 className="text-2xl font-bold">Mon Univers</h1><p>Contenu personnel à venir</p></div>} />
-          <Route path="*" element={<NotFound />} />
+          
+          {/* Page 404 et redirection */}
+          <Route path="404" element={<NotFound />} />
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </Suspense>
     </ErrorBoundary>

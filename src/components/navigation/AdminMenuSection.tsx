@@ -24,7 +24,7 @@ export const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
     event.stopPropagation();
     
     console.log("Navigation vers la console d'admin");
-    navigate("admin/dashboard");
+    navigate("/admin/dashboard");
   };
 
   return (
