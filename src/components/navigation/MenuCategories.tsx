@@ -10,7 +10,6 @@ export const MenuCategories: React.FC = () => {
     { id: 'main', title: 'Accueil', category: 'main', icon: 'Home', order: 1 },
     { id: 'explore', title: 'Explorer', category: 'explore', icon: 'Globe', order: 2 },
     { id: 'personal', title: 'Mon Univers', category: 'personal', icon: 'User', order: 3 },
-    { id: 'wardrobe', title: 'Garde-robe', category: 'wardrobe', icon: 'Shirt', order: 4 },
     { id: 'social', title: 'Social', category: 'social', icon: 'Users', order: 5 },
     { id: 'marketplace', title: 'Marketplace', category: 'marketplace', icon: 'ShoppingBag', order: 6 },
     { id: 'utility', title: 'Utilitaires', category: 'utility', icon: 'LayoutGrid', order: 7 },

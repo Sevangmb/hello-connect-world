@@ -9,6 +9,7 @@ import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { useModules } from "@/hooks/modules/useModules";
+import { AlertTriangle } from "lucide-react";
 
 type DynamicMenuProps = {
   category?: MenuItemCategory;
@@ -146,7 +147,12 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   }
 
   if (error) {
-    return <div className="text-red-500 text-sm py-2">{error}</div>;
+    return (
+      <div className="text-red-500 text-sm py-2 flex items-center gap-2">
+        <AlertTriangle className="h-4 w-4" />
+        <span>Erreur de chargement du menu</span>
+      </div>
+    );
   }
 
   if (!isInitialized) {

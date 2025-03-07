@@ -19,7 +19,7 @@ export const useModuleVisibility = (category: string) => {
   
   // Fonction de filtrage des éléments de menu
   const filterMenuItems = useCallback(() => {
-    if (!menuItems || !isInitialized) {
+    if (!menuItems) {
       return;
     }
     
@@ -49,7 +49,7 @@ export const useModuleVisibility = (category: string) => {
         return (a.order || 999) - (b.order || 999);
       });
       
-      console.log(`useModuleVisibility: Filtrage des éléments de menu pour la catégorie ${category}:`, 
+      console.log(`useModuleVisibility: Éléments de menu pour la catégorie ${category}:`, 
         `${sortedItems.length}/${menuItems.length} éléments visibles`);
       
       setVisibleItems(sortedItems);
@@ -66,7 +66,7 @@ export const useModuleVisibility = (category: string) => {
     } finally {
       setLocalLoading(false);
     }
-  }, [menuItems, isUserAdmin, category, modules, isInitialized, toast]);
+  }, [menuItems, isUserAdmin, category, modules, toast]);
   
   // Effet initial pour précharger les données
   useEffect(() => {

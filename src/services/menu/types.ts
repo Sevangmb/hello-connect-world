@@ -1,4 +1,3 @@
-
 /**
  * Types for menu items and related functionality
  */
@@ -26,7 +25,7 @@ export type MenuItemCategory =
   | 'cart'
   | 'search'
   | 'legal'
-  | string; // Allow string to support module-based categories
+  | string; // Permet les catégories basées sur les modules
 
 // Élément de menu
 export interface MenuItem {

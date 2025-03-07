@@ -23,16 +23,18 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // We need to typecast the category to ensure it works with Supabase's typing system
+      // Plutôt que de tenter d'utiliser l'enum directement, utilisons un filtre côté client
+      // pour éviter les problèmes avec les catégories non définies dans l'enum de la base de données
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
-        .eq('category', category as any)
         .eq('is_active', true) 
         .order('position');
       
       if (error) throw error;
-      return data as MenuItem[];
+      
+      // Filtrer côté client avec la catégorie fournie
+      return (data as MenuItem[]).filter(item => item.category === category);
     } catch (error) {
       console.error(`Erreur lors de la récupération des éléments de menu pour la catégorie ${category}:`, error);
       throw error;
