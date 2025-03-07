@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 import { UseMutationResult } from '@tanstack/react-query';
 
@@ -46,10 +47,11 @@ export interface SuitcaseCalendarItem {
 }
 
 export interface SuitcaseFilter {
-  status?: SuitcaseStatus;
+  status?: SuitcaseStatus | 'all';
   search?: string;
   startDate?: string;
   endDate?: string;
+  sortBy?: 'date' | 'name' | 'status';
 }
 
 export interface EmptySuitcasesProps {
@@ -98,4 +100,26 @@ export interface SuitcaseItemsEmptyProps {
 
 export interface SuitcaseItemsHeaderProps {
   onAddItems: () => void;
+}
+
+export interface SuitcaseSearchBarProps {
+  value: string;
+  onChange: (search: string) => void;
+}
+
+export interface SuitcaseGridProps {
+  suitcases: Suitcase[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export interface SuitcaseListProps {
+  suitcases: Suitcase[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export interface SuitcaseViewToggleProps {
+  viewMode: 'grid' | 'list';
+  onChange: (mode: 'grid' | 'list') => void;
 }

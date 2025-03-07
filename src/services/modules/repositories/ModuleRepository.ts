@@ -3,7 +3,7 @@ import { AppModule, ModuleStatus } from '@/hooks/modules/types';
 import { supabase } from '@/integrations/supabase/client';
 import { IModuleRepository } from '../domain/interfaces/IModuleRepository';
 
-// Define a simpler return type for getModulesWithFeatures to avoid deep type instantiation
+// Définir un type de retour plus simple pour getModulesWithFeatures pour éviter l'instantiation de type trop profonde
 type ModuleWithFeatures = {
   module: {
     id: string;

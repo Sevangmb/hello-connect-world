@@ -5,14 +5,13 @@ import { useSuitcases } from '../hooks/useSuitcases';
 import { SuitcaseGrid } from '../components/suitcases/components/SuitcaseGrid';
 import { SuitcaseList } from '../components/suitcases/components/SuitcaseList';
 import { SuitcaseViewToggle } from '../components/suitcases/components/SuitcaseViewToggle';
-import { SuitcaseFilters } from '../components/suitcases/components/SuitcaseFilters';
 import { SuitcaseSearchBar } from '../components/suitcases/components/SuitcaseSearchBar';
 import { CreateSuitcaseDialog } from '../components/suitcases/components/CreateSuitcaseDialog';
 import { EmptySuitcases } from '../components/suitcases/components/EmptySuitcases';
 import { LoadingSuitcases } from '../components/suitcases/components/LoadingSuitcases';
 import { Button } from '../components/ui/button';
 import { Plus } from 'lucide-react';
-import { SuitcaseFilter, SuitcaseStatus } from '../components/suitcases/types';
+import { CreateSuitcaseData, SuitcaseFilter, SuitcaseStatus } from '../components/suitcases/types';
 
 const Suitcases = () => {
   const navigate = useNavigate();
@@ -26,7 +25,10 @@ const Suitcases = () => {
   });
 
   const handleStatusFilterChange = (status: string) => {
-    setFilterValues(prev => ({ ...prev, status }));
+    setFilterValues(prev => ({
+      ...prev,
+      status: status as SuitcaseStatus | 'all'
+    }));
   };
 
   const handleSearchChange = (search: string) => {
@@ -34,10 +36,13 @@ const Suitcases = () => {
   };
 
   const handleSortChange = (sortBy: string) => {
-    setFilterValues(prev => ({ ...prev, sortBy }));
+    setFilterValues(prev => ({
+      ...prev, 
+      sortBy: sortBy as 'date' | 'name' | 'status'
+    }));
   };
 
-  const handleCreateSuitcase = (data: any) => {
+  const handleCreateSuitcase = (data: CreateSuitcaseData) => {
     createSuitcase.mutate(data, {
       onSuccess: (newSuitcase) => {
         setIsDialogOpen(false);
@@ -95,19 +100,39 @@ const Suitcases = () => {
       {/* Filtres et barre de recherche */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <SuitcaseSearchBar 
-          value={filterValues.search} 
+          value={filterValues.search || ''} 
           onChange={handleSearchChange} 
         />
         <div className="flex gap-4">
-          <SuitcaseFilters 
-            status={filterValues.status} 
-            sortBy={filterValues.sortBy}
-            onStatusChange={handleStatusFilterChange}
-            onSortChange={handleSortChange}
-          />
+          <div>
+            {/* Composant SuitcaseFilters remplacé par une interface compatible */}
+            <label className="block text-sm font-medium mb-1">Statut</label>
+            <select 
+              value={filterValues.status}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              className="px-3 py-2 border rounded-md w-full"
+            >
+              <option value="all">Tous</option>
+              <option value="active">Actives</option>
+              <option value="completed">Terminées</option>
+              <option value="archived">Archivées</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Trier par</label>
+            <select 
+              value={filterValues.sortBy}
+              onChange={(e) => handleSortChange(e.target.value)}
+              className="px-3 py-2 border rounded-md w-full"
+            >
+              <option value="date">Date</option>
+              <option value="name">Nom</option>
+              <option value="status">Statut</option>
+            </select>
+          </div>
           <SuitcaseViewToggle 
             viewMode={viewMode} 
-            onChange={setViewMode} 
+            onChange={(mode) => setViewMode(mode)} 
           />
         </div>
       </div>

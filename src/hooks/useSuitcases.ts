@@ -3,20 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SuitcaseStatus } from '@/components/suitcases/types';
-
-export interface Suitcase {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: SuitcaseStatus;
-  created_at: string;
-  updated_at: string;
-  parent_id?: string;
-}
+import { Suitcase, SuitcaseStatus } from '@/components/suitcases/types';
 
 export const useSuitcases = () => {
   const { user } = useAuth();
@@ -117,17 +104,25 @@ export const useSuitcases = () => {
       if (!user) throw new Error('Vous devez être connecté pour modifier une valise');
       
       const { id, ...updateData } = updatedSuitcase;
-      updateData.updated_at = new Date().toISOString();
       
-      if (updateData.status) {
-        updateData.status = updateData.status as 'active' | 'archived';
+      // Ajouter updated_at manuellement
+      const dataToUpdate = {
+        ...updateData,
+        updated_at: new Date().toISOString()
+      };
+      
+      // S'assurer que le statut est l'un des deux acceptés par la base de données
+      if (dataToUpdate.status) {
+        dataToUpdate.status = dataToUpdate.status === 'active' || dataToUpdate.status === 'archived' 
+          ? dataToUpdate.status 
+          : 'active';
       }
       
-      console.log('Mise à jour de valise en cours:', { id, ...updateData });
+      console.log('Mise à jour de valise en cours:', { id, ...dataToUpdate });
       
       const { data, error } = await supabase
         .from('suitcases')
-        .update(updateData)
+        .update(dataToUpdate)
         .eq('id', id)
         .eq('user_id', user.id)
         .select()
