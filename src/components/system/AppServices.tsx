@@ -1,10 +1,17 @@
 
-import React from 'react';
-import { ModuleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
+import React from "react";
+import { InitializeMenuItems } from "./InitializeMenuItems";
+import { InitializeModules } from "./InitializeModules";
+import { Toaster } from "@/components/ui/toaster";
 
-// Initialisation des services au démarrage de l'application
-const AppServices: React.FC = () => {
-  return null; // Ce composant n'affiche rien, il initialise juste les services
+export const AppServices: React.FC = () => {
+  return (
+    <>
+      <InitializeModules />
+      <InitializeMenuItems />
+      <Toaster />
+    </>
+  );
 };
 
 export default AppServices;

@@ -1,121 +1,67 @@
-import { IModuleService } from '../modules/domain/interfaces/IModuleService';
-import { AppModule, ModuleStatus } from '@/hooks/modules/types';
-import { getModuleService } from '../modules/infrastructure/moduleServiceProvider';
 
-export class ModuleApiGateway {
-  private moduleService: IModuleService;
+import { supabase } from "@/integrations/supabase/client";
 
-  constructor(moduleService?: IModuleService) {
-    this.moduleService = moduleService || getModuleService();
-  }
-
-  public async getAllModules(): Promise<AppModule[]> {
+/**
+ * Passerelle API pour les modules
+ * Fournit un accès centralisé aux fonctionnalités liées aux modules
+ */
+class ModuleApiGateway {
+  // Vérifier si un module est actif
+  async isModuleActive(moduleCode: string): Promise<boolean> {
     try {
-      return await this.moduleService.getAllModules();
+      // Les modules admin sont toujours considérés comme actifs
+      if (moduleCode === 'admin' || moduleCode.startsWith('admin_')) {
+        return true;
+      }
+      
+      // Vérifier dans la base de données
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('status')
+        .eq('code', moduleCode)
+        .maybeSingle();
+        
+      if (error) {
+        console.error(`Erreur lors de la vérification du statut du module ${moduleCode}:`, error);
+        return false;
+      }
+      
+      return data && data.status === 'active';
     } catch (error) {
-      console.error('Error getting modules:', error);
-      return [];
-    }
-  }
-
-  public async getActiveModules(): Promise<AppModule[]> {
-    try {
-      return await this.moduleService.getActiveModules();
-    } catch (error) {
-      console.error('Error getting active modules:', error);
-      return [];
-    }
-  }
-
-  public async getModuleByCode(moduleCode: string): Promise<AppModule | null> {
-    try {
-      return await this.moduleService.getModuleByCode(moduleCode);
-    } catch (error) {
-      console.error(`Error getting module ${moduleCode}:`, error);
-      return null;
-    }
-  }
-
-  public async isModuleActive(moduleCode: string): Promise<boolean> {
-    try {
-      const status = await this.moduleService.getModuleStatus(moduleCode);
-      return status === 'active';
-    } catch (error) {
-      console.error(`Error checking if module ${moduleCode} is active:`, error);
-      return false;
-    }
-  }
-
-  public async updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<boolean> {
-    try {
-      const result = await this.moduleService.updateModuleStatus(moduleId, status);
-      return !!result;
-    } catch (error) {
-      console.error(`Error updating module ${moduleId} status:`, error);
-      return false;
-    }
-  }
-
-  public async updateFeatureStatus(
-    moduleCode: string,
-    featureCode: string,
-    isEnabled: boolean
-  ): Promise<boolean> {
-    try {
-      return await this.moduleService.updateFeatureStatus(moduleCode, featureCode, isEnabled);
-    } catch (error) {
-      console.error(`Error updating feature ${featureCode} status:`, error);
-      return false;
-    }
-  }
-
-  public async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
-    try {
-      return await this.moduleService.isFeatureEnabled(moduleCode, featureCode);
-    } catch (error) {
-      console.error(`Error checking if feature ${featureCode} is enabled:`, error);
-      return false;
-    }
-  }
-
-  public async getModuleId(moduleCode: string): Promise<string | null> {
-    try {
-      const module = await this.moduleService.getModuleByCode(moduleCode);
-      return module?.id || null;
-    } catch (error) {
-      console.error(`Error getting module ${moduleCode} ID:`, error);
-      return null;
-    }
-  }
-  
-  public async isModuleDegraded(moduleId: string): Promise<boolean> {
-    try {
-      const module = await this.moduleService.getModuleByCode(moduleId);
-      return module?.status === 'degraded';
-    } catch (error) {
-      console.error(`Error checking if module ${moduleId} is degraded:`, error);
+      console.error(`Exception lors de la vérification du statut du module ${moduleCode}:`, error);
       return false;
     }
   }
   
-  public async recordModuleUsage(moduleCode: string): Promise<void> {
+  // Vérifier si une fonctionnalité est activée
+  async isFeatureEnabled(moduleCode: string, featureCode: string): Promise<boolean> {
     try {
-      await this.moduleService.recordModuleUsage(moduleCode);
+      // Vérifier d'abord si le module est actif
+      const isActive = await this.isModuleActive(moduleCode);
+      if (!isActive && moduleCode !== 'admin') {
+        return false;
+      }
+      
+      // Vérifier la fonctionnalité dans la base de données
+      const { data, error } = await supabase
+        .from('module_features')
+        .select('is_enabled')
+        .eq('module_code', moduleCode)
+        .eq('feature_code', featureCode)
+        .maybeSingle();
+        
+      if (error) {
+        console.error(`Erreur lors de la vérification de la fonctionnalité ${featureCode} du module ${moduleCode}:`, error);
+        return false;
+      }
+      
+      return data ? data.is_enabled : false;
     } catch (error) {
-      console.error(`Error recording module ${moduleCode} usage:`, error);
-    }
-  }
-
-  // Get module status directly
-  public async getModuleStatus(moduleCode: string): Promise<ModuleStatus | null> {
-    try {
-      return await this.moduleService.getModuleStatus(moduleCode);
-    } catch (error) {
-      console.error(`Error getting status for module ${moduleCode}:`, error);
-      return null;
+      console.error(`Exception lors de la vérification de la fonctionnalité ${featureCode} du module ${moduleCode}:`, error);
+      return false;
     }
   }
 }
 
-// Export a singleton instance
+// Exporter une instance singleton
 export const moduleApiGateway = new ModuleApiGateway();

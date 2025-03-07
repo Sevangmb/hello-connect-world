@@ -49,18 +49,42 @@ export const useModuleCore = () => {
   // Récupérer les dépendances des modules
   const fetchDependenciesData = useCallback(async () => {
     try {
-      // Récupérer les dépendances depuis Supabase
+      // Récupérer les dépendances depuis Supabase avec tous les champs nécessaires
       const { data, error } = await supabase
         .from('module_dependencies')
-        .select('*');
+        .select(`
+          id,
+          module_id,
+          module_code,
+          module_name,
+          module_status,
+          dependency_id,
+          dependency_code,
+          dependency_name,
+          dependency_status,
+          is_required,
+          created_at
+        `);
         
       if (error) {
         throw error;
       }
       
-      const dependencyData = data || [];
-      setDependencies(dependencyData as ModuleDependency[]);
-      return dependencyData as ModuleDependency[];
+      // S'assurer que les données correspondent au type ModuleDependency
+      const dependencyData = (data || []).map(item => ({
+        module_id: item.module_id,
+        module_code: item.module_code || '',
+        module_name: item.module_name || '',
+        module_status: (item.module_status as ModuleStatus) || 'inactive',
+        dependency_id: item.dependency_id,
+        dependency_code: item.dependency_code || '',
+        dependency_name: item.dependency_name || '',
+        dependency_status: (item.dependency_status as ModuleStatus) || 'inactive',
+        is_required: !!item.is_required
+      }));
+      
+      setDependencies(dependencyData);
+      return dependencyData;
     } catch (err: any) {
       console.error("Erreur lors du chargement des dépendances:", err);
       return [];

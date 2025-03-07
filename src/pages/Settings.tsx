@@ -1,35 +1,36 @@
 
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { ProfileSettings } from "@/components/profile/ProfileSettings";
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import React from 'react';
+import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NotificationPreferences } from '@/components/notifications/NotificationPreferences';
+import { ShopSettings } from '@/components/profile/shop/ShopSettings';
 
-export default function Settings() {
+const Settings = () => {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header />
+    <div className="container max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Paramètres</h1>
       
-      <div className="flex flex-1">
-        <MainSidebar />
+      <Tabs defaultValue="profile">
+        <TabsList className="mb-6">
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="shop">Boutique</TabsTrigger>
+        </TabsList>
         
-        <main className="flex-1 pt-16 pb-16 md:pt-20 md:pb-8 px-4 md:pl-72 md:pr-6 lg:pr-8">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl md:text-3xl font-bold mb-6">Paramètres du compte</h1>
-            
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-60">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            }>
-              <ProfileSettings />
-            </Suspense>
-          </div>
-        </main>
-      </div>
-      
-      <BottomNav />
+        <TabsContent value="profile">
+          <ProfileSettings />
+        </TabsContent>
+        
+        <TabsContent value="notifications">
+          <NotificationPreferences />
+        </TabsContent>
+        
+        <TabsContent value="shop">
+          <ShopSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default Settings;

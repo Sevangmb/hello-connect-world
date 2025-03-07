@@ -8,6 +8,7 @@ export const MenuCategories: React.FC = () => {
   const categories = useMemo(() => [
     { id: 'main', title: 'Principales', category: 'main' as MenuItemCategory },
     { id: 'social', title: 'Social', category: 'social' as MenuItemCategory },
+    { id: 'wardrobe', title: 'Garde-robe', category: 'wardrobe' as MenuItemCategory },
     { id: 'marketplace', title: 'Marketplace', category: 'marketplace' as MenuItemCategory },
     { id: 'utility', title: 'Utilitaires', category: 'utility' as MenuItemCategory },
     { id: 'system', title: 'Système', category: 'system' as MenuItemCategory },

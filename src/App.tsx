@@ -23,6 +23,16 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const Explore = lazy(() => import('./pages/Explore'));
 const Personal = lazy(() => import('./pages/Personal'));
 const Challenges = lazy(() => import('./pages/Challenges'));
+const ChallengeDetail = lazy(() => import('./pages/ChallengeDetail'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Friends = lazy(() => import('./pages/Friends'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Outfits = lazy(() => import('./pages/Outfits'));
+const OutfitDetail = lazy(() => import('./pages/OutfitDetail'));
+const Search = lazy(() => import('./pages/Search'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Suitcases = lazy(() => import('./pages/Suitcases'));
+const SuitcaseDetail = lazy(() => import('./pages/SuitcaseDetail'));
 
 // Create simple placeholder pages for legal/informational content
 const Legal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Mentions légales</h1><p>Contenu à venir</p></div>;
@@ -59,11 +69,29 @@ function App() {
           
           {/* Pages principales */}
           <Route path="profile" element={<Profile />} />
+          <Route path="profile/settings" element={<Settings />} />
           <Route path="explore" element={<Explore />} />
           <Route path="personal" element={<Personal />} />
+          <Route path="search" element={<Search />} />
+          <Route path="notifications" element={<Notifications />} />
           
           {/* Routes du module Social */}
-          <Route path="social/challenges" element={<ModuleGuard moduleCode="social"><Challenges /></ModuleGuard>} />
+          <Route path="social">
+            <Route index element={<Navigate to="/social/challenges" replace />} />
+            <Route path="challenges" element={<ModuleGuard moduleCode="social"><Challenges /></ModuleGuard>} />
+            <Route path="challenges/:id" element={<ModuleGuard moduleCode="social"><ChallengeDetail /></ModuleGuard>} />
+            <Route path="friends" element={<ModuleGuard moduleCode="social"><Friends /></ModuleGuard>} />
+            <Route path="messages" element={<ModuleGuard moduleCode="social"><Messages /></ModuleGuard>} />
+          </Route>
+          
+          {/* Routes du module Wardrobe */}
+          <Route path="wardrobe">
+            <Route index element={<Navigate to="/personal" replace />} />
+            <Route path="outfits" element={<ModuleGuard moduleCode="wardrobe"><Outfits /></ModuleGuard>} />
+            <Route path="outfits/:id" element={<ModuleGuard moduleCode="wardrobe"><OutfitDetail /></ModuleGuard>} />
+            <Route path="suitcases" element={<ModuleGuard moduleCode="wardrobe"><Suitcases /></ModuleGuard>} />
+            <Route path="suitcases/:id" element={<ModuleGuard moduleCode="wardrobe"><SuitcaseDetail /></ModuleGuard>} />
+          </Route>
           
           {/* Routes du module Admin */}
           <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />

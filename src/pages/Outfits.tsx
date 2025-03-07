@@ -1,23 +1,32 @@
 
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import OutfitsList from '@/components/outfits/OutfitsList';
-import OutfitCreator from '@/components/outfits/OutfitCreator';
-import { ModuleGuard } from '@/components/modules/ModuleGuard';
+import { OutfitsList } from '@/components/outfits/OutfitsList';
+import { CreateOutfit } from '@/components/outfits/CreateOutfit';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
-// Page principale pour la gestion des tenues
-const OutfitsPage: React.FC = () => {
-  const { action } = useParams<{ action?: string }>();
-  
+const Outfits = () => {
+  const [showCreateOutfit, setShowCreateOutfit] = useState(false);
+
   return (
-    <ModuleGuard moduleCode="outfits">
-      {action === 'create' ? (
-        <OutfitCreator />
-      ) : (
-        <OutfitsList />
-      )}
-    </ModuleGuard>
+    <div className="container max-w-6xl mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Mes tenues</h1>
+        <Button onClick={() => setShowCreateOutfit(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Créer une tenue
+        </Button>
+      </div>
+      
+      <OutfitsList />
+      
+      <CreateOutfit 
+        isOpen={showCreateOutfit} 
+        onClose={() => setShowCreateOutfit(false)} 
+      />
+    </div>
   );
 };
 
-export default OutfitsPage;
+export default Outfits;

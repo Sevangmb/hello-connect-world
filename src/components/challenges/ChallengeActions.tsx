@@ -50,7 +50,7 @@ export const useChallengeActions = () => {
   };
 
   // Fonction pour voter pour un participant
-  const handleVote = async (participantId: string, challengeId?: string) => {
+  const handleVote = async (participantId: string, challengeId: string = '') => {
     if (!user) {
       toast({
         variant: "destructive",
@@ -91,7 +91,7 @@ export const useChallengeActions = () => {
           .insert({
             participant_id: participantId,
             voter_id: user.id,
-            challenge_id: challengeId || ''
+            challenge_id: challengeId
           });
 
         if (error) throw error;
