@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -23,17 +22,12 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Convertir explicitement la catégorie en string pour éviter les erreurs de typage
-      const categoryValue = String(category);
-      
-      const query = supabase
+      const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', categoryValue)
+        .eq('category', category as any)
         .order('position');
-      
-      const { data, error } = await query;
       
       if (error) throw error;
       
