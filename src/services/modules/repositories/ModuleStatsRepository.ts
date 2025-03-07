@@ -16,6 +16,7 @@ export class ModuleStatsRepository {
    */
   async getModuleUsageStats(moduleId: string): Promise<ModuleUsageStat | null> {
     try {
+      // Use more explicit query with proper type handling
       const { data, error } = await supabase
         .from('module_usage_stats')
         .select('*')
