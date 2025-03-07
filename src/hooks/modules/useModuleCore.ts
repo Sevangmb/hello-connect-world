@@ -12,13 +12,15 @@ import { useModuleEffects } from "./useModuleEffects";
 import { useModuleApi } from "./ModuleApiContext";
 import { AppModule } from "./types";
 import { supabase } from "@/integrations/supabase/client";
-
-// Cache pour optimiser les performances entre les rendus
-const modulesCache = new Map<string, {data: AppModule[], timestamp: number}>();
-const CACHE_VALIDITY = 60000; // 1 minute
-const initAttemptRef = { current: 0 };
-const isMountedRef = { current: true };
-const initialLoadAttemptedRef = { current: false };
+import { fetchModulesWithCache, fetchModulesFromApi } from "./services/ModuleFetcherService";
+import { 
+  loadModulesFromLocalStorage, 
+  loadModulesFromSupabase,
+  saveModulesToLocalStorage,
+  initAttemptRef,
+  isMountedRef,
+  initialLoadAttemptedRef
+} from "./services/ModuleInitializationService";
 
 /**
  * Main hook for module management
@@ -43,7 +45,7 @@ export const useModuleCore = () => {
     setFeatures,
     loading,
     error,
-    fetchModules,
+    fetchModules: dataFetcherFetchModules,
     fetchDependencies,
     fetchFeatures,
     connectionStatus
@@ -51,38 +53,8 @@ export const useModuleCore = () => {
 
   // Optimiser le chargement avec une fonction mémoïsée
   const cachedFetchModules = useCallback(async (force = false) => {
-    // Vérifier le cache sauf si force est true
-    const cacheKey = 'all_modules';
-    if (!force && modulesCache.has(cacheKey)) {
-      const cache = modulesCache.get(cacheKey);
-      if (cache && (Date.now() - cache.timestamp < CACHE_VALIDITY)) {
-        console.log('Utilisation des modules depuis le cache en mémoire');
-        return cache.data;
-      }
-    }
-    
-    // Limiter les tentatives de rechargement
-    if (initAttemptRef.current > 3 && !force) {
-      console.log('Trop de tentatives de chargement, utilisation du cache si disponible');
-      const cache = modulesCache.get(cacheKey);
-      if (cache) return cache.data;
-    }
-    
-    initAttemptRef.current += 1;
-    
-    // Récupérer les données
-    const result = await fetchModules();
-    
-    // Mettre à jour le cache si nous avons des données
-    if (result && result.length > 0) {
-      modulesCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now()
-      });
-    }
-    
-    return result;
-  }, [fetchModules]);
+    return await fetchModulesWithCache(force, modules);
+  }, [modules]);
 
   // Obtenir les fonctions de gestion des statuts
   const {
@@ -113,37 +85,17 @@ export const useModuleCore = () => {
           console.log("Initialisation des modules dans useModuleCore");
           
           // Essayer d'abord de charger depuis le localStorage pour un chargement ultra-rapide
-          try {
-            const cachedModulesData = localStorage.getItem('modules_cache');
-            if (cachedModulesData) {
-              const parsedCache = JSON.parse(cachedModulesData);
-              const now = Date.now();
-              const validCachedModules: AppModule[] = [];
-              
-              // Vérifier chaque module dans le cache
-              Object.entries(parsedCache).forEach(([, moduleData]: [string, any]) => {
-                if (moduleData.timestamp && (now - moduleData.timestamp < 300000)) { // 5 minutes
-                  if (moduleData.data) {
-                    validCachedModules.push(moduleData.data);
-                  }
-                }
-              });
-              
-              if (validCachedModules.length > 0) {
-                console.log("Modules chargés depuis le cache local:", validCachedModules.length);
-                if (isMountedRef.current) {
-                  setLocalModules(validCachedModules);
-                  setModules(validCachedModules);
-                }
-              }
+          const cachedModules = loadModulesFromLocalStorage();
+          if (cachedModules.length > 0) {
+            if (isMountedRef.current) {
+              setLocalModules(cachedModules);
+              setModules(cachedModules);
             }
-          } catch (e) {
-            console.error("Erreur lors du chargement du cache local:", e);
           }
           
           // Essayer ensuite l'API des modules, mais pas si on a déjà des modules du cache
           if (localModules.length === 0 && !moduleApi.loading && moduleApi.isInitialized) {
-            const modulesData = await moduleApi.refreshModules(initAttemptRef.current > 1);
+            const modulesData = await fetchModulesFromApi(moduleApi, initAttemptRef.current > 1);
             console.log("Modules chargés depuis l'API:", modulesData?.length || 0);
             
             if (modulesData && modulesData.length > 0 && isMountedRef.current) {
@@ -195,7 +147,6 @@ export const useModuleCore = () => {
   }, [moduleApi, setModules, isInitialized, cachedFetchModules, localModules.length]);
   
   // En cas d'erreur ou si les modules sont vides après un certain temps, essayer de recharger
-  // mais limiter à une seule tentative pour éviter les boucles
   useEffect(() => {
     // Utilisez une variable locale au lieu de useRef
     let rechargementAttempted = false;
@@ -213,31 +164,11 @@ export const useModuleCore = () => {
           } else if (forcedInitComplete && isMountedRef.current) {
             // If we completed initialization via timeout and still don't have modules,
             // try one more direct fetch from Supabase
-            try {
-              const { data } = await supabase
-                .from('app_modules')
-                .select('*')
-                .order('name');
-                
-              if (data && data.length > 0 && isMountedRef.current) {
-                // Ensure we have proper ModuleStatus types
-                const typedModules = data.map(module => {
-                  let status = module.status;
-                  // Make sure status is a valid ModuleStatus
-                  if (status !== 'active' && status !== 'inactive' && status !== 'degraded') {
-                    status = 'inactive';
-                  }
-                  return { ...module, status } as AppModule;
-                });
-                
-                console.log("Modules chargés via fetch de secours:", typedModules.length);
-                if (isMountedRef.current) {
-                  setLocalModules(typedModules);
-                  setModules(typedModules);
-                }
-              }
-            } catch (e) {
-              console.error("Erreur lors du fetch de secours:", e);
+            const backupModules = await loadModulesFromSupabase();
+            if (backupModules.length > 0 && isMountedRef.current) {
+              console.log("Modules chargés via fetch de secours:", backupModules.length);
+              setLocalModules(backupModules);
+              setModules(backupModules);
             }
           }
         } catch (e) {
