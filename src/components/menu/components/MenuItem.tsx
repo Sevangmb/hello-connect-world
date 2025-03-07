@@ -28,7 +28,7 @@ export const MenuItemComponent: React.FC<MenuItemProps> = ({
     if (!item.icon) return null;
     
     const IconComponent = getIcon(item.icon);
-    return IconComponent ? <IconComponent className="h-4 w-4 mr-2" /> : null;
+    return IconComponent ? React.createElement(IconComponent, { className: "h-4 w-4 mr-2" }) : null;
   };
   
   // Pour les éléments avec des enfants en mode hiérarchique

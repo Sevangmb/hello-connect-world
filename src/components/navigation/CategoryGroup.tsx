@@ -5,7 +5,6 @@ import { CategoryGroupProps } from "./types/moduleMenu";
 import { DynamicMenu } from "@/components/menu/DynamicMenu";
 import { AccordionItem, AccordionTrigger, AccordionContent, Accordion } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
-import * as LucideIcons from "lucide-react";
 import { getIcon } from "@/components/menu/utils/menuUtils";
 
 const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) => {
@@ -16,7 +15,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({ title, category, icon }) 
     if (!icon) return null;
     
     const IconComponent = getIcon(icon);
-    return IconComponent ? <IconComponent className="h-4 w-4 mr-2" /> : null;
+    return IconComponent ? React.createElement(IconComponent, { className: "h-4 w-4 mr-2" }) : null;
   };
 
   // Pendant le chargement, nous affichons un squelette pour une meilleure UX

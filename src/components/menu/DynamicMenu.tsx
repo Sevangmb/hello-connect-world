@@ -25,7 +25,7 @@ export const DynamicMenu: React.FC<DynamicMenuProps> = ({
   className,
   hierarchical = false,
 }) => {
-  const { menuItems, loading, error, isUserAdmin, isInitialized } = useMenu({
+  const { menuItems, loading, error, isUserAdmin, initialized } = useMenu({
     category,
     moduleCode,
     hierarchical,

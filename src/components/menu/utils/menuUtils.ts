@@ -21,11 +21,12 @@ export const isActiveRoute = (path: string, currentPath: string): boolean => {
  * Récupérer l'icône à partir de la bibliothèque Lucide
  * Retourne le composant d'icône (et non le JSX)
  */
-export const getIcon = (iconName: string | undefined, className: string = "h-5 w-5 mr-2") => {
+export const getIcon = (iconName: string | undefined) => {
   if (!iconName) return null;
   
   // Récupérer l'icône depuis la bibliothèque Lucide
-  return LucideIcons[iconName as keyof typeof LucideIcons] || null;
+  const IconComponent = LucideIcons[iconName as keyof typeof LucideIcons];
+  return IconComponent;
 };
 
 /**
