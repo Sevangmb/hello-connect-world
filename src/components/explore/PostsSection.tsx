@@ -12,7 +12,12 @@ export const PostsSection = () => {
       console.log("PostsSection: Fin du chargement");
       setIsLoading(false);
     }, 800);
-    return () => clearTimeout(timer);
+    
+    // Nettoyage du timer pour éviter les fuites mémoire
+    return () => {
+      clearTimeout(timer);
+      console.log("PostsSection: Nettoyage du timer");
+    };
   }, []);
 
   if (isLoading) {

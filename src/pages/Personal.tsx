@@ -23,7 +23,11 @@ const Personal: React.FC = () => {
     console.log("Personal: Initialisation du chargement");
     
     const fetchData = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log("Personal: Utilisateur non connecté, arrêt du chargement");
+        setIsLoading(false);
+        return;
+      }
       
       try {
         // Récupérer les vêtements
@@ -49,15 +53,18 @@ const Personal: React.FC = () => {
         if (outfitsError) throw outfitsError;
         setOutfits(outfitsData || []);
         
+        console.log("Personal: Données chargées avec succès");
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error);
       } finally {
         setIsLoading(false);
+        console.log("Personal: Fin du chargement");
       }
     };
     
     fetchData();
     
+    // Force le chargement à se terminer après un délai maximum
     const timer = setTimeout(() => {
       if (isLoading) {
         console.log("Personal: Fin du chargement forcée après timeout");
@@ -65,8 +72,11 @@ const Personal: React.FC = () => {
       }
     }, 2000);
     
-    return () => clearTimeout(timer);
-  }, [user, isLoading]);
+    return () => {
+      clearTimeout(timer);
+      console.log("Personal: Nettoyage du timer");
+    };
+  }, [user]);
 
   if (isLoading) {
     return (
