@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -22,11 +23,12 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
+      // Cast the category as unknown first, then as string for the query to avoid TypeScript errors
       const { data, error } = await supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
-        .eq('category', category as any)
+        .eq('category', category as unknown as string)
         .order('position');
       
       if (error) throw error;
