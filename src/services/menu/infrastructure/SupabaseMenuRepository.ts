@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { moduleApiGateway } from '@/services/api-gateway/ModuleApiGateway';
 import { IMenuRepository } from '../domain/interfaces/IMenuRepository';
@@ -23,16 +22,12 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByCategory(category: MenuItemCategory): Promise<MenuItem[]> {
     try {
-      // Créer la requête Supabase de base sans filtre par catégorie
-      let query = supabase
+      const query = supabase
         .from('menu_items')
         .select('*')
         .eq('is_active', true)
+        .eq('category', category as string)
         .order('position');
-      
-      // Ajouter le filtre de catégorie avec le cast approprié
-      // Pour résoudre l'erreur TypeScript, on utilise une assertion de type
-      query = query.eq('category', category as string);
       
       const { data, error } = await query;
       
@@ -47,17 +42,13 @@ export class MenuRepository implements IMenuRepository {
 
   async getMenuItemsByModule(moduleCode: string, isAdmin: boolean = false): Promise<MenuItem[]> {
     try {
-      // Vérifier si le module est actif via le moduleApiGateway
       const isModuleActive = await moduleApiGateway.isModuleActive(moduleCode);
       
-      // Si le module n'est pas actif et que l'utilisateur n'est pas admin,
-      // et que ce n'est pas le module admin, retourner un tableau vide
       if (!isModuleActive && !isAdmin && moduleCode !== 'admin' && !moduleCode.startsWith('admin_')) {
         console.log(`Module ${moduleCode} inactif, aucun élément de menu affiché`);
         return [];
       }
       
-      // Construire la requête en fonction du statut admin
       let query = supabase
         .from('menu_items')
         .select('*')
@@ -65,7 +56,6 @@ export class MenuRepository implements IMenuRepository {
         .eq('is_active', true)
         .order('position', { ascending: true });
       
-      // Si l'utilisateur n'est pas admin, filtrer les éléments qui nécessitent des droits admin
       if (!isAdmin) {
         query = query.eq('requires_admin', false).eq('is_visible', true);
       }
