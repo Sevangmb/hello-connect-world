@@ -1,5 +1,6 @@
 
 /**
+ * @deprecated Utilisez MenuCacheService à la place
  * Base repository class with caching functionality
  */
 export abstract class BaseRepository<T> {
