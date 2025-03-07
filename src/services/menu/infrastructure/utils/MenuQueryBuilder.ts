@@ -23,7 +23,7 @@ export class MenuQueryBuilder {
    */
   static async getItemsByCategory(category: MenuItemCategory) {
     // Explicitement caster la catégorie en string pour Supabase
-    const categoryString = category as unknown as string;
+    const categoryString = String(category);
     
     return supabase
       .from('menu_items')
@@ -85,13 +85,10 @@ export class MenuQueryBuilder {
   static async createItem(item: CreateMenuItemParams) {
     // Créer une copie de l'objet avec category comme string pour Supabase
     const itemForDb = {
-      ...item
+      ...item,
+      // Convertir explicitement la catégorie en string si elle existe
+      category: item.category ? String(item.category) : undefined
     };
-    
-    // Convertir explicitement la catégorie en string
-    if (item.category) {
-      itemForDb.category = item.category as unknown as string;
-    }
     
     return supabase
       .from('menu_items')
@@ -106,13 +103,10 @@ export class MenuQueryBuilder {
   static async updateItem(id: string, updates: UpdateMenuItemParams) {
     // Créer une copie de l'objet pour les mises à jour
     const updatesForDb = {
-      ...updates
+      ...updates,
+      // Convertir explicitement la catégorie en string si elle existe dans les mises à jour
+      category: updates.category ? String(updates.category) : undefined
     };
-    
-    // Si category est présent, le convertir explicitement en string
-    if (updates.category) {
-      updatesForDb.category = updates.category as unknown as string;
-    }
 
     return supabase
       .from('menu_items')
