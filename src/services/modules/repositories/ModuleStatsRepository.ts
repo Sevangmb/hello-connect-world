@@ -40,9 +40,12 @@ export class ModuleStatsRepository {
         .from('module_usage_stats')
         .select('id, usage_count')
         .eq('module_code', moduleCode)
-        .maybeSingle();
+        .single();
       
-      if (queryError) throw queryError;
+      if (queryError && queryError.code !== 'PGRST116') {
+        // PGRST116 is the error code for "no rows returned", which is expected if no record exists
+        throw queryError;
+      }
       
       if (existingRecord) {
         // Update existing record
