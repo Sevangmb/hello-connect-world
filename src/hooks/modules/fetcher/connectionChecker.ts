@@ -31,18 +31,19 @@ export function useConnectionChecker() {
         }
 
         // Tenter une requête simple pour vérifier la connexion
+        // Utiliser une table existante au lieu de 'health_checks'
         const { data, error } = await supabase
-          .from('health_checks')
+          .from('app_modules')
           .select('*')
           .limit(1)
           .maybeSingle();
 
         // En cas d'erreur, vérifier si c'est une erreur de connexion
         if (error) {
-          // Si c'est une erreur de table manquante, nous sommes connectés
-          if (error.code === 'PGRST204') {
+          // Si c'est une erreur d'autorisation, nous sommes connectés mais pas autorisés
+          if (error.code === '42501' || error.code === 'PGRST301') {
             if (isMounted) {
-              console.log("Table 'health_checks' n'existe pas, mais la connexion est OK");
+              console.log("Erreur d'autorisation, mais la connexion est OK");
               setConnectionStatus('connected');
               setError(null);
             }
