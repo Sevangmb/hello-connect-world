@@ -3,40 +3,20 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { BottomNav } from "./navigation/BottomNav";
-import MainSidebar from "./MainSidebar";
 import { Footer } from "./Footer";
 import { UnifiedRightMenu } from "./navigation/UnifiedRightMenu";
 
 export function RootLayout() {
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightMenuOpen, setRightMenuOpen] = useState(false);
 
-  console.log("RootLayout: Rendu avec sidebarOpen =", leftSidebarOpen);
-
-  const toggleLeftSidebar = () => {
-    setLeftSidebarOpen(prev => !prev);
-    // Fermer le menu de droite quand le menu de gauche est ouvert
-    if (!leftSidebarOpen) {
-      setRightMenuOpen(false);
-    }
-  };
+  console.log("RootLayout: Rendu avec rightMenuOpen =", rightMenuOpen);
 
   const toggleRightMenu = () => {
     setRightMenuOpen(prev => !prev);
-    // Fermer le menu de gauche quand le menu de droite est ouvert
-    if (!rightMenuOpen) {
-      setLeftSidebarOpen(false);
-    }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Barre latérale gauche (Menu) */}
-      <MainSidebar 
-        isMobileOpen={leftSidebarOpen} 
-        onMobileClose={() => setLeftSidebarOpen(false)}
-      />
-      
       {/* Menu unifié à droite */}
       <UnifiedRightMenu
         isMobileOpen={rightMenuOpen}
@@ -44,10 +24,9 @@ export function RootLayout() {
       />
       
       {/* Contenu principal */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className="flex-1 flex flex-col">
         {/* En-tête (Header) */}
         <Header 
-          onMenuToggle={toggleLeftSidebar} 
           onRightMenuToggle={toggleRightMenu}
         />
         
@@ -63,7 +42,7 @@ export function RootLayout() {
         
         {/* Navigation mobile */}
         <BottomNav 
-          onMenuClick={() => setLeftSidebarOpen(true)} 
+          onMenuClick={() => setRightMenuOpen(true)} 
           className="md:hidden" 
         />
       </div>

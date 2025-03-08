@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -24,12 +23,11 @@ import { MainMenu } from "@/components/navigation/MainMenu";
 
 // Propriétés du composant Header
 export interface HeaderProps {
-  onMenuToggle?: () => void;
   onRightMenuToggle?: () => void;
   className?: string;
 }
 
-export function Header({ onMenuToggle, onRightMenuToggle, className }: HeaderProps) {
+export function Header({ onRightMenuToggle, className }: HeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -109,11 +107,7 @@ export function Header({ onMenuToggle, onRightMenuToggle, className }: HeaderPro
   };
   
   const toggleMobileMenu = () => {
-    if (onMenuToggle) {
-      onMenuToggle();
-    } else {
-      setMenuOpen(!menuOpen);
-    }
+    setMenuOpen(!menuOpen);
   };
 
   const toggleRightMenu = () => {
