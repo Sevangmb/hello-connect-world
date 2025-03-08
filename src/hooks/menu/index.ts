@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useMenuState } from './useMenuState';
 import { useMenuProcessor } from './useMenuProcessor';
@@ -45,7 +46,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     moduleCode,
     setLoading,
     setMenuItems,
-    setError,
+    setError: (err: Error | null) => setError(err ? err.message : null),
     setInitialized,
     toast
   });
@@ -56,7 +57,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
     isUserAdmin,
     hierarchical,
     setMenuItems,
-    setError,
+    setError: (err: Error | null) => setError(err ? err.message : null),
     toast
   });
   

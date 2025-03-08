@@ -4,11 +4,11 @@
  */
 export const handleMenuFetchError = (
   err: any,
-  setError: (error: string | null) => void,
+  setError: (error: Error | null) => void,
   setMenuItems: (items: any[]) => void,
   toast?: any
 ): void => {
-  const errorMessage = err.message || "Échec du traitement des éléments de menu";
+  const errorMessage = err instanceof Error ? err : new Error(String(err));
   console.error("Erreur lors du traitement des éléments de menu:", err);
   
   setError(errorMessage);
@@ -17,7 +17,7 @@ export const handleMenuFetchError = (
   if (toast) {
     toast({
       title: "Erreur de chargement du menu",
-      description: errorMessage,
+      description: errorMessage.message || "Échec du traitement des éléments de menu",
       variant: "destructive"
     });
   }

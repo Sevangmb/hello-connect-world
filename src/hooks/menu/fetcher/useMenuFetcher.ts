@@ -2,14 +2,14 @@
 import { useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { MenuItem } from '@/services/menu/types';
+import { MenuItem, MenuItemCategory } from '@/services/menu/types';
 import { processMenuItems } from './dataProcessor';
-import { handleMenuError } from './errorHandler';
+import { handleMenuFetchError } from './errorHandler';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { EVENTS } from '@/core/event-bus/constants';
 
 interface UseMenuFetcherOptions {
-  category?: string;
+  category?: MenuItemCategory;
   moduleCode?: string;
   setLoading: (loading: boolean) => void;
   setMenuItems: (items: MenuItem[]) => void;
@@ -58,7 +58,7 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
         }
         
         // Publier un événement pour la récupération des éléments de menu
-        eventBus.publish('menu:items-fetched', {
+        eventBus.publish(EVENTS.NAVIGATION.MENU_OPEN, {
           category,
           moduleCode,
           count: data?.length || 0,
@@ -67,8 +67,12 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
         
         return data || [];
       } catch (err) {
-        handleMenuError(err, toast);
-        throw err;
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        if (toast) {
+          handleMenuFetchError(err, setError, setMenuItems, toast);
+        }
+        throw error;
       } finally {
         setLoading(false);
       }

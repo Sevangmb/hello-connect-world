@@ -10,9 +10,9 @@ export interface MenuFetcherOptions {
   moduleCode?: string;
   setLoading: (loading: boolean) => void;
   setMenuItems: (items: any[]) => void;
-  setError: (error: string | null) => void;
+  setError: (error: Error | null) => void;
   setInitialized: (initialized: boolean) => void;
-  toast: any;
+  toast?: any;
 }
 
 export interface MenuFetcherResult {
