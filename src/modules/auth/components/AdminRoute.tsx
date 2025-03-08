@@ -10,9 +10,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useAdminStatus } from "../hooks/useAdminStatus";
 import { useToast } from "@/hooks/use-toast";
 import { eventBus } from '@/core/event-bus/EventBus';
-
-// Événement émis lorsqu'un accès admin est refusé
-const ADMIN_ACCESS_DENIED = 'admin:access-denied';
+import { EVENTS } from '@/core/event-bus/constants';
 
 export function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -52,10 +50,19 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   // Publier un événement lorsque l'accès admin est refusé
   React.useEffect(() => {
     if (!isLoading && (!isAuthenticated || !isUserAdmin)) {
-      eventBus.publish(ADMIN_ACCESS_DENIED, {
+      eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, {
         isAuthenticated,
         isUserAdmin,
         path: location.pathname,
+        granted: false,
+        timestamp: Date.now()
+      });
+    } else if (!isLoading && isAuthenticated && isUserAdmin) {
+      eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, {
+        isAuthenticated,
+        isUserAdmin,
+        path: location.pathname,
+        granted: true,
         timestamp: Date.now()
       });
     }

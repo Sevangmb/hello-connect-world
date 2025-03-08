@@ -1,53 +1,121 @@
 
-import { useEffect } from 'react';
-import { useAllMenuItems } from '../useMenuItems';
-import { MenuFetcherOptions, MenuFetcherResult } from './types';
+import { useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { MenuItem } from '@/services/menu/types';
 import { processMenuItems } from './dataProcessor';
-import { handleMenuFetchError } from './errorHandler';
+import { handleMenuError } from './errorHandler';
+import { eventBus } from '@/core/event-bus/EventBus';
+import { EVENTS } from '@/core/event-bus/constants';
 
-/**
- * Hook pour récupérer et traiter les éléments de menu
- * Suit les principes de la Clean Architecture en séparant les responsabilités
- */
-export const useMenuFetcher = ({
-  category,
-  moduleCode,
-  setLoading,
-  setMenuItems,
-  setError,
-  setInitialized,
-  toast
-}: MenuFetcherOptions): MenuFetcherResult => {
-  // Utiliser le hook useAllMenuItems pour récupérer tous les éléments de menu
-  const { data: allItems, isLoading, refetch } = useAllMenuItems();
+interface UseMenuFetcherOptions {
+  category?: string;
+  moduleCode?: string;
+  setLoading: (loading: boolean) => void;
+  setMenuItems: (items: MenuItem[]) => void;
+  setError: (error: Error | null) => void;
+  setInitialized: (initialized: boolean) => void;
+  toast?: any;
+}
 
-  useEffect(() => {
-    const fetchAndProcessMenuItems = () => {
-      try {
-        // Traiter les éléments de menu avec la fonction pure
-        const processedItems = processMenuItems(allItems, category, moduleCode);
-        
-        // Mettre à jour l'état avec les éléments traités
-        setMenuItems(processedItems);
-        setError(null);
-        setInitialized(true);
-      } catch (err: any) {
-        // Déléguer la gestion des erreurs à un gestionnaire spécialisé
-        handleMenuFetchError(err, setError, setMenuItems, toast);
-      }
-    };
+export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
+  const {
+    category,
+    moduleCode,
+    setLoading,
+    setMenuItems,
+    setError,
+    setInitialized,
+    toast
+  } = options;
 
-    // Mettre à jour l'état de chargement
-    setLoading(isLoading);
+  // Construire la requête
+  const buildQuery = useCallback(() => {
+    let query = supabase.from('menu_items').select('*');
     
-    // Si le chargement est terminé, traiter les éléments de menu
-    if (!isLoading) {
-      fetchAndProcessMenuItems();
+    if (category) {
+      query = query.eq('category', category);
     }
-  }, [allItems, isLoading, category, moduleCode, setLoading, setMenuItems, setError, setInitialized, toast]);
+    
+    if (moduleCode) {
+      query = query.eq('module_code', moduleCode);
+    }
+    
+    return query.order('position');
+  }, [category, moduleCode]);
 
-  return {
-    isLoading,
-    refetch
-  };
+  // Requête pour récupérer les éléments de menu
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['menu-items', { category, moduleCode }],
+    queryFn: async () => {
+      try {
+        setLoading(true);
+        const query = buildQuery();
+        const { data, error } = await query;
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Publier un événement pour la récupération des éléments de menu
+        eventBus.publish('menu:items-fetched', {
+          category,
+          moduleCode,
+          count: data?.length || 0,
+          timestamp: Date.now()
+        });
+        
+        return data || [];
+      } catch (err) {
+        handleMenuError(err, toast);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Mettre à jour les éléments de menu lorsque les données changent
+  useEffect(() => {
+    if (data) {
+      try {
+        const processedItems = processMenuItems(data);
+        setMenuItems(processedItems);
+        setInitialized(true);
+        
+        // Publier un événement pour les éléments de menu traités
+        eventBus.publish(EVENTS.NAVIGATION.MENU_OPEN, {
+          category,
+          moduleCode,
+          count: processedItems.length,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)));
+        
+        // Publier un événement d'erreur
+        eventBus.publish(EVENTS.SYSTEM.ERROR, {
+          source: 'MenuFetcher',
+          category,
+          moduleCode,
+          error: err instanceof Error ? err.message : String(err),
+          timestamp: Date.now()
+        });
+      }
+    }
+  }, [data, category, moduleCode, setMenuItems, setError, setInitialized]);
+
+  // Mettre à jour l'état d'erreur
+  useEffect(() => {
+    if (error) {
+      setError(error instanceof Error ? error : new Error(String(error)));
+    } else {
+      setError(null);
+    }
+  }, [error, setError]);
+
+  return { data, isLoading, error, refetch };
 };
+
+export default useMenuFetcher;

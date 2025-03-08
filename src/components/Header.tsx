@@ -1,5 +1,5 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -13,13 +13,14 @@ import {
   DropdownMenuGroup,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvider";
 import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { cn } from "@/lib/utils";
+import { eventBus } from "@/core/event-bus/EventBus";
+import { EVENTS } from "@/core/event-bus/constants";
 
 // Propriétés du composant Header
 export interface HeaderProps {
@@ -52,11 +53,13 @@ export function Header({ className }: HeaderProps) {
         const isUserAdmin = await userService.isUserAdmin(user.id);
         setIsAdmin(isUserAdmin);
         
-        // Synchroniser avec le coordinateur
+        // Synchroniser avec le coordinateur et publier l'événement
         if (isUserAdmin) {
           moduleMenuCoordinator.enableAdminAccess();
+          eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, { isAdmin: true });
         } else {
           moduleMenuCoordinator.disableAdminAccess();
+          eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, { isAdmin: false });
         }
       } catch (error) {
         console.error("Error checking admin status:", error);
@@ -93,6 +96,9 @@ export function Header({ className }: HeaderProps) {
         title: "Déconnexion réussie",
         description: "Vous avez été déconnecté avec succès",
       });
+      eventBus.publish(EVENTS.AUTH.SIGNED_OUT, {
+        timestamp: Date.now()
+      });
       navigate("/auth");
     } catch (error) {
       console.error("Logout error:", error);
@@ -106,6 +112,10 @@ export function Header({ className }: HeaderProps) {
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    eventBus.publish(EVENTS.NAVIGATION.PAGE_VIEW, {
+      path,
+      timestamp: Date.now()
+    });
   };
 
   return (

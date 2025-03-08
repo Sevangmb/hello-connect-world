@@ -1,15 +1,23 @@
 
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { BottomNav } from "./navigation/BottomNav";
 import { Footer } from "./Footer";
 import { UnifiedRightMenu } from "./navigation/UnifiedRightMenu";
+import { eventBus } from "@/core/event-bus/EventBus";
 
 export function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
 
-  console.log("RootLayout: Rendu avec menuOpen =", menuOpen);
+  // Publier les événements de navigation lors du changement de route
+  useEffect(() => {
+    eventBus.publish('navigation:route-changed', {
+      path: location.pathname,
+      timestamp: Date.now()
+    });
+  }, [location.pathname]);
 
   const toggleMenu = () => {
     setMenuOpen(prev => !prev);

@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
-import App from '@/App';
 import Auth from '@/pages/Auth';
 import AdminLogin from '@/pages/AdminLogin';
 import NotFound from '@/pages/NotFound';
 import Home from '@/pages/Home';
+import { eventBus } from '@/core/event-bus/EventBus';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -23,16 +23,50 @@ import ScanLabelFeature from '@/pages/features/ScanLabelFeature';
 import OutfitSuggestionFeature from '@/pages/features/OutfitSuggestionFeature';
 import VirtualTryOnFeature from '@/pages/features/VirtualTryOnFeature';
 
-// Import du service d'événements
-import { eventBus, EVENTS } from '@/services/events/EventBus';
+// Import de l'App pour les routes imbriquées
+import App from '@/App';
+
+// Constantes pour les chemins
+const ROUTES = {
+  AUTH: '/auth',
+  ADMIN_LOGIN: '/admin/login',
+  HOME: '/',
+  MODULES: {
+    ROOT: '/module',
+    CORE: '/module/core',
+    WARDROBE: '/module/wardrobe',
+    SOCIAL: '/module/social',
+    SHOP: '/module/shop',
+    ADMIN: '/module/admin',
+    AI: '/module/ai',
+    OCR: '/module/ocr',
+    MARKETPLACE: '/module/marketplace',
+  },
+  FEATURES: {
+    ROOT: '/feature',
+    SCAN_LABEL: '/feature/scan-label',
+    OUTFIT_SUGGESTION: '/feature/outfit-suggestion',
+    VIRTUAL_TRY_ON: '/feature/virtual-try-on',
+  },
+  // Raccourcis
+  SHORTCUTS: {
+    SCAN_LABEL: '/scan-label',
+    OUTFIT_SUGGESTION: '/outfit-suggestion',
+    VIRTUAL_TRY_ON: '/virtual-try-on',
+    OCR: '/ocr',
+  },
+  // Redirections
+  REDIRECTS: {
+    SUITCASES: '/suitcases',
+    SUITCASE_DETAIL: '/suitcases/:id',
+  },
+  NOT_FOUND: '/404',
+};
 
 const MainRoutes: React.FC = () => {
-  console.log("MainRoutes: Rendu des routes principales");
-  
-  // Publier un événement lors du rendu initial des routes
-  React.useEffect(() => {
-    eventBus.publish(EVENTS.MODULE.INITIALIZED, {
-      module: 'routes',
+  // Initialisation du système d'événements pour les routes
+  useEffect(() => {
+    eventBus.publish('app:routes-initialized', {
       timestamp: Date.now()
     });
   }, []);
@@ -40,17 +74,17 @@ const MainRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Routes d'authentification qui ne sont pas dans le layout principal */}
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path={ROUTES.AUTH} element={<Auth />} />
+      <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLogin />} />
       
       {/* Routes principales avec RootLayout comme wrapper */}
       <Route element={<RootLayout />}>
         {/* Route racine explicite pour Home */}
         <Route index element={<Home />} />
-        <Route path="/" element={<Home />} />
+        <Route path={ROUTES.HOME} element={<Home />} />
         
         {/* Routes de modules */}
-        <Route path="/module">
+        <Route path={ROUTES.MODULES.ROOT}>
           <Route path="core" element={<CoreModule />} />
           <Route path="wardrobe" element={<WardrobeModule />} />
           <Route path="social" element={<SocialModule />} />
@@ -62,27 +96,27 @@ const MainRoutes: React.FC = () => {
         </Route>
         
         {/* Routes de fonctionnalités */}
-        <Route path="/feature">
+        <Route path={ROUTES.FEATURES.ROOT}>
           <Route path="scan-label" element={<ScanLabelFeature />} />
           <Route path="outfit-suggestion" element={<OutfitSuggestionFeature />} />
           <Route path="virtual-try-on" element={<VirtualTryOnFeature />} />
         </Route>
         
         {/* Raccourcis directs pour certaines fonctionnalités */}
-        <Route path="/scan-label" element={<ScanLabelFeature />} />
-        <Route path="/outfit-suggestion" element={<OutfitSuggestionFeature />} />
-        <Route path="/virtual-try-on" element={<VirtualTryOnFeature />} />
-        <Route path="/ocr" element={<OCRModule />} />
+        <Route path={ROUTES.SHORTCUTS.SCAN_LABEL} element={<ScanLabelFeature />} />
+        <Route path={ROUTES.SHORTCUTS.OUTFIT_SUGGESTION} element={<OutfitSuggestionFeature />} />
+        <Route path={ROUTES.SHORTCUTS.VIRTUAL_TRY_ON} element={<VirtualTryOnFeature />} />
+        <Route path={ROUTES.SHORTCUTS.OCR} element={<OCRModule />} />
         
         {/* Ajout d'une redirection explicite pour le chemin des valises */}
-        <Route path="/suitcases" element={<Navigate to="/wardrobe/suitcases" replace />} />
+        <Route path={ROUTES.REDIRECTS.SUITCASES} element={<Navigate to="/wardrobe/suitcases" replace />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
       </Route>
 
       {/* Route 404 explicite */}
-      <Route path="/404" element={<NotFound />} />
+      <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
