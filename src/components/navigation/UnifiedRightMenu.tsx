@@ -59,9 +59,9 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
   
   // Classes CSS optimisées et mémorisées
   const menuClasses = useMemo(() => cn(
-    "fixed top-0 bottom-0 right-0 z-40 w-64 bg-white border-l border-gray-200 pt-5 pb-4 flex flex-col",
+    "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-200 pt-5 pb-4 flex flex-col",
     "md:z-30 md:pt-20 md:translate-x-0 transition-transform duration-200 ease-out",
-    isMobileOpen ? "translate-x-0 shadow-lg" : "translate-x-full md:translate-x-0",
+    isMobileOpen ? "translate-x-0 shadow-lg" : "-translate-x-full md:translate-x-0",
     className
   ), [isMobileOpen, className]);
   
@@ -200,7 +200,7 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
         onClick={onMobileClose}
       />
       
-      {/* Menu de droite unifié */}
+      {/* Menu unifié à gauche */}
       <aside className={menuClasses}>
         {/* En-tête avec bouton de fermeture */}
         <div className="px-4 flex items-center justify-between">

@@ -7,28 +7,27 @@ import { Footer } from "./Footer";
 import { UnifiedRightMenu } from "./navigation/UnifiedRightMenu";
 
 export function RootLayout() {
-  const [rightMenuOpen, setRightMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  console.log("RootLayout: Rendu avec rightMenuOpen =", rightMenuOpen);
+  console.log("RootLayout: Rendu avec menuOpen =", menuOpen);
 
-  const toggleRightMenu = () => {
-    setRightMenuOpen(prev => !prev);
+  const toggleMenu = () => {
+    setMenuOpen(prev => !prev);
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Menu unifié à droite */}
+      {/* Menu unifié à gauche */}
       <UnifiedRightMenu
-        isMobileOpen={rightMenuOpen}
-        onMobileClose={() => setRightMenuOpen(false)}
+        isMobileOpen={menuOpen}
+        onMobileClose={() => setMenuOpen(false)}
+        className="left-0 right-auto border-r border-l-0"
       />
       
       {/* Contenu principal */}
       <div className="flex-1 flex flex-col">
         {/* En-tête (Header) */}
-        <Header 
-          onRightMenuToggle={toggleRightMenu}
-        />
+        <Header className="z-50" />
         
         {/* Contenu principal */}
         <main className="flex-1 pt-16 px-4 md:px-8 pb-16 md:pb-8">
@@ -42,7 +41,7 @@ export function RootLayout() {
         
         {/* Navigation mobile */}
         <BottomNav 
-          onMenuClick={() => setRightMenuOpen(true)} 
+          onMenuClick={() => setMenuOpen(true)} 
           className="md:hidden" 
         />
       </div>
