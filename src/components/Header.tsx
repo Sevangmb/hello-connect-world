@@ -25,10 +25,11 @@ import { MainMenu } from "@/components/navigation/MainMenu";
 // Propriétés du composant Header
 export interface HeaderProps {
   onMenuToggle?: () => void;
+  onRightMenuToggle?: () => void;
   className?: string;
 }
 
-export function Header({ onMenuToggle, className }: HeaderProps) {
+export function Header({ onMenuToggle, onRightMenuToggle, className }: HeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -114,6 +115,12 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
       setMenuOpen(!menuOpen);
     }
   };
+
+  const toggleRightMenu = () => {
+    if (onRightMenuToggle) {
+      onRightMenuToggle();
+    }
+  };
   
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -134,7 +141,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
           </Link>
         </div>
         
-        {/* Menu principal - utilise notre nouveau composant */}
+        {/* Menu principal - utilise notre composant MainMenu */}
         <nav className="hidden md:block">
           <MainMenu variant="horizontal" />
           
@@ -171,7 +178,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
           )}
         </nav>
         
-        {/* Actions rapides */}
+        {/* Actions rapides et menu utilisateur */}
         <div className="flex items-center gap-1">
           <Button 
             variant="ghost" 
@@ -200,7 +207,17 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
             <ShoppingCart className="h-5 w-5" />
           </Button>
           
-          {/* Menu utilisateur */}
+          {/* Icône pour afficher le menu unifié sur la droite */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:flex"
+            onClick={toggleRightMenu}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          
+          {/* Menu utilisateur - conservé pour compatibilité */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 border border-gray-200">
@@ -250,7 +267,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
         </div>
       </div>
       
-      {/* Menu mobile avec notre nouveau composant */}
+      {/* Menu mobile avec notre MainMenu */}
       {menuOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container py-4 space-y-3">
