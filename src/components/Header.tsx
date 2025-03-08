@@ -17,13 +17,15 @@ import { getAuthService } from "@/core/auth/infrastructure/authDependencyProvide
 import { getUserService } from "@/core/users/infrastructure/userDependencyProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
+import { cn } from "@/lib/utils";
 
 // Propriétés du composant Header
-interface HeaderProps {
+export interface HeaderProps {
   onMenuToggle?: () => void;
+  className?: string;
 }
 
-export function Header({ onMenuToggle }: HeaderProps = {}) {
+export function Header({ onMenuToggle, className }: HeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -118,7 +120,7 @@ export function Header({ onMenuToggle }: HeaderProps = {}) {
   console.log("Header: Rendu avec menuOpen =", menuOpen);
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm">
+    <header className={cn("fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm", className)}>
       <div className="container h-full mx-auto px-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="md:hidden mr-2" onClick={toggleMobileMenu}>

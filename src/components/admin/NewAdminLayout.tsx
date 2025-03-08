@@ -4,8 +4,8 @@ import { Outlet } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import AdminHeader from "./AdminHeader";
-import AdminSidebar from "./AdminSidebar";
+import { AdminHeader } from "./AdminHeader";
+import { AdminSidebar } from "./AdminSidebar";
 import { Toaster } from "@/components/ui/toaster";
 
 /**

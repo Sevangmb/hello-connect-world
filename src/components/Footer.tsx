@@ -1,17 +1,19 @@
 
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
-interface FooterProps {
+export interface FooterProps {
   show?: boolean;
+  className?: string;
 }
 
-export function Footer({ show = false }: FooterProps) {
+export function Footer({ show = false, className }: FooterProps) {
   const currentYear = new Date().getFullYear();
   
   if (!show) return null;
   
   return (
-    <footer className="bg-gray-100 py-6 border-t mt-auto">
+    <footer className={cn("bg-gray-100 py-6 border-t mt-auto", className)}>
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
