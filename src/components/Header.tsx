@@ -20,6 +20,7 @@ import { getUserService } from "@/core/users/infrastructure/userDependencyProvid
 import { supabase } from "@/integrations/supabase/client";
 import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordinator";
 import { cn } from "@/lib/utils";
+import { MainMenu } from "@/components/navigation/MainMenu";
 
 // Propriétés du composant Header
 export interface HeaderProps {
@@ -119,14 +120,6 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
     setMenuOpen(false);
   };
 
-  // Menus principaux réorganisés
-  const mainMenuItems = [
-    { label: "Accueil", path: "/", icon: null },
-    { label: "Explorer", path: "/explore", icon: null },
-    { label: "Mon Univers", path: "/personal", icon: null },
-    { label: "Boutiques", path: "/boutiques", icon: null }
-  ];
-
   return (
     <header className={cn("fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm", className)}>
       <div className="container h-full mx-auto px-4 flex items-center justify-between">
@@ -141,20 +134,11 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
           </Link>
         </div>
         
-        {/* Menu de navigation principal - réorganisé */}
-        <nav className="hidden md:flex items-center gap-2">
-          {mainMenuItems.map(item => (
-            <Button 
-              key={item.path}
-              variant="ghost" 
-              size="sm" 
-              onClick={() => handleNavigate(item.path)}
-            >
-              {item.label}
-            </Button>
-          ))}
+        {/* Menu principal - utilise notre nouveau composant */}
+        <nav className="hidden md:block">
+          <MainMenu variant="horizontal" />
           
-          {/* Menu Admin condensé en dropdown */}
+          {/* Menu Admin en dropdown séparé */}
           {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -216,7 +200,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
             <ShoppingCart className="h-5 w-5" />
           </Button>
           
-          {/* Menu utilisateur réorganisé */}
+          {/* Menu utilisateur */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 border border-gray-200">
@@ -245,7 +229,6 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Administration</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => handleNavigate("/admin/dashboard")}>
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Administration</span>
@@ -267,21 +250,14 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
         </div>
       </div>
       
-      {/* Menu mobile réorganisé */}
+      {/* Menu mobile avec notre nouveau composant */}
       {menuOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container py-4 space-y-3">
-            {/* Menu principal */}
-            {mainMenuItems.map(item => (
-              <Button 
-                key={item.path}
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => handleNavigate(item.path)}
-              >
-                {item.label}
-              </Button>
-            ))}
+            <MainMenu 
+              variant="vertical" 
+              onItemClick={() => setMenuOpen(false)}
+            />
             
             {/* Menu admin */}
             {isAdmin && (

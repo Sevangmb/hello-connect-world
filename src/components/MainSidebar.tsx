@@ -1,12 +1,12 @@
 
 import React, { useMemo } from "react";
 import { Logo } from "@/components/Logo";
-import { ModuleMenu } from "@/components/navigation/ModuleMenu";
 import { UserButton } from "@/components/UserButton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MainMenu } from "@/components/navigation/MainMenu";
 
 interface MainSidebarProps {
   className?: string;
@@ -60,9 +60,9 @@ const MainSidebar: React.FC<MainSidebarProps> = ({
         
         <Separator className="my-4 md:hidden" />
         
-        {/* Menu principal simplifié */}
+        {/* Menu principal avec notre nouveau composant */}
         <div className="flex-1 px-3 overflow-y-auto">
-          <ModuleMenu />
+          <MainMenu variant="vertical" />
         </div>
         
         {/* Profil utilisateur */}
