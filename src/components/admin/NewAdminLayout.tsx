@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AdminHeader } from "./AdminHeader";
-import { AdminSidebar } from "./AdminSidebar";
+import { NewAdminSidebar } from "./NewAdminSidebar";
 import { Toaster } from "@/components/ui/toaster";
 
 /**
@@ -52,7 +52,7 @@ export function NewAdminLayout() {
           )}
         >
           <div className="flex flex-col h-full">
-            <AdminSidebar collapsed={!sidebarExpanded && !mobileMenuOpen} />
+            <NewAdminSidebar collapsed={!sidebarExpanded && !mobileMenuOpen} />
             
             {/* Bouton pour replier/déplier sur desktop */}
             <Button 
