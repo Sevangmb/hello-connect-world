@@ -66,10 +66,29 @@ export class MenuStructureTransformer {
     admin: '/admin/dashboard',
     admin_dashboard: '/admin/dashboard',
     admin_users: '/admin/users',
+    admin_users_manage: '/admin/users/manage',
+    admin_users_stats: '/admin/users/stats',
     admin_shops: '/admin/shops',
+    admin_shops_manage: '/admin/shops/manage',
+    admin_shops_stats: '/admin/shops/stats',
     admin_content: '/admin/content',
+    admin_content_challenges: '/admin/content/challenges',
+    admin_content_groups: '/admin/content/groups',
+    admin_content_moderation: '/admin/content/moderation',
+    admin_marketplace: '/admin/marketplace',
+    admin_marketplace_items: '/admin/marketplace/items',
+    admin_marketplace_transactions: '/admin/marketplace/transactions',
+    admin_marketplace_stats: '/admin/marketplace/stats',
+    admin_marketing: '/admin/marketing',
+    admin_marketing_campaigns: '/admin/marketing/campaigns',
+    admin_marketing_newsletters: '/admin/marketing/newsletters',
     admin_stats: '/admin/stats',
-    admin_settings: '/admin/settings'
+    admin_stats_general: '/admin/stats/general',
+    admin_stats_financial: '/admin/stats/financial',
+    admin_settings: '/admin/settings',
+    admin_settings_admins: '/admin/settings/admins',
+    admin_settings_roles: '/admin/settings/roles',
+    admin_settings_config: '/admin/settings/config'
   };
   
   /**
@@ -92,6 +111,21 @@ export class MenuStructureTransformer {
     });
     
     return allLevel2;
+  }
+  
+  /**
+   * Récupérer toutes les sous-catégories administratives
+   */
+  static getAllAdminSubcategories(): MenuItemCategory[] {
+    const adminSubcats = this.getSubcategoriesForSection('admin');
+    const allAdminCategories: MenuItemCategory[] = [...adminSubcats];
+    
+    adminSubcats.forEach(subcat => {
+      const subSubcategories = this.getSubcategoriesForSection(subcat as string);
+      allAdminCategories.push(...subSubcategories);
+    });
+    
+    return allAdminCategories;
   }
   
   /**

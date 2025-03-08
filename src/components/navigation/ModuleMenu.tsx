@@ -47,7 +47,7 @@ export const ModuleMenu: React.FC = () => {
             </>
           )}
           
-          {/* Menu admin */}
+          {/* Menu admin avec accès à tous les sous-menus */}
           {isUserAdmin && (
             <>
               <Separator className="my-2" />
@@ -59,6 +59,7 @@ export const ModuleMenu: React.FC = () => {
               <SimpleModuleMenu 
                 modules={moduleGroups.admin}
                 title="Admin"
+                showAllAdminSubCategories={true}
               />
             </>
           )}

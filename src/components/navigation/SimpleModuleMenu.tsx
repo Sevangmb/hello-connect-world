@@ -14,15 +14,21 @@ import { useMenuItemsByCategory } from "@/hooks/menu";
 interface SimpleModuleMenuProps {
   modules: string[];
   title?: string;
+  showAllAdminSubCategories?: boolean;
 }
 
 interface ModuleMenuItemProps {
   category: string;
   isActive: boolean;
   level?: number;
+  showAllSubcategories?: boolean;
 }
 
-export const SimpleModuleMenu: React.FC<SimpleModuleMenuProps> = ({ modules, title }) => {
+export const SimpleModuleMenu: React.FC<SimpleModuleMenuProps> = ({ 
+  modules, 
+  title,
+  showAllAdminSubCategories = false
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
@@ -118,6 +124,7 @@ export const SimpleModuleMenu: React.FC<SimpleModuleMenuProps> = ({ modules, tit
             category={moduleCode}
             isActive={location.pathname === MenuStructureTransformer.getRoutePathForMenuItem(moduleCode)}
             level={0}
+            showAllSubcategories={moduleCode === 'admin' && showAllAdminSubCategories}
           />
         ))}
       </div>
@@ -126,14 +133,25 @@ export const SimpleModuleMenu: React.FC<SimpleModuleMenuProps> = ({ modules, tit
 };
 
 // Composant d'élément de menu pour un module
-const ModuleMenuItem: React.FC<ModuleMenuItemProps> = ({ category, isActive, level = 0 }) => {
+const ModuleMenuItem: React.FC<ModuleMenuItemProps> = ({ 
+  category, 
+  isActive, 
+  level = 0,
+  showAllSubcategories = false
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { data: menuItems } = useMenuItemsByCategory(category);
   
   // Liste des sous-catégories
-  const subcategories = MenuStructureTransformer.getSubcategoriesForSection(category);
+  const subcategories = useMemo(() => {
+    if (showAllSubcategories && category === 'admin') {
+      return MenuStructureTransformer.getAllAdminSubcategories();
+    }
+    return MenuStructureTransformer.getSubcategoriesForSection(category);
+  }, [category, showAllSubcategories]);
+  
   const hasChildren = subcategories.length > 0;
   
   // Déterminer le nom à afficher
@@ -160,7 +178,29 @@ const ModuleMenuItem: React.FC<ModuleMenuItemProps> = ({ category, isActive, lev
       admin: 'Administration',
       admin_dashboard: 'Tableau de bord',
       admin_users: 'Utilisateurs',
+      admin_users_manage: 'Gestion utilisateurs',
+      admin_users_stats: 'Statistiques utilisateurs',
       admin_content: 'Contenu',
+      admin_content_challenges: 'Défis',
+      admin_content_groups: 'Groupes',
+      admin_content_moderation: 'Modération',
+      admin_shops: 'Boutiques',
+      admin_shops_manage: 'Gestion boutiques',
+      admin_shops_stats: 'Statistiques boutiques',
+      admin_marketplace: 'Marketplace',
+      admin_marketplace_items: 'Articles',
+      admin_marketplace_transactions: 'Transactions',
+      admin_marketplace_stats: 'Statistiques ventes',
+      admin_marketing: 'Marketing',
+      admin_marketing_campaigns: 'Campagnes',
+      admin_marketing_newsletters: 'Newsletters',
+      admin_stats: 'Statistiques',
+      admin_stats_general: 'Générales', 
+      admin_stats_financial: 'Financières',
+      admin_settings: 'Paramètres',
+      admin_settings_admins: 'Administrateurs',
+      admin_settings_roles: 'Rôles',
+      admin_settings_config: 'Configuration',
       shop_dashboard: 'Tableau de bord',
       shop_storefront: 'Vitrine',
       shop_orders: 'Commandes'
@@ -186,6 +226,14 @@ const ModuleMenuItem: React.FC<ModuleMenuItemProps> = ({ category, isActive, lev
       marketplace: 'ShoppingBag',
       settings: 'Settings',
       admin: 'Shield',
+      admin_dashboard: 'LayoutDashboard',
+      admin_users: 'Users',
+      admin_content: 'FileText',
+      admin_shops: 'Store',
+      admin_marketplace: 'ShoppingCart',
+      admin_marketing: 'Megaphone',
+      admin_stats: 'BarChart',
+      admin_settings: 'Settings',
       shop_dashboard: 'LayoutDashboard',
       shop_storefront: 'Store',
       shop_orders: 'Package'
@@ -255,6 +303,7 @@ const ModuleMenuItem: React.FC<ModuleMenuItemProps> = ({ category, isActive, lev
               category={subcat as string}
               isActive={location.pathname === MenuStructureTransformer.getRoutePathForMenuItem(subcat as string)}
               level={level + 1}
+              showAllSubcategories={showAllSubcategories}
             />
           ))}
         </div>
