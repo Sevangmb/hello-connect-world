@@ -12,69 +12,66 @@ export function Footer({ show = false, className }: FooterProps) {
   
   if (!show) return null;
   
+  // Organisation en sections claires
+  const footerSections = [
+    {
+      title: "FRING!",
+      content: "Votre assistant mode personnel pour gérer votre garde-robe et découvrir des tenues adaptées à chaque occasion.",
+      links: []
+    },
+    {
+      title: "Navigation",
+      content: "",
+      links: [
+        { label: "Accueil", path: "/" },
+        { label: "Explorer", path: "/explore" },
+        { label: "Mon Univers", path: "/personal" },
+        { label: "Boutiques", path: "/boutiques" }
+      ]
+    },
+    {
+      title: "Mon Compte",
+      content: "",
+      links: [
+        { label: "Profil", path: "/profile" },
+        { label: "Garde-robe", path: "/personal/wardrobe" },
+        { label: "Mes Tenues", path: "/personal/outfits" },
+        { label: "Paramètres", path: "/profile/settings" }
+      ]
+    },
+    {
+      title: "Support",
+      content: "",
+      links: [
+        { label: "Contact", path: "/contact" },
+        { label: "Aide & Support", path: "/help" },
+        { label: "Politique de confidentialité", path: "/privacy" },
+        { label: "Conditions d'utilisation", path: "/terms" }
+      ]
+    }
+  ];
+  
   return (
     <footer className={cn("bg-gray-100 py-6 border-t mt-auto", className)}>
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="font-semibold text-lg mb-4">FRING!</h3>
-            <p className="text-sm text-gray-600">
-              Votre assistant mode personnel pour gérer votre garde-robe 
-              et découvrir des tenues adaptées à chaque occasion.
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Liens rapides</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-sm text-gray-600 hover:text-primary">
-                  Accueil
-                </Link>
-              </li>
-              <li>
-                <Link to="/explore" className="text-sm text-gray-600 hover:text-primary">
-                  Explorer
-                </Link>
-              </li>
-              <li>
-                <Link to="/personal" className="text-sm text-gray-600 hover:text-primary">
-                  Mon Univers
-                </Link>
-              </li>
-              <li>
-                <Link to="/friends" className="text-sm text-gray-600 hover:text-primary">
-                  Social
-                </Link>
-              </li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Support</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/contact" className="text-sm text-gray-600 hover:text-primary">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link to="/help" className="text-sm text-gray-600 hover:text-primary">
-                  Aide & Support
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="text-sm text-gray-600 hover:text-primary">
-                  Politique de confidentialité
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="text-sm text-gray-600 hover:text-primary">
-                  Conditions d'utilisation
-                </Link>
-              </li>
-            </ul>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {footerSections.map((section, index) => (
+            <div key={index}>
+              <h3 className="font-semibold text-lg mb-4">{section.title}</h3>
+              {section.content && <p className="text-sm text-gray-600 mb-4">{section.content}</p>}
+              {section.links.length > 0 && (
+                <ul className="space-y-2">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <Link to={link.path} className="text-sm text-gray-600 hover:text-primary">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
         
         <div className="border-t border-gray-200 mt-8 pt-6 text-center text-sm text-gray-500">

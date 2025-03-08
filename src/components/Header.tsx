@@ -10,6 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -117,7 +119,13 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
     setMenuOpen(false);
   };
 
-  console.log("Header: Rendu avec menuOpen =", menuOpen);
+  // Menus principaux réorganisés
+  const mainMenuItems = [
+    { label: "Accueil", path: "/", icon: null },
+    { label: "Explorer", path: "/explore", icon: null },
+    { label: "Mon Univers", path: "/personal", icon: null },
+    { label: "Boutiques", path: "/boutiques", icon: null }
+  ];
 
   return (
     <header className={cn("fixed top-0 left-0 right-0 h-16 border-b bg-white z-50 shadow-sm", className)}>
@@ -133,34 +141,54 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
           </Link>
         </div>
         
-        <nav className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/")}>
-            Accueil
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/explore")}>
-            Explorer
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/personal")}>
-            Mon Univers
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleNavigate("/boutiques")}>
-            Boutiques
-          </Button>
-          
-          {isAdmin && (
+        {/* Menu de navigation principal - réorganisé */}
+        <nav className="hidden md:flex items-center gap-2">
+          {mainMenuItems.map(item => (
             <Button 
-              variant="outline" 
+              key={item.path}
+              variant="ghost" 
               size="sm" 
-              className="ml-2 border-primary text-primary"
-              onClick={() => handleNavigate("/admin/dashboard")}
+              onClick={() => handleNavigate(item.path)}
             >
-              <Shield className="mr-1 h-4 w-4" />
-              Admin
+              {item.label}
             </Button>
+          ))}
+          
+          {/* Menu Admin condensé en dropdown */}
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-2 border-primary text-primary"
+                >
+                  <Shield className="mr-1 h-4 w-4" />
+                  Admin
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Administration</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleNavigate("/admin/dashboard")}>
+                  Tableau de bord
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavigate("/admin/users")}>
+                  Utilisateurs
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavigate("/admin/settings")}>
+                  Configuration
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavigate("/admin/content")}>
+                  Contenu
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </nav>
         
-        <div className="flex items-center gap-2">
+        {/* Actions rapides */}
+        <div className="flex items-center gap-1">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -188,6 +216,7 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
             <ShoppingCart className="h-5 w-5" />
           </Button>
           
+          {/* Menu utilisateur réorganisé */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 border border-gray-200">
@@ -195,22 +224,28 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => handleNavigate("/profile")}>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNavigate("/personal")}>
-                <Package className="mr-2 h-4 w-4" />
-                <span>Garde-robe</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleNavigate("/boutiques")}>
-                <Store className="mr-2 h-4 w-4" />
-                <span>Boutiques</span>
-              </DropdownMenuItem>
+              <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => handleNavigate("/profile")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavigate("/personal")}>
+                  <Package className="mr-2 h-4 w-4" />
+                  <span>Garde-robe</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleNavigate("/boutiques")}>
+                  <Store className="mr-2 h-4 w-4" />
+                  <span>Boutiques</span>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               
               {isAdmin && (
                 <>
                   <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Administration</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => handleNavigate("/admin/dashboard")}>
                     <Shield className="mr-2 h-4 w-4" />
                     <span>Administration</span>
@@ -232,49 +267,38 @@ export function Header({ onMenuToggle, className }: HeaderProps) {
         </div>
       </div>
       
+      {/* Menu mobile réorganisé */}
       {menuOpen && (
         <div className="md:hidden bg-white border-b shadow-lg">
           <div className="container py-4 space-y-3">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => handleNavigate("/")}
-            >
-              Accueil
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => handleNavigate("/explore")}
-            >
-              Explorer
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => handleNavigate("/personal")}
-            >
-              Mon Univers
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start"
-              onClick={() => handleNavigate("/boutiques")}
-            >
-              Boutiques
-            </Button>
-            
-            {isAdmin && (
+            {/* Menu principal */}
+            {mainMenuItems.map(item => (
               <Button 
-                variant="outline" 
-                className="w-full justify-start border-primary text-primary"
-                onClick={() => handleNavigate("/admin/dashboard")}
+                key={item.path}
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => handleNavigate(item.path)}
               >
-                <Shield className="mr-2 h-4 w-4" />
-                Administration
+                {item.label}
               </Button>
+            ))}
+            
+            {/* Menu admin */}
+            {isAdmin && (
+              <div className="py-2 border-t">
+                <h3 className="text-xs uppercase font-semibold text-gray-500 px-3 py-1">Administration</h3>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start border-primary text-primary mt-1"
+                  onClick={() => handleNavigate("/admin/dashboard")}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Administration
+                </Button>
+              </div>
             )}
             
+            {/* Actions rapides */}
             <div className="pt-2 border-t grid grid-cols-3 gap-2">
               <Button 
                 variant="outline" 
