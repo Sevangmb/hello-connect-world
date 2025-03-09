@@ -9,7 +9,7 @@ interface UseMenuProcessorOptions {
   isUserAdmin: boolean;
   hierarchical: boolean;
   setMenuItems: (items: MenuItem[]) => void;
-  setError: (error: string | null) => void;
+  setError: (error: Error | null) => void;
   toast: any;
 }
 
@@ -90,7 +90,7 @@ export const useMenuProcessor = ({
         setError(null);
       } catch (err: any) {
         console.error("Erreur lors du traitement des éléments de menu:", err);
-        setError(err.message || "Échec du traitement des éléments de menu");
+        setError(err instanceof Error ? err : new Error(err.message || String(err)));
         setMenuItems([]);
         
         toast({
