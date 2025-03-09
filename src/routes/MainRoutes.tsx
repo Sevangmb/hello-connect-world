@@ -1,5 +1,6 @@
+
 import React, { useEffect } from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
 import Auth from '@/pages/Auth';
 import AdminLogin from '@/pages/AdminLogin';
@@ -64,12 +65,16 @@ const ROUTES = {
 };
 
 const MainRoutes: React.FC = () => {
+  const location = useLocation();
+
   // Initialisation du système d'événements pour les routes
   useEffect(() => {
+    console.log("MainRoutes - Initialisation des routes:", location.pathname);
     eventBus.publish('app:routes-initialized', {
+      path: location.pathname,
       timestamp: Date.now()
     });
-  }, []);
+  }, [location.pathname]);
   
   return (
     <Routes>
@@ -110,7 +115,15 @@ const MainRoutes: React.FC = () => {
         
         {/* Ajout d'une redirection explicite pour le chemin des valises */}
         <Route path={ROUTES.REDIRECTS.SUITCASES} element={<Navigate to="/wardrobe/suitcases" replace />} />
-        <Route path={ROUTES.REDIRECTS.SUITCASE_DETAIL} element={<Navigate to={`/wardrobe/suitcases/${window.location.pathname.split('/').pop()}`} replace />} />
+        <Route path={ROUTES.REDIRECTS.SUITCASE_DETAIL} element={
+          <Navigate 
+            to={`/wardrobe/suitcases/${location.pathname.split('/').pop()}`} 
+            replace 
+          />
+        } />
+        
+        {/* Routes explicites pour les favoris */}
+        <Route path={ROUTES.REDIRECTS.FAVORITES} element={<Navigate to="/personal" replace state={{ tab: 'favorites' }} />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />

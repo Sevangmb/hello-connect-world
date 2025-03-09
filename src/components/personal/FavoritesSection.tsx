@@ -6,6 +6,8 @@ import { FavoriteCard } from "./FavoriteCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/modules/auth";
 import { useEvents } from "@/hooks/useEvents";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 // Interface unifiée pour les éléments favoris
 interface FavoriteItem {
@@ -21,7 +23,7 @@ interface FavoriteItem {
 }
 
 export const FavoritesSection: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export const FavoritesSection: React.FC = () => {
   useEffect(() => {
     // S'abonner aux mises à jour de favoris
     const unsubscribe = subscribe ? subscribe('FAVORITE_UPDATED', () => {
+      console.log("FavoritesSection: Événement FAVORITE_UPDATED reçu, actualisation");
       fetchFavorites();
     }) : () => {};
     
@@ -39,12 +42,13 @@ export const FavoritesSection: React.FC = () => {
   
   const fetchFavorites = async () => {
     if (!user) {
+      console.log("FavoritesSection: Pas d'utilisateur, arrêt du chargement");
       setLoading(false);
       return;
     }
     
     try {
-      console.log('Chargement des favoris pour l\'utilisateur:', user.id);
+      console.log('FavoritesSection: Chargement des favoris pour l\'utilisateur:', user.id);
       setLoading(true);
       
       // 1. Récupérer les tenues favorites
@@ -55,9 +59,12 @@ export const FavoritesSection: React.FC = () => {
         .eq("is_favorite", true)
         .order("created_at", { ascending: false });
         
-      if (outfitsError) throw outfitsError;
+      if (outfitsError) {
+        console.error("FavoritesSection: Erreur lors du chargement des tenues:", outfitsError);
+        throw outfitsError;
+      }
       
-      console.log('Tenues favorites récupérées:', outfitsData?.length || 0);
+      console.log('FavoritesSection: Tenues favorites récupérées:', outfitsData?.length || 0);
       
       // 2. Récupérer les vêtements
       const { data: clothesData, error: clothesError } = await supabase
@@ -67,9 +74,12 @@ export const FavoritesSection: React.FC = () => {
         .eq("archived", false)
         .order("created_at", { ascending: false });
         
-      if (clothesError) throw clothesError;
+      if (clothesError) {
+        console.error("FavoritesSection: Erreur lors du chargement des vêtements:", clothesError);
+        throw clothesError;
+      }
       
-      console.log('Vêtements récupérés:', clothesData?.length || 0);
+      console.log('FavoritesSection: Vêtements récupérés:', clothesData?.length || 0);
       
       // 3. Récupérer les vêtements favoris via la table d'association
       const { data: favClothes, error: favClothesError } = await supabase
@@ -77,9 +87,12 @@ export const FavoritesSection: React.FC = () => {
         .select("clothes_id")
         .eq("user_id", user.id);
         
-      if (favClothesError) throw favClothesError;
+      if (favClothesError) {
+        console.error("FavoritesSection: Erreur lors du chargement des vêtements favoris:", favClothesError);
+        throw favClothesError;
+      }
       
-      console.log('Vêtements favoris récupérés:', favClothes?.length || 0);
+      console.log('FavoritesSection: Vêtements favoris récupérés:', favClothes?.length || 0);
       
       // Créer un ensemble des IDs des vêtements favoris pour un filtrage efficace
       const favoriteClothesIds = new Set(
@@ -119,32 +132,65 @@ export const FavoritesSection: React.FC = () => {
       const combinedFavorites: FavoriteItem[] = [...outfitItems, ...clothesItems]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
-      console.log('Nombre total de favoris:', combinedFavorites.length);
+      console.log('FavoritesSection: Nombre total de favoris:', combinedFavorites.length);
       setFavorites(combinedFavorites);
       setInitialized(true);
+      setError(null);
     } catch (err: any) {
-      console.error("Erreur lors du chargement des favoris:", err);
+      console.error("FavoritesSection: Erreur lors du chargement des favoris:", err);
       setError(err.message);
+      toast.error("Impossible de charger vos favoris");
     } finally {
       setLoading(false);
     }
   };
   
   useEffect(() => {
-    if (user && !initialized) {
+    // Éviter les appels multiples quand l'authentification change
+    if (isAuthenticated && user && !initialized) {
+      console.log("FavoritesSection: Chargement initial des favoris");
       fetchFavorites();
-    } else if (!user) {
+    } else if (!isAuthenticated) {
       // Réinitialiser l'état si l'utilisateur est déconnecté
+      console.log("FavoritesSection: Utilisateur non authentifié, réinitialisation");
       setLoading(false);
       setFavorites([]);
+      setInitialized(false);
     }
-  }, [user, initialized]);
+    
+    // Force la fin du chargement après un délai maximum
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("FavoritesSection: Fin du chargement forcée après timeout");
+        setLoading(false);
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [user, isAuthenticated, initialized]);
   
+  // État de chargement avec skeleton pour une meilleure UX
   if (loading && !initialized) {
     return (
-      <Card className="p-6 flex justify-center items-center min-h-[200px]">
-        <LoadingSpinner size="md" />
-        <span className="ml-3">Chargement de vos favoris...</span>
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4 flex justify-between items-center">
+          <span>Vos Favoris</span>
+          <Skeleton className="w-24 h-6" />
+        </h2>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array(4).fill(0).map((_, index) => (
+            <Card key={index} className="overflow-hidden">
+              <Skeleton className="w-full h-40" />
+              <div className="p-3">
+                <Skeleton className="w-3/4 h-5 mb-2" />
+                <Skeleton className="w-1/2 h-4" />
+              </div>
+            </Card>
+          ))}
+        </div>
       </Card>
     );
   }
@@ -160,6 +206,15 @@ export const FavoritesSection: React.FC = () => {
         >
           Réessayer
         </button>
+      </Card>
+    );
+  }
+  
+  if (!isAuthenticated || !user) {
+    return (
+      <Card className="p-6 text-center">
+        <h2 className="text-xl font-semibold mb-4">Vos Favoris</h2>
+        <p className="text-gray-500 mb-4">Connectez-vous pour voir vos favoris.</p>
       </Card>
     );
   }
