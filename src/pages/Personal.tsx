@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -122,9 +121,10 @@ const Personal: React.FC = () => {
       <h1 className="text-2xl font-bold mb-4">Mon Univers</h1>
       
       <Tabs defaultValue="clothes" className="w-full">
-        <TabsList className="mb-4 w-full grid grid-cols-4 gap-2">
+        <TabsList className="mb-4 w-full grid grid-cols-5 gap-2">
           <TabsTrigger value="clothes" className="px-4 py-2">Mes Vêtements</TabsTrigger>
           <TabsTrigger value="outfits" className="px-4 py-2">Mes Tenues</TabsTrigger>
+          <TabsTrigger value="suitcases" className="px-4 py-2">Mes Valises</TabsTrigger>
           <TabsTrigger value="favorites" className="px-4 py-2">Mes Favoris</TabsTrigger>
           <TabsTrigger value="calendar" className="px-4 py-2">Calendrier</TabsTrigger>
         </TabsList>
@@ -150,6 +150,23 @@ const Personal: React.FC = () => {
         <TabsContent value="calendar" className="mt-2">
           <ModuleGuard moduleCode="clothes" fallback={<ModuleUnavailable name="Calendrier" />}>
             <CalendarSection />
+          </ModuleGuard>
+        </TabsContent>
+        
+        <TabsContent value="suitcases" className="mt-2">
+          <ModuleGuard moduleCode="wardrobe" fallback={<ModuleUnavailable name="Valises" />}>
+            <div className="bg-white rounded-lg p-4 mb-4">
+              <h2 className="text-xl font-semibold mb-2">Mes Valises</h2>
+              <p className="text-gray-600 mb-4">
+                Préparez vos voyages en créant des valises virtuelles avec vos vêtements.
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/valises'}
+                className="w-full sm:w-auto"
+              >
+                Gérer mes valises
+              </Button>
+            </div>
           </ModuleGuard>
         </TabsContent>
       </Tabs>

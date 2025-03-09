@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy, useEffect } from 'react';
 import {
   Route,
@@ -35,6 +34,8 @@ const Search = lazy(() => import('./pages/Search'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Suitcases = lazy(() => import('./pages/Suitcases'));
 const SuitcaseDetail = lazy(() => import('./pages/SuitcaseDetail'));
+const Valises = lazy(() => import('./pages/Valises'));
+const ValiseDetail = lazy(() => import('./pages/ValiseDetail'));
 
 // Create simple placeholder pages for legal/informational content
 const Legal = () => <div className="container mx-auto p-8"><h1 className="text-2xl font-bold mb-4">Mentions légales</h1><p>Contenu à venir</p></div>;
@@ -125,6 +126,10 @@ function App() {
           <Route path="privacy" element={<Privacy />} />
           <Route path="contact" element={<Contact />} />
           <Route path="about" element={<About />} />
+          
+          {/* Routes pour les valises */}
+          <Route path="/valises" element={<Valises />} />
+          <Route path="/valises/:id" element={<ValiseDetail />} />
           
           {/* Page 404 et redirection */}
           <Route path="*" element={<NotFound />} />
