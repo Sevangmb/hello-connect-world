@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/modules/auth';
 import { SuitcaseStatus } from '@/components/suitcases/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Valises = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -23,6 +24,8 @@ const Valises = () => {
     const fetchSuitcases = async () => {
       try {
         setLoading(true);
+        console.log('Chargement des valises pour l\'utilisateur:', user.id);
+        
         const { data, error } = await supabase
           .from('suitcases')
           .select('*')
@@ -30,6 +33,8 @@ const Valises = () => {
           .order('created_at', { ascending: false });
           
         if (error) throw error;
+        
+        console.log('Valises récupérées:', data?.length || 0);
         setSuitcases(data || []);
       } catch (error) {
         console.error('Erreur lors du chargement des valises:', error);
@@ -101,6 +106,8 @@ const Valises = () => {
         
       if (error) throw error;
       
+      console.log('Nouvelle valise créée:', data[0]);
+      
       // Ajouter la nouvelle valise à la liste
       setSuitcases([data[0], ...suitcases]);
       
@@ -131,12 +138,23 @@ const Valises = () => {
       </div>
       
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-10">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="rounded-full bg-gray-200 h-12 w-12 mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-24 mb-2.5"></div>
-            <div className="h-3 bg-gray-200 rounded w-32"></div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-lg overflow-hidden border border-gray-200">
+              <div className="p-4">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full mb-3" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+              <div className="border-t p-3 flex justify-end gap-2">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <SuitcaseList 

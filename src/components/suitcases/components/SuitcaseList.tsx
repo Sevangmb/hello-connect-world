@@ -13,9 +13,11 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({
   onEdit,
   onDelete
 }) => {
+  console.log('SuitcaseList rendu avec:', suitcases?.length || 0, 'valises');
+  
   if (!suitcases || suitcases.length === 0) {
     return (
-      <div className="text-center py-10">
+      <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
         <Luggage className="h-12 w-12 mx-auto text-gray-300 mb-4" />
         <h3 className="text-lg font-medium mb-2">Aucune valise</h3>
         <p className="text-muted-foreground mb-4">
