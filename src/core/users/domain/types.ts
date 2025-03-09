@@ -17,6 +17,11 @@ export interface UserProfile {
   billing_address?: BillingAddress;
   stripe_customer_id?: string;
   default_payment_method_id?: string;
+  theme_preference?: string;
+  push_notifications?: boolean;
+  marketing_emails?: boolean;
+  two_factor_enabled?: boolean;
+  last_login_at?: string;
 }
 
 export interface BillingAddress {

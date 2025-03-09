@@ -9,6 +9,7 @@ import Home from '@/pages/Home';
 import { eventBus } from '@/core/event-bus/EventBus';
 import Personal from '@/pages/Personal';
 import Favorites from '@/pages/Favorites';
+import Settings from '@/pages/Profile/Settings';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -35,6 +36,10 @@ const ROUTES = {
   HOME: '/',
   PERSONAL: '/personal',
   FAVORITES: '/favorites',
+  PROFILE: {
+    ROOT: '/profile',
+    SETTINGS: '/profile/settings',
+  },
   MODULES: {
     ROOT: '/module',
     CORE: '/module/core',
@@ -79,6 +84,34 @@ const MainRoutes: React.FC = () => {
     });
   }, [location.pathname]);
   
+  // Optimisation pour le chargement des modules
+  useEffect(() => {
+    // Préchargement des modules fréquemment utilisés
+    if (location.pathname === ROUTES.HOME) {
+      // Précharger les modules essentiels sur la page d'accueil
+      const modulePreloader = async () => {
+        try {
+          // Utiliser dynamic import pour précharger les modules fréquemment utilisés
+          const moduleImports = [
+            import('@/pages/Personal'),
+            import('@/pages/Favorites'),
+            import('@/pages/Profile/Settings')
+          ];
+          
+          // Attendre le préchargement des modules les plus importants
+          await Promise.all(moduleImports);
+          console.log("Préchargement des modules terminé");
+        } catch (error) {
+          console.error("Erreur lors du préchargement des modules:", error);
+        }
+      };
+      
+      // Exécuter le préchargement après un court délai pour ne pas bloquer le rendu initial
+      const timer = setTimeout(modulePreloader, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
+  
   return (
     <Routes>
       {/* Routes d'authentification qui ne sont pas dans le layout principal */}
@@ -91,9 +124,10 @@ const MainRoutes: React.FC = () => {
         <Route index element={<Home />} />
         <Route path={ROUTES.HOME} element={<Home />} />
         
-        {/* Routes de profil et favoris */}
+        {/* Routes de profil, favoris et paramètres */}
         <Route path={ROUTES.PERSONAL} element={<Personal />} />
         <Route path={ROUTES.FAVORITES} element={<Favorites />} />
+        <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
         
         {/* Routes de modules */}
         <Route path={ROUTES.MODULES.ROOT}>
