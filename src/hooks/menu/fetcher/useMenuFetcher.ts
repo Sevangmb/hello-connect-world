@@ -34,7 +34,8 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
     let query = supabase.from('menu_items').select('*');
     
     if (category) {
-      query = query.eq('category', category as MenuItemCategory);
+      // Ensure the category is treated as the correct enum type
+      query = query.eq('category', category);
     }
     
     if (moduleCode) {
