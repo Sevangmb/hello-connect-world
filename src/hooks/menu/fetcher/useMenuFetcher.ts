@@ -34,8 +34,8 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
     let query = supabase.from('menu_items').select('*');
     
     if (category) {
-      // Ensure the category is treated as the correct enum type
-      query = query.eq('category', category);
+      // Cast the category to ensure it matches the expected type
+      query = query.eq('category', category as NonNullable<MenuItemCategory>);
     }
     
     if (moduleCode) {
