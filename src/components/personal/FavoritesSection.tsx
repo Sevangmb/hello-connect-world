@@ -25,21 +25,26 @@ export const FavoritesSection: React.FC = () => {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
   const { subscribe } = useEvents();
   
   useEffect(() => {
     // S'abonner aux mises à jour de favoris
-    const unsubscribe = subscribe('FAVORITE_UPDATED', () => {
+    const unsubscribe = subscribe ? subscribe('FAVORITE_UPDATED', () => {
       fetchFavorites();
-    });
+    }) : () => {};
     
     return unsubscribe;
   }, [subscribe]);
   
   const fetchFavorites = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
+      console.log('Chargement des favoris pour l\'utilisateur:', user.id);
       setLoading(true);
       
       // 1. Récupérer les tenues favorites
@@ -52,6 +57,8 @@ export const FavoritesSection: React.FC = () => {
         
       if (outfitsError) throw outfitsError;
       
+      console.log('Tenues favorites récupérées:', outfitsData?.length || 0);
+      
       // 2. Récupérer les vêtements
       const { data: clothesData, error: clothesError } = await supabase
         .from("clothes")
@@ -62,6 +69,8 @@ export const FavoritesSection: React.FC = () => {
         
       if (clothesError) throw clothesError;
       
+      console.log('Vêtements récupérés:', clothesData?.length || 0);
+      
       // 3. Récupérer les vêtements favoris via la table d'association
       const { data: favClothes, error: favClothesError } = await supabase
         .from("favorite_clothes")
@@ -69,6 +78,8 @@ export const FavoritesSection: React.FC = () => {
         .eq("user_id", user.id);
         
       if (favClothesError) throw favClothesError;
+      
+      console.log('Vêtements favoris récupérés:', favClothes?.length || 0);
       
       // Créer un ensemble des IDs des vêtements favoris pour un filtrage efficace
       const favoriteClothesIds = new Set(
@@ -108,7 +119,9 @@ export const FavoritesSection: React.FC = () => {
       const combinedFavorites: FavoriteItem[] = [...outfitItems, ...clothesItems]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
+      console.log('Nombre total de favoris:', combinedFavorites.length);
       setFavorites(combinedFavorites);
+      setInitialized(true);
     } catch (err: any) {
       console.error("Erreur lors du chargement des favoris:", err);
       setError(err.message);
@@ -118,13 +131,20 @@ export const FavoritesSection: React.FC = () => {
   };
   
   useEffect(() => {
-    fetchFavorites();
-  }, [user]);
+    if (user && !initialized) {
+      fetchFavorites();
+    } else if (!user) {
+      // Réinitialiser l'état si l'utilisateur est déconnecté
+      setLoading(false);
+      setFavorites([]);
+    }
+  }, [user, initialized]);
   
-  if (loading) {
+  if (loading && !initialized) {
     return (
       <Card className="p-6 flex justify-center items-center min-h-[200px]">
         <LoadingSpinner size="md" />
+        <span className="ml-3">Chargement de vos favoris...</span>
       </Card>
     );
   }
@@ -134,6 +154,12 @@ export const FavoritesSection: React.FC = () => {
       <Card className="p-6 text-center">
         <h2 className="text-xl font-semibold mb-4 text-red-600">Erreur</h2>
         <p className="text-gray-500 mb-4">{error}</p>
+        <button 
+          onClick={() => fetchFavorites()} 
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+        >
+          Réessayer
+        </button>
       </Card>
     );
   }

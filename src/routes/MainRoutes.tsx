@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -59,6 +58,7 @@ const ROUTES = {
   REDIRECTS: {
     SUITCASES: '/suitcases',
     SUITCASE_DETAIL: '/suitcases/:id',
+    FAVORITES: '/favorites',
   },
   NOT_FOUND: '/404',
 };
@@ -110,6 +110,7 @@ const MainRoutes: React.FC = () => {
         
         {/* Ajout d'une redirection explicite pour le chemin des valises */}
         <Route path={ROUTES.REDIRECTS.SUITCASES} element={<Navigate to="/wardrobe/suitcases" replace />} />
+        <Route path={ROUTES.REDIRECTS.SUITCASE_DETAIL} element={<Navigate to={`/wardrobe/suitcases/${window.location.pathname.split('/').pop()}`} replace />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />
