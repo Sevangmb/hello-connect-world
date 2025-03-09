@@ -1,27 +1,37 @@
 
 import React from 'react';
-import { Luggage, Calendar, MapPin, Edit, Trash } from 'lucide-react';
-import { SuitcaseListProps } from '../types';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { formatDistance } from 'date-fns';
+import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { Calendar, Luggage, MapPin, Pencil, Trash } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SuitcaseWithStats } from '../types';
 
-export const SuitcaseList: React.FC<SuitcaseListProps> = ({ 
-  suitcases,
-  onEdit,
-  onDelete
-}) => {
-  console.log('SuitcaseList rendu avec:', suitcases?.length || 0, 'valises');
-  
-  if (!suitcases || suitcases.length === 0) {
+interface SuitcaseListProps {
+  suitcases: SuitcaseWithStats[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, onDelete }) => {
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return null;
+    try {
+      return format(new Date(dateString), 'PPP', { locale: fr });
+    } catch {
+      return null;
+    }
+  };
+
+  if (suitcases.length === 0) {
     return (
-      <div className="text-center py-10 bg-gray-50 rounded-lg border border-gray-200">
-        <Luggage className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium mb-2">Aucune valise</h3>
-        <p className="text-muted-foreground mb-4">
-          Vous n'avez pas encore créé de valise. Créez-en une pour préparer votre prochain voyage !
+      <div className="text-center p-8 bg-gray-50 rounded-lg">
+        <Luggage className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium mb-2">Aucune valise trouvée</h3>
+        <p className="text-gray-500 mb-4">
+          Vous n'avez pas encore créé de valise. Créez votre première valise pour
+          commencer à organiser vos voyages.
         </p>
       </div>
     );
@@ -29,96 +39,72 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {suitcases.map((suitcase) => {
-        // Déterminer le statut de la valise
-        const today = new Date();
-        const startDate = suitcase.start_date ? new Date(suitcase.start_date) : null;
-        const endDate = suitcase.end_date ? new Date(suitcase.end_date) : null;
-        
-        let statusColor = "bg-gray-100 text-gray-700";
-        let statusText = "En préparation";
-        
-        if (startDate && endDate) {
-          if (today > endDate) {
-            statusColor = "bg-blue-100 text-blue-700";
-            statusText = "Voyage terminé";
-          } else if (today >= startDate && today <= endDate) {
-            statusColor = "bg-green-100 text-green-700";
-            statusText = "Voyage en cours";
-          } else if (startDate.getTime() - today.getTime() < 7 * 24 * 60 * 60 * 1000) {
-            statusColor = "bg-amber-100 text-amber-700";
-            statusText = "Départ proche";
-          }
-        }
-        
-        return (
-          <Card key={suitcase.id} className="overflow-hidden hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-semibold truncate">
-                  {suitcase.name}
-                </CardTitle>
-                <Badge 
-                  variant="outline" 
-                  className={`${statusColor} border-none text-xs`}
-                >
-                  {statusText}
-                </Badge>
-              </div>
-            </CardHeader>
+      {suitcases.map((suitcase) => (
+        <Card key={suitcase.id} className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-semibold truncate">{suitcase.name}</h3>
+              <Badge 
+                variant={suitcase.status === 'active' ? 'default' : 
+                        suitcase.status === 'completed' ? 'success' : 'secondary'}
+              >
+                {suitcase.status === 'active' ? 'Active' : 
+                 suitcase.status === 'completed' ? 'Terminée' : 'Archivée'}
+              </Badge>
+            </div>
             
-            <CardContent className="pb-2">
-              {suitcase.description && (
-                <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                  {suitcase.description}
-                </p>
+            {suitcase.description && (
+              <p className="text-gray-500 text-sm mb-3 line-clamp-2">
+                {suitcase.description}
+              </p>
+            )}
+            
+            <div className="space-y-2 text-sm">
+              {suitcase.destination && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <span>{suitcase.destination}</span>
+                </div>
               )}
               
-              <div className="space-y-2 text-sm">
-                {(startDate && endDate) && (
-                  <div className="flex items-center text-muted-foreground">
-                    <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>
-                      {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
-                      <span className="ml-1 text-xs opacity-75">
-                        ({formatDistance(endDate, startDate, { locale: fr, addSuffix: false })})
-                      </span>
-                    </span>
-                  </div>
-                )}
-                
-                {suitcase.destination && (
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{suitcase.destination}</span>
-                  </div>
-                )}
+              {(suitcase.start_date || suitcase.end_date) && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <span>
+                    {formatDate(suitcase.start_date)}
+                    {suitcase.start_date && suitcase.end_date && ' - '}
+                    {formatDate(suitcase.end_date)}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <Luggage className="h-4 w-4 text-gray-400" />
+                <span>{suitcase.item_count || 0} articles</span>
               </div>
-            </CardContent>
-            
-            <CardFooter className="pt-2 flex justify-end gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2"
-                onClick={() => onEdit(suitcase.id)}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Modifier
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2 text-destructive hover:text-destructive"
-                onClick={() => onDelete(suitcase.id)}
-              >
-                <Trash className="h-4 w-4 mr-1" />
-                Supprimer
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      })}
+            </div>
+          </CardContent>
+          
+          <CardFooter className="bg-gray-50 p-3 flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onEdit(suitcase.id)}
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Modifier
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={() => onDelete(suitcase.id)}
+            >
+              <Trash className="h-4 w-4 mr-1" />
+              Supprimer
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   );
 };

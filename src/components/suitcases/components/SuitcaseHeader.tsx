@@ -1,22 +1,21 @@
 
 import React from 'react';
-import { CalendarRange, Edit, Trash } from 'lucide-react';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar, Edit, Luggage, MapPin, Trash } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { SuitcaseStatus } from '../types';
 
-export interface SuitcaseHeaderProps {
-  title?: string;
+interface SuitcaseHeaderProps {
+  title: string;
   description?: string;
-  startDate?: string;
-  endDate?: string;
-  destination?: string;
-  status?: string;
-  suitcase?: any;
-  isOwner?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  startDate?: string | null;
+  endDate?: string | null;
+  destination?: string | null;
+  status: SuitcaseStatus;
+  isOwner: boolean;
+  onDelete: () => void;
 }
 
 export const SuitcaseHeader: React.FC<SuitcaseHeaderProps> = ({
@@ -26,77 +25,88 @@ export const SuitcaseHeader: React.FC<SuitcaseHeaderProps> = ({
   endDate,
   destination,
   status,
-  suitcase,
-  isOwner = false,
-  onEdit,
+  isOwner,
   onDelete
 }) => {
-  // Si on a reçu un objet suitcase, extraire les valeurs
-  const actualTitle = title || (suitcase?.name || 'Sans titre');
-  const actualDescription = description || suitcase?.description;
-  const actualStartDate = startDate || suitcase?.start_date;
-  const actualEndDate = endDate || suitcase?.end_date;
-  const actualDestination = destination || suitcase?.destination;
-  const actualStatus = status || suitcase?.status;
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return null;
+    try {
+      return format(parseISO(dateString), 'PPP', { locale: fr });
+    } catch {
+      return null;
+    }
+  };
+
+  const getStatusLabel = (status: SuitcaseStatus) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'completed':
+        return 'Terminée';
+      case 'archived':
+        return 'Archivée';
+      default:
+        return 'Inconnue';
+    }
+  };
+
+  const getStatusVariant = (status: SuitcaseStatus) => {
+    switch (status) {
+      case 'active':
+        return 'default';
+      case 'completed':
+        return 'success';
+      case 'archived':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
 
   return (
-    <div className="p-6 border-b">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold">{actualTitle}</h1>
-          
-          {actualDescription && (
-            <p className="mt-2 text-gray-600">{actualDescription}</p>
-          )}
-          
-          <div className="flex flex-wrap gap-3 mt-3">
-            {actualStartDate && (
-              <div className="flex items-center text-sm text-gray-600">
-                <CalendarRange className="h-4 w-4 mr-1" />
-                {format(new Date(actualStartDate), 'dd MMM', { locale: fr })}
-                {actualEndDate && ` - ${format(new Date(actualEndDate), 'dd MMM yyyy', { locale: fr })}`}
-              </div>
-            )}
-            
-            {actualDestination && (
-              <Badge variant="outline" className="text-sm">
-                {actualDestination}
-              </Badge>
-            )}
-            
-            {actualStatus && (
-              <Badge 
-                variant={actualStatus === 'active' ? 'default' : 
-                         actualStatus === 'completed' ? 'success' : 
-                         'secondary'}
-                className="text-sm"
-              >
-                {actualStatus === 'active' ? 'En cours' : 
-                 actualStatus === 'completed' ? 'Terminé' : 
-                 actualStatus === 'archived' ? 'Archivé' : 'Brouillon'}
-              </Badge>
-            )}
-          </div>
+    <div className="p-6 pb-0">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-center gap-2">
+          <Luggage className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <Badge variant={getStatusVariant(status)}>{getStatusLabel(status)}</Badge>
         </div>
         
         {isOwner && (
-          <div className="flex gap-2">
-            {onEdit && (
-              <Button variant="outline" size="icon" onClick={onEdit}>
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-            
-            {onDelete && (
-              <Button variant="destructive" size="icon" onClick={onDelete}>
-                <Trash className="h-4 w-4" />
-              </Button>
-            )}
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={onDelete}
+          >
+            <Trash className="h-4 w-4 mr-1" />
+            Supprimer
+          </Button>
+        )}
+      </div>
+      
+      {description && (
+        <p className="text-gray-500 mb-4">{description}</p>
+      )}
+      
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mb-4">
+        {destination && (
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <span>{destination}</span>
+          </div>
+        )}
+        
+        {(startDate || endDate) && (
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span>
+              {formatDate(startDate)}
+              {startDate && endDate && ' - '}
+              {formatDate(endDate)}
+            </span>
           </div>
         )}
       </div>
     </div>
   );
 };
-
-export default SuitcaseHeader;

@@ -52,9 +52,10 @@ export class SupabaseUserRepository implements IUserRepository {
       
       // Récupérer le theme_preference depuis les préférences
       if (data.preferences && typeof data.preferences === 'object') {
-        profile.theme_preference = data.preferences.theme || "system";
-        profile.push_notifications = data.preferences.push_notifications;
-        profile.marketing_emails = data.preferences.marketing_emails;
+        const prefs = data.preferences as Record<string, any>;
+        profile.theme_preference = prefs.theme || "system";
+        profile.push_notifications = prefs.push_notifications;
+        profile.marketing_emails = prefs.marketing_emails;
       }
       
       // Convertir et ajouter billing_address si présent (conversion de Json à BillingAddress)

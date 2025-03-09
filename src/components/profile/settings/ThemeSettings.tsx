@@ -1,5 +1,5 @@
 
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { PaintBucket } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -27,11 +27,6 @@ export const ThemeSettings = ({ userId, initialTheme = "system", onThemeChange }
   const [theme, setTheme] = useState(initialTheme);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    // Appliquer le thème à l'élément HTML
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
   const handleThemeChange = (value: string) => {
     setTheme(value);
     onThemeChange(value);
@@ -42,11 +37,29 @@ export const ThemeSettings = ({ userId, initialTheme = "system", onThemeChange }
     
     try {
       setIsSaving(true);
-      // Utilisons preferences pour stocker le thème car theme_preference n'existe pas directement
+      // Mettre à jour les préférences dans le profil utilisateur
+      const { data: currentData, error: fetchError } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", userId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // Récupérer les préférences actuelles ou créer un objet vide
+      const currentPreferences = (currentData?.preferences || {}) as Record<string, any>;
+      
+      // Mettre à jour seulement la propriété theme
+      const updatedPreferences = {
+        ...currentPreferences,
+        theme: theme
+      };
+      
+      // Enregistrer les préférences mises à jour
       const { error } = await supabase
         .from("profiles")
         .update({ 
-          preferences: { theme: theme } 
+          preferences: updatedPreferences
         })
         .eq("id", userId);
         
