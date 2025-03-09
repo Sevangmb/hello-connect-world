@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -9,11 +9,15 @@ import { cn } from "@/lib/utils";
 import { 
   Home, Search, User, ShoppingBag, 
   Shirt, Layers, Briefcase, Heart, Users, 
-  MessageSquare, Bell, Settings, Shield
+  MessageSquare, Bell, Settings, Shield,
+  LayoutDashboard, UserCog, Store, Package,
+  FileText, BarChart, Mail, Menu
 } from "lucide-react";
 import { useAdminStatus } from '@/hooks/menu/useAdminStatus';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface MenuItemProps {
   label: string;
@@ -38,6 +42,118 @@ const MenuItem: React.FC<MenuItemProps> = ({ label, icon, active, onClick }) => 
       {icon}
       <span>{label}</span>
     </Button>
+  );
+};
+
+interface AdminMenuSectionProps {
+  isExpanded?: boolean;
+  currentPath: string;
+  handleNavigate: (path: string) => void;
+}
+
+// Sous-composant pour la section administration
+const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ 
+  isExpanded = false,
+  currentPath,
+  handleNavigate
+}) => {
+  const [isOpen, setIsOpen] = useState(isExpanded);
+  
+  const adminItems = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      path: "/admin/dashboard",
+      icon: <LayoutDashboard className="h-4 w-4" />,
+      active: currentPath === "/admin/dashboard"
+    },
+    {
+      id: "users",
+      label: "Utilisateurs",
+      path: "/admin/users",
+      icon: <UserCog className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/users")
+    },
+    {
+      id: "shops",
+      label: "Boutiques",
+      path: "/admin/shops",
+      icon: <Store className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/shops")
+    },
+    {
+      id: "modules",
+      label: "Modules",
+      path: "/admin/modules",
+      icon: <Package className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/modules")
+    },
+    {
+      id: "content",
+      label: "Contenu",
+      path: "/admin/content",
+      icon: <FileText className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/content")
+    },
+    {
+      id: "stats",
+      label: "Statistiques",
+      path: "/admin/stats",
+      icon: <BarChart className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/stats")
+    },
+    {
+      id: "campaigns",
+      label: "Campagnes",
+      path: "/admin/campaigns",
+      icon: <Mail className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/campaigns")
+    },
+    {
+      id: "settings",
+      label: "Configuration",
+      path: "/admin/settings",
+      icon: <Settings className="h-4 w-4" />,
+      active: currentPath.startsWith("/admin/settings")
+    }
+  ];
+
+  return (
+    <>
+      <Separator className="my-4" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full justify-between items-center text-left mb-1"
+          >
+            <div className="flex items-center">
+              <Shield className="h-4 w-4 mr-2" />
+              <span className="font-semibold">Administration</span>
+            </div>
+            <Menu className={cn(
+              "h-4 w-4 transition-transform", 
+              isOpen ? "rotate-90" : "rotate-0"
+            )} />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="pl-2 flex flex-col gap-1 mt-1">
+            {adminItems.map((item) => (
+              <MenuItem
+                key={item.id}
+                label={item.label}
+                path={item.path}
+                icon={item.icon}
+                active={item.active}
+                onClick={() => handleNavigate(item.path)}
+              />
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </>
   );
 };
 
@@ -251,21 +367,13 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
               ))}
             </div>
             
-            {/* Section Admin conditionnelle */}
+            {/* Section Admin conditionnelle avec composant dédié */}
             {isUserAdmin && (
-              <>
-                <Separator className="my-4" />
-                <div className="flex flex-col gap-1">
-                  <h3 className="text-xs uppercase font-semibold text-gray-500 px-2 py-1">Administration</h3>
-                  <MenuItem
-                    label="Administration"
-                    path="/admin/dashboard"
-                    icon={<Shield className="h-4 w-4" />}
-                    active={currentPath.startsWith("/admin")}
-                    onClick={() => handleNavigate("/admin/dashboard")}
-                  />
-                </div>
-              </>
+              <AdminMenuSection 
+                isExpanded={currentPath.startsWith("/admin")}
+                currentPath={currentPath}
+                handleNavigate={handleNavigate}
+              />
             )}
           </ScrollArea>
         </div>

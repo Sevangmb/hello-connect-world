@@ -21,6 +21,8 @@ import { moduleMenuCoordinator } from "@/services/coordination/ModuleMenuCoordin
 import { cn } from "@/lib/utils";
 import { eventBus } from "@/core/event-bus/EventBus";
 import { EVENTS } from "@/core/event-bus/constants";
+import { Badge } from "@/components/ui/badge";
+import { useAdminStatus } from "@/hooks/menu/useAdminStatus";
 
 // Propriétés du composant Header
 export interface HeaderProps {
@@ -30,45 +32,11 @@ export interface HeaderProps {
 export function Header({ className }: HeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isUserAdmin, adminCheckComplete } = useAdminStatus();
   const authService = getAuthService();
   const userService = getUserService();
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        if (!user) return;
-
-        if (process.env.NODE_ENV === 'development') {
-          const devBypass = localStorage.getItem('dev_admin_bypass');
-          if (devBypass === 'true') {
-            console.warn("DEV MODE: Admin bypass enabled in header");
-            setIsAdmin(true);
-            moduleMenuCoordinator.enableAdminAccess();
-            return;
-          }
-        }
-
-        const isUserAdmin = await userService.isUserAdmin(user.id);
-        setIsAdmin(isUserAdmin);
-        
-        // Synchroniser avec le coordinateur et publier l'événement
-        if (isUserAdmin) {
-          moduleMenuCoordinator.enableAdminAccess();
-          eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, { isAdmin: true });
-        } else {
-          moduleMenuCoordinator.disableAdminAccess();
-          eventBus.publish(EVENTS.AUTH.ADMIN_STATUS_CHANGED, { isAdmin: false });
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
-
+  // Récupérer les paramètres du site
   const {
     data: settingsArray
   } = useQuery({
@@ -126,6 +94,17 @@ export function Header({ className }: HeaderProps) {
             <img src="/lovable-uploads/9a2d6f53-d074-4690-bd16-a9c6c1e5f3c5.png" alt="FRING!" className="h-10 w-10 rounded-full" />
             <span className="text-xl font-bold text-custom-rust hidden sm:inline">FRING!</span>
           </Link>
+          
+          {/* Badge Admin si l'utilisateur est administrateur */}
+          {isUserAdmin && (
+            <Badge 
+              variant="outline" 
+              className="ml-2 hidden md:flex bg-primary/10 text-primary border-primary/20"
+            >
+              <Shield className="h-3 w-3 mr-1" />
+              Admin
+            </Badge>
+          )}
         </div>
         
         {/* Actions rapides et menu utilisateur */}
@@ -157,6 +136,19 @@ export function Header({ className }: HeaderProps) {
             <ShoppingCart className="h-5 w-5" />
           </Button>
           
+          {/* Bouton d'accès rapide à l'administration pour les admins */}
+          {isUserAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:flex text-primary"
+              onClick={() => handleNavigate("/admin/dashboard")}
+              title="Accéder à l'administration"
+            >
+              <Shield className="h-5 w-5" />
+            </Button>
+          )}
+          
           {/* Menu utilisateur */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -183,7 +175,7 @@ export function Header({ className }: HeaderProps) {
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               
-              {isAdmin && (
+              {isUserAdmin && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleNavigate("/admin/dashboard")}>

@@ -22,6 +22,19 @@ export interface UserProfile {
   marketing_emails?: boolean;
   two_factor_enabled?: boolean;
   last_login_at?: string;
+  active_sessions?: UserSession[];
+}
+
+export interface UserSession {
+  id: string;
+  user_id: string;
+  device_name: string;
+  ip_address: string;
+  last_active: string;
+  created_at: string;
+  location?: string;
+  browser?: string;
+  os?: string;
 }
 
 export interface BillingAddress {

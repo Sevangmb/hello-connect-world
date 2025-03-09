@@ -5,8 +5,11 @@ import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { ProfileSettings } from "@/components/profile/ProfileSettings";
 import { eventBus } from "@/core/event-bus/EventBus";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
+  const { toast } = useToast();
+  
   useEffect(() => {
     // Publier un événement pour indiquer que la page des paramètres est chargée
     eventBus.publish('app:settings-page-loaded', {
@@ -18,9 +21,18 @@ const Settings = () => {
     
     return () => {
       const pageLoadEnd = performance.now();
-      console.log(`Temps de chargement de la page des paramètres: ${Math.round(pageLoadEnd - pageLoadStart)}ms`);
+      const loadTime = Math.round(pageLoadEnd - pageLoadStart);
+      console.log(`Temps de chargement de la page des paramètres: ${loadTime}ms`);
+      
+      if (loadTime > 1000) {
+        toast({
+          title: "Performance",
+          description: `Chargement lent: ${loadTime}ms`,
+          variant: "destructive"
+        });
+      }
     };
-  }, []);
+  }, [toast]);
   
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
