@@ -83,7 +83,7 @@ const Valises = () => {
     try {
       if (!user) throw new Error("Vous devez être connecté pour créer une valise");
       
-      // Fixed: ensure we use only "active" as status value to match database expectations
+      // Create the suitcase object with properly typed status
       const newSuitcase = {
         user_id: user.id,
         name: values.name,
@@ -91,7 +91,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: "active" // Using a literal string that matches the allowed values
+        status: "active" as "active" // Type assertion to literal type
       };
       
       const { data, error } = await supabase
