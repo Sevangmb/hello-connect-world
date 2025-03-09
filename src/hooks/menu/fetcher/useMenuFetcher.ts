@@ -34,7 +34,7 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
     let query = supabase.from('menu_items').select('*');
     
     if (category) {
-      query = query.eq('category', category);
+      query = query.eq('category', category as MenuItemCategory);
     }
     
     if (moduleCode) {
