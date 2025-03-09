@@ -34,8 +34,8 @@ export const useMenuFetcher = (options: UseMenuFetcherOptions) => {
     let query = supabase.from('menu_items').select('*');
     
     if (category) {
-      // Convert category to string to avoid type issues with Supabase
-      query = query.eq('category', String(category));
+      // Cast to any to bypass TypeScript's type checking for the Supabase query
+      query = query.eq('category', category as any);
     }
     
     if (moduleCode) {
