@@ -24,7 +24,7 @@ export const ProfileSettings = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   // Mémoriser les données du profil pour éviter des re-rendus inutiles
-  const userProfile = useMemo(() => profile, [profile]);
+  const userProfile = useMemo(() => profile as UserProfile, [profile]);
 
   const handleUpdateProfile = useCallback((updatedData: Partial<UserProfile>) => {
     if (!profile) return;
@@ -36,7 +36,7 @@ export const ProfileSettings = () => {
     document.documentElement.setAttribute('data-theme', theme);
   }, []);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
       toast({
@@ -45,7 +45,6 @@ export const ProfileSettings = () => {
       });
       queryClient.clear();
       navigate("/auth");
-      return true;
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
       toast({
@@ -53,7 +52,6 @@ export const ProfileSettings = () => {
         title: "Erreur",
         description: "Impossible de vous déconnecter"
       });
-      return false;
     }
   }, [toast, queryClient, navigate]);
 

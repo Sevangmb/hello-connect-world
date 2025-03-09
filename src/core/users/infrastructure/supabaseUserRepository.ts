@@ -23,7 +23,7 @@ export class SupabaseUserRepository implements IUserRepository {
       // Récupérer les colonnes supplémentaires ajoutées pour la facturation
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications, is_admin, billing_address, stripe_customer_id, default_payment_method_id")
+        .select("id, username, full_name, avatar_url, visibility, phone, address, preferred_language, email_notifications, is_admin, billing_address, stripe_customer_id, default_payment_method_id, preferences")
         .eq("id", userId)
         .maybeSingle();
 
@@ -50,9 +50,15 @@ export class SupabaseUserRepository implements IUserRepository {
         is_admin: data.is_admin || false
       };
       
+      // Récupérer le theme_preference depuis les préférences
+      if (data.preferences && typeof data.preferences === 'object') {
+        profile.theme_preference = data.preferences.theme || "system";
+        profile.push_notifications = data.preferences.push_notifications;
+        profile.marketing_emails = data.preferences.marketing_emails;
+      }
+      
       // Convertir et ajouter billing_address si présent (conversion de Json à BillingAddress)
       if (data.billing_address) {
-        // Cast via unknown pour éviter les problèmes de type
         profile.billing_address = data.billing_address as unknown as BillingAddress;
       }
       
@@ -82,11 +88,66 @@ export class SupabaseUserRepository implements IUserRepository {
       }
 
       // Préparer les données pour la mise à jour
-      // Utiliser any pour éviter les problèmes de type
       const updateData: any = {
         ...data,
         updated_at: new Date().toISOString(),
       };
+      
+      // Gérer les propriétés de préférence spéciales
+      if (data.theme_preference !== undefined) {
+        // Récupérer d'abord les préférences actuelles
+        const { data: currentData } = await supabase
+          .from("profiles")
+          .select("preferences")
+          .eq("id", userId)
+          .single();
+          
+        const currentPreferences = (currentData?.preferences || {}) as Record<string, any>;
+        
+        // Mettre à jour les préférences avec le nouveau thème
+        updateData.preferences = {
+          ...currentPreferences,
+          theme: data.theme_preference
+        };
+        
+        // Supprimer la propriété theme_preference car elle n'existe pas dans la table
+        delete updateData.theme_preference;
+      }
+
+      // Faire de même pour les autres propriétés spéciales
+      if (data.push_notifications !== undefined) {
+        const { data: currentData } = await supabase
+          .from("profiles")
+          .select("preferences")
+          .eq("id", userId)
+          .single();
+          
+        const currentPreferences = (currentData?.preferences || {}) as Record<string, any>;
+        
+        updateData.preferences = {
+          ...currentPreferences,
+          push_notifications: data.push_notifications
+        };
+        
+        delete updateData.push_notifications;
+      }
+
+      if (data.marketing_emails !== undefined) {
+        const { data: currentData } = await supabase
+          .from("profiles")
+          .select("preferences")
+          .eq("id", userId)
+          .single();
+          
+        const currentPreferences = (currentData?.preferences || {}) as Record<string, any>;
+        
+        updateData.preferences = {
+          ...currentPreferences,
+          marketing_emails: data.marketing_emails
+        };
+        
+        delete updateData.marketing_emails;
+      }
 
       const { error } = await supabase
         .from("profiles")

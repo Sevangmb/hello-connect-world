@@ -42,9 +42,12 @@ export const ThemeSettings = ({ userId, initialTheme = "system", onThemeChange }
     
     try {
       setIsSaving(true);
+      // Utilisons preferences pour stocker le thème car theme_preference n'existe pas directement
       const { error } = await supabase
         .from("profiles")
-        .update({ theme_preference: theme })
+        .update({ 
+          preferences: { theme: theme } 
+        })
         .eq("id", userId);
         
       if (error) throw error;
