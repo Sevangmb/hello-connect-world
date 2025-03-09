@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { FavoriteCard } from "./FavoriteCard";
@@ -29,16 +29,65 @@ export const FavoritesSection: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const { subscribe } = useEvents();
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef = useRef<number>(0);
+  
+  // Optimisation: n'effectuer le fetch que toutes les 5 secondes max
+  const throttledFetch = useCallback(async () => {
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchRef.current;
+    
+    // Si moins de 5 secondes se sont écoulées depuis le dernier fetch, on programme un nouveau fetch
+    if (timeSinceLastFetch < 5000 && fetchTimeoutRef.current === null) {
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchTimeoutRef.current = null;
+        fetchFavorites();
+      }, 5000 - timeSinceLastFetch);
+      return;
+    }
+    
+    // Sinon, on fait le fetch immédiatement
+    lastFetchRef.current = now;
+    await fetchFavorites();
+  }, []);
+  
+  // Nettoyer le timeout lorsque le composant est démonté
+  useEffect(() => {
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+    };
+  }, []);
   
   useEffect(() => {
     // S'abonner aux mises à jour de favoris
     const unsubscribe = subscribe ? subscribe('FAVORITE_UPDATED', () => {
       console.log("FavoritesSection: Événement FAVORITE_UPDATED reçu, actualisation");
-      fetchFavorites();
+      throttledFetch();
     }) : () => {};
     
     return unsubscribe;
-  }, [subscribe]);
+  }, [subscribe, throttledFetch]);
+
+  // Optimisation: utiliser memo pour éviter les recalculs
+  const getCachedFavorites = useCallback(() => {
+    try {
+      const cachedData = localStorage.getItem('user_favorites_cache');
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        // Vérifier si le cache est encore valide (moins de 2 minutes)
+        if (Date.now() - timestamp < 120000) {
+          console.log("FavoritesSection: Utilisation du cache pour favoris");
+          return data;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.warn("Erreur lors de l'accès au cache des favoris:", e);
+      return null;
+    }
+  }, []);
   
   const fetchFavorites = async () => {
     if (!user) {
@@ -47,56 +96,61 @@ export const FavoritesSection: React.FC = () => {
       return;
     }
     
+    // Vérifier le cache d'abord
+    const cachedFavorites = getCachedFavorites();
+    if (cachedFavorites) {
+      setFavorites(cachedFavorites);
+      setLoading(false);
+      setInitialized(true);
+      return;
+    }
+    
     try {
       console.log('FavoritesSection: Chargement des favoris pour l\'utilisateur:', user.id);
       setLoading(true);
       
-      // 1. Récupérer les tenues favorites
-      const { data: outfitsData, error: outfitsError } = await supabase
-        .from("outfits")
-        .select("id, name, created_at, is_favorite, user_id, season, category")
-        .eq("user_id", user.id)
-        .eq("is_favorite", true)
-        .order("created_at", { ascending: false });
-        
-      if (outfitsError) {
-        console.error("FavoritesSection: Erreur lors du chargement des tenues:", outfitsError);
-        throw outfitsError;
-      }
+      // Utiliser Promise.all pour exécuter les requêtes en parallèle
+      const [outfitsResponse, clothesResponse, favClothesResponse] = await Promise.all([
+        // 1. Récupérer les tenues favorites
+        supabase
+          .from("outfits")
+          .select("id, name, created_at, is_favorite, user_id, season, category")
+          .eq("user_id", user.id)
+          .eq("is_favorite", true)
+          .order("created_at", { ascending: false }),
+          
+        // 2. Récupérer les vêtements
+        supabase
+          .from("clothes")
+          .select("id, name, image_url, brand, category, created_at, user_id")
+          .eq("user_id", user.id)
+          .eq("archived", false)
+          .order("created_at", { ascending: false }),
+          
+        // 3. Récupérer les vêtements favoris via la table d'association
+        supabase
+          .from("favorite_clothes")
+          .select("clothes_id")
+          .eq("user_id", user.id)
+      ]);
       
-      console.log('FavoritesSection: Tenues favorites récupérées:', outfitsData?.length || 0);
+      // Vérifier les erreurs des requêtes
+      if (outfitsResponse.error) throw outfitsResponse.error;
+      if (clothesResponse.error) throw clothesResponse.error;
+      if (favClothesResponse.error) throw favClothesResponse.error;
       
-      // 2. Récupérer les vêtements
-      const { data: clothesData, error: clothesError } = await supabase
-        .from("clothes")
-        .select("id, name, image_url, brand, category, created_at, user_id")
-        .eq("user_id", user.id)
-        .eq("archived", false)
-        .order("created_at", { ascending: false });
-        
-      if (clothesError) {
-        console.error("FavoritesSection: Erreur lors du chargement des vêtements:", clothesError);
-        throw clothesError;
-      }
+      // Traiter les données
+      const outfitsData = outfitsResponse.data || [];
+      const clothesData = clothesResponse.data || [];
+      const favClothes = favClothesResponse.data || [];
       
-      console.log('FavoritesSection: Vêtements récupérés:', clothesData?.length || 0);
-      
-      // 3. Récupérer les vêtements favoris via la table d'association
-      const { data: favClothes, error: favClothesError } = await supabase
-        .from("favorite_clothes")
-        .select("clothes_id")
-        .eq("user_id", user.id);
-        
-      if (favClothesError) {
-        console.error("FavoritesSection: Erreur lors du chargement des vêtements favoris:", favClothesError);
-        throw favClothesError;
-      }
-      
-      console.log('FavoritesSection: Vêtements favoris récupérés:', favClothes?.length || 0);
+      console.log('FavoritesSection: Tenues favorites récupérées:', outfitsData.length);
+      console.log('FavoritesSection: Vêtements récupérés:', clothesData.length);
+      console.log('FavoritesSection: Vêtements favoris récupérés:', favClothes.length);
       
       // Créer un ensemble des IDs des vêtements favoris pour un filtrage efficace
       const favoriteClothesIds = new Set(
-        favClothes?.map(item => item.clothes_id) || []
+        favClothes.map(item => item.clothes_id) || []
       );
       
       // Transformer les données de tenues en objets FavoriteItem
@@ -133,6 +187,17 @@ export const FavoritesSection: React.FC = () => {
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       
       console.log('FavoritesSection: Nombre total de favoris:', combinedFavorites.length);
+      
+      // Mettre à jour le cache
+      try {
+        localStorage.setItem('user_favorites_cache', JSON.stringify({
+          timestamp: Date.now(),
+          data: combinedFavorites
+        }));
+      } catch (e) {
+        console.warn("Erreur lors de la mise en cache des favoris:", e);
+      }
+      
       setFavorites(combinedFavorites);
       setInitialized(true);
       setError(null);
@@ -144,6 +209,12 @@ export const FavoritesSection: React.FC = () => {
       setLoading(false);
     }
   };
+  
+  // Optimiser pour éviter les rendus inutiles avec useCallback
+  const handleRetry = useCallback(() => {
+    setError(null);
+    fetchFavorites();
+  }, []);
   
   useEffect(() => {
     // Éviter les appels multiples quand l'authentification change
@@ -164,14 +235,14 @@ export const FavoritesSection: React.FC = () => {
         console.log("FavoritesSection: Fin du chargement forcée après timeout");
         setLoading(false);
       }
-    }, 5000);
+    }, 3000); // Réduit pour une meilleure expérience utilisateur
     
     return () => {
       clearTimeout(timer);
     };
   }, [user, isAuthenticated, initialized]);
   
-  // État de chargement avec skeleton pour une meilleure UX
+  // Optimisation: utiliser un skeleton plus compact pour l'état de chargement
   if (loading && !initialized) {
     return (
       <Card className="p-6">
@@ -181,7 +252,7 @@ export const FavoritesSection: React.FC = () => {
         </h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array(4).fill(0).map((_, index) => (
+          {Array(2).fill(0).map((_, index) => (
             <Card key={index} className="overflow-hidden">
               <Skeleton className="w-full h-40" />
               <div className="p-3">
@@ -201,7 +272,7 @@ export const FavoritesSection: React.FC = () => {
         <h2 className="text-xl font-semibold mb-4 text-red-600">Erreur</h2>
         <p className="text-gray-500 mb-4">{error}</p>
         <button 
-          onClick={() => fetchFavorites()} 
+          onClick={handleRetry} 
           className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
         >
           Réessayer

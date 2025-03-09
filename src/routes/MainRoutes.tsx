@@ -7,6 +7,8 @@ import AdminLogin from '@/pages/AdminLogin';
 import NotFound from '@/pages/NotFound';
 import Home from '@/pages/Home';
 import { eventBus } from '@/core/event-bus/EventBus';
+import Personal from '@/pages/Personal';
+import Favorites from '@/pages/Favorites';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -31,6 +33,8 @@ const ROUTES = {
   AUTH: '/auth',
   ADMIN_LOGIN: '/admin/login',
   HOME: '/',
+  PERSONAL: '/personal',
+  FAVORITES: '/favorites',
   MODULES: {
     ROOT: '/module',
     CORE: '/module/core',
@@ -59,7 +63,6 @@ const ROUTES = {
   REDIRECTS: {
     SUITCASES: '/suitcases',
     SUITCASE_DETAIL: '/suitcases/:id',
-    FAVORITES: '/favorites',
   },
   NOT_FOUND: '/404',
 };
@@ -87,6 +90,10 @@ const MainRoutes: React.FC = () => {
         {/* Route racine explicite pour Home */}
         <Route index element={<Home />} />
         <Route path={ROUTES.HOME} element={<Home />} />
+        
+        {/* Routes de profil et favoris */}
+        <Route path={ROUTES.PERSONAL} element={<Personal />} />
+        <Route path={ROUTES.FAVORITES} element={<Favorites />} />
         
         {/* Routes de modules */}
         <Route path={ROUTES.MODULES.ROOT}>
@@ -121,9 +128,6 @@ const MainRoutes: React.FC = () => {
             replace 
           />
         } />
-        
-        {/* Routes explicites pour les favoris */}
-        <Route path={ROUTES.REDIRECTS.FAVORITES} element={<Navigate to="/personal" replace state={{ tab: 'favorites' }} />} />
         
         {/* App contient toutes les routes imbriquées de l'application */}
         <Route path="/*" element={<App />} />

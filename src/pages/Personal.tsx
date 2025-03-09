@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/modules/auth";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // Import refactored components
 import { ModuleUnavailable } from "@/components/personal/ModuleUnavailable";
@@ -22,8 +22,27 @@ const Personal: React.FC = () => {
   const [hasError, setHasError] = useState<boolean>(false);
   const [clothingItems, setClothingItems] = useState<any[]>([]);
   const [outfits, setOutfits] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<string>("clothes");
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extraire l'onglet actif des paramètres d'URL ou de l'état de location
+  const getInitialTab = () => {
+    // Vérifier si tab est passé via location state
+    if (location.state && location.state.tab) {
+      return location.state.tab;
+    }
+    
+    // Fallback à l'onglet par défaut
+    return "clothes";
+  };
+  
+  const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  
+  // Mise en cache des données pour éviter des rechargements inutiles
+  const cachedData = useMemo(() => ({
+    clothes: clothingItems,
+    outfits: outfits
+  }), [clothingItems, outfits]);
   
   useEffect(() => {
     console.log("Personal: Initialisation du chargement, utilisateur authentifié:", isAuthenticated);
@@ -47,58 +66,114 @@ const Personal: React.FC = () => {
         return;
       }
       
+      // Ajout d'une logique de debounce pour éviter plusieurs requêtes rapprochées
+      const debounceId = setTimeout(async () => {
+        try {
+          console.log("Personal: Début du chargement des données pour l'utilisateur", user.id);
+          
+          // Utiliser un tableau de promesses pour les exécuter en parallèle
+          const [clothesResponse, outfitsResponse] = await Promise.all([
+            // Récupérer les vêtements
+            supabase
+              .from("clothes")
+              .select("*")
+              .eq("user_id", user.id)
+              .eq("archived", false)
+              .order("created_at", { ascending: false }),
+            
+            // Récupérer les tenues
+            supabase
+              .from("outfits")
+              .select("*, top_id(*), bottom_id(*), shoes_id(*)")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(6)
+          ]);
+          
+          // Vérifier les erreurs des deux requêtes
+          if (clothesResponse.error) throw clothesResponse.error;
+          if (outfitsResponse.error) throw outfitsResponse.error;
+          
+          // Mettre à jour l'état si le composant est toujours monté
+          if (isMounted) {
+            setClothingItems(clothesResponse.data || []);
+            setOutfits(outfitsResponse.data || []);
+            console.log("Personal: Données chargées avec succès");
+            
+            // Activer la mise en cache dans localStorage pour des chargements plus rapides
+            try {
+              localStorage.setItem('user_clothes_cache', JSON.stringify({
+                timestamp: Date.now(),
+                data: clothesResponse.data
+              }));
+              
+              localStorage.setItem('user_outfits_cache', JSON.stringify({
+                timestamp: Date.now(),
+                data: outfitsResponse.data
+              }));
+            } catch (e) {
+              // Ignorer les erreurs de localStorage (ex: mode privé)
+              console.warn("Impossible de mettre en cache les données:", e);
+            }
+            
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Personal: Erreur lors du chargement des données:", error);
+          if (isMounted) {
+            setHasError(true);
+            setIsLoading(false);
+            
+            // Notification d'erreur plus spécifique avec possibilité de réessayer
+            toast.error("Impossible de charger vos données", {
+              description: "Veuillez réessayer ou vérifier votre connexion",
+              action: {
+                label: "Réessayer",
+                onClick: () => fetchData()
+              }
+            });
+          }
+        }
+      }, 100); // Légère latence pour éviter les requêtes en rafale
+      
+      return () => clearTimeout(debounceId);
+    };
+    
+    // Essayer d'abord de charger à partir du cache
+    const loadFromCache = () => {
       try {
-        console.log("Personal: Début du chargement des données pour l'utilisateur", user.id);
+        const clothesCache = localStorage.getItem('user_clothes_cache');
+        const outfitsCache = localStorage.getItem('user_outfits_cache');
         
-        // Récupérer les vêtements
-        const { data: clothesData, error: clothesError } = await supabase
-          .from("clothes")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("archived", false)
-          .order("created_at", { ascending: false });
-        
-        if (clothesError) {
-          console.error("Personal: Erreur lors du chargement des vêtements:", clothesError);
-          throw clothesError;
+        if (clothesCache && outfitsCache) {
+          const parsedClothes = JSON.parse(clothesCache);
+          const parsedOutfits = JSON.parse(outfitsCache);
+          
+          // Vérifier la fraîcheur du cache (moins de 5 minutes)
+          const now = Date.now();
+          const clothesFresh = now - parsedClothes.timestamp < 300000;
+          const outfitsFresh = now - parsedOutfits.timestamp < 300000;
+          
+          if (clothesFresh && outfitsFresh) {
+            console.log("Personal: Chargement depuis le cache");
+            setClothingItems(parsedClothes.data || []);
+            setOutfits(parsedOutfits.data || []);
+            setIsLoading(false);
+            return true;
+          }
         }
-        
-        if (isMounted) {
-          setClothingItems(clothesData || []);
-          console.log("Personal: Vêtements chargés:", clothesData?.length || 0);
-        }
-        
-        // Récupérer les tenues
-        const { data: outfitsData, error: outfitsError } = await supabase
-          .from("outfits")
-          .select("*, top_id(*), bottom_id(*), shoes_id(*)")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(6);
-        
-        if (outfitsError) {
-          console.error("Personal: Erreur lors du chargement des tenues:", outfitsError);
-          throw outfitsError;
-        }
-        
-        if (isMounted) {
-          setOutfits(outfitsData || []);
-          console.log("Personal: Tenues chargées:", outfitsData?.length || 0);
-          console.log("Personal: Données chargées avec succès");
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error("Personal: Erreur lors du chargement des données:", error);
-        if (isMounted) {
-          setHasError(true);
-          setIsLoading(false);
-          toast.error("Impossible de charger vos données. Veuillez réessayer.");
-        }
+        return false;
+      } catch (e) {
+        console.warn("Erreur lors de la lecture du cache:", e);
+        return false;
       }
     };
     
     if (isAuthenticated && user) {
-      fetchData();
+      // Si le cache est indisponible ou périmé, charger depuis l'API
+      if (!loadFromCache()) {
+        fetchData();
+      }
     } else {
       setIsLoading(false);
     }
@@ -112,25 +187,34 @@ const Personal: React.FC = () => {
           toast.error("Le chargement a pris trop de temps. Veuillez rafraîchir la page.");
         }
       }
-    }, 5000);
+    }, 3000); // Réduit à 3 secondes pour une meilleure expérience utilisateur
     
     return () => {
       isMounted = false;
       clearTimeout(timer);
       console.log("Personal: Nettoyage du composant");
     };
-  }, [user, isAuthenticated, navigate]);
+  }, [user, isAuthenticated, navigate, hasError, isLoading]);
 
+  // Mise à jour de l'onglet actif avec mémorisation de l'état
   const handleTabChange = (value: string) => {
     console.log("Personal: Changement d'onglet vers", value);
     setActiveTab(value);
+    
+    // Mettre à jour l'état de l'historique sans rechargement
+    window.history.replaceState(
+      { ...window.history.state, tab: value },
+      '',
+      window.location.pathname
+    );
   };
 
+  // Optimisation: Affichage d'un squelette de chargement plus léger
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6 flex items-center justify-center h-[80vh]">
+      <div className="container mx-auto py-6 flex items-center justify-center h-[50vh]">
         <div className="text-center">
-          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <LoadingSpinner size="md" className="mx-auto mb-4" />
           <p className="text-gray-500">Chargement de votre univers...</p>
         </div>
       </div>
@@ -143,7 +227,7 @@ const Personal: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-md p-4 text-center">
           <h2 className="text-red-800 font-semibold mb-2">Erreur de chargement</h2>
           <p className="text-red-700 mb-4">
-            Une erreur est survenue lors du chargement de vos données. Veuillez rafraîchir la page ou réessayer plus tard.
+            Une erreur est survenue lors du chargement de vos données.
           </p>
           <Button 
             onClick={() => window.location.reload()} 
@@ -194,13 +278,13 @@ const Personal: React.FC = () => {
         
         <TabsContent value="clothes" className="mt-2">
           <ModuleGuard moduleCode="clothes" fallback={<ModuleUnavailable name="Vêtements" />}>
-            <ClothingSection items={clothingItems} />
+            <ClothingSection items={cachedData.clothes} />
           </ModuleGuard>
         </TabsContent>
         
         <TabsContent value="outfits" className="mt-2">
           <ModuleGuard moduleCode="outfits" fallback={<ModuleUnavailable name="Tenues" />}>
-            <OutfitsSection outfits={outfits} />
+            <OutfitsSection outfits={cachedData.outfits} />
           </ModuleGuard>
         </TabsContent>
         
