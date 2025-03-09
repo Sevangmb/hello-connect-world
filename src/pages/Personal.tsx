@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/modules/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ModuleGuard } from "@/components/modules/ModuleGuard";
+import { Button } from "@/components/ui/button"; // Ajout de l'import manquant
 
 // Import refactored components
 import { ModuleUnavailable } from "@/components/personal/ModuleUnavailable";

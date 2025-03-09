@@ -8,6 +8,7 @@ import { Plus, Luggage } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/modules/auth';
+import { SuitcaseStatus } from '@/components/suitcases/types';
 
 const Valises = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -89,7 +90,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: 'active'
+        status: 'active' as SuitcaseStatus // Spécifier explicitement le type
       };
       
       const { data, error } = await supabase
