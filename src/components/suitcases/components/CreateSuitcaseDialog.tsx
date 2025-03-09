@@ -46,8 +46,10 @@ export const CreateSuitcaseDialog: React.FC<CreateSuitcaseDialogProps> = ({
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    const formattedValues = {
-      ...values,
+    const formattedValues: SuitcaseFormData = {
+      name: values.name,
+      description: values.description,
+      destination: values.destination,
       startDate: values.startDate ? format(values.startDate, 'yyyy-MM-dd') : undefined,
       endDate: values.endDate ? format(values.endDate, 'yyyy-MM-dd') : undefined,
     };

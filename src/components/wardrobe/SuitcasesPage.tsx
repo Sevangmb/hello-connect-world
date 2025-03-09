@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Valises } from '@/pages/Valises';
+import Valises from '@/pages/Valises';
 
-export const SuitcasesPage = () => {
+const SuitcasesPage = () => {
   return <Valises />;
 };
 

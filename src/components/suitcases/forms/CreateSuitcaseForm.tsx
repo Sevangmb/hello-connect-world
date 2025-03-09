@@ -1,108 +1,95 @@
 
 import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
 import { CreateSuitcaseData, CreateSuitcaseFormProps } from '../types';
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
+  description: z.string().optional(),
+  destination: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional()
+});
 
 export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
   onSubmit,
-  onCancel,
-  initialData,
-  isLoading,
-  isSubmitting,
-  onSuccess
+  onCancel
 }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateSuitcaseData>({
-    defaultValues: initialData || {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
       name: '',
       description: '',
       destination: '',
-      startDate: '',
-      endDate: ''
+      startDate: undefined,
+      endDate: undefined
     }
   });
 
-  const submitForm = (data: CreateSuitcaseData) => {
-    onSubmit(data);
-    if (onSuccess) onSuccess();
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    onSubmit(values as CreateSuitcaseData);
   };
 
-  const isSubmittingForm = isLoading || isSubmitting;
-
   return (
-    <form onSubmit={handleSubmit(submitForm)} className="space-y-4">
-      <div className="space-y-2">
-        <label htmlFor="name" className="text-sm font-medium">
-          Nom de la valise
-        </label>
-        <Input
-          id="name"
-          {...register('name', { required: 'Le nom est obligatoire' })}
-          placeholder="Vacances d'été"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nom de la valise</FormLabel>
+              <FormControl>
+                <Input placeholder="Voyage à Paris" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <label htmlFor="description" className="text-sm font-medium">
-          Description
-        </label>
-        <Textarea
-          id="description"
-          {...register('description')}
-          placeholder="Détails de votre valise"
-          rows={3}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Description de la valise" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="space-y-2">
-        <label htmlFor="destination" className="text-sm font-medium">
-          Destination
-        </label>
-        <Input
-          id="destination"
-          {...register('destination')}
-          placeholder="Paris, France"
+
+        <FormField
+          control={form.control}
+          name="destination"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Destination</FormLabel>
+              <FormControl>
+                <Input placeholder="Destination" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="startDate" className="text-sm font-medium">
-            Date de départ
-          </label>
-          <Input
-            id="startDate"
-            type="date"
-            {...register('startDate')}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="endDate" className="text-sm font-medium">
-            Date de retour
-          </label>
-          <Input
-            id="endDate"
-            type="date"
-            {...register('endDate')}
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        {onCancel && (
+        <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
-        )}
-        <Button type="submit" disabled={isSubmittingForm}>
-          {isSubmittingForm ? 'Création...' : 'Créer la valise'}
-        </Button>
-      </div>
-    </form>
+          <Button type="submit">
+            Créer la valise
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };

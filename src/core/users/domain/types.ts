@@ -17,6 +17,7 @@ export interface UserProfile {
   theme_preference?: string;
   push_notifications?: boolean;
   marketing_emails?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 export interface UserUpdateData {
@@ -32,6 +33,7 @@ export interface UserUpdateData {
   theme_preference?: string;
   push_notifications?: boolean;
   marketing_emails?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 export interface BillingAddress {
@@ -41,4 +43,9 @@ export interface BillingAddress {
   state?: string;
   postal_code: string;
   country: string;
+}
+
+export interface UserProfileResult {
+  profile: UserProfile | null;
+  error?: string;
 }

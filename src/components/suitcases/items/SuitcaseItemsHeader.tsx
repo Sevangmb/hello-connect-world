@@ -4,12 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { SuitcaseItemsHeaderProps } from '../types';
 
-export const SuitcaseItemsHeader: React.FC<SuitcaseItemsHeaderProps> = ({ onAddItems }) => {
+export const SuitcaseItemsHeader: React.FC<SuitcaseItemsHeaderProps> = ({
+  itemCount,
+  onAddItems
+}) => {
   return (
     <div className="flex justify-between items-center mb-4">
-      <h3 className="font-medium text-lg">Vêtements dans cette valise</h3>
-      <Button size="sm" variant="outline" onClick={onAddItems}>
-        <Plus className="h-3.5 w-3.5 mr-1" />
+      <div>
+        <h2 className="text-xl font-semibold">Articles de la valise</h2>
+        <p className="text-sm text-muted-foreground">
+          {itemCount} article{itemCount !== 1 ? 's' : ''} dans votre valise
+        </p>
+      </div>
+      <Button onClick={onAddItems}>
+        <Plus className="h-4 w-4 mr-2" />
         Ajouter
       </Button>
     </div>

@@ -60,3 +60,59 @@ export interface SuitcaseFormData {
   startDate?: string;
   endDate?: string;
 }
+
+// New types needed for components
+export interface SuitcaseFilter {
+  status?: SuitcaseStatus;
+  search?: string;
+  dateRange?: [Date | null, Date | null];
+}
+
+export interface SuitcaseGridProps {
+  suitcases: SuitcaseWithStats[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export interface SuitcaseSearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export interface SuitcaseViewToggleProps {
+  view: 'grid' | 'list';
+  onChange: (view: 'grid' | 'list') => void;
+}
+
+export interface CreateSuitcaseData {
+  name: string;
+  description?: string;
+  destination?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export interface CreateSuitcaseFormProps {
+  onSubmit: (data: CreateSuitcaseData) => void;
+  onCancel: () => void;
+}
+
+export interface SuitcaseItemsEmptyProps {
+  onAddItems: () => void;
+}
+
+export interface SuitcaseItemsHeaderProps {
+  suitcaseId: string;
+  itemCount: number;
+  onAddItems: () => void;
+}
+
+export interface EmptySuitcasesProps {
+  onCreateNew: () => void;
+}
+
+export interface SuitcaseCalendarItem {
+  id: string;
+  date: string;
+  items: SuitcaseItem[];
+}
