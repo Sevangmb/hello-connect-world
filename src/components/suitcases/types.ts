@@ -86,6 +86,8 @@ export interface CreateSuitcaseFormProps {
   onCancel?: () => void;
   initialData?: Partial<CreateSuitcaseData>;
   isLoading?: boolean;
+  isSubmitting?: boolean; // Added for compatibility
+  onSuccess?: () => void; // Added for compatibility
 }
 
 // Interfaces pour SuitcaseItems

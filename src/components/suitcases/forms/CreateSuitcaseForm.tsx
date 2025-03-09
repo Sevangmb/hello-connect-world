@@ -10,6 +10,7 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
+  isLoading,
   isSubmitting,
   onSuccess
 }) => {
@@ -17,8 +18,9 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
     defaultValues: initialData || {
       name: '',
       description: '',
-      start_date: '',
-      end_date: ''
+      destination: '',
+      startDate: '',
+      endDate: ''
     }
   });
 
@@ -26,6 +28,8 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
     onSubmit(data);
     if (onSuccess) onSuccess();
   };
+
+  const isSubmittingForm = isLoading || isSubmitting;
 
   return (
     <form onSubmit={handleSubmit(submitForm)} className="space-y-4">
@@ -54,30 +58,7 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
           rows={3}
         />
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="start_date" className="text-sm font-medium">
-            Date de départ
-          </label>
-          <Input
-            id="start_date"
-            type="date"
-            {...register('start_date')}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="end_date" className="text-sm font-medium">
-            Date de retour
-          </label>
-          <Input
-            id="end_date"
-            type="date"
-            {...register('end_date')}
-          />
-        </div>
-      </div>
-
+      
       <div className="space-y-2">
         <label htmlFor="destination" className="text-sm font-medium">
           Destination
@@ -89,14 +70,37 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="startDate" className="text-sm font-medium">
+            Date de départ
+          </label>
+          <Input
+            id="startDate"
+            type="date"
+            {...register('startDate')}
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="endDate" className="text-sm font-medium">
+            Date de retour
+          </label>
+          <Input
+            id="endDate"
+            type="date"
+            {...register('endDate')}
+          />
+        </div>
+      </div>
+
       <div className="flex justify-end space-x-2 pt-4">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
             Annuler
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Création...' : 'Créer la valise'}
+        <Button type="submit" disabled={isSubmittingForm}>
+          {isSubmittingForm ? 'Création...' : 'Créer la valise'}
         </Button>
       </div>
     </form>

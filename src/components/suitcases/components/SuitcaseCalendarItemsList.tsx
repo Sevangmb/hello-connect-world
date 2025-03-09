@@ -1,178 +1,113 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useSuitcaseItems } from '@/hooks/useSuitcaseItems';
-import { useSuitcaseCalendarItems } from '@/hooks/useSuitcaseCalendarItems';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { ShoppingBag, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { SuitcaseCalendarItem, SuitcaseItem } from '../types';
 
 interface SuitcaseCalendarItemsListProps {
-  suitcaseId: string;
-  date: string;
+  calendarItems: SuitcaseCalendarItem[];
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export const SuitcaseCalendarItemsList: React.FC<SuitcaseCalendarItemsListProps> = ({ 
-  suitcaseId, 
-  date 
+export const SuitcaseCalendarItemsList: React.FC<SuitcaseCalendarItemsListProps> = ({
+  calendarItems,
+  isLoading,
+  error
 }) => {
-  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
-  const calendarItems = useSuitcaseCalendarItems(suitcaseId);
-  const { items: suitcaseItems, isLoading: itemsLoading } = useSuitcaseItems(suitcaseId);
-  
-  // Filter calendar items for the selected date
-  const dateItems = calendarItems.data?.filter(item => {
-    return item.date === date;
-  }) || [];
-
-  // Get clothesItems based on the IDs in dateItems
-  const clothesForDate = dateItems.length > 0 
-    ? suitcaseItems.filter(item => dateItems[0].items.includes(item.clothes_id)) 
-    : [];
-
-  if (calendarItems.isLoading || itemsLoading) {
+  if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-6 bg-muted rounded w-1/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="h-10 bg-muted rounded"></div>
+                <div className="h-10 bg-muted rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
-  if (calendarItems.error) {
-    return <div>Erreur: {calendarItems.error.message}</div>;
+  if (error) {
+    return (
+      <div className="text-center p-6 space-y-2">
+        <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+        <p className="text-destructive font-medium">Une erreur est survenue</p>
+        <p className="text-muted-foreground text-sm">{error}</p>
+      </div>
+    );
+  }
+
+  if (!calendarItems || calendarItems.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-muted-foreground">Aucun élément à afficher</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          {clothesForDate.length > 0 
-            ? `${clothesForDate.length} articles prévus pour cette date` 
-            : "Aucun article prévu pour cette date"}
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline">
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter des articles
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Ajouter des articles pour {new Date(date).toLocaleDateString()}</DialogTitle>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto">
-              {suitcaseItems.length > 0 ? (
-                <div className="space-y-2">
-                  {suitcaseItems.map(item => (
-                    <Card key={item.id} className="p-0 overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="flex items-center p-3">
-                          {item.clothes?.image_url && (
-                            <img 
-                              src={item.clothes.image_url} 
-                              alt={item.clothes?.name || 'Vêtement'} 
-                              className="h-12 w-12 rounded-md object-cover mr-3" 
-                            />
-                          )}
-                          <div className="flex-1">
-                            <div className="font-medium">{item.clothes?.name || 'Vêtement'}</div>
-                            <div className="text-sm text-gray-500">{item.clothes?.category}</div>
-                          </div>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => {
-                              const existingDateItem = dateItems[0];
-                              
-                              if (existingDateItem) {
-                                // Add the item to existing date items
-                                if (!existingDateItem.items.includes(item.clothes_id)) {
-                                  calendarItems.updateCalendarItem.mutate({
-                                    id: existingDateItem.id,
-                                    items: [...existingDateItem.items, item.clothes_id]
-                                  });
-                                }
-                              } else {
-                                // Create new date item
-                                calendarItems.addCalendarItem.mutate({
-                                  suitcase_id: suitcaseId,
-                                  date,
-                                  items: [item.clothes_id]
-                                });
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-3 text-center text-gray-500">
-                  Aucun article disponible dans cette valise
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {clothesForDate.length > 0 ? (
-        <div className="space-y-2">
-          {clothesForDate.map(item => (
-            <Card key={item.id} className="p-0 overflow-hidden">
-              <CardContent className="p-0">
-                <div className="flex items-center p-3">
-                  {item.clothes?.image_url && (
-                    <img 
-                      src={item.clothes.image_url} 
-                      alt={item.clothes?.name || 'Vêtement'} 
-                      className="h-12 w-12 rounded-md object-cover mr-3" 
-                    />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-medium">{item.clothes?.name || 'Vêtement'}</div>
-                    <div className="text-sm text-gray-500">{item.clothes?.category}</div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    onClick={() => {
-                      const existingDateItem = dateItems[0];
-                      if (existingDateItem) {
-                        const updatedItems = existingDateItem.items.filter(id => id !== item.clothes_id);
-                        
-                        if (updatedItems.length === 0) {
-                          // No items left, remove the entire calendar item
-                          calendarItems.removeCalendarItem.mutate(existingDateItem.id);
-                        } else {
-                          // Update with remaining items
-                          calendarItems.updateCalendarItem.mutate({
-                            id: existingDateItem.id,
-                            items: updatedItems
-                          });
-                        }
-                      }
-                    }}
+    <div className="space-y-6">
+      {calendarItems.map((day) => (
+        <Card key={day.id} className="overflow-hidden">
+          <CardHeader className="pb-2 bg-muted/30">
+            <CardTitle className="text-md font-medium">
+              {format(parseISO(day.date), 'EEEE d MMMM', { locale: fr })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            {day.items.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground text-sm">
+                  Aucun vêtement planifié pour ce jour
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {day.items.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center p-2 rounded-md border bg-background"
                   >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="py-8 text-center text-gray-500">
-          Aucun article planifié pour cette journée
-        </div>
-      )}
+                    <div className="w-10 h-10 bg-muted mr-3 flex-shrink-0 flex items-center justify-center rounded-md overflow-hidden">
+                      {item.clothes?.image_url ? (
+                        <img 
+                          src={item.clothes.image_url} 
+                          alt={item.clothes?.name} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <ShoppingBag className="h-5 w-5 text-muted-foreground/50" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{item.clothes?.name || 'Vêtement'}</p>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Badge variant="outline" className="mr-2 px-1">
+                          {item.clothes?.category || 'Divers'}
+                        </Badge>
+                        {item.quantity > 1 && (
+                          <span>Qté: {item.quantity}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

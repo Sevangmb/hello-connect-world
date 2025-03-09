@@ -1,147 +1,131 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { SuitcaseCalendarItem } from '@/components/suitcases/types';
+import { addDays, format, parseISO } from 'date-fns';
+import { SuitcaseCalendarItem, SuitcaseItem } from '@/components/suitcases/types';
 
-// Mock implementation for calendar items since we're having database issues
-// In a real app, this would connect to your actual database table
-const mockCalendarItems: Record<string, SuitcaseCalendarItem[]> = {};
+export const useSuitcaseCalendarItems = (
+  suitcaseId: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  const [calendarItems, setCalendarItems] = useState<SuitcaseCalendarItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-export const useSuitcaseCalendarItems = (suitcaseId: string) => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  useEffect(() => {
+    if (!suitcaseId) {
+      setIsLoading(false);
+      return;
+    }
 
-  // Mock fetch function that simulates database access
-  const fetchCalendarItems = async (): Promise<SuitcaseCalendarItem[]> => {
-    // In a real implementation, this would query your database
-    return mockCalendarItems[suitcaseId] || [];
+    const fetchSuitcaseItems = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch all items for this suitcase
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('suitcase_items')
+          .select(`
+            *,
+            clothes (
+              id, name, image_url, category, color, brand
+            )
+          `)
+          .eq('suitcase_id', suitcaseId);
+
+        if (itemsError) throw itemsError;
+
+        // Make sure we have valid dates
+        let start = startDate ? parseISO(startDate) : new Date();
+        let end = endDate ? parseISO(endDate) : addDays(start, 7);
+
+        // If end date is before start date, swap them
+        if (end < start) {
+          const temp = start;
+          start = end;
+          end = temp;
+        }
+
+        // Create a calendar day for each day in the range
+        const days: SuitcaseCalendarItem[] = [];
+        let currentDate = start;
+
+        while (currentDate <= end) {
+          const formattedDate = format(currentDate, 'yyyy-MM-dd');
+          
+          days.push({
+            id: `day-${formattedDate}`,
+            date: formattedDate,
+            items: itemsData as SuitcaseItem[] || [],
+            outfits: []
+          });
+          
+          currentDate = addDays(currentDate, 1);
+        }
+
+        setCalendarItems(days);
+      } catch (error: any) {
+        console.error('Error fetching suitcase calendar items:', error);
+        setError(error.message || 'Failed to load suitcase items');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSuitcaseItems();
+  }, [suitcaseId, startDate, endDate]);
+
+  // Function to assign an item to a specific day
+  const assignItemToDay = (itemId: string, dayDate: string) => {
+    setCalendarItems(current => {
+      return current.map(day => {
+        if (day.date === dayDate) {
+          // Find the item in our collection
+          const allItems = current.flatMap(d => d.items);
+          const itemToAssign = allItems.find(item => item.id === itemId);
+          
+          if (itemToAssign) {
+            // Check if the item is already in this day
+            const isAlreadyAssigned = day.items.some(item => item.id === itemId);
+            
+            if (!isAlreadyAssigned) {
+              // Add the item to this day
+              return {
+                ...day,
+                items: [...day.items, itemToAssign]
+              };
+            }
+          }
+        }
+        return day;
+      });
+    });
   };
 
-  const query = useQuery({
-    queryKey: ['suitcase-calendar-items', suitcaseId],
-    queryFn: fetchCalendarItems,
-    enabled: !!suitcaseId,
-  });
-
-  const addCalendarItem = useMutation({
-    mutationFn: async (newItem: {
-      suitcase_id: string;
-      date: string;
-      items: string[];
-    }): Promise<SuitcaseCalendarItem> => {
-      // Mock implementation
-      const newCalendarItem: SuitcaseCalendarItem = {
-        id: `cal-${Date.now()}`,
-        suitcase_id: newItem.suitcase_id,
-        date: newItem.date,
-        items: newItem.items,
-        created_at: new Date().toISOString(),
-      };
-
-      // Store in our mock DB
-      if (!mockCalendarItems[suitcaseId]) {
-        mockCalendarItems[suitcaseId] = [];
-      }
-      mockCalendarItems[suitcaseId].push(newCalendarItem);
-
-      return newCalendarItem;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcase-calendar-items', suitcaseId] });
-      toast({
-        title: "Calendrier mis à jour",
-        description: "Votre planning a été mis à jour",
+  // Function to remove an item from a specific day
+  const removeItemFromDay = (itemId: string, dayDate: string) => {
+    setCalendarItems(current => {
+      return current.map(day => {
+        if (day.date === dayDate) {
+          return {
+            ...day,
+            items: day.items.filter(item => item.id !== itemId)
+          };
+        }
+        return day;
       });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le calendrier",
-        variant: "destructive",
-      });
-    }
-  });
+    });
+  };
 
-  const updateCalendarItem = useMutation({
-    mutationFn: async ({
-      id,
-      items,
-    }: {
-      id: string;
-      items: string[];
-    }): Promise<SuitcaseCalendarItem> => {
-      // Mock implementation
-      if (!mockCalendarItems[suitcaseId]) {
-        throw new Error('Calendar item not found');
-      }
-
-      const index = mockCalendarItems[suitcaseId].findIndex(item => item.id === id);
-      if (index === -1) {
-        throw new Error('Calendar item not found');
-      }
-
-      const updatedItem = {
-        ...mockCalendarItems[suitcaseId][index],
-        items
-      };
-
-      mockCalendarItems[suitcaseId][index] = updatedItem;
-      return updatedItem;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcase-calendar-items', suitcaseId] });
-      toast({
-        title: "Calendrier mis à jour",
-        description: "Votre planning a été mis à jour",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le calendrier",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const removeCalendarItem = useMutation({
-    mutationFn: async (id: string): Promise<string> => {
-      // Mock implementation
-      if (!mockCalendarItems[suitcaseId]) {
-        throw new Error('Calendar item not found');
-      }
-
-      const index = mockCalendarItems[suitcaseId].findIndex(item => item.id === id);
-      if (index === -1) {
-        throw new Error('Calendar item not found');
-      }
-
-      mockCalendarItems[suitcaseId].splice(index, 1);
-      return id;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suitcase-calendar-items', suitcaseId] });
-      toast({
-        title: "Élément supprimé",
-        description: "L'élément a été supprimé du calendrier",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer l'élément",
-        variant: "destructive",
-      });
-    }
-  });
-
-  return {
-    data: query.data || [],
-    isLoading: query.isLoading,
-    error: query.error,
-    addCalendarItem,
-    updateCalendarItem,
-    removeCalendarItem
+  return { 
+    calendarItems, 
+    isLoading, 
+    error,
+    assignItemToDay,
+    removeItemFromDay
   };
 };
+
+export default useSuitcaseCalendarItems;

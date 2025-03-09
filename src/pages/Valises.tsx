@@ -83,6 +83,7 @@ const Valises = () => {
     try {
       if (!user) throw new Error("Vous devez être connecté pour créer une valise");
       
+      // Use 'active' as string instead of SuitcaseStatus to match the database expectations
       const newSuitcase = {
         user_id: user.id,
         name: values.name,
@@ -90,7 +91,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: 'active' as SuitcaseStatus // Spécifier explicitement le type
+        status: 'active' // Using string literal instead of SuitcaseStatus
       };
       
       const { data, error } = await supabase
