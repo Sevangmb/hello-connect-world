@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Trophy, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -34,7 +35,9 @@ export const ChallengesSection = () => {
         .limit(3);
 
       if (error) throw error;
-      return data as Challenge[];
+      
+      // Fix the type issue by explicitly casting to unknown first, then to Challenge[]
+      return (data as unknown) as Challenge[];
     }
   });
 
