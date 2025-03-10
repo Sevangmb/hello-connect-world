@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { 
   Home, Search, User, ShoppingBag, 
   Shirt, Layers, Briefcase, Heart, Users,
-  MessageSquare, Bell, Settings
+  MessageSquare, Bell, Settings, Trophy
 } from "lucide-react";
 
 export interface MenuItem {
@@ -127,6 +127,24 @@ export const useMainMenuItems = (currentPath: string) => {
     }
   ], [currentPath, isPathActive]);
   
+  // Define explore sub-items
+  const exploreSubItems = useMemo(() => [
+    {
+      id: "publications",
+      label: "Publications",
+      path: "/explore/publications",
+      icon: <Search className="h-4 w-4" />,
+      active: isPathActive("/explore/publications")
+    },
+    {
+      id: "challenges",
+      label: "Défis",
+      path: "/social/challenges",
+      icon: <Trophy className="h-4 w-4" />,
+      active: isPathActive("/social/challenges")
+    }
+  ], [isPathActive]);
+  
   // Check if categories are active
   const isPersonalActive = useMemo(() => 
     personalSubItems.some(item => item.active) || currentPath === '/personal',
@@ -135,6 +153,10 @@ export const useMainMenuItems = (currentPath: string) => {
   const isSocialActive = useMemo(() => 
     socialSubItems.some(item => item.active),
   [socialSubItems]);
+
+  const isExploreActive = useMemo(() => 
+    exploreSubItems.some(item => item.active) || isPathActive("/explore"),
+  [exploreSubItems, isPathActive]);
 
   // Full menu structure
   const menuStructure = useMemo(() => [
@@ -150,7 +172,8 @@ export const useMainMenuItems = (currentPath: string) => {
       label: "Explorer",
       path: "/explore",
       icon: <Search className="h-4 w-4" />,
-      active: isPathActive("/explore") || isPathActive("/search") || isPathActive("/trends")
+      active: isExploreActive,
+      children: exploreSubItems
     },
     {
       id: "personal",
@@ -182,7 +205,7 @@ export const useMainMenuItems = (currentPath: string) => {
       icon: <Settings className="h-4 w-4" />,
       active: isPathActive("/settings") || isPathActive("/profile/settings")
     }
-  ], [currentPath, isPathActive, isPersonalActive, isSocialActive, personalSubItems, socialSubItems]);
+  ], [currentPath, isPathActive, isPersonalActive, isSocialActive, isExploreActive, personalSubItems, socialSubItems, exploreSubItems]);
 
-  return { menuStructure, personalSubItems, socialSubItems };
+  return { menuStructure, personalSubItems, socialSubItems, exploreSubItems };
 };

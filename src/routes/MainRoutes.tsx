@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -16,6 +15,7 @@ import Suitcases from '@/pages/Suitcases';
 import Outfits from '@/pages/Outfits';
 import AdminDatabase from '@/pages/admin/AdminDatabase';
 import Wardrobe from '@/pages/Wardrobe';
+import Explore from '@/pages/Explore';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -45,6 +45,7 @@ const ROUTES = {
   FAVORITES: '/favorites',
   FRIENDS: '/friends',
   MESSAGES: '/messages',
+  EXPLORE: '/explore',
   PROFILE: {
     ROOT: '/profile',
     SETTINGS: '/profile/settings',
@@ -128,6 +129,7 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.FRIENDS} element={<Friends />} />
         <Route path={ROUTES.MESSAGES} element={<Messages />} />
         <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
+        <Route path={ROUTES.EXPLORE} element={<Explore />} />
         
         <Route path={ROUTES.WARDROBE} element={<Wardrobe />} />
         <Route path="/wardrobe/outfits" element={<Outfits />} />
