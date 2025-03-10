@@ -83,7 +83,7 @@ export const PublicationsSection = () => {
           <p className="mb-2">{post.content}</p>
           <div className="flex justify-between text-xs text-gray-500">
             <span>{new Date(post.created_at).toLocaleDateString()}</span>
-            <span>{post.likes ? post.likes[0]?.count || 0 : 0} j'aime</span>
+            <span>{post.likes && post.likes.length > 0 ? post.likes[0]?.count || 0 : 0} j'aime</span>
           </div>
         </div>
       ))}
