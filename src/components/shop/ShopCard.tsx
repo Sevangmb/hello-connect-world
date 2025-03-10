@@ -12,10 +12,11 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface ShopCardProps {
-  shop: ShopType;
+  shop: ShopType & { distance?: number };
+  showDistance?: boolean;
 }
 
-export function ShopCard({ shop }: ShopCardProps) {
+export function ShopCard({ shop, showDistance = false }: ShopCardProps) {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +85,13 @@ export function ShopCard({ shop }: ShopCardProps) {
   const openSince = shop.created_at 
     ? format(new Date(shop.created_at), "MMMM yyyy", { locale: fr })
     : "Date inconnue";
+    
+  // Format distance
+  const formattedDistance = shop.distance !== undefined
+    ? shop.distance < 1
+      ? `${Math.round(shop.distance * 1000)} m`
+      : `${shop.distance.toFixed(1)} km`
+    : null;
 
   return (
     <Card 
@@ -102,6 +110,16 @@ export function ShopCard({ shop }: ShopCardProps) {
         >
           <Heart className={`h-5 w-5 ${isFavorite ? 'fill-rose-500' : ''}`} />
         </Button>
+        
+        {showDistance && formattedDistance && (
+          <Badge 
+            variant="secondary" 
+            className="absolute bottom-2 left-2 bg-white/90"
+          >
+            <MapPin className="h-3 w-3 mr-1" />
+            {formattedDistance}
+          </Badge>
+        )}
       </div>
       
       <CardContent className="p-4">

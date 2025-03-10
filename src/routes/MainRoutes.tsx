@@ -20,6 +20,8 @@ import Explore from '@/pages/Explore';
 import Challenges from '@/pages/Challenges';
 import ChallengeDetail from '@/pages/ChallengeDetail';
 import Notifications from '@/pages/Notifications';
+import Shops from '@/pages/Shops';
+import ShopsMap from '@/pages/ShopsMap';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -54,6 +56,18 @@ const ROUTES = {
   PROFILE: {
     ROOT: '/profile',
     SETTINGS: '/profile/settings',
+  },
+  SHOPS: {
+    ROOT: '/shops',
+    LIST: '/shops',
+    MAP: '/shops/map',
+    DETAIL: '/shops/:id',
+  },
+  BOUTIQUES: {
+    ROOT: '/boutiques',
+    LIST: '/boutiques',
+    MAP: '/boutiques/map',
+    DETAIL: '/boutiques/:id',
   },
   SOCIAL: {
     ROOT: '/social',
@@ -146,6 +160,14 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.WARDROBE} element={<Wardrobe />} />
         <Route path="/wardrobe/outfits" element={<Outfits />} />
         <Route path="/outfits" element={<Outfits />} />
+        
+        {/* Routes boutiques */}
+        <Route path={ROUTES.SHOPS.ROOT} element={<Shops />} />
+        <Route path={ROUTES.SHOPS.MAP} element={<ShopsMap />} />
+        
+        {/* Routes boutiques (alias pour compatibilité) */}
+        <Route path={ROUTES.BOUTIQUES.ROOT} element={<Shops />} />
+        <Route path={ROUTES.BOUTIQUES.MAP} element={<ShopsMap />} />
         
         <Route path={ROUTES.SOCIAL.ROOT}>
           <Route index element={<Navigate to={ROUTES.SOCIAL.CHALLENGES} replace />} />

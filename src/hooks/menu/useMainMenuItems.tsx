@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { 
   Home, Search, User, ShoppingBag, 
   Shirt, Layers, Briefcase, Heart, Users,
-  MessageSquare, Bell, Settings, Trophy
+  MessageSquare, Bell, Settings, Trophy, Map
 } from "lucide-react";
 
 export interface MenuItem {
@@ -145,6 +145,24 @@ export const useMainMenuItems = (currentPath: string) => {
     }
   ], [isPathActive]);
   
+  // Define boutiques sub-items
+  const boutiquesSubItems = useMemo(() => [
+    {
+      id: "boutiques-list",
+      label: "Liste des boutiques",
+      path: "/boutiques",
+      icon: <ShoppingBag className="h-4 w-4" />,
+      active: isPathActive("/boutiques") && !isPathActive("/boutiques/map")
+    },
+    {
+      id: "boutiques-map",
+      label: "Carte des boutiques",
+      path: "/boutiques/map",
+      icon: <Map className="h-4 w-4" />,
+      active: isPathActive("/boutiques/map")
+    }
+  ], [isPathActive]);
+  
   // Check if categories are active
   const isPersonalActive = useMemo(() => 
     personalSubItems.some(item => item.active) || currentPath === '/personal',
@@ -157,6 +175,12 @@ export const useMainMenuItems = (currentPath: string) => {
   const isExploreActive = useMemo(() => 
     exploreSubItems.some(item => item.active) || isPathActive("/explore"),
   [exploreSubItems, isPathActive]);
+  
+  const isBoutiquesActive = useMemo(() => 
+    boutiquesSubItems.some(item => item.active) || 
+    isPathActive("/boutiques") || 
+    isPathActive("/shops"),
+  [boutiquesSubItems, isPathActive]);
 
   // Full menu structure
   const menuStructure = useMemo(() => [
@@ -196,7 +220,8 @@ export const useMainMenuItems = (currentPath: string) => {
       label: "Boutiques",
       path: "/boutiques",
       icon: <ShoppingBag className="h-4 w-4" />,
-      active: isPathActive("/boutiques") || isPathActive("/shops") || isPathActive("/stores")
+      active: isBoutiquesActive || isPathActive("/boutiques") || isPathActive("/shops"),
+      children: boutiquesSubItems
     },
     {
       id: "settings",
@@ -205,7 +230,24 @@ export const useMainMenuItems = (currentPath: string) => {
       icon: <Settings className="h-4 w-4" />,
       active: isPathActive("/settings") || isPathActive("/profile/settings")
     }
-  ], [currentPath, isPathActive, isPersonalActive, isSocialActive, isExploreActive, personalSubItems, socialSubItems, exploreSubItems]);
+  ], [
+    currentPath, 
+    isPathActive, 
+    isPersonalActive, 
+    isSocialActive, 
+    isExploreActive,
+    isBoutiquesActive,
+    personalSubItems, 
+    socialSubItems, 
+    exploreSubItems,
+    boutiquesSubItems
+  ]);
 
-  return { menuStructure, personalSubItems, socialSubItems, exploreSubItems };
+  return { 
+    menuStructure, 
+    personalSubItems, 
+    socialSubItems, 
+    exploreSubItems,
+    boutiquesSubItems
+  };
 };
