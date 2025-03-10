@@ -32,14 +32,14 @@ export function RootLayout() {
         className="left-0 right-auto border-r border-l-0"
       />
       
-      {/* Contenu principal - décalé pour laisser de la place au menu sur desktop */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      {/* Contenu principal - s'étend jusqu'au menu */}
+      <div className="flex-1 flex flex-col w-full">
         {/* En-tête (Header) */}
         <Header className="z-50" />
         
         {/* Contenu principal */}
-        <main className="flex-1 pt-16 px-4 md:px-8 pb-16 md:pb-8">
-          <div className="container mx-auto h-full py-6">
+        <main className="flex-1 pt-16 px-4 md:px-6 pb-16 md:pb-8">
+          <div className="w-full h-full py-6">
             <Outlet />
           </div>
         </main>

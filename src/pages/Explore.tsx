@@ -6,7 +6,7 @@ import { PostsList } from '@/components/posts/PostsList';
 
 const Explore = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       <h1 className="text-2xl font-bold">Explorer</h1>
       
       <Card className="p-0 overflow-hidden">

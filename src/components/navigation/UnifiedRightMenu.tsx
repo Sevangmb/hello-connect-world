@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ interface MenuItemProps {
   onClick: () => void;
 }
 
-// Composant pour un élément de menu individuel
 const MenuItem: React.FC<MenuItemProps> = ({ label, icon, active, onClick }) => {
   return (
     <Button
@@ -51,7 +49,6 @@ interface AdminMenuSectionProps {
   handleNavigate: (path: string) => void;
 }
 
-// Sous-composant pour la section administration
 const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({ 
   isExpanded = false,
   currentPath,
@@ -173,10 +170,9 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
   const currentPath = location.pathname;
   const { isUserAdmin } = useAdminStatus();
   
-  // Classes CSS optimisées et mémorisées
   const menuClasses = useMemo(() => cn(
     "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-200 pt-5 pb-4 flex flex-col",
-    "md:relative md:pt-20 md:translate-x-0 transition-transform duration-200 ease-out",
+    "md:sticky md:pt-20 md:translate-x-0 transition-all duration-200 ease-out",
     isMobileOpen ? "translate-x-0 shadow-lg" : "-translate-x-full md:translate-x-0",
     className
   ), [isMobileOpen, className]);
@@ -194,13 +190,9 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     }
   };
 
-  // Helper function to check if a path is active, considering nested routes
   const isPathActive = (path: string): boolean => {
-    // Exact match for home
     if (path === '/' && currentPath === '/') return true;
     
-    // For other routes, check if current path starts with the given path
-    // but ensure we're checking complete path segments to avoid partial matches
     if (path !== '/') {
       return currentPath === path || 
              currentPath.startsWith(`${path}/`);
@@ -209,7 +201,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     return false;
   };
   
-  // Define sub-categories and their active states
   const personalSubItems = [
     {
       id: "wardrobe",
@@ -272,13 +263,10 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     }
   ];
   
-  // Check if any personal sub-item is active
   const isPersonalActive = personalSubItems.some(item => item.active);
   
-  // Check if any social sub-item is active
   const isSocialActive = socialSubItems.some(item => item.active);
 
-  // Structure hiérarchique du menu - Unifiée et organisée
   const menuStructure = [
     {
       id: "home",
@@ -330,15 +318,12 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
 
   return (
     <>
-      {/* Overlay pour mobile */}
       <div 
         className={overlayClasses}
         onClick={onMobileClose}
       />
       
-      {/* Menu unifié à gauche */}
       <aside className={menuClasses}>
-        {/* En-tête avec bouton de fermeture */}
         <div className="px-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Menu</h2>
           <Button
@@ -354,7 +339,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
         
         <Separator className="my-4" />
         
-        {/* Menu principal avec structure hiérarchique */}
         <div className="flex-1 px-3 overflow-hidden">
           <ScrollArea className="h-full pr-2">
             <div className="flex flex-col gap-1">
@@ -368,7 +352,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
                     onClick={() => handleNavigate(item.path)}
                   />
                   
-                  {/* Afficher les sous-éléments si le parent est actif */}
                   {item.children && item.active && (
                     <div className="ml-4 mt-1 flex flex-col gap-1">
                       {item.children.map((child) => (
@@ -387,7 +370,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
               ))}
             </div>
             
-            {/* Section Admin conditionnelle avec composant dédié */}
             {isUserAdmin && (
               <AdminMenuSection 
                 isExpanded={currentPath.startsWith("/admin")}
@@ -398,7 +380,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
           </ScrollArea>
         </div>
         
-        {/* Profil utilisateur */}
         <div className="px-3 mt-2 mb-2">
           <UserButton className="w-full" />
         </div>
