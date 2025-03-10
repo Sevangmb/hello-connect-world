@@ -12,6 +12,7 @@ import Settings from '@/pages/Profile/Settings';
 import Friends from '@/pages/Friends';
 import Messages from '@/pages/Messages';
 import Suitcases from '@/pages/Suitcases';
+import Outfits from '@/pages/Outfits';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -124,6 +125,9 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.FRIENDS} element={<Friends />} />
         <Route path={ROUTES.MESSAGES} element={<Messages />} />
         <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
+        
+        <Route path="/wardrobe/outfits" element={<Navigate to="/outfits" replace />} />
+        <Route path="/outfits" element={<Outfits />} />
         
         <Route path={ROUTES.MODULES.ROOT}>
           <Route path="core" element={<CoreModule />} />

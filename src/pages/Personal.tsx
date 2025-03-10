@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -25,29 +24,23 @@ const Personal: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Mémoriser le chemin actuel pour éviter les modifications d'état inutiles
   const currentPath = useMemo(() => location.pathname, [location.pathname]);
   
-  // Extraire l'onglet actif des paramètres d'URL ou de l'état de location
   const getInitialTab = () => {
-    // Vérifier si tab est passé via location state
     if (location.state && location.state.tab) {
       return location.state.tab;
     }
     
-    // Extraire l'onglet du hash de l'URL si présent
     const hash = location.hash.replace('#', '');
     if (hash && ['clothes', 'outfits', 'suitcases', 'favorites', 'calendar'].includes(hash)) {
       return hash;
     }
     
-    // Fallback à l'onglet par défaut
     return "clothes";
   };
   
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
   
-  // Mise en cache des données pour éviter des rechargements inutiles
   const cachedData = useMemo(() => ({
     clothes: clothingItems,
     outfits: outfits
@@ -56,14 +49,12 @@ const Personal: React.FC = () => {
   useEffect(() => {
     console.log("Personal: Initialisation du chargement, utilisateur authentifié:", isAuthenticated);
     
-    // Si l'utilisateur n'est pas authentifié, rediriger vers la page d'authentification
     if (!isAuthenticated && !isLoading) {
       console.log("Personal: Utilisateur non authentifié, redirection vers /auth");
       navigate("/auth");
       return;
     }
     
-    // Référence pour savoir si le composant est toujours monté
     let isMounted = true;
     
     const fetchData = async () => {
@@ -75,14 +66,11 @@ const Personal: React.FC = () => {
         return;
       }
       
-      // Ajout d'une logique de debounce pour éviter plusieurs requêtes rapprochées
       const debounceId = setTimeout(async () => {
         try {
           console.log("Personal: Début du chargement des données pour l'utilisateur", user.id);
           
-          // Utiliser un tableau de promesses pour les exécuter en parallèle
           const [clothesResponse, outfitsResponse] = await Promise.all([
-            // Récupérer les vêtements
             supabase
               .from("clothes")
               .select("*")
@@ -90,7 +78,6 @@ const Personal: React.FC = () => {
               .eq("archived", false)
               .order("created_at", { ascending: false }),
             
-            // Récupérer les tenues
             supabase
               .from("outfits")
               .select("*, top_id(*), bottom_id(*), shoes_id(*)")
@@ -99,17 +86,14 @@ const Personal: React.FC = () => {
               .limit(6)
           ]);
           
-          // Vérifier les erreurs des deux requêtes
           if (clothesResponse.error) throw clothesResponse.error;
           if (outfitsResponse.error) throw outfitsResponse.error;
           
-          // Mettre à jour l'état si le composant est toujours monté
           if (isMounted) {
             setClothingItems(clothesResponse.data || []);
             setOutfits(outfitsResponse.data || []);
             console.log("Personal: Données chargées avec succès");
             
-            // Activer la mise en cache dans localStorage pour des chargements plus rapides
             try {
               localStorage.setItem('user_clothes_cache', JSON.stringify({
                 timestamp: Date.now(),
@@ -121,7 +105,6 @@ const Personal: React.FC = () => {
                 data: outfitsResponse.data
               }));
             } catch (e) {
-              // Ignorer les erreurs de localStorage (ex: mode privé)
               console.warn("Impossible de mettre en cache les données:", e);
             }
             
@@ -133,7 +116,6 @@ const Personal: React.FC = () => {
             setHasError(true);
             setIsLoading(false);
             
-            // Notification d'erreur plus spécifique avec possibilité de réessayer
             toast.error("Impossible de charger vos données", {
               description: "Veuillez réessayer ou vérifier votre connexion",
               action: {
@@ -143,12 +125,11 @@ const Personal: React.FC = () => {
             });
           }
         }
-      }, 100); // Légère latence pour éviter les requêtes en rafale
+      }, 100);
       
       return () => clearTimeout(debounceId);
     };
     
-    // Essayer d'abord de charger à partir du cache
     const loadFromCache = () => {
       try {
         const clothesCache = localStorage.getItem('user_clothes_cache');
@@ -158,7 +139,6 @@ const Personal: React.FC = () => {
           const parsedClothes = JSON.parse(clothesCache);
           const parsedOutfits = JSON.parse(outfitsCache);
           
-          // Vérifier la fraîcheur du cache (moins de 5 minutes)
           const now = Date.now();
           const clothesFresh = now - parsedClothes.timestamp < 300000;
           const outfitsFresh = now - parsedOutfits.timestamp < 300000;
@@ -179,7 +159,6 @@ const Personal: React.FC = () => {
     };
     
     if (isAuthenticated && user) {
-      // Si le cache est indisponible ou périmé, charger depuis l'API
       if (!loadFromCache()) {
         fetchData();
       }
@@ -187,7 +166,6 @@ const Personal: React.FC = () => {
       setIsLoading(false);
     }
     
-    // Force le chargement à se terminer après un délai maximum
     const timer = setTimeout(() => {
       if (isMounted && isLoading) {
         console.log("Personal: Fin du chargement forcée après timeout");
@@ -196,29 +174,34 @@ const Personal: React.FC = () => {
           toast.error("Le chargement a pris trop de temps. Veuillez rafraîchir la page.");
         }
       }
-    }, 3000); // Réduit à 3 secondes pour une meilleure expérience utilisateur
+    }, 3000);
     
     return () => {
       isMounted = false;
       clearTimeout(timer);
       console.log("Personal: Nettoyage du composant");
     };
-  }, [user?.id, isAuthenticated, navigate]); // Dépendances réduites pour éviter les re-rendus inutiles
-
-  // Mise à jour de l'onglet actif avec mémorisation de l'état et modification de l'URL
+  }, [user?.id, isAuthenticated, navigate]);
+  
   const handleTabChange = (value: string) => {
     console.log("Personal: Changement d'onglet vers", value);
     setActiveTab(value);
     
-    // Mettre à jour l'URL avec un hash sans recharger la page
     window.history.replaceState(
       { ...window.history.state, tab: value },
       '',
       `${window.location.pathname}#${value}`
     );
+    
+    if (value === "outfits") {
+      navigate("/outfits");
+      return;
+    } else if (value === "suitcases") {
+      navigate("/wardrobe/suitcases");
+      return;
+    }
   };
 
-  // Optimisation: Affichage d'un squelette de chargement plus léger
   if (isLoading) {
     return (
       <div className="container mx-auto py-6 flex items-center justify-center h-[50vh]">
@@ -268,7 +251,6 @@ const Personal: React.FC = () => {
     );
   }
 
-  // Utiliser une clé stable pour les onglets pour éviter les remontages complets
   return (
     <div className="container mx-auto py-6 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Mon Univers</h1>
