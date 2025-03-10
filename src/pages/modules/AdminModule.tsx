@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ModuleGuard } from '@/components/modules/ModuleGuard';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Users, Settings, Store, Package, BarChart, FileText, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, Store, Package, BarChart, FileText, Mail, Database } from 'lucide-react';
 import { eventBus } from '@/core/event-bus/EventBus';
 import { moduleMenuCoordinator } from '@/services/coordination/ModuleMenuCoordinator';
 
@@ -50,6 +50,14 @@ const AdminModule = () => {
       text: 'Activez ou désactivez les modules de l\'application.',
       path: '/admin/modules',
       icon: <Package className="h-5 w-5 mr-2" />
+    },
+    {
+      id: 'database',
+      title: 'Base de données',
+      description: 'Statistiques Supabase',
+      text: 'Consultez les statistiques d\'utilisation de la base de données Supabase.',
+      path: '/admin/database',
+      icon: <Database className="h-5 w-5 mr-2" />
     },
     {
       id: 'shops',

@@ -13,6 +13,7 @@ import Friends from '@/pages/Friends';
 import Messages from '@/pages/Messages';
 import Suitcases from '@/pages/Suitcases';
 import Outfits from '@/pages/Outfits';
+import AdminDatabase from '@/pages/admin/AdminDatabase';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -162,6 +163,8 @@ const MainRoutes: React.FC = () => {
             replace 
           />
         } />
+        
+        <Route path="/admin/database" element={<AdminDatabase />} />
         
         <Route path="/*" element={<App />} />
       </Route>

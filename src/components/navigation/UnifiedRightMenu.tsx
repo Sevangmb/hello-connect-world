@@ -1,11 +1,10 @@
-
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { UserButton } from "@/components/UserButton";
 import { cn } from "@/lib/utils";
-import { X, Menu, Shield } from 'lucide-react';
+import { X, Menu, Shield, Database } from 'lucide-react';
 import { useAdminStatus } from '@/hooks/menu/useAdminStatus';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -39,6 +38,13 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
       path: "/admin/users",
       icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
       active: currentPath.startsWith("/admin/users")
+    },
+    {
+      id: "database",
+      label: "Base de données",
+      path: "/admin/database",
+      icon: <Database className="h-4 w-4" />,
+      active: currentPath === "/admin/database"
     },
     {
       id: "shops",
