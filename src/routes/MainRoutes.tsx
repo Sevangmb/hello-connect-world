@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -10,6 +9,7 @@ import { eventBus } from '@/core/event-bus/EventBus';
 import Personal from '@/pages/Personal';
 import Favorites from '@/pages/Favorites';
 import Settings from '@/pages/Profile/Settings';
+import Friends from '@/pages/Friends';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -36,6 +36,7 @@ const ROUTES = {
   HOME: '/',
   PERSONAL: '/personal',
   FAVORITES: '/favorites',
+  FRIENDS: '/friends',
   PROFILE: {
     ROOT: '/profile',
     SETTINGS: '/profile/settings',
@@ -95,7 +96,8 @@ const MainRoutes: React.FC = () => {
           const moduleImports = [
             import('@/pages/Personal'),
             import('@/pages/Favorites'),
-            import('@/pages/Profile/Settings')
+            import('@/pages/Profile/Settings'),
+            import('@/pages/Friends')
           ];
           
           // Attendre le préchargement des modules les plus importants
@@ -127,6 +129,7 @@ const MainRoutes: React.FC = () => {
         {/* Routes de profil, favoris et paramètres */}
         <Route path={ROUTES.PERSONAL} element={<Personal />} />
         <Route path={ROUTES.FAVORITES} element={<Favorites />} />
+        <Route path={ROUTES.FRIENDS} element={<Friends />} />
         <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
         
         {/* Routes de modules */}

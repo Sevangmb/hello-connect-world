@@ -1,73 +1,49 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 export interface SuggestedUser {
   id: string;
   username: string;
-  avatar_url: string | null;
+  full_name?: string;
+  avatar_url?: string | null;
 }
 
 export const useSuggestedFriends = () => {
-  const { user } = useAuth();
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const query = useQuery({
-    queryKey: ['suggestedFriends'],
-    queryFn: async (): Promise<SuggestedUser[]> => {
-      if (!user) return [];
-
-      // Récupérer les utilisateurs suggérés (à l'exclusion de l'utilisateur actuel)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .neq('id', user.id)
-        .limit(10);
-
-      if (error) {
-        console.error('Error fetching suggested friends:', error);
-        return [];
-      }
-
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
-  const sendFriendRequest = async (suggestedUser: SuggestedUser) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('friendships')
-        .insert({
-          user_id: user.id,
-          friend_id: suggestedUser.id,
-          status: 'pending'
-        });
+  useEffect(() => {
+    const fetchSuggestedFriends = async () => {
+      try {
+        setLoading(true);
         
-      if (error) throw error;
-      
-      toast({
-        title: "Demande envoyée",
-        description: `Demande d'ami envoyée à ${suggestedUser.username}`,
-      });
-    } catch (error) {
-      console.error('Error sending friend request:', error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'envoyer la demande d'ami",
-      });
-    }
-  };
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, full_name, avatar_url')
+          .limit(10);
+          
+        if (error) throw error;
+        
+        setSuggestedUsers(data as SuggestedUser[]);
+      } catch (error: any) {
+        console.error('Error fetching suggested friends:', error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les suggestions d'amis",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  return {
-    suggestedUsers: query.data || [],
-    isLoading: query.isLoading,
-    sendFriendRequest,
-    ...query
-  };
+    fetchSuggestedFriends();
+  }, [toast]);
+
+  return { suggestedUsers, loading };
 };
+
+export default useSuggestedFriends;
