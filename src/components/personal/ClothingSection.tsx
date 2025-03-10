@@ -3,7 +3,7 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import { ClothingCard } from "./ClothingCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface ClothingSectionProps {
@@ -15,6 +15,10 @@ export const ClothingSection = ({ items }: ClothingSectionProps) => {
   
   const handleAddClothing = () => {
     navigate("/clothes/add");
+  };
+  
+  const handleViewAll = () => {
+    navigate("/wardrobe");
   };
 
   if (items.length === 0) {
@@ -39,8 +43,9 @@ export const ClothingSection = ({ items }: ClothingSectionProps) => {
             <Plus className="h-4 w-4 mr-2" />
             Ajouter
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/clothes")}>
+          <Button variant="outline" size="sm" onClick={handleViewAll}>
             Voir tous
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       </div>
