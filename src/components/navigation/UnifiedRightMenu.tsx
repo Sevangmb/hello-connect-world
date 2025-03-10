@@ -215,9 +215,10 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     {
       id: "personal",
       label: "Mon Univers",
-      path: "/personal",
+      path: "/wardrobe",
       icon: <User className="h-4 w-4" />,
-      active: currentPath.startsWith("/personal") || 
+      active: currentPath === "/wardrobe" || 
+              currentPath.startsWith("/personal") || 
               currentPath.startsWith("/wardrobe") || 
               currentPath.startsWith("/outfits") ||
               currentPath.startsWith("/profile"),

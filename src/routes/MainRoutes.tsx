@@ -117,6 +117,7 @@ const MainRoutes: React.FC = () => {
         <Route index element={<Home />} />
         <Route path={ROUTES.HOME} element={<Home />} />
         
+        <Route path="/personal" element={<Navigate to="/wardrobe" replace />} />
         <Route path={ROUTES.PERSONAL} element={<Personal />} />
         <Route path={ROUTES.FAVORITES} element={<Favorites />} />
         <Route path={ROUTES.FRIENDS} element={<Friends />} />

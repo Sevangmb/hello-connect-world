@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       label: "Mon Univers",
       path: "/wardrobe",
       icon: <User className="h-4 w-4" />,
-      active: currentPath.startsWith("/personal") || 
+      active: currentPath === "/wardrobe" || 
+              currentPath.startsWith("/personal") || 
               currentPath.startsWith("/wardrobe") || 
               currentPath.startsWith("/outfits"),
       children: [
