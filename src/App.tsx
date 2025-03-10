@@ -13,6 +13,7 @@ import { CartPage } from './components/cart';
 import NotFound from './pages/NotFound';
 import { eventBus, EVENTS } from './services/events/EventBus';
 import Friends from './pages/Friends';
+import Messages from './pages/Messages';
 
 // Lazy load components
 const Home = lazy(() => import('./pages/Home'));
@@ -27,7 +28,6 @@ const Personal = lazy(() => import('./pages/Personal'));
 const Challenges = lazy(() => import('./pages/Challenges'));
 const ChallengeDetail = lazy(() => import('./pages/ChallengeDetail'));
 const Notifications = lazy(() => import('./pages/Notifications'));
-const Messages = lazy(() => import('./pages/Messages'));
 const Outfits = lazy(() => import('./pages/Outfits'));
 const OutfitDetail = lazy(() => import('./pages/OutfitDetail'));
 const Search = lazy(() => import('./pages/Search'));
@@ -87,6 +87,7 @@ function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="favorites" element={<Favorites />} />
           <Route path="friends" element={<Friends />} />
+          <Route path="messages" element={<Messages />} />
           
           {/* Routes du module Social */}
           <Route path="social">
@@ -94,7 +95,7 @@ function App() {
             <Route path="challenges" element={<ModuleGuard moduleCode="social"><Challenges /></ModuleGuard>} />
             <Route path="challenges/:id" element={<ModuleGuard moduleCode="social"><ChallengeDetail /></ModuleGuard>} />
             <Route path="friends" element={<Navigate to="/friends" replace />} />
-            <Route path="messages" element={<ModuleGuard moduleCode="social"><Messages /></ModuleGuard>} />
+            <Route path="messages" element={<Navigate to="/messages" replace />} />
           </Route>
           
           {/* Routes du module Wardrobe */}

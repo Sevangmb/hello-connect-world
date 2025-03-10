@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ interface MenuItemProps {
   onClick: () => void;
 }
 
-// Composant pour un élément de menu individuel
 const MenuItem: React.FC<MenuItemProps> = ({ label, icon, active, onClick }) => {
   return (
     <Button
@@ -50,7 +48,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   const location = useLocation();
   const currentPath = location.pathname;
   
-  // Structure hiérarchique du menu 
   const menuStructure = [
     {
       id: "home",
@@ -110,8 +107,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       label: "Communauté",
       path: "/social",
       icon: <Users className="h-4 w-4" />,
-      active: currentPath.startsWith("/social"),
+      active: currentPath.startsWith("/social") || 
+              currentPath.startsWith("/friends") || 
+              currentPath.startsWith("/messages"),
       children: [
+        {
+          id: "friends",
+          label: "Amis",
+          path: "/friends",
+          icon: <Users className="h-4 w-4" />,
+          active: currentPath.startsWith("/friends")
+        },
         {
           id: "messages",
           label: "Messages",
@@ -151,7 +157,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     }
   };
   
-  // Pour le menu horizontal, afficher uniquement les éléments principaux
   if (variant === "horizontal") {
     return (
       <div className={cn("flex items-center gap-1", className)}>
@@ -172,7 +177,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     );
   }
   
-  // Pour le menu vertical, afficher la structure complète avec enfants
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       {menuStructure.map((item) => (
@@ -185,7 +189,6 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             onClick={() => handleNavigate(item.path)}
           />
           
-          {/* Afficher les sous-éléments si le parent est actif */}
           {item.children && item.active && (
             <div className="ml-4 mt-1 flex flex-col gap-1">
               {item.children.map((child) => (
