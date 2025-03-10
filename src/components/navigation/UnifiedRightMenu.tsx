@@ -194,6 +194,90 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     }
   };
 
+  // Helper function to check if a path is active, considering nested routes
+  const isPathActive = (path: string): boolean => {
+    // Exact match for home
+    if (path === '/' && currentPath === '/') return true;
+    
+    // For other routes, check if current path starts with the given path
+    // but ensure we're checking complete path segments to avoid partial matches
+    if (path !== '/') {
+      return currentPath === path || 
+             currentPath.startsWith(`${path}/`);
+    }
+    
+    return false;
+  };
+  
+  // Define sub-categories and their active states
+  const personalSubItems = [
+    {
+      id: "wardrobe",
+      label: "Garde-robe",
+      path: "/wardrobe",
+      icon: <Shirt className="h-4 w-4" />,
+      active: isPathActive("/wardrobe") && !currentPath.includes("/suitcases")
+    },
+    {
+      id: "outfits",
+      label: "Mes Tenues",
+      path: "/outfits",
+      icon: <Layers className="h-4 w-4" />,
+      active: isPathActive("/outfits")
+    },
+    {
+      id: "suitcases",
+      label: "Mes Valises",
+      path: "/wardrobe/suitcases",
+      icon: <Briefcase className="h-4 w-4" />,
+      active: isPathActive("/wardrobe/suitcases") || isPathActive("/suitcases")
+    },
+    {
+      id: "favorites",
+      label: "Favoris",
+      path: "/favorites",
+      icon: <Heart className="h-4 w-4" />,
+      active: isPathActive("/favorites")
+    },
+    {
+      id: "profile",
+      label: "Mon Profil",
+      path: "/profile",
+      icon: <User className="h-4 w-4" />,
+      active: isPathActive("/profile") && !currentPath.startsWith("/profile/settings")
+    }
+  ];
+  
+  const socialSubItems = [
+    {
+      id: "friends",
+      label: "Amis",
+      path: "/friends",
+      icon: <Users className="h-4 w-4" />,
+      active: isPathActive("/friends")
+    },
+    {
+      id: "messages",
+      label: "Messages",
+      path: "/messages",
+      icon: <MessageSquare className="h-4 w-4" />,
+      active: isPathActive("/messages")
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      path: "/notifications",
+      icon: <Bell className="h-4 w-4" />,
+      active: isPathActive("/notifications")
+    }
+  ];
+  
+  // Check if any personal sub-item is active
+  const isPersonalActive = personalSubItems.some(item => item.active);
+  
+  // Check if any social sub-item is active
+  const isSocialActive = socialSubItems.some(item => item.active);
+
   // Structure hiérarchique du menu - Unifiée et organisée
   const menuStructure = [
     {
@@ -208,104 +292,39 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
       label: "Explorer",
       path: "/explore",
       icon: <Search className="h-4 w-4" />,
-      active: currentPath.startsWith("/explore") || 
-              currentPath.startsWith("/search") ||
-              currentPath.startsWith("/trends")
+      active: isPathActive("/explore") || 
+              isPathActive("/search") ||
+              isPathActive("/trends")
     },
     {
       id: "personal",
       label: "Mon Univers",
       path: "/wardrobe",
       icon: <User className="h-4 w-4" />,
-      active: currentPath === "/wardrobe" || 
-              currentPath.startsWith("/personal") || 
-              currentPath.startsWith("/wardrobe") || 
-              currentPath.startsWith("/outfits") ||
-              currentPath.startsWith("/profile"),
-      children: [
-        {
-          id: "wardrobe",
-          label: "Garde-robe",
-          path: "/wardrobe",
-          icon: <Shirt className="h-4 w-4" />,
-          active: currentPath.startsWith("/wardrobe")
-        },
-        {
-          id: "outfits",
-          label: "Mes Tenues",
-          path: "/outfits",
-          icon: <Layers className="h-4 w-4" />,
-          active: currentPath.startsWith("/outfits")
-        },
-        {
-          id: "suitcases",
-          label: "Mes Valises",
-          path: "/suitcases",
-          icon: <Briefcase className="h-4 w-4" />,
-          active: currentPath.startsWith("/suitcases")
-        },
-        {
-          id: "favorites",
-          label: "Favoris",
-          path: "/favorites",
-          icon: <Heart className="h-4 w-4" />,
-          active: currentPath.startsWith("/favorites")
-        },
-        {
-          id: "profile",
-          label: "Mon Profil",
-          path: "/profile",
-          icon: <User className="h-4 w-4" />,
-          active: currentPath.startsWith("/profile") && !currentPath.startsWith("/profile/settings")
-        }
-      ]
+      active: isPersonalActive,
+      children: personalSubItems
     },
     {
       id: "social",
       label: "Communauté",
       path: "/social",
       icon: <Users className="h-4 w-4" />,
-      active: currentPath.startsWith("/social") ||
-              currentPath.startsWith("/friends") ||
-              currentPath.startsWith("/messages") ||
-              currentPath.startsWith("/notifications"),
-      children: [
-        {
-          id: "friends",
-          label: "Amis",
-          path: "/friends",
-          icon: <Users className="h-4 w-4" />,
-          active: currentPath.startsWith("/friends")
-        },
-        {
-          id: "messages",
-          label: "Messages",
-          path: "/messages",
-          icon: <MessageSquare className="h-4 w-4" />,
-          active: currentPath.startsWith("/messages")
-        },
-        {
-          id: "notifications",
-          label: "Notifications",
-          path: "/notifications",
-          icon: <Bell className="h-4 w-4" />,
-          active: currentPath.startsWith("/notifications")
-        }
-      ]
+      active: isSocialActive,
+      children: socialSubItems
     },
     {
       id: "boutiques",
       label: "Boutiques",
       path: "/boutiques",
       icon: <ShoppingBag className="h-4 w-4" />,
-      active: currentPath.startsWith("/boutiques") || currentPath.startsWith("/shops") || currentPath.startsWith("/stores")
+      active: isPathActive("/boutiques") || isPathActive("/shops") || isPathActive("/stores")
     },
     {
       id: "settings",
       label: "Paramètres",
       path: "/profile/settings",
       icon: <Settings className="h-4 w-4" />,
-      active: currentPath.startsWith("/settings") || currentPath.startsWith("/profile/settings")
+      active: isPathActive("/settings") || isPathActive("/profile/settings")
     }
   ];
 

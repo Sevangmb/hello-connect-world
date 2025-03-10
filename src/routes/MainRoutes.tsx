@@ -11,6 +11,7 @@ import Favorites from '@/pages/Favorites';
 import Settings from '@/pages/Profile/Settings';
 import Friends from '@/pages/Friends';
 import Messages from '@/pages/Messages';
+import Suitcases from '@/pages/Suitcases';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -146,8 +147,11 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.SHORTCUTS.VIRTUAL_TRY_ON} element={<VirtualTryOnFeature />} />
         <Route path={ROUTES.SHORTCUTS.OCR} element={<OCRModule />} />
         
-        <Route path={ROUTES.REDIRECTS.SUITCASES} element={<Navigate to="/wardrobe/suitcases" replace />} />
-        <Route path={ROUTES.REDIRECTS.SUITCASE_DETAIL} element={
+        <Route path="/suitcases" element={<Navigate to="/wardrobe/suitcases" replace />} />
+        <Route path="/wardrobe/suitcases" element={<Suitcases />} />
+        <Route path="/wardrobe/suitcases/:id" element={<Suitcases />} />
+        
+        <Route path="/suitcases/:id" element={
           <Navigate 
             to={`/wardrobe/suitcases/${location.pathname.split('/').pop()}`} 
             replace 
