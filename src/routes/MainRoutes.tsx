@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -16,6 +17,9 @@ import Outfits from '@/pages/Outfits';
 import AdminDatabase from '@/pages/admin/AdminDatabase';
 import Wardrobe from '@/pages/Wardrobe';
 import Explore from '@/pages/Explore';
+import Challenges from '@/pages/Challenges';
+import ChallengeDetail from '@/pages/ChallengeDetail';
+import Notifications from '@/pages/Notifications';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';
@@ -31,6 +35,7 @@ import MarketplaceModule from '@/pages/modules/MarketplaceModule';
 import ScanLabelFeature from '@/pages/features/ScanLabelFeature';
 import OutfitSuggestionFeature from '@/pages/features/OutfitSuggestionFeature';
 import VirtualTryOnFeature from '@/pages/features/VirtualTryOnFeature';
+import { ModuleGuard } from '@/components/modules/ModuleGuard';
 
 // Import de l'App pour les routes imbriquées
 import App from '@/App';
@@ -49,6 +54,11 @@ const ROUTES = {
   PROFILE: {
     ROOT: '/profile',
     SETTINGS: '/profile/settings',
+  },
+  SOCIAL: {
+    ROOT: '/social',
+    CHALLENGES: '/social/challenges',
+    CHALLENGE_DETAIL: '/social/challenges/:id',
   },
   MODULES: {
     ROOT: '/module',
@@ -77,6 +87,7 @@ const ROUTES = {
     SUITCASES: '/suitcases',
     SUITCASE_DETAIL: '/suitcases/:id',
   },
+  NOTIFICATIONS: '/notifications',
   NOT_FOUND: '/404',
 };
 
@@ -130,10 +141,27 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.MESSAGES} element={<Messages />} />
         <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
         <Route path={ROUTES.EXPLORE} element={<Explore />} />
+        <Route path={ROUTES.NOTIFICATIONS} element={<Notifications />} />
         
         <Route path={ROUTES.WARDROBE} element={<Wardrobe />} />
         <Route path="/wardrobe/outfits" element={<Outfits />} />
         <Route path="/outfits" element={<Outfits />} />
+        
+        <Route path={ROUTES.SOCIAL.ROOT}>
+          <Route index element={<Navigate to={ROUTES.SOCIAL.CHALLENGES} replace />} />
+          <Route path="challenges" element={
+            <ModuleGuard moduleCode="social">
+              <Challenges />
+            </ModuleGuard>
+          } />
+          <Route path="challenges/:id" element={
+            <ModuleGuard moduleCode="social">
+              <ChallengeDetail />
+            </ModuleGuard>
+          } />
+          <Route path="friends" element={<Navigate to="/friends" replace />} />
+          <Route path="messages" element={<Navigate to="/messages" replace />} />
+        </Route>
         
         <Route path={ROUTES.MODULES.ROOT}>
           <Route path="core" element={<CoreModule />} />
@@ -170,7 +198,9 @@ const MainRoutes: React.FC = () => {
         
         <Route path="/admin/database" element={<AdminDatabase />} />
         
-        <Route path="/*" element={<App />} />
+        <Route path="/profile/*" element={<App />} />
+        <Route path="/boutiques/*" element={<App />} />
+        <Route path="/admin/*" element={<App />} />
       </Route>
 
       <Route path={ROUTES.NOT_FOUND} element={<NotFound />} />

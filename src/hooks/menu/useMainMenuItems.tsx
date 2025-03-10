@@ -151,8 +151,8 @@ export const useMainMenuItems = (currentPath: string) => {
   [personalSubItems, currentPath]);
   
   const isSocialActive = useMemo(() => 
-    socialSubItems.some(item => item.active),
-  [socialSubItems]);
+    socialSubItems.some(item => item.active) || currentPath.startsWith('/social'),
+  [socialSubItems, currentPath]);
 
   const isExploreActive = useMemo(() => 
     exploreSubItems.some(item => item.active) || isPathActive("/explore"),

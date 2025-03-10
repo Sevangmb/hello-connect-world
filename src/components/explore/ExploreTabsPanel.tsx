@@ -7,9 +7,18 @@ import { HashtagsSection } from './HashtagsSection';
 import { FavoritesSection } from './FavoritesSection';
 import { TrendingSection } from './TrendingSection';
 import { ChallengesSection } from './ChallengesSection';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const ExploreTabsPanel = () => {
   const [activeTab, setActiveTab] = useState('publications');
+
+  // Component de fallback en cas d'erreur
+  const fallbackUI = (
+    <div className="p-6 bg-muted rounded-lg text-center">
+      <h3 className="text-lg font-semibold mb-2">Une erreur est survenue</h3>
+      <p className="text-muted-foreground mb-4">Nous travaillons à résoudre ce problème.</p>
+    </div>
+  );
 
   return (
     <div className="w-full">
@@ -56,22 +65,34 @@ export const ExploreTabsPanel = () => {
           
           <div className="p-4">
             <TabsContent value="publications" className="mt-0">
-              <PublicationsSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <PublicationsSection />
+              </ErrorBoundary>
             </TabsContent>
             <TabsContent value="actualites" className="mt-0">
-              <NewsSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <NewsSection />
+              </ErrorBoundary>
             </TabsContent>
             <TabsContent value="defis" className="mt-0">
-              <ChallengesSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <ChallengesSection />
+              </ErrorBoundary>
             </TabsContent>
             <TabsContent value="hashtags" className="mt-0">
-              <HashtagsSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <HashtagsSection />
+              </ErrorBoundary>
             </TabsContent>
             <TabsContent value="favoris" className="mt-0">
-              <FavoritesSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <FavoritesSection />
+              </ErrorBoundary>
             </TabsContent>
             <TabsContent value="tendances" className="mt-0">
-              <TrendingSection />
+              <ErrorBoundary fallback={fallbackUI}>
+                <TrendingSection />
+              </ErrorBoundary>
             </TabsContent>
           </div>
         </div>
