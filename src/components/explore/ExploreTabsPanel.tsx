@@ -6,6 +6,7 @@ import { NewsSection } from './NewsSection';
 import { HashtagsSection } from './HashtagsSection';
 import { FavoritesSection } from './FavoritesSection';
 import { TrendingSection } from './TrendingSection';
+import { ChallengesSection } from './ChallengesSection';
 
 export const ExploreTabsPanel = () => {
   const [activeTab, setActiveTab] = useState('publications');
@@ -14,7 +15,7 @@ export const ExploreTabsPanel = () => {
     <div className="w-full">
       <Tabs defaultValue="publications" onValueChange={setActiveTab} className="w-full">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <TabsList className="w-full flex bg-white border-b">
+          <TabsList className="w-full flex bg-white border-b overflow-x-auto">
             <TabsTrigger 
               value="publications" 
               className={`flex-1 py-3 px-4 ${activeTab === 'publications' ? 'font-semibold text-primary border-b-2 border-primary' : 'text-gray-600'}`}
@@ -26,6 +27,12 @@ export const ExploreTabsPanel = () => {
               className={`flex-1 py-3 px-4 ${activeTab === 'actualites' ? 'font-semibold text-primary border-b-2 border-primary' : 'text-gray-600'}`}
             >
               Actualités
+            </TabsTrigger>
+            <TabsTrigger 
+              value="defis" 
+              className={`flex-1 py-3 px-4 ${activeTab === 'defis' ? 'font-semibold text-primary border-b-2 border-primary' : 'text-gray-600'}`}
+            >
+              Défis
             </TabsTrigger>
             <TabsTrigger 
               value="hashtags" 
@@ -53,6 +60,9 @@ export const ExploreTabsPanel = () => {
             </TabsContent>
             <TabsContent value="actualites" className="mt-0">
               <NewsSection />
+            </TabsContent>
+            <TabsContent value="defis" className="mt-0">
+              <ChallengesSection />
             </TabsContent>
             <TabsContent value="hashtags" className="mt-0">
               <HashtagsSection />

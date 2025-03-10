@@ -3,6 +3,7 @@ import React from 'react';
 import ExploreTabsPanel from '@/components/explore/ExploreTabsPanel';
 import { Card } from '@/components/ui/card';
 import { PostsList } from '@/components/posts/PostsList';
+import { ChallengesSection } from '@/components/explore/ChallengesSection';
 
 const Explore = () => {
   return (
@@ -23,8 +24,8 @@ const Explore = () => {
         
         <div>
           <Card className="p-4">
-            <h2 className="text-lg font-semibold mb-4">À découvrir</h2>
-            <p className="text-sm text-gray-500">Contenu à venir</p>
+            <h2 className="text-lg font-semibold mb-4">Défis actuels</h2>
+            <ChallengesSection />
           </Card>
         </div>
       </div>
