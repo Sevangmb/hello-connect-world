@@ -1,16 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
-import SuitcaseCalendar from '@/components/suitcases/components/SuitcaseCalendar';
-import { useSuitcaseCalendarItems } from '@/hooks/useSuitcaseCalendarItems';
+import { SuitcaseCalendar } from '@/components/suitcases/components/SuitcaseCalendar';
+import useSuitcaseCalendarItems from '@/hooks/useSuitcaseCalendarItems';
 import { useToast } from '@/hooks/use-toast';
 
 const SuitcaseCalendarPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { items, loading, selectedDate, onDateSelect } = useSuitcaseCalendarItems(id || '');
+  const { items, loading, error, selectedDate, onDateSelect } = useSuitcaseCalendarItems(id || '');
   const { toast } = useToast();
 
   if (loading) {
@@ -21,11 +21,11 @@ const SuitcaseCalendarPage = () => {
     );
   }
 
-  if (!id) {
+  if (error || !id) {
     toast({
       variant: 'destructive',
       title: 'Erreur',
-      description: "ID de valise manquant"
+      description: error?.message || "ID de valise manquant"
     });
     return (
       <Card>
@@ -46,6 +46,7 @@ const SuitcaseCalendarPage = () => {
         items={items}
         onDateSelect={onDateSelect}
         selectedDate={selectedDate}
+        suitcaseId={id}
       />
 
       <div className="mt-8">

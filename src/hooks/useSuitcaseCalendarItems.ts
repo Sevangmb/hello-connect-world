@@ -7,18 +7,16 @@ export const useSuitcaseCalendarItems = (suitcaseId: string) => {
   const [items, setItems] = useState<SuitcaseCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
-    if (!suitcaseId) {
-      setLoading(false);
-      return;
-    }
-
+    if (!suitcaseId) return;
+    
     const fetchCalendarItems = async () => {
       try {
         setLoading(true);
         
-        // Fetch suitcase items with their clothes details
+        // Fetch suitcase items
         const { data: suitcaseItems, error: itemsError } = await supabase
           .from('suitcase_items')
           .select(`
@@ -26,10 +24,9 @@ export const useSuitcaseCalendarItems = (suitcaseId: string) => {
             suitcase_id,
             clothes_id,
             quantity,
-            folder_id,
-            created_at,
-            day_assigned,
+            calendar_date,
             clothes (
+              id,
               name,
               image_url,
               category,
@@ -41,39 +38,55 @@ export const useSuitcaseCalendarItems = (suitcaseId: string) => {
         if (itemsError) throw itemsError;
         
         // Group items by date
-        const groupedItems: Record<string, SuitcaseItem[]> = {};
+        const itemsByDate: Record<string, SuitcaseItem[]> = {};
         
-        suitcaseItems.forEach((item: any) => {
-          if (item.day_assigned) {
-            const dateStr = item.day_assigned;
-            if (!groupedItems[dateStr]) {
-              groupedItems[dateStr] = [];
-            }
-            groupedItems[dateStr].push(item);
+        suitcaseItems?.forEach((item: any) => {
+          // Use the calendar_date if it exists, otherwise spread across all dates
+          const date = item.calendar_date ? item.calendar_date : new Date().toISOString().split('T')[0];
+          
+          if (!itemsByDate[date]) {
+            itemsByDate[date] = [];
           }
+          
+          itemsByDate[date].push({
+            id: item.id,
+            suitcase_id: item.suitcase_id,
+            clothes_id: item.clothes_id,
+            quantity: item.quantity,
+            clothes: item.clothes
+          });
         });
         
-        // Convert to calendar items format
-        const calendarItems: SuitcaseCalendarItem[] = Object.keys(groupedItems).map(date => ({
-          id: `${suitcaseId}-${date}`,
+        // Convert to SuitcaseCalendarItem array
+        const calendarItems: SuitcaseCalendarItem[] = Object.keys(itemsByDate).map(date => ({
+          id: `calendar-item-${date}`,
           date,
-          items: groupedItems[date]
+          items: itemsByDate[date]
         }));
         
         setItems(calendarItems);
-        setError(null);
       } catch (err) {
         console.error('Error fetching calendar items:', err);
-        setError(err as Error);
+        setError(err instanceof Error ? err : new Error('Failed to fetch calendar items'));
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchCalendarItems();
   }, [suitcaseId]);
-
-  return { items, loading, error };
+  
+  const onDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+  
+  return {
+    items,
+    loading,
+    error,
+    selectedDate,
+    onDateSelect
+  };
 };
 
 export default useSuitcaseCalendarItems;
