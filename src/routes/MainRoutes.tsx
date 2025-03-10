@@ -126,6 +126,7 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.MESSAGES} element={<Messages />} />
         <Route path={ROUTES.PROFILE.SETTINGS} element={<Settings />} />
         
+        <Route path="/wardrobe" element={<Navigate to="/personal" replace />} />
         <Route path="/wardrobe/outfits" element={<Navigate to="/outfits" replace />} />
         <Route path="/outfits" element={<Outfits />} />
         

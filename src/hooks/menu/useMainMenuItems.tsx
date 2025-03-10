@@ -36,7 +36,7 @@ export const usePathActive = (currentPath: string) => {
       // Special case for personal section
       if (currentPath === '/personal' && (
         path === '/wardrobe' || 
-        path === '/wardrobe/outfits' || 
+        path === '/outfits' || 
         path === '/wardrobe/suitcases' ||
         path === '/favorites' ||
         path === '/profile'
@@ -75,9 +75,9 @@ export const useMainMenuItems = (currentPath: string) => {
     {
       id: "outfits",
       label: "Mes Tenues",
-      path: "/wardrobe/outfits",
+      path: "/outfits",
       icon: <Layers className="h-4 w-4" />,
-      active: isPathActive("/wardrobe/outfits")
+      active: isPathActive("/outfits")
     },
     {
       id: "suitcases",
