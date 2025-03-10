@@ -14,7 +14,7 @@ export const ChallengesSection = () => {
   const navigate = useNavigate();
   const now = new Date().toISOString();
   
-  const { data: challenges, isLoading } = useQuery({
+  const { data: challenges, isLoading, error } = useQuery({
     queryKey: ['explore-challenges'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,6 +25,12 @@ export const ChallengesSection = () => {
           description,
           start_date, 
           end_date,
+          creator_id,
+          status,
+          participation_type,
+          rules,
+          reward_description,
+          is_voting_enabled,
           profiles(username),
           participants:challenge_participants(count)
         `)
@@ -36,7 +42,7 @@ export const ChallengesSection = () => {
 
       if (error) throw error;
       
-      // Fix the type issue by explicitly casting to unknown first, then to Challenge[]
+      // Conversion sécurisée du type
       return (data as unknown) as Challenge[];
     }
   });
@@ -49,6 +55,15 @@ export const ChallengesSection = () => {
     return (
       <div className="text-center py-4">
         <p className="text-muted-foreground">Chargement des défis...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Erreur lors du chargement des défis:", error);
+    return (
+      <div className="text-center py-4 text-destructive">
+        <p>Une erreur est survenue lors du chargement des défis.</p>
       </div>
     );
   }
@@ -79,7 +94,7 @@ export const ChallengesSection = () => {
                       {challenge.title}
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      Créé par {challenge.profiles.username || 'Anonyme'} • 
+                      Créé par {challenge.profiles?.username || 'Anonyme'} • 
                       {challenge.participants && challenge.participants.length > 0 
                         ? ` ${challenge.participants.length} participants`
                         : ' 0 participant'}
