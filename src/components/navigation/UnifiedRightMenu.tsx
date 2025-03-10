@@ -4,45 +4,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { UserButton } from "@/components/UserButton";
-import { useMenu } from "@/hooks/menu";
 import { cn } from "@/lib/utils";
-import { 
-  Home, Search, User, ShoppingBag, 
-  Shirt, Layers, Briefcase, Heart, Users, 
-  MessageSquare, Bell, Settings, Shield,
-  LayoutDashboard, UserCog, Store, Package,
-  FileText, BarChart, Mail, Menu
-} from "lucide-react";
+import { X, Menu, Shield } from 'lucide-react';
 import { useAdminStatus } from '@/hooks/menu/useAdminStatus';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-interface MenuItemProps {
-  label: string;
-  path: string;
-  icon: React.ReactNode;
-  active?: boolean;
-  onClick: () => void;
-}
-
-const MenuItem: React.FC<MenuItemProps> = ({ label, icon, active, onClick }) => {
-  return (
-    <Button
-      variant={active ? "default" : "ghost"}
-      size="sm"
-      className={cn(
-        "w-full justify-start gap-2",
-        active ? "bg-primary/10 text-primary" : ""
-      )}
-      onClick={onClick}
-    >
-      {icon}
-      <span>{label}</span>
-    </Button>
-  );
-};
+import { useMainMenuItems } from '@/hooks/menu/useMainMenuItems';
+import { MenuItem, VerticalMenu } from './MenuItems';
 
 interface AdminMenuSectionProps {
   isExpanded?: boolean;
@@ -62,56 +30,56 @@ const AdminMenuSection: React.FC<AdminMenuSectionProps> = ({
       id: "dashboard",
       label: "Dashboard",
       path: "/admin/dashboard",
-      icon: <LayoutDashboard className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>,
       active: currentPath === "/admin/dashboard"
     },
     {
       id: "users",
       label: "Utilisateurs",
       path: "/admin/users",
-      icon: <UserCog className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
       active: currentPath.startsWith("/admin/users")
     },
     {
       id: "shops",
       label: "Boutiques",
       path: "/admin/shops",
-      icon: <Store className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" /><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" /><path d="M2 7h20" /><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12v0a2 2 0 0 1-2-2V7" /></svg>,
       active: currentPath.startsWith("/admin/shops")
     },
     {
       id: "modules",
       label: "Modules",
       path: "/admin/modules",
-      icon: <Package className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></svg>,
       active: currentPath.startsWith("/admin/modules")
     },
     {
       id: "content",
       label: "Contenu",
       path: "/admin/content",
-      icon: <FileText className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>,
       active: currentPath.startsWith("/admin/content")
     },
     {
       id: "stats",
       label: "Statistiques",
       path: "/admin/stats",
-      icon: <BarChart className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg>,
       active: currentPath.startsWith("/admin/stats")
     },
     {
       id: "campaigns",
       label: "Campagnes",
       path: "/admin/campaigns",
-      icon: <Mail className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="13" x="4" y="5" rx="2" /><path d="m22 5-10.5 7L1 5" /></svg>,
       active: currentPath.startsWith("/admin/campaigns")
     },
     {
       id: "settings",
       label: "Configuration",
       path: "/admin/settings",
-      icon: <Settings className="h-4 w-4" />,
+      icon: <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>,
       active: currentPath.startsWith("/admin/settings")
     }
   ];
@@ -159,7 +127,7 @@ interface UnifiedRightMenuProps {
   className?: string;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
-  currentPath?: string; // Accepter le chemin actuel comme prop pour éviter les re-rendus
+  currentPath?: string;
 }
 
 export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
@@ -172,10 +140,10 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
   const location = useLocation();
   const routeCurrentPath = location.pathname;
   
-  // Utiliser le chemin passé en prop ou celui de la route actuelle
   const currentPath = propCurrentPath || routeCurrentPath;
   
   const { isUserAdmin } = useAdminStatus();
+  const { menuStructure } = useMainMenuItems(currentPath);
   
   const menuClasses = useMemo(() => cn(
     "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-200 pt-5 pb-4 flex flex-col",
@@ -196,154 +164,6 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
       onMobileClose();
     }
   };
-
-  // Fonction optimisée pour vérifier si un chemin est actif
-  const isPathActive = (path: string): boolean => {
-    // Cas spécial pour la page d'accueil
-    if (path === '/' && currentPath === '/') return true;
-    
-    // Si nous sommes sur une page "personal", considérer tous les chemins liés comme actifs
-    if (currentPath === '/personal' && (
-      path === '/wardrobe' || 
-      path === '/outfits' || 
-      path === '/wardrobe/suitcases' ||
-      path === '/favorites' ||
-      path === '/profile'
-    )) {
-      return true;
-    }
-    
-    // Pour les autres routes, vérifier si le chemin actuel commence par le chemin donné
-    if (path !== '/') {
-      return currentPath === path || 
-             currentPath.startsWith(`${path}/`);
-    }
-    
-    return false;
-  };
-  
-  // Définition mémorisée des sous-éléments personnels
-  const personalSubItems = useMemo(() => [
-    {
-      id: "wardrobe",
-      label: "Garde-robe",
-      path: "/wardrobe",
-      icon: <Shirt className="h-4 w-4" />,
-      active: isPathActive("/wardrobe") && !currentPath.includes("/suitcases")
-    },
-    {
-      id: "outfits",
-      label: "Mes Tenues",
-      path: "/outfits",
-      icon: <Layers className="h-4 w-4" />,
-      active: isPathActive("/outfits")
-    },
-    {
-      id: "suitcases",
-      label: "Mes Valises",
-      path: "/wardrobe/suitcases",
-      icon: <Briefcase className="h-4 w-4" />,
-      active: isPathActive("/wardrobe/suitcases") || isPathActive("/suitcases")
-    },
-    {
-      id: "favorites",
-      label: "Mes Favoris",
-      path: "/favorites",
-      icon: <Heart className="h-4 w-4" />,
-      active: isPathActive("/favorites")
-    },
-    {
-      id: "profile",
-      label: "Mon Profil",
-      path: "/profile",
-      icon: <User className="h-4 w-4" />,
-      active: isPathActive("/profile") && !currentPath.startsWith("/profile/settings")
-    }
-  ], [currentPath]);
-  
-  // Définition mémorisée des sous-éléments sociaux
-  const socialSubItems = useMemo(() => [
-    {
-      id: "friends",
-      label: "Amis",
-      path: "/friends",
-      icon: <Users className="h-4 w-4" />,
-      active: isPathActive("/friends")
-    },
-    {
-      id: "messages",
-      label: "Messages",
-      path: "/messages",
-      icon: <MessageSquare className="h-4 w-4" />,
-      active: isPathActive("/messages")
-    },
-    {
-      id: "notifications",
-      label: "Notifications",
-      path: "/notifications",
-      icon: <Bell className="h-4 w-4" />,
-      active: isPathActive("/notifications")
-    }
-  ], [currentPath]);
-  
-  // Vérifier si une catégorie est active de façon mémorisée
-  const isPersonalActive = useMemo(() => 
-    personalSubItems.some(item => item.active) || currentPath === '/personal',
-  [personalSubItems, currentPath]);
-  
-  const isSocialActive = useMemo(() => 
-    socialSubItems.some(item => item.active),
-  [socialSubItems]);
-
-  // Structure du menu mémorisée pour éviter les recalculs inutiles
-  const menuStructure = useMemo(() => [
-    {
-      id: "home",
-      label: "Accueil",
-      path: "/",
-      icon: <Home className="h-4 w-4" />,
-      active: currentPath === "/"
-    },
-    {
-      id: "explore",
-      label: "Explorer",
-      path: "/explore",
-      icon: <Search className="h-4 w-4" />,
-      active: isPathActive("/explore") || 
-              isPathActive("/search") ||
-              isPathActive("/trends")
-    },
-    {
-      id: "personal",
-      label: "Mon Univers",
-      path: "/personal",
-      icon: <User className="h-4 w-4" />,
-      active: isPersonalActive,
-      children: personalSubItems
-    },
-    {
-      id: "social",
-      label: "Communauté",
-      path: "/social",
-      icon: <Users className="h-4 w-4" />,
-      active: isSocialActive,
-      children: socialSubItems
-    },
-    {
-      id: "boutiques",
-      label: "Boutiques",
-      path: "/boutiques",
-      icon: <ShoppingBag className="h-4 w-4" />,
-      active: isPathActive("/boutiques") || isPathActive("/shops") || isPathActive("/stores")
-    },
-    {
-      id: "settings",
-      label: "Paramètres",
-      path: "/profile/settings",
-      icon: <Settings className="h-4 w-4" />,
-      active: isPathActive("/settings") || isPathActive("/profile/settings")
-    }
-  ], [currentPath, isPersonalActive, isSocialActive, personalSubItems, socialSubItems]);
 
   return (
     <>
@@ -370,34 +190,10 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
         
         <div className="flex-1 px-3 overflow-hidden">
           <ScrollArea className="h-full pr-2">
-            <div className="flex flex-col gap-1">
-              {menuStructure.map((item) => (
-                <React.Fragment key={item.id}>
-                  <MenuItem 
-                    label={item.label}
-                    path={item.path}
-                    icon={item.icon}
-                    active={item.active}
-                    onClick={() => handleNavigate(item.path)}
-                  />
-                  
-                  {item.children && item.active && (
-                    <div className="ml-4 mt-1 flex flex-col gap-1">
-                      {item.children.map((child) => (
-                        <MenuItem
-                          key={child.id}
-                          label={child.label}
-                          path={child.path}
-                          icon={child.icon}
-                          active={child.active}
-                          onClick={() => handleNavigate(child.path)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
+            <VerticalMenu 
+              items={menuStructure}
+              onItemClick={handleNavigate}
+            />
             
             {isUserAdmin && (
               <AdminMenuSection 
