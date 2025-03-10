@@ -106,7 +106,7 @@ const AdminDatabase: React.FC = () => {
   
   const getProgressColor = (percentage: number) => {
     if (percentage >= 100) return 'bg-destructive';
-    if (percentage >= 80) return 'bg-warning';
+    if (percentage >= 80) return 'bg-amber-500';
     return 'bg-primary';
   };
   
@@ -149,8 +149,8 @@ const AdminDatabase: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert variant="warning" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
+            <Alert variant="default" className="mb-4 border-amber-500 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <AlertTitle>Attention</AlertTitle>
               <AlertDescription>
                 Vous avez dépassé votre quota du plan gratuit dans ce cycle de facturation. 
@@ -183,7 +183,7 @@ const AdminDatabase: React.FC = () => {
                       <span 
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
                           stat.percentage >= 100 ? 'bg-destructive/20 text-destructive' : 
-                          stat.percentage >= 80 ? 'bg-warning/20 text-warning' : 
+                          stat.percentage >= 80 ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400' : 
                           'bg-primary/20 text-primary'
                         }`}
                       >
