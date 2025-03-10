@@ -2,10 +2,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Shop } from '@/core/shop/domain/types/shop-types';
+import type { Shop, ShopStatus } from '@/core/shop/domain/types/shop-types';
 
-interface NearbyShop extends Shop {
+export interface NearbyShop extends Omit<Shop, 'status'> {
+  status: ShopStatus;
   distance?: number;
+  shop_items: { id: string }[];
 }
 
 interface UseNearbyShopsOptions {
@@ -57,7 +59,14 @@ export function useNearbyShops(options: UseNearbyShopsOptions = {}) {
 
       if (error) throw error;
       
-      setShops(data || []);
+      if (data) {
+        const typedShops: NearbyShop[] = data.map(shop => ({
+          ...shop,
+          status: shop.status as ShopStatus,
+          shop_items: shop.shop_items || []
+        }));
+        setShops(typedShops);
+      }
     } catch (err) {
       console.error('Erreur lors de la récupération des boutiques:', err);
       setError('Impossible de charger les boutiques.');
@@ -104,20 +113,24 @@ export function useNearbyShops(options: UseNearbyShopsOptions = {}) {
           if (shopsError) throw shopsError;
 
           // Ajouter la distance aux données des boutiques
-          const shopsWithDistance = shopsData?.map(shop => {
-            const nearbyData = data.find(item => item.id === shop.id);
-            return { 
-              ...shop,
-              distance: nearbyData?.distance 
-            };
-          }) || [];
-          
-          // Trier par distance
-          shopsWithDistance.sort((a, b) => {
-            return (a.distance || Infinity) - (b.distance || Infinity);
-          });
-          
-          setShops(shopsWithDistance);
+          if (shopsData) {
+            const shopsWithDistance = shopsData.map(shop => {
+              const nearbyData = data.find(item => item.id === shop.id);
+              return { 
+                ...shop,
+                status: shop.status as ShopStatus,
+                distance: nearbyData?.distance,
+                shop_items: shop.shop_items || []
+              } as NearbyShop;
+            });
+            
+            // Trier par distance
+            shopsWithDistance.sort((a, b) => {
+              return (a.distance || Infinity) - (b.distance || Infinity);
+            });
+            
+            setShops(shopsWithDistance);
+          }
         }
       } catch (err) {
         console.error('Erreur lors de la récupération des boutiques à proximité:', err);

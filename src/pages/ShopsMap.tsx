@@ -9,7 +9,7 @@ import { ShopCard } from '@/components/shop/ShopCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNearbyShops } from '@/hooks/shop/useNearbyShops';
+import { useNearbyShops, NearbyShop } from '@/hooks/shop/useNearbyShops';
 import { Loader2, MapPin, List, Search, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 

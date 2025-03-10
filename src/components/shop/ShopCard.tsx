@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import type { Store as ShopType } from "@/hooks/useStores";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { NearbyShop } from "@/hooks/shop/useNearbyShops";
 
 interface ShopCardProps {
-  shop: ShopType & { distance?: number };
+  shop: NearbyShop;
   showDistance?: boolean;
 }
 
