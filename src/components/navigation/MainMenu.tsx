@@ -66,7 +66,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
     {
       id: "personal",
       label: "Mon Univers",
-      path: "/personal",
+      path: "/wardrobe",
       icon: <User className="h-4 w-4" />,
       active: currentPath.startsWith("/personal") || 
               currentPath.startsWith("/wardrobe") || 
