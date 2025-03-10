@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -40,6 +41,7 @@ const ROUTES = {
   ADMIN_LOGIN: '/admin/login',
   HOME: '/',
   PERSONAL: '/personal',
+  WARDROBE: '/wardrobe',
   FAVORITES: '/favorites',
   FRIENDS: '/friends',
   MESSAGES: '/messages',
