@@ -25,15 +25,15 @@ export function RootLayout() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Menu unifié à gauche */}
+      {/* Menu unifié à gauche - visible en permanence sur desktop */}
       <UnifiedRightMenu
         isMobileOpen={menuOpen}
         onMobileClose={() => setMenuOpen(false)}
         className="left-0 right-auto border-r border-l-0"
       />
       
-      {/* Contenu principal */}
-      <div className="flex-1 flex flex-col">
+      {/* Contenu principal - décalé pour laisser de la place au menu sur desktop */}
+      <div className="flex-1 flex flex-col md:ml-64">
         {/* En-tête (Header) */}
         <Header className="z-50" />
         

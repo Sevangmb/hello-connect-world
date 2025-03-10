@@ -176,7 +176,7 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
   // Classes CSS optimisées et mémorisées
   const menuClasses = useMemo(() => cn(
     "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-gray-200 pt-5 pb-4 flex flex-col",
-    "md:z-30 md:pt-20 md:translate-x-0 transition-transform duration-200 ease-out",
+    "md:relative md:pt-20 md:translate-x-0 transition-transform duration-200 ease-out",
     isMobileOpen ? "translate-x-0 shadow-lg" : "-translate-x-full md:translate-x-0",
     className
   ), [isMobileOpen, className]);

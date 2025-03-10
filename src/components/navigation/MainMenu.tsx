@@ -71,7 +71,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       label: "Garde-robe",
       path: "/wardrobe",
       icon: <Shirt className="h-4 w-4" />,
-      active: isPathActive("/wardrobe")
+      active: isPathActive("/wardrobe") && !currentPath.includes("/suitcases")
     },
     {
       id: "outfits",
