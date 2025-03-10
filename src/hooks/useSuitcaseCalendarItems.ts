@@ -1,40 +1,35 @@
 
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SuitcaseCalendarItem, SuitcaseItem } from '@/components/suitcases/types';
 
 export const useSuitcaseCalendarItems = (suitcaseId: string) => {
   const [items, setItems] = useState<SuitcaseCalendarItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const { toast } = useToast();
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (!suitcaseId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchCalendarItems = async () => {
       try {
         setLoading(true);
         
-        // Fetch the suitcase details first to get date range
-        const { data: suitcase, error: suitcaseError } = await supabase
-          .from('suitcases')
-          .select('*')
-          .eq('id', suitcaseId)
-          .single();
-        
-        if (suitcaseError) throw suitcaseError;
-        
-        if (!suitcase.start_date || !suitcase.end_date) {
-          setItems([]);
-          return;
-        }
-        
-        // Fetch all items for this suitcase
-        const { data: itemsData, error: itemsError } = await supabase
+        // Fetch suitcase items with their clothes details
+        const { data: suitcaseItems, error: itemsError } = await supabase
           .from('suitcase_items')
           .select(`
-            *,
-            clothes:clothes_id (
+            id,
+            suitcase_id,
+            clothes_id,
+            quantity,
+            folder_id,
+            created_at,
+            day_assigned,
+            clothes (
               name,
               image_url,
               category,
@@ -45,70 +40,40 @@ export const useSuitcaseCalendarItems = (suitcaseId: string) => {
         
         if (itemsError) throw itemsError;
         
-        // Create calendar structure
-        const start = new Date(suitcase.start_date);
-        const end = new Date(suitcase.end_date);
-        const calendar: SuitcaseCalendarItem[] = [];
+        // Group items by date
+        const groupedItems: Record<string, SuitcaseItem[]> = {};
         
-        // For simplicity, distribute items evenly across the date range
-        const itemsPerDay = Math.max(1, Math.ceil(itemsData.length / getDaysBetween(start, end)));
-        let currentItemIndex = 0;
-        
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          const dateString = d.toISOString().split('T')[0];
-          const dayItems: SuitcaseItem[] = [];
-          
-          // Assign some items to this day
-          for (let i = 0; i < itemsPerDay && currentItemIndex < itemsData.length; i++) {
-            dayItems.push(itemsData[currentItemIndex]);
-            currentItemIndex++;
+        suitcaseItems.forEach((item: any) => {
+          if (item.day_assigned) {
+            const dateStr = item.day_assigned;
+            if (!groupedItems[dateStr]) {
+              groupedItems[dateStr] = [];
+            }
+            groupedItems[dateStr].push(item);
           }
-          
-          calendar.push({
-            id: dateString,
-            date: dateString,
-            items: dayItems
-          });
-        }
-        
-        setItems(calendar);
-        
-        // Set initial selected date to start date
-        if (calendar.length > 0 && !selectedDate) {
-          setSelectedDate(start);
-        }
-        
-      } catch (error) {
-        console.error("Error fetching calendar items:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Erreur',
-          description: "Impossible de charger le calendrier de la valise"
         });
+        
+        // Convert to calendar items format
+        const calendarItems: SuitcaseCalendarItem[] = Object.keys(groupedItems).map(date => ({
+          id: `${suitcaseId}-${date}`,
+          date,
+          items: groupedItems[date]
+        }));
+        
+        setItems(calendarItems);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching calendar items:', err);
+        setError(err as Error);
       } finally {
         setLoading(false);
       }
     };
-    
-    if (suitcaseId) {
-      fetchCalendarItems();
-    }
-    
-  }, [suitcaseId, toast]);
-  
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-  };
-  
-  return {
-    items,
-    loading,
-    selectedDate,
-    onDateSelect: handleDateSelect
-  };
+
+    fetchCalendarItems();
+  }, [suitcaseId]);
+
+  return { items, loading, error };
 };
 
-function getDaysBetween(start: Date, end: Date): number {
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-}
+export default useSuitcaseCalendarItems;

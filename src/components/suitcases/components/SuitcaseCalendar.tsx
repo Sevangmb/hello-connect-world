@@ -1,21 +1,59 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SuitcaseCalendarItemsList } from './SuitcaseCalendarItemsList';
 import { SuitcaseCalendarItem } from '../types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SuitcaseCalendarProps {
-  items: SuitcaseCalendarItem[];
-  onDateSelect: (date: Date) => void;
+  items?: SuitcaseCalendarItem[];
+  onDateSelect?: (date: Date) => void;
   selectedDate?: Date;
+  suitcaseId: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 export const SuitcaseCalendar: React.FC<SuitcaseCalendarProps> = ({
-  items,
+  items: propItems,
   onDateSelect,
-  selectedDate
+  selectedDate: propSelectedDate,
+  suitcaseId,
+  startDate,
+  endDate
 }) => {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(propSelectedDate);
+  const [items, setItems] = useState<SuitcaseCalendarItem[]>(propItems || []);
+  const [loading, setLoading] = useState(!propItems);
+  
+  useEffect(() => {
+    if (!propItems && suitcaseId) {
+      fetchCalendarItems();
+    }
+  }, [suitcaseId, propItems]);
+  
+  const fetchCalendarItems = async () => {
+    try {
+      setLoading(true);
+      // Logic to fetch calendar items from the database
+      // For now, we're using an empty array as placeholder
+      setItems([]);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching calendar items:', error);
+      setLoading(false);
+    }
+  };
+  
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    setSelectedDate(date);
+    if (onDateSelect) {
+      onDateSelect(date);
+    }
+  };
+  
   const itemDates = items.map(item => new Date(item.date));
   
   return (
@@ -28,9 +66,14 @@ export const SuitcaseCalendar: React.FC<SuitcaseCalendarProps> = ({
           <Calendar
             mode="single"
             selected={selectedDate}
-            onSelect={(date) => date && onDateSelect(date)}
+            onSelect={handleDateSelect}
             className="rounded-md border shadow"
-            highlightedDays={itemDates}
+            modifiers={{
+              highlighted: itemDates
+            }}
+            modifiersStyles={{
+              highlighted: { fontWeight: 'bold', backgroundColor: 'rgba(59, 130, 246, 0.1)' }
+            }}
           />
         </div>
         <div className="md:w-1/2">

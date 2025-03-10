@@ -1,39 +1,40 @@
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { CreateSuitcaseData, CreateSuitcaseFormProps } from '../types';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Le nom doit contenir au moins 2 caractères' }),
+  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   description: z.string().optional(),
   destination: z.string().optional(),
   startDate: z.date().optional(),
-  endDate: z.date().optional()
+  endDate: z.date().optional(),
 });
 
-export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
-  onSubmit,
-  onCancel
-}) => {
-  const form = useForm<z.infer<typeof formSchema>>({
+type FormValues = z.infer<typeof formSchema>;
+
+export interface CreateSuitcaseFormProps {
+  onSubmit: (data: any) => Promise<void> | void;
+  onCancel: () => void;
+}
+
+export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({ onSubmit, onCancel }) => {
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       description: '',
       destination: '',
-      startDate: undefined,
-      endDate: undefined
-    }
+    },
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values as CreateSuitcaseData);
+  const handleSubmit = (data: FormValues) => {
+    onSubmit(data);
   };
 
   return (
@@ -60,7 +61,7 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea placeholder="Description de la valise" {...field} />
+                <Textarea placeholder="Description de votre valise" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,7 +87,7 @@ export const CreateSuitcaseForm: React.FC<CreateSuitcaseFormProps> = ({
             Annuler
           </Button>
           <Button type="submit">
-            Créer la valise
+            Créer
           </Button>
         </div>
       </form>
