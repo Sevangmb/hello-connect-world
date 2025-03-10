@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -158,16 +159,22 @@ interface UnifiedRightMenuProps {
   className?: string;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  currentPath?: string; // Accepter le chemin actuel comme prop pour éviter les re-rendus
 }
 
 export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
   className,
   isMobileOpen = false,
-  onMobileClose
+  onMobileClose,
+  currentPath: propCurrentPath
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
+  const routeCurrentPath = location.pathname;
+  
+  // Utiliser le chemin passé en prop ou celui de la route actuelle
+  const currentPath = propCurrentPath || routeCurrentPath;
+  
   const { isUserAdmin } = useAdminStatus();
   
   const menuClasses = useMemo(() => cn(
@@ -190,9 +197,23 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     }
   };
 
+  // Fonction optimisée pour vérifier si un chemin est actif
   const isPathActive = (path: string): boolean => {
+    // Cas spécial pour la page d'accueil
     if (path === '/' && currentPath === '/') return true;
     
+    // Si nous sommes sur une page "personal", considérer tous les chemins liés comme actifs
+    if (currentPath === '/personal' && (
+      path === '/wardrobe' || 
+      path === '/outfits' || 
+      path === '/wardrobe/suitcases' ||
+      path === '/favorites' ||
+      path === '/profile'
+    )) {
+      return true;
+    }
+    
+    // Pour les autres routes, vérifier si le chemin actuel commence par le chemin donné
     if (path !== '/') {
       return currentPath === path || 
              currentPath.startsWith(`${path}/`);
@@ -201,7 +222,8 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     return false;
   };
   
-  const personalSubItems = [
+  // Définition mémorisée des sous-éléments personnels
+  const personalSubItems = useMemo(() => [
     {
       id: "wardrobe",
       label: "Garde-robe",
@@ -225,7 +247,7 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     },
     {
       id: "favorites",
-      label: "Favoris",
+      label: "Mes Favoris",
       path: "/favorites",
       icon: <Heart className="h-4 w-4" />,
       active: isPathActive("/favorites")
@@ -237,9 +259,10 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
       icon: <User className="h-4 w-4" />,
       active: isPathActive("/profile") && !currentPath.startsWith("/profile/settings")
     }
-  ];
+  ], [currentPath]);
   
-  const socialSubItems = [
+  // Définition mémorisée des sous-éléments sociaux
+  const socialSubItems = useMemo(() => [
     {
       id: "friends",
       label: "Amis",
@@ -261,13 +284,19 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
       icon: <Bell className="h-4 w-4" />,
       active: isPathActive("/notifications")
     }
-  ];
+  ], [currentPath]);
   
-  const isPersonalActive = personalSubItems.some(item => item.active);
+  // Vérifier si une catégorie est active de façon mémorisée
+  const isPersonalActive = useMemo(() => 
+    personalSubItems.some(item => item.active) || currentPath === '/personal',
+  [personalSubItems, currentPath]);
   
-  const isSocialActive = socialSubItems.some(item => item.active);
+  const isSocialActive = useMemo(() => 
+    socialSubItems.some(item => item.active),
+  [socialSubItems]);
 
-  const menuStructure = [
+  // Structure du menu mémorisée pour éviter les recalculs inutiles
+  const menuStructure = useMemo(() => [
     {
       id: "home",
       label: "Accueil",
@@ -287,7 +316,7 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
     {
       id: "personal",
       label: "Mon Univers",
-      path: "/wardrobe",
+      path: "/personal",
       icon: <User className="h-4 w-4" />,
       active: isPersonalActive,
       children: personalSubItems
@@ -314,7 +343,7 @@ export const UnifiedRightMenu: React.FC<UnifiedRightMenuProps> = ({
       icon: <Settings className="h-4 w-4" />,
       active: isPathActive("/settings") || isPathActive("/profile/settings")
     }
-  ];
+  ], [currentPath, isPersonalActive, isSocialActive, personalSubItems, socialSubItems]);
 
   return (
     <>

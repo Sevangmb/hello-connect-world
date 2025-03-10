@@ -25,11 +25,20 @@ const Personal: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Mémoriser le chemin actuel pour éviter les modifications d'état inutiles
+  const currentPath = useMemo(() => location.pathname, [location.pathname]);
+  
   // Extraire l'onglet actif des paramètres d'URL ou de l'état de location
   const getInitialTab = () => {
     // Vérifier si tab est passé via location state
     if (location.state && location.state.tab) {
       return location.state.tab;
+    }
+    
+    // Extraire l'onglet du hash de l'URL si présent
+    const hash = location.hash.replace('#', '');
+    if (hash && ['clothes', 'outfits', 'suitcases', 'favorites', 'calendar'].includes(hash)) {
+      return hash;
     }
     
     // Fallback à l'onglet par défaut
@@ -194,18 +203,18 @@ const Personal: React.FC = () => {
       clearTimeout(timer);
       console.log("Personal: Nettoyage du composant");
     };
-  }, [user, isAuthenticated, navigate, hasError, isLoading]);
+  }, [user?.id, isAuthenticated, navigate]); // Dépendances réduites pour éviter les re-rendus inutiles
 
-  // Mise à jour de l'onglet actif avec mémorisation de l'état
+  // Mise à jour de l'onglet actif avec mémorisation de l'état et modification de l'URL
   const handleTabChange = (value: string) => {
     console.log("Personal: Changement d'onglet vers", value);
     setActiveTab(value);
     
-    // Mettre à jour l'état de l'historique sans rechargement
+    // Mettre à jour l'URL avec un hash sans recharger la page
     window.history.replaceState(
       { ...window.history.state, tab: value },
       '',
-      window.location.pathname
+      `${window.location.pathname}#${value}`
     );
   };
 
@@ -259,6 +268,7 @@ const Personal: React.FC = () => {
     );
   }
 
+  // Utiliser une clé stable pour les onglets pour éviter les remontages complets
   return (
     <div className="container mx-auto py-6 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Mon Univers</h1>
@@ -267,6 +277,7 @@ const Personal: React.FC = () => {
         value={activeTab} 
         onValueChange={handleTabChange}
         className="w-full"
+        defaultValue="clothes"
       >
         <TabsList className="mb-4 w-full grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
           <TabsTrigger value="clothes" className="px-4 py-2">Mes Vêtements</TabsTrigger>

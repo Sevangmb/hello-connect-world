@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { BottomNav } from "./navigation/BottomNav";
@@ -11,13 +11,16 @@ export function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
 
+  // Mémoriser le chemin actuel pour éviter les re-rendus inutiles
+  const currentPath = useMemo(() => location.pathname, [location.pathname]);
+
   // Publier les événements de navigation lors du changement de route
   useEffect(() => {
     eventBus.publish('navigation:route-changed', {
-      path: location.pathname,
+      path: currentPath,
       timestamp: Date.now()
     });
-  }, [location.pathname]);
+  }, [currentPath]);
 
   const toggleMenu = () => {
     setMenuOpen(prev => !prev);
@@ -30,6 +33,7 @@ export function RootLayout() {
         isMobileOpen={menuOpen}
         onMobileClose={() => setMenuOpen(false)}
         className="left-0 right-auto border-r border-l-0"
+        currentPath={currentPath}
       />
       
       {/* Contenu principal - s'étend jusqu'au menu */}
