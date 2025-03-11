@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,7 @@ import { ShopCard } from "@/components/shop/ShopCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { NearbyShop, ShopStatus } from "@/types/messages";
 
 export default function Shops() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +62,12 @@ export default function Shops() {
       }
 
       console.log("Shops fetched:", data);
-      return data || [];
+      
+      // Convert string status to ShopStatus enum to satisfy the type check
+      return (data || []).map((shop: any) => ({
+        ...shop,
+        status: shop.status as ShopStatus
+      })) as NearbyShop[];
     },
   });
 

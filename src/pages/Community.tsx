@@ -1,65 +1,41 @@
-
-import { useState } from "react";
-import { Header } from "@/components/Header";
-import MainSidebar from "@/components/MainSidebar";
-import { BottomNav } from "@/components/navigation/BottomNav";
-import { MessagesList } from "@/components/messages/MessagesList";
-import { GroupsList } from "@/components/groups/GroupsList";
-import { FriendsList } from "@/components/friends/FriendsList";
-import { AddFriend } from "@/components/friends/AddFriend";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Users, Bell, UserPlus } from "lucide-react";
+import React, { useState } from 'react';
+import { Header } from '@/components/Header';
+import MainSidebar from '@/components/MainSidebar';
+import { MessagesList } from '@/components/messages/MessagesList';
+import { BottomNav } from '@/components/navigation/BottomNav';
+import { Message } from '@/types/messages';
 
 const Community = () => {
-  const [activeTab, setActiveTab] = useState("messages");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // This is a placeholder component that should be implemented properly
   return (
-    <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gray-100">
       <Header />
       <MainSidebar />
       <main className="pt-24 px-4 md:pl-72">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Communauté</h1>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-4 gap-4">
-              <TabsTrigger value="messages" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Messages</span>
-              </TabsTrigger>
-              <TabsTrigger value="groups" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Groupes</span>
-              </TabsTrigger>
-              <TabsTrigger value="friends" className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">Amis</span>
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">Notifications</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="messages">
-              <MessagesList />
-            </TabsContent>
-
-            <TabsContent value="groups">
-              <GroupsList />
-            </TabsContent>
-
-            <TabsContent value="friends" className="space-y-8">
-              <AddFriend />
-              <FriendsList />
-            </TabsContent>
-
-            <TabsContent value="notifications">
-              <div className="text-center text-muted-foreground py-8">
-                Les notifications seront bientôt disponibles
-              </div>
-            </TabsContent>
-          </Tabs>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Discussions</h2>
+              
+              {/* Pass the required props to MessagesList */}
+              <MessagesList 
+                messages={messages} 
+                currentUserId={currentUserId} 
+                loading={loading} 
+              />
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold mb-4">Membres actifs</h2>
+              {/* Component for active members would go here */}
+            </div>
+          </div>
         </div>
       </main>
       <BottomNav />
