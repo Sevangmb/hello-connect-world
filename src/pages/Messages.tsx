@@ -1,128 +1,172 @@
-
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-
-interface Chat {
-  id: string;
-  name?: string;
-  is_group?: boolean;
-  last_message?: string;
-}
+import { useMessages } from '@/hooks/useMessages';
+import { MessagesList } from '@/components/messages/MessagesList';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { Send, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Messages = () => {
-  const [selectedChat, setSelectedChat] = useState<{ id: string; type: 'private' | 'group' } | null>(null);
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    conversations, 
+    messages, 
+    loading, 
+    currentConversation,
+    currentUserId,
+    fetchMessages,
+    sendMessage,
+    sendingMessage
+  } = useMessages();
   const [newMessage, setNewMessage] = useState('');
   const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        setLoading(true);
-        // Simuler des données de chat car la table n'existe pas encore
-        const mockChats: Chat[] = [
-          { id: '1', name: 'John Doe', is_group: false, last_message: 'Bonjour, comment ça va?' },
-          { id: '2', name: 'Groupe Mode', is_group: true, last_message: 'Nouvelle collection disponible!' },
-          { id: '3', name: 'Marie Dupont', is_group: false, last_message: 'Tu as vu ma nouvelle tenue?' }
-        ];
-        
-        setChats(mockChats);
-      } catch (error) {
-        console.error('Error fetching chats:', error);
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !currentConversation) return;
+    
+    sendMessage(currentConversation, newMessage)
+      .then(() => {
+        setNewMessage('');
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      })
+      .catch(error => {
+        console.error('Erreur lors de l\'envoi du message:', error);
         toast({
           title: "Erreur",
-          description: "Impossible de charger les conversations",
+          description: "Impossible d'envoyer votre message",
           variant: "destructive"
         });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchChats();
-  }, [toast]);
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedChat) return;
-    
-    toast({
-      title: "Message envoyé",
-      description: "Votre message a été envoyé avec succès"
-    });
-    
-    setNewMessage('');
+      });
   };
+
+  const selectedConversation = conversations.find(c => c.id === currentConversation);
 
   return (
     <div className="container max-w-6xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Messages</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Liste des conversations */}
         <div className="md:col-span-1 overflow-hidden bg-white rounded-lg shadow">
-          {loading ? (
-            <div className="p-4">Chargement des conversations...</div>
+          {loading && conversations.length === 0 ? (
+            <div className="p-4">
+              <div className="flex items-center space-x-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span>Chargement des conversations...</span>
+              </div>
+            </div>
           ) : (
             <div className="p-4">
-              {chats.length > 0 ? (
+              {conversations.length > 0 ? (
                 <ul className="space-y-2">
-                  {chats.map(chat => (
+                  {conversations.map(chat => (
                     <li 
                       key={chat.id}
                       className={`p-3 rounded cursor-pointer hover:bg-gray-100 ${
-                        selectedChat?.id === chat.id ? 'bg-blue-50' : ''
+                        currentConversation === chat.id ? 'bg-blue-50' : ''
                       }`}
-                      onClick={() => setSelectedChat({ 
-                        id: chat.id, 
-                        type: chat.is_group ? 'group' : 'private' 
-                      })}
+                      onClick={() => fetchMessages(chat.id)}
                     >
-                      <div className="font-medium">{chat.name || 'Chat sans nom'}</div>
-                      <div className="text-sm text-gray-500">
-                        {chat.last_message || 'Pas de messages'}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={chat.user.avatar_url || undefined} alt={chat.user.username || 'Avatar'} />
+                          <AvatarFallback>{chat.user.username?.[0] || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium">{chat.user.username || 'Sans nom'}</div>
+                          <div className="text-sm text-gray-500 truncate">
+                            {chat.lastMessage?.content || 'Pas de messages'}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {chat.lastMessage && format(new Date(chat.lastMessage.created_at), 'dd/MM/yyyy', { locale: fr })}
+                        </div>
                       </div>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Aucune conversation trouvée
+                  <p>Aucune conversation trouvée</p>
+                  <p className="text-sm mt-2">Commencez à discuter avec d'autres utilisateurs</p>
                 </div>
               )}
             </div>
           )}
         </div>
         
-        <div className="md:col-span-2 bg-white rounded-lg shadow min-h-[400px]">
-          {!selectedChat ? (
+        {/* Zone de conversation */}
+        <div className="md:col-span-2 bg-white rounded-lg shadow min-h-[500px] flex flex-col">
+          {!currentConversation ? (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Sélectionnez une conversation pour commencer
+              <div className="text-center">
+                <p className="text-lg">Sélectionnez une conversation pour commencer</p>
+                <p className="text-sm mt-2">Ou démarrez une nouvelle discussion</p>
+              </div>
             </div>
           ) : (
-            <div className="p-4 flex flex-col h-[500px]">
-              <h2 className="text-xl font-bold mb-4">
-                {selectedChat.type === 'private' ? 'Conversation privée' : 'Conversation de groupe'}
-              </h2>
-              <div className="bg-gray-100 rounded-lg p-4 flex-grow overflow-y-auto mb-4">
-                {/* Messages content would go here */}
-                <div className="text-center text-gray-500">
-                  Aucun message pour l'instant
-                </div>
+            <div className="flex flex-col h-full">
+              {/* En-tête de la conversation */}
+              <div className="p-4 border-b">
+                {selectedConversation && (
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={selectedConversation.user.avatar_url || undefined} 
+                        alt={selectedConversation.user.username || 'Avatar'} 
+                      />
+                      <AvatarFallback>
+                        {selectedConversation.user.username?.[0] || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="font-semibold">
+                        {selectedConversation.user.username || 'Utilisateur'}
+                      </h2>
+                      <p className="text-xs text-gray-500">
+                        {selectedConversation.user.full_name || ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
+              
+              {/* Liste des messages */}
+              <div className="flex-grow overflow-y-auto bg-gray-50">
+                <MessagesList 
+                  messages={messages} 
+                  currentUserId={currentUserId}
+                  loading={loading} 
+                />
+              </div>
+              
+              {/* Formulaire d'envoi de message */}
+              <form onSubmit={handleSendMessage} className="p-4 border-t flex gap-2">
                 <Input
+                  ref={inputRef}
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Tapez votre message..."
                   className="flex-grow"
+                  disabled={sendingMessage}
                 />
-                <Button onClick={handleSendMessage}>Envoyer</Button>
-              </div>
+                <Button type="submit" disabled={sendingMessage || !newMessage.trim()}>
+                  {sendingMessage ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Envoyer</span>
+                </Button>
+              </form>
             </div>
           )}
         </div>

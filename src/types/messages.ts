@@ -1,30 +1,33 @@
 
 export interface Profile {
   id: string;
-  username: string;
+  username: string | null;
   avatar_url: string | null;
+  full_name?: string | null;
 }
 
 export interface Message {
   id: string;
   content: string;
   created_at: string;
-}
-
-export interface PrivateMessage extends Message {
   sender_id: string;
   receiver_id: string;
+  is_read?: boolean;
   sender: Profile;
   receiver: Profile;
 }
 
 export interface Conversation {
+  id: string;
   user: Profile;
-  lastMessage: PrivateMessage;
+  lastMessage: Message;
+  unreadCount?: number;
+  is_group?: boolean;
+  name?: string;
 }
 
-export interface GroupMessage extends Message {
-  sender_id: string;
-  group_id: string;
-  sender: Profile;
+export interface GroupConversation extends Conversation {
+  is_group: true;
+  name: string;
+  members?: Profile[];
 }

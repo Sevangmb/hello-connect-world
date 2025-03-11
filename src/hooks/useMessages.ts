@@ -1,16 +1,21 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useCallback } from "react";
+import { Conversation, Message } from "@/types/messages";
+import { messagesService } from "@/services/messages/messagesService";
 import { useToast } from "@/hooks/use-toast";
-import { Conversation } from "@/types/messages";
+import { supabase } from "@/integrations/supabase/client";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 export const useMessages = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const [currentConversation, setCurrentConversation] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [sendingMessage, setSendingMessage] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { toast } = useToast();
 
+  // Récupérer l'utilisateur courant
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -22,66 +27,14 @@ export const useMessages = () => {
     getCurrentUser();
   }, []);
 
-  /**
-   * Récupère toutes les conversations de l'utilisateur
-   */
-  const fetchConversations = async () => {
+  // Récupérer les conversations
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('private_messages')
-        .select(`
-          id,
-          content,
-          created_at,
-          sender_id,
-          receiver_id,
-          sender:profiles!private_messages_sender_id_fkey(
-            id, username, avatar_url
-          ),
-          receiver:profiles!private_messages_receiver_id_fkey(
-            id, username, avatar_url
-          )
-        `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Regrouper les messages par conversation
-      const conversationsMap = new Map<string, Conversation>();
-      
-      data?.forEach(message => {
-        // Déterminer l'autre participant de la conversation
-        const isMessageSender = message.sender_id === user.id;
-        const partner = isMessageSender ? message.receiver : message.sender;
-        
-        if (!conversationsMap.has(partner.id)) {
-          conversationsMap.set(partner.id, {
-            user: partner,
-            lastMessage: message,
-          });
-        } else {
-          // Mettre à jour uniquement si ce message est plus récent
-          const existingConversation = conversationsMap.get(partner.id)!;
-          const existingDate = new Date(existingConversation.lastMessage.created_at);
-          const newDate = new Date(message.created_at);
-          
-          if (newDate > existingDate) {
-            conversationsMap.set(partner.id, {
-              ...existingConversation,
-              lastMessage: message,
-            });
-          }
-        }
-      });
-
-      setConversations(Array.from(conversationsMap.values()));
+      const conversationsData = await messagesService.fetchConversations();
+      setConversations(conversationsData);
     } catch (error: any) {
-      console.error("Error fetching conversations:", error);
+      console.error("Erreur lors du chargement des conversations:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -90,51 +43,111 @@ export const useMessages = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  /**
-   * Gestionnaire d'événements pour les changements en temps réel
-   */
-  const handleRealtimeChanges = (payload: RealtimePostgresChangesPayload<any>) => {
-    console.log("Realtime change detected:", payload);
-    
-    // Actualiser les conversations lorsqu'un nouveau message est inséré
-    if (payload.eventType === 'INSERT') {
-      fetchConversations();
-    }
-  }
-
+  // Charger les conversations au montage du composant
   useEffect(() => {
     if (currentUserId) {
       fetchConversations();
-  
-      // Abonnement aux changements en temps réel avec un gestionnaire unique
+    }
+  }, [currentUserId, fetchConversations]);
+
+  // Récupérer les messages d'une conversation spécifique
+  const fetchMessages = useCallback(async (conversationId: string) => {
+    try {
+      setLoading(true);
+      const messagesData = await messagesService.fetchMessages(conversationId);
+      setMessages(messagesData);
+      
+      // Marquer les messages comme lus
+      await messagesService.markMessagesAsRead(conversationId);
+      
+      // Mettre à jour la conversation actuelle
+      setCurrentConversation(conversationId);
+    } catch (error: any) {
+      console.error("Erreur lors du chargement des messages:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de charger les messages",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  // Envoyer un nouveau message
+  const sendMessage = useCallback(async (receiverId: string, content: string) => {
+    if (!content.trim()) return;
+    
+    try {
+      setSendingMessage(true);
+      await messagesService.sendMessage(receiverId, content);
+      // Les messages seront mis à jour via la souscription en temps réel
+    } catch (error: any) {
+      console.error("Erreur lors de l'envoi du message:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible d'envoyer le message",
+      });
+    } finally {
+      setSendingMessage(false);
+    }
+  }, [toast]);
+
+  // Gestionnaire pour les changements en temps réel des messages
+  const handleRealtimeChanges = useCallback((payload: RealtimePostgresChangesPayload<any>) => {
+    console.log("Changement en temps réel détecté:", payload);
+    
+    if (payload.eventType === 'INSERT' && payload.table === 'private_messages') {
+      // Si un nouveau message est inséré
+      const newMessage = payload.new as Message;
+      
+      // Si le message concerne la conversation actuelle, l'ajouter à la liste des messages
+      if (currentConversation === newMessage.sender_id || currentConversation === newMessage.receiver_id) {
+        setMessages(prev => [...prev, newMessage]);
+      }
+      
+      // Rafraîchir la liste des conversations pour mettre à jour le dernier message
+      fetchConversations();
+    }
+  }, [currentConversation, fetchConversations]);
+
+  // Abonnement aux changements en temps réel
+  useEffect(() => {
+    if (currentUserId) {
       const channel = supabase
-        .channel('private_messages_changes')
+        .channel('messages_changes')
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
             schema: 'public',
             table: 'private_messages',
-            filter: `sender_id=eq.${currentUserId},receiver_id=eq.${currentUserId}`
+            filter: `sender_id=eq.${currentUserId},receiver_id=eq.${currentUserId}` 
           },
           handleRealtimeChanges
         )
         .subscribe((status) => {
-          console.log("Supabase realtime subscription status:", status);
+          console.log("Statut de l'abonnement aux messages en temps réel:", status);
         });
-  
+
       return () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [currentUserId]);
+  }, [currentUserId, handleRealtimeChanges]);
 
   return {
     conversations,
+    messages,
     loading,
-    refreshConversations: fetchConversations,
-    currentUserId
+    sendingMessage,
+    currentConversation,
+    currentUserId,
+    fetchMessages,
+    sendMessage,
+    refreshConversations: fetchConversations
   };
 };
