@@ -1,40 +1,60 @@
 
-import React, { useState } from 'react';
-import { FriendsList } from '@/components/friends/FriendsList';
-import { MessagesList } from '@/components/messages/MessagesList';
+import React, { useState, useEffect } from 'react';
 import { useMessages } from '@/hooks/useMessages';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { BottomNav } from '@/components/navigation/BottomNav';
+import { Card } from '@/components/ui/card';
+import { ConversationsList } from '@/components/messages/ConversationsList';
+import { PrivateChat } from '@/components/messages/PrivateChat';
+import { SearchFriends } from '@/components/friends/SearchFriends';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessagesIcon, Users } from 'lucide-react';
 
 const Messages = () => {
   const {
     conversations,
     messages,
     loading,
+    unreadCount,
     sendingMessage,
     currentConversation,
     currentUserId,
     fetchMessages,
     sendMessage,
+    clearCurrentConversation
   } = useMessages();
 
-  const [newMessage, setNewMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('conversations');
+  const [selectedPartner, setSelectedPartner] = useState<{
+    id: string;
+    username: string;
+    avatar_url?: string | null;
+  } | null>(null);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentConversation) return;
+  // Trouver le profil de l'utilisateur partenaire actuel
+  useEffect(() => {
+    if (currentConversation) {
+      const partner = conversations.find(c => c.id === currentConversation)?.user;
+      if (partner) {
+        setSelectedPartner(partner);
+      }
+    }
+  }, [currentConversation, conversations]);
 
-    await sendMessage(currentConversation, newMessage);
-    setNewMessage('');
+  const handleSelectChat = (friendId: string) => {
+    fetchMessages(friendId);
   };
 
-  const handleSelectChat = (friend: { id: string; username: string }) => {
+  const handleSelectFriend = (friend: { id: string; username: string }) => {
     fetchMessages(friend.id);
+    setSelectedPartner(friend);
+    setActiveTab('conversations');
+  };
+
+  const handleBack = () => {
+    clearCurrentConversation();
+    setSelectedPartner(null);
   };
 
   return (
@@ -44,54 +64,62 @@ const Messages = () => {
       <main className="pt-24 px-4 md:pl-72 pb-16 md:pb-0">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Liste des amis et conversations */}
-            <Card className="p-4 h-[calc(100vh-8rem)] flex flex-col overflow-hidden">
-              <h2 className="text-xl font-semibold mb-4">Conversations</h2>
-              <div className="flex-1 overflow-y-auto">
-                <FriendsList onChatSelect={handleSelectChat} />
-              </div>
+            {/* Liste des conversations */}
+            <Card className={`p-4 h-[calc(100vh-8rem)] flex flex-col overflow-hidden ${
+              currentConversation && 'md:block hidden'
+            }`}>
+              <h2 className="text-xl font-semibold mb-4">Messages</h2>
+              
+              <Tabs defaultValue="conversations" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="w-full mb-4">
+                  <TabsTrigger value="conversations" className="flex-1">
+                    <MessagesIcon className="h-4 w-4 mr-2" />
+                    Conversations
+                    {unreadCount > 0 && (
+                      <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="contacts" className="flex-1">
+                    <Users className="h-4 w-4 mr-2" />
+                    Contacts
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="conversations" className="flex-1 overflow-auto">
+                  <ConversationsList
+                    conversations={conversations}
+                    loading={loading}
+                    currentConversation={currentConversation}
+                    onSelectConversation={handleSelectChat}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="contacts" className="flex-1 overflow-auto">
+                  <SearchFriends onSelect={handleSelectFriend} />
+                </TabsContent>
+              </Tabs>
             </Card>
 
             {/* Zone de conversation */}
-            <Card className="md:col-span-2 flex flex-col h-[calc(100vh-8rem)]">
-              {currentConversation ? (
-                <>
-                  {/* En-tête de la conversation */}
-                  <div className="p-4 border-b">
-                    {conversations.find(c => c.id === currentConversation)?.user.username}
-                  </div>
-
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto bg-gray-50">
-                    <MessagesList
-                      messages={messages}
-                      currentUserId={currentUserId}
-                      loading={loading}
-                    />
-                  </div>
-
-                  {/* Formulaire d'envoi */}
-                  <form onSubmit={handleSendMessage} className="p-4 border-t flex gap-2">
-                    <Input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Tapez votre message..."
-                      className="flex-grow"
-                      disabled={sendingMessage}
-                    />
-                    <Button type="submit" disabled={sendingMessage || !newMessage.trim()}>
-                      {sendingMessage ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </form>
-                </>
+            <Card className={`md:col-span-2 flex flex-col h-[calc(100vh-8rem)] ${
+              !currentConversation && 'md:flex hidden'
+            }`}>
+              {currentConversation && selectedPartner ? (
+                <PrivateChat
+                  partnerId={currentConversation}
+                  partnerProfile={selectedPartner}
+                  currentUserId={currentUserId}
+                  onBack={handleBack}
+                />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
-                  <p>Sélectionnez une conversation pour commencer</p>
+                  <div className="text-center">
+                    <MessagesIcon className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                    <p className="text-lg font-medium">Sélectionnez une conversation</p>
+                    <p className="text-sm">Choisissez un contact pour commencer à discuter</p>
+                  </div>
                 </div>
               )}
             </Card>

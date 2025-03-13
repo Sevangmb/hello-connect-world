@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, Message, PrivateMessage } from '@/types/messages';
 import { messagesService } from '@/services/messages/messagesService';
+import { useToast } from '@/hooks/use-toast';
 
 export function useMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -12,6 +13,7 @@ export function useMessages() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -26,31 +28,20 @@ export function useMessages() {
         
         setCurrentUserId(user.id);
         
-        // Attempt to get conversations from the database
-        const { data, error } = await supabase.rpc(
-          'get_user_conversations' as any, 
-          { user_id: user.id }
-        );
+        // Récupérer les conversations
+        const data = await messagesService.fetchConversations();
+        setConversations(data as Conversation[]);
         
-        if (error) throw error;
-        
-        if (data) {
-          // Use explicit type assertion to avoid infinite recursion
-          setConversations(data as any as Conversation[]);
-        }
-        
-        // Count unread messages
-        const { count, error: countError } = await supabase
-          .from('private_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('receiver_id', user.id)
-          .eq('is_read', false);
-          
-        if (!countError) {
-          setUnreadCount(count || 0);
-        }
+        // Compter les messages non lus
+        const count = await messagesService.countUnreadMessages();
+        setUnreadCount(count);
       } catch (error) {
         console.error('Error fetching conversations:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Impossible de charger les conversations'
+        });
       } finally {
         setLoading(false);
       }
@@ -58,7 +49,7 @@ export function useMessages() {
     
     fetchConversations();
     
-    // Set up realtime subscription for new messages
+    // Configurer la souscription en temps réel pour les nouveaux messages
     const channel = supabase
       .channel('private_messages_changes')
       .on('postgres_changes', {
@@ -67,15 +58,18 @@ export function useMessages() {
         table: 'private_messages'
       }, () => {
         fetchConversations();
+        if (currentConversation) {
+          fetchMessages(currentConversation);
+        }
       })
       .subscribe();
       
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [toast]);
 
-  // Add this function to load messages for a specific conversation
+  // Charger les messages pour une conversation spécifique
   const fetchMessages = async (partnerId: string) => {
     if (!partnerId) return;
     
@@ -86,16 +80,25 @@ export function useMessages() {
       const fetchedMessages = await messagesService.fetchMessages(partnerId);
       setMessages(fetchedMessages);
       
-      // Mark messages as read
+      // Marquer les messages comme lus
       await messagesService.markMessagesAsRead(partnerId);
+      
+      // Mettre à jour le compteur de messages non lus
+      const count = await messagesService.countUnreadMessages();
+      setUnreadCount(count);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible de charger les messages'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Add this function to send a message
+  // Envoyer un message
   const sendMessage = async (receiverId: string, content: string) => {
     if (!receiverId || !content.trim()) return;
     
@@ -106,10 +109,21 @@ export function useMessages() {
       return sentMessage;
     } catch (error) {
       console.error('Error sending message:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'envoyer le message'
+      });
       throw error;
     } finally {
       setSendingMessage(false);
     }
+  };
+  
+  // Effacer la conversation actuelle
+  const clearCurrentConversation = () => {
+    setCurrentConversation(null);
+    setMessages([]);
   };
   
   return {
@@ -121,6 +135,7 @@ export function useMessages() {
     currentConversation,
     currentUserId,
     fetchMessages,
-    sendMessage
+    sendMessage,
+    clearCurrentConversation
   };
 }

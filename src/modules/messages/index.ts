@@ -5,9 +5,25 @@
  */
 
 // Composants
-export { GroupChat } from '@/components/messages/GroupChat';
-export { MessagesList } from '@/components/messages/MessagesList';
-export { PrivateChat } from '@/components/messages/PrivateChat';
+import { GroupChat } from '@/components/messages/GroupChat';
+import { MessagesList } from '@/components/messages/MessagesList';
+import { PrivateChat } from '@/components/messages/PrivateChat';
+import { MessageItem } from '@/components/messages/MessageItem';
+
+// Services
+import { messagesService } from '@/services/messages/messagesService';
 
 // Hooks
-export { useMessages } from '@/hooks/useMessages';
+import { useMessages } from '@/hooks/useMessages';
+
+// Exports des composants
+export { GroupChat };
+export { MessagesList };
+export { PrivateChat };
+export { MessageItem };
+
+// Export du service
+export { messagesService };
+
+// Export du hook
+export { useMessages };

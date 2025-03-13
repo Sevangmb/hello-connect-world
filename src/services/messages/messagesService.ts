@@ -93,11 +93,11 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Fix for type issue with RPC call - use explicit 'any' type
+    // Explicitly cast the RPC call to avoid type issues
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as unknown as any, 
+      'get_user_conversations', 
       { user_id: user.id }
-    );
+    ) as unknown as any;
     
     if (error) {
       console.error('Error fetching conversations:', error);
@@ -117,10 +117,12 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Fix the type issue with update method
+    // Use a simple object for the update payload
+    const updatePayload: MessageUpdatePayload = { is_read: true };
+    
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as any)
+      .update(updatePayload)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

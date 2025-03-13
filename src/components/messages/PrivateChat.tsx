@@ -1,35 +1,61 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessagesList } from './MessagesList';
 import { Profile, PrivateMessage } from '@/types/messages';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, ArrowLeft } from 'lucide-react';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface PrivateChatProps {
   partnerId: string;
   partnerProfile: Profile;
   currentUserId: string;
+  onBack?: () => void;
 }
 
 export const PrivateChat: React.FC<PrivateChatProps> = ({
   partnerId,
   partnerProfile,
-  currentUserId
+  currentUserId,
+  onBack
 }) => {
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMessages();
-    // Mark messages as read when conversation is opened
+    // Focus l'input lorsque la conversation est chargée
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    
+    // Marquer les messages comme lus quand la conversation est ouverte
     messagesService.markMessagesAsRead(partnerId).catch(console.error);
-  }, [partnerId]);
+    
+    // Configurer la souscription en temps réel pour les nouveaux messages
+    const channel = supabase
+      .channel('private_chat_updates')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'private_messages',
+        filter: `sender_id=eq.${partnerId},receiver_id=eq.${currentUserId}`
+      }, () => {
+        fetchMessages();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [partnerId, currentUserId]);
 
   const fetchMessages = async () => {
     try {
@@ -54,9 +80,11 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
 
     try {
       setSendingMessage(true);
-      await messagesService.sendMessage(partnerId, newMessage);
+      const sentMessage = await messagesService.sendMessage(partnerId, newMessage);
+      setMessages(prev => [...prev, sentMessage]);
       setNewMessage('');
-      // Messages will be updated via the subscription in useMessages hook
+      // Focus l'input après l'envoi du message
+      inputRef.current?.focus();
     } catch (error) {
       console.error('Failed to send message:', error);
       toast({
@@ -71,12 +99,31 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with partner info */}
-      <div className="p-4 border-b">
-        <h3 className="font-semibold">{partnerProfile.username || 'Utilisateur'}</h3>
+      {/* Header avec les informations du partenaire */}
+      <div className="p-4 border-b flex items-center gap-3">
+        {onBack && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="mr-2 md:hidden" 
+            onClick={onBack}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        )}
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={partnerProfile.avatar_url || undefined} />
+          <AvatarFallback>{partnerProfile.username?.[0] || 'U'}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h3 className="font-semibold">{partnerProfile.username || 'Utilisateur'}</h3>
+          <p className="text-xs text-muted-foreground">
+            {partnerProfile.is_online ? 'En ligne' : 'Hors ligne'}
+          </p>
+        </div>
       </div>
 
-      {/* Messages list */}
+      {/* Liste des messages */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
         <MessagesList 
           messages={messages} 
@@ -85,9 +132,10 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
         />
       </div>
 
-      {/* Message input */}
+      {/* Saisie de message */}
       <form onSubmit={handleSendMessage} className="p-4 border-t flex gap-2">
         <Input
+          ref={inputRef}
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
