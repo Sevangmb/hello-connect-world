@@ -32,7 +32,8 @@ export const useMessages = () => {
     try {
       setLoading(true);
       const conversationsData = await messagesService.fetchConversations();
-      setConversations(conversationsData);
+      // Utiliser type assertion pour garantir la conformité des données
+      setConversations(conversationsData as Conversation[]);
     } catch (error: any) {
       console.error("Erreur lors du chargement des conversations:", error);
       toast({

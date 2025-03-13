@@ -42,17 +42,16 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    const newMessage = {
-      sender_id: user.id,
-      receiver_id: receiverId,
-      content,
-      is_read: false,
-      created_at: new Date().toISOString()
-    };
-    
+    // Message avec is_read défini explicitement pour correspondre à la table private_messages
     const { data, error } = await supabase
       .from('private_messages')
-      .insert(newMessage)
+      .insert({
+        sender_id: user.id,
+        receiver_id: receiverId,
+        content,
+        is_read: false,
+        created_at: new Date().toISOString()
+      })
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -78,14 +77,18 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    const { data, error } = await supabase.rpc('get_user_conversations');
+    // Utiliser la fonction SQL personnalisée
+    const { data, error } = await supabase.rpc(
+      'get_user_conversations' as any, // Cast nécessaire car le type n'est pas inclus dans les définitions
+      { user_id: user.id } // Ajouter les paramètres requis
+    );
     
     if (error) {
       console.error('Error fetching conversations:', error);
       throw new Error('Failed to fetch conversations');
     }
     
-    return data;
+    return data || [];
   },
   
   /**

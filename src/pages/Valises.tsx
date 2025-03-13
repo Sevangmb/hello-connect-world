@@ -108,7 +108,7 @@ const Valises = () => {
     try {
       if (!user) throw new Error("Vous devez être connecté pour créer une valise");
       
-      // Créer la nouvelle valise
+      // Créer la nouvelle valise avec un statut compatible avec la base de données
       const newSuitcase = {
         user_id: user.id,
         name: values.name,
@@ -116,7 +116,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: "active" as SuitcaseStatus // Utiliser seulement 'active' ou 'archived' pour la création
+        status: "active" // Utiliser uniquement "active" ou "archived" (pas "completed")
       };
       
       const { data, error } = await supabase

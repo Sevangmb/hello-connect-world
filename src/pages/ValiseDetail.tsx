@@ -2,93 +2,90 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, List, Trash } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { useAuth } from '@/modules/auth';
-import { SuitcaseHeader } from '@/components/suitcases/components/SuitcaseHeader';
-import { SuitcaseItems } from '@/components/suitcases/items/SuitcaseItems';
-import { SuitcaseCalendar } from '@/components/suitcases/components/SuitcaseCalendar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/Header';
 import MainSidebar from '@/components/MainSidebar';
 import { BottomNav } from '@/components/navigation/BottomNav';
-import { SuitcaseStatus } from '@/components/suitcases/types';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+import { Suitcase, SuitcaseItem } from '@/components/suitcases/types';
+import { ArrowLeft, Edit, Trash } from 'lucide-react';
 
 const ValiseDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [suitcase, setSuitcase] = useState<any>(null);
+  const [suitcase, setSuitcase] = useState<Suitcase | null>(null);
+  const [items, setItems] = useState<SuitcaseItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState('items');
 
   useEffect(() => {
-    const fetchSuitcase = async () => {
-      if (!id) return;
-
+    if (!id) return;
+    
+    const fetchSuitcaseDetails = async () => {
       try {
         setLoading(true);
         
-        const { data, error } = await supabase
+        // Récupérer les détails de la valise
+        const { data: suitcaseData, error: suitcaseError } = await supabase
           .from('suitcases')
-          .select(`
-            *,
-            profiles (
-              id,
-              username,
-              avatar_url
-            )
-          `)
+          .select('*')
           .eq('id', id)
           .single();
-
-        if (error) throw error;
-        setSuitcase(data);
+          
+        if (suitcaseError) throw suitcaseError;
+        
+        setSuitcase(suitcaseData as Suitcase);
+        
+        // Récupérer les éléments de la valise
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('suitcase_items')
+          .select(`
+            *,
+            clothes (
+              name,
+              image_url,
+              category,
+              color
+            )
+          `)
+          .eq('suitcase_id', id);
+          
+        if (itemsError) throw itemsError;
+        
+        setItems(itemsData as SuitcaseItem[]);
       } catch (error) {
-        console.error('Error fetching suitcase:', error);
+        console.error('Erreur lors du chargement des détails de la valise:', error);
         toast({
           variant: "destructive",
           title: "Erreur",
-          description: "Impossible de charger les informations de la valise"
+          description: "Impossible de charger les détails de la valise"
         });
       } finally {
         setLoading(false);
       }
     };
-
-    fetchSuitcase();
+    
+    fetchSuitcaseDetails();
   }, [id, toast]);
 
   const handleDelete = async () => {
-    if (!id || !user) return;
-
+    if (!suitcase || !confirm('Êtes-vous sûr de vouloir supprimer cette valise ?')) return;
+    
     try {
-      setDeleting(true);
-      
-      // Vérifier que l'utilisateur est le propriétaire
-      if (suitcase.user_id !== user.id) {
-        throw new Error("Vous n'êtes pas autorisé à supprimer cette valise");
-      }
-      
-      // Supprimer les relations avec les vêtements
+      // Supprimer d'abord les éléments liés à la valise
       const { error: itemsError } = await supabase
         .from('suitcase_items')
         .delete()
-        .eq('suitcase_id', id);
-      
+        .eq('suitcase_id', suitcase.id);
+        
       if (itemsError) throw itemsError;
       
-      // Supprimer la valise
+      // Ensuite supprimer la valise elle-même
       const { error } = await supabase
         .from('suitcases')
         .delete()
-        .eq('id', id);
-      
+        .eq('id', suitcase.id);
+        
       if (error) throw error;
       
       toast({
@@ -97,16 +94,13 @@ const ValiseDetail = () => {
       });
       
       navigate('/valises');
-    } catch (error: any) {
-      console.error('Error deleting suitcase:', error);
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la valise:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.message || "Une erreur est survenue lors de la suppression de la valise"
+        description: "Impossible de supprimer la valise"
       });
-    } finally {
-      setDeleting(false);
-      setShowDeleteDialog(false);
     }
   };
 
@@ -117,11 +111,7 @@ const ValiseDetail = () => {
         <MainSidebar />
         <main className="pt-24 px-4 md:pl-72">
           <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse space-y-6">
-              <div className="h-12 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-              <div className="h-24 bg-gray-200 rounded"></div>
-            </div>
+            <p>Chargement...</p>
           </div>
         </main>
         <BottomNav />
@@ -129,7 +119,24 @@ const ValiseDetail = () => {
     );
   }
 
-  const isOwner = user && suitcase?.user_id === user.id;
+  if (!suitcase) {
+    return (
+      <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
+        <Header />
+        <MainSidebar />
+        <main className="pt-24 px-4 md:pl-72">
+          <div className="max-w-4xl mx-auto">
+            <p>Valise non trouvée.</p>
+            <Button onClick={() => navigate('/valises')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour aux valises
+            </Button>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -137,94 +144,96 @@ const ValiseDetail = () => {
       <MainSidebar />
       <main className="pt-24 px-4 md:pl-72">
         <div className="max-w-4xl mx-auto">
-          <Button 
-            variant="outline" 
-            className="mb-4"
-            onClick={() => navigate('/valises')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour aux valises
-          </Button>
-          
-          {suitcase ? (
-            <>
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <SuitcaseHeader
-                  title={suitcase.name}
-                  description={suitcase.description}
-                  startDate={suitcase.start_date}
-                  endDate={suitcase.end_date}
-                  destination={suitcase.destination}
-                  status={suitcase.status as SuitcaseStatus}
-                  isOwner={isOwner}
-                  onDelete={() => setShowDeleteDialog(true)}
-                />
-                
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6 pb-6">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="items">
-                      <List className="h-4 w-4 mr-2" />
-                      Vêtements
-                    </TabsTrigger>
-                    <TabsTrigger value="calendar">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Calendrier
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="items">
-                    <SuitcaseItems suitcaseId={id || ''} />
-                  </TabsContent>
-                  
-                  <TabsContent value="calendar">
-                    <SuitcaseCalendar 
-                      suitcaseId={id || ''}
-                      startDate={suitcase.start_date} 
-                      endDate={suitcase.end_date}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </div>
-              
-              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Supprimer la valise</DialogTitle>
-                    <DialogDescription>
-                      Êtes-vous sûr de vouloir supprimer cette valise ? Cette action est irréversible.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter className="mt-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setShowDeleteDialog(false)}
-                      disabled={deleting}
-                    >
-                      Annuler
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={handleDelete}
-                      disabled={deleting}
-                    >
-                      {deleting ? 'Suppression...' : 'Supprimer'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
-          ) : (
-            <div className="text-center p-8 bg-gray-50 rounded-lg">
-              <h2 className="text-xl font-semibold text-gray-700">Valise non trouvée</h2>
-              <p className="mt-2 text-gray-500">Cette valise n'existe pas ou a été supprimée.</p>
-              <Button 
-                className="mt-4"
-                onClick={() => navigate('/valises')}
-              >
-                Voir toutes mes valises
+          <div className="flex items-center justify-between mb-6">
+            <Button variant="outline" onClick={() => navigate('/valises')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour
+            </Button>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate(`/valises/${id}/edit`)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Modifier
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                <Trash className="h-4 w-4 mr-2" />
+                Supprimer
               </Button>
             </div>
-          )}
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h1 className="text-2xl font-bold mb-2">{suitcase.name}</h1>
+            {suitcase.description && (
+              <p className="text-gray-600 mb-4">{suitcase.description}</p>
+            )}
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {suitcase.destination && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Destination</h3>
+                  <p>{suitcase.destination}</p>
+                </div>
+              )}
+              
+              {suitcase.start_date && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Date de début</h3>
+                  <p>{new Date(suitcase.start_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              
+              {suitcase.end_date && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Date de fin</h3>
+                  <p>{new Date(suitcase.end_date).toLocaleDateString()}</p>
+                </div>
+              )}
+              
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Statut</h3>
+                <p className="capitalize">{suitcase.status}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-bold mb-4">Contenu de la valise ({items.length} articles)</h2>
+            
+            {items.length === 0 ? (
+              <p className="text-gray-500">Aucun article dans cette valise.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {items.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-gray-200 h-12 w-12 rounded-md flex items-center justify-center">
+                        {item.clothes?.image_url ? (
+                          <img 
+                            src={item.clothes.image_url} 
+                            alt={item.clothes.name} 
+                            className="h-full w-full object-cover rounded-md"
+                          />
+                        ) : (
+                          <span className="text-gray-400 text-xs">No image</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="font-medium">{item.clothes?.name}</h3>
+                        <p className="text-sm text-gray-500">{item.clothes?.category}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-6">
+              <Button onClick={() => navigate(`/valises/${id}/add-items`)}>
+                Ajouter des articles
+              </Button>
+            </div>
+          </div>
         </div>
       </main>
       <BottomNav />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -9,9 +8,10 @@ import { ShopCard } from '@/components/shop/ShopCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNearbyShops, NearbyShop } from '@/hooks/shop/useNearbyShops';
+import { useNearbyShops } from '@/hooks/shop/useNearbyShops';
 import { Loader2, MapPin, List, Search, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { NearbyShop } from '@/types/messages';
 
 export default function ShopsMap() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,13 +38,20 @@ export default function ShopsMap() {
     description: shop.description,
     latitude: shop.latitude || 0,
     longitude: shop.longitude || 0,
-    address: shop.address,
+    address: shop.address || '',
   })).filter(shop => shop.latitude && shop.longitude);
   
   // Gérer le clic sur une boutique sur la carte
   const handleShopSelect = (shopId: string) => {
     navigate(`/shops/${shopId}`);
   };
+
+  // Convertir les shops du hook en type NearbyShop pour ShopCard
+  const convertedShops: NearbyShop[] = filteredShops.map(shop => ({
+    ...shop,
+    address: shop.address || '',
+    shop_items: shop.shop_items || [],
+  }));
   
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -130,8 +137,8 @@ export default function ShopsMap() {
                     <div className="col-span-full flex justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ) : filteredShops.length > 0 ? (
-                    filteredShops.slice(0, 3).map((shop) => (
+                  ) : convertedShops.length > 0 ? (
+                    convertedShops.slice(0, 3).map((shop) => (
                       <ShopCard 
                         key={shop.id} 
                         shop={shop} 
@@ -168,8 +175,8 @@ export default function ShopsMap() {
                   <div className="col-span-full flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : filteredShops.length > 0 ? (
-                  filteredShops.map((shop) => (
+                ) : convertedShops.length > 0 ? (
+                  convertedShops.map((shop) => (
                     <ShopCard 
                       key={shop.id} 
                       shop={shop}

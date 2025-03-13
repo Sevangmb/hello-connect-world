@@ -4,9 +4,10 @@ import StoreMap from "./StoreMap";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { NearbyShop, ShopStatus } from "@/types/messages";
+import { convertToStore, Store } from "@/types/store";
 
 const Boutiques = () => {
-  const [stores, setStores] = useState<NearbyShop[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,13 +22,16 @@ const Boutiques = () => {
         if (error) throw error;
 
         if (isMounted && data) {
-          // Convert shop data to NearbyShop type with proper ShopStatus
-          const formattedShops = data.map((shop: any) => ({
-            ...shop,
-            status: shop.status as ShopStatus
-          }));
+          // Convert shop data to NearbyShop type with proper ShopStatus, then to Store type
+          const formattedShops = data.map((shop: any) => {
+            const nearbyShop: NearbyShop = {
+              ...shop,
+              status: shop.status as ShopStatus
+            };
+            return convertToStore(nearbyShop);
+          });
           
-          setStores(formattedShops as NearbyShop[]);
+          setStores(formattedShops);
         }
       } catch (error: any) {
         if (isMounted) {

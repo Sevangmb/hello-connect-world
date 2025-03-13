@@ -49,21 +49,21 @@ export interface NearbyShop {
   id: string;
   name: string;
   description: string;
-  address: string;
-  latitude: number;
-  longitude: number;
+  address?: string;  // Rendre address optionnel pour résoudre l'incompatibilité
+  latitude?: number;  // Optionnel pour compatibilité
+  longitude?: number;  // Optionnel pour compatibilité
   user_id: string;
   created_at: string;
   updated_at: string;
   logo_url?: string | null;
   banner_url?: string | null;
   status: ShopStatus;
-  categories: string[];
-  opening_hours: any;
-  average_rating: number;
+  categories?: string[];
+  opening_hours?: any;
+  average_rating?: number;
   profiles?: { username: string | null };
-  shop_items?: { id: string }[];
-  // Ajout des propriétés manquantes
+  shop_items?: { id: string }[];  // Rendre optionnel pour compatibilité
+  // Propriétés optionnelles
   phone?: string;
   website?: string;
   distance?: number;

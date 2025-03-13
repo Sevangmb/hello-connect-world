@@ -1,5 +1,4 @@
-
-export type SuitcaseStatus = 'active' | 'archived' | 'completed';
+export type SuitcaseStatus = 'active' | 'archived';
 
 export interface Suitcase {
   id: string;
@@ -62,7 +61,6 @@ export interface SuitcaseFormData {
   endDate?: string;
 }
 
-// New types needed for components
 export interface SuitcaseFilter {
   status?: SuitcaseStatus;
   search?: string;

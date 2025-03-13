@@ -2,12 +2,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Shop, ShopStatus } from '@/core/shop/domain/types/shop-types';
+import { ShopStatus } from '@/types/messages';
 
-export interface NearbyShop extends Omit<Shop, 'status'> {
+// Interface NearbyShop locale, compatible avec celle de messages.ts
+export interface NearbyShop {
+  id: string;
+  name: string;
+  description: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
   status: ShopStatus;
-  distance?: number;
+  categories?: string[];
+  opening_hours?: any;
+  average_rating?: number;
+  profiles?: { username: string | null };
   shop_items: { id: string }[];
+  phone?: string;
+  website?: string;
+  distance?: number;
 }
 
 interface UseNearbyShopsOptions {
