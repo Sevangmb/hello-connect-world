@@ -124,12 +124,12 @@ export const messagesService = {
     }
     
     // Create a minimal update payload to avoid type recursion
-    const updatePayload = { is_read: true };
+    const updatePayload: MessageUpdatePayload = { is_read: true };
     
-    // Use type assertion to break recursive type checking
+    // Use type assertion to break recursive type checking - using 'unknown' first for safer type assertion chain
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload as any)
+      .update(updatePayload as unknown as object)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);
