@@ -51,6 +51,7 @@ export interface SuitcaseNote {
 export interface SuitcaseWithStats extends Suitcase {
   item_count?: number;
   outfit_count?: number;
+  suitcase_items?: { id: string }[];
 }
 
 export interface SuitcaseFormData {

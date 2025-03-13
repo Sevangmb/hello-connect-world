@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Message, Conversation } from '@/types/messages';
 
@@ -116,12 +115,9 @@ export const messagesService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
-      // Update to use a properly typed update object
-      const updateObject: { is_read: boolean } = { is_read: true };
-      
       const { error } = await supabase
         .from('private_messages')
-        .update(updateObject)
+        .update({ is_read: true })
         .match({ sender_id: senderId, receiver_id: user.id, is_read: false });
 
       if (error) throw error;

@@ -17,10 +17,6 @@ export interface Message {
   receiver: Profile;
 }
 
-export interface PrivateMessage extends Message {
-  // Private message specific fields if needed
-}
-
 export interface Conversation {
   id: string;
   user: Profile;

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -207,13 +206,22 @@ const MainRoutes: React.FC = () => {
         <Route path={ROUTES.SHORTCUTS.VIRTUAL_TRY_ON} element={<VirtualTryOnFeature />} />
         <Route path={ROUTES.SHORTCUTS.OCR} element={<OCRModule />} />
         
-        <Route path="/suitcases" element={<Suitcases />} />
-        <Route path="/wardrobe/suitcases" element={<Suitcases />} />
-        <Route path="/wardrobe/suitcases/:id" element={<Suitcases />} />
+        {/* Routes valise */}
+        <Route path="/valises" element={<Suitcases />} />
+        <Route path="/valises/:id" element={<ValiseDetail />} />
+        <Route path="/suitcases" element={<Navigate to="/valises" replace />} />
+        <Route path="/wardrobe/suitcases" element={<Navigate to="/valises" replace />} />
         
+        {/* Redirection depuis les anciens chemins */}
+        <Route path="/wardrobe/suitcases/:id" element={
+          <Navigate 
+            to={`/valises/${location.pathname.split('/').pop()}`} 
+            replace 
+          />
+        } />
         <Route path="/suitcases/:id" element={
           <Navigate 
-            to={`/wardrobe/suitcases/${location.pathname.split('/').pop()}`} 
+            to={`/valises/${location.pathname.split('/').pop()}`} 
             replace 
           />
         } />

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -43,7 +42,7 @@ export default function Shops() {
             id
           )
         `)
-        .eq('status', 'approved');
+        .eq('status', ShopStatus.APPROVED);
 
       if (searchQuery) {
         query = query.ilike('name', `%${searchQuery}%`);
@@ -63,7 +62,7 @@ export default function Shops() {
 
       console.log("Shops fetched:", data);
       
-      // Convert string status to ShopStatus enum to satisfy the type check
+      // Assurez-vous que le statut est correctement typé en ShopStatus
       return (data || []).map((shop: any) => ({
         ...shop,
         status: shop.status as ShopStatus
