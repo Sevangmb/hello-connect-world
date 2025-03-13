@@ -29,6 +29,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
   const [sendingMessage, setSendingMessage] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -57,6 +58,11 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
       supabase.removeChannel(channel);
     };
   }, [partnerId, currentUserId]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -119,7 +125,6 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
         <div>
           <h3 className="font-semibold">{partnerProfile.username || 'Utilisateur'}</h3>
           <p className="text-xs text-muted-foreground">
-            {/* Utiliser une valeur par défaut au lieu de is_online */}
             {partnerProfile.is_online ? 'En ligne' : 'Hors ligne'}
           </p>
         </div>
@@ -132,6 +137,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
           currentUserId={currentUserId} 
           loading={loading} 
         />
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Saisie de message */}

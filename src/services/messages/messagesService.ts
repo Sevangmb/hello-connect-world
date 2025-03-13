@@ -10,9 +10,24 @@ interface CreateMessageRequest {
   created_at: string;
 }
 
-// Define update payload to fix typing issues
+// Type spécifique pour les mises à jour de messages
 interface MessageUpdatePayload {
   is_read: boolean;
+}
+
+// Type pour les conversations retournées par la fonction RPC
+interface UserConversation {
+  id: string;
+  user: {
+    id: string;
+    username: string | null;
+    avatar_url: string | null;
+  };
+  lastMessage: {
+    content: string;
+    created_at: string;
+  };
+  unreadCount: number;
 }
 
 export const messagesService = {
@@ -86,25 +101,25 @@ export const messagesService = {
   /**
    * Récupère les conversations d'un utilisateur
    */
-  async fetchConversations() {
+  async fetchConversations(): Promise<UserConversation[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
       throw new Error('User not authenticated');
     }
     
-    // Use any type to avoid the excessive instantiation issue
-    const { data, error } = await supabase.rpc(
-      'get_user_conversations', 
+    // Utiliser un type cast explicite pour l'appel RPC
+    const response = await supabase.rpc(
+      'get_user_conversations' as any, 
       { user_id: user.id }
-    ) as unknown as { data: any; error: any };
+    );
     
-    if (error) {
-      console.error('Error fetching conversations:', error);
+    if (response.error) {
+      console.error('Error fetching conversations:', response.error);
       throw new Error('Failed to fetch conversations');
     }
     
-    return data || [];
+    return response.data || [];
   },
   
   /**
@@ -117,10 +132,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Fix the typing issue by using the updateData with the correct shape
+    // Utiliser un cast explicite pour l'update
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true })
+      .update({ is_read: true } as any)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

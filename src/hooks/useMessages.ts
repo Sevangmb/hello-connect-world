@@ -30,7 +30,7 @@ export function useMessages() {
         
         // Récupérer les conversations
         const data = await messagesService.fetchConversations();
-        setConversations(data as Conversation[]);
+        setConversations(data as unknown as Conversation[]);
         
         // Compter les messages non lus
         const count = await messagesService.countUnreadMessages();

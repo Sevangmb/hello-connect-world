@@ -30,6 +30,7 @@ const Messages = () => {
     id: string;
     username: string;
     avatar_url: string | null;
+    is_online?: boolean;
   } | null>(null);
 
   // Trouver le profil de l'utilisateur partenaire actuel
@@ -40,7 +41,8 @@ const Messages = () => {
         setSelectedPartner({
           id: partner.id,
           username: partner.username || '',
-          avatar_url: partner.avatar_url
+          avatar_url: partner.avatar_url,
+          is_online: partner.is_online
         });
       }
     }
@@ -55,7 +57,8 @@ const Messages = () => {
     setSelectedPartner({
       id: friend.id,
       username: friend.username,
-      avatar_url: friend.avatar_url || null
+      avatar_url: friend.avatar_url || null,
+      is_online: false
     });
     setActiveTab('conversations');
   };
@@ -68,76 +71,79 @@ const Messages = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <MainSidebar />
-      <main className="pt-24 px-4 md:pl-72 pb-16 md:pb-0">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Liste des conversations */}
-            <Card className={`p-4 h-[calc(100vh-8rem)] flex flex-col overflow-hidden ${
-              currentConversation && 'md:block hidden'
-            }`}>
-              <h2 className="text-xl font-semibold mb-4">Messages</h2>
-              
-              <Tabs defaultValue="conversations" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger value="conversations" className="flex-1">
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Conversations
-                    {unreadCount > 0 && (
-                      <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="contacts" className="flex-1">
-                    <Users className="h-4 w-4 mr-2" />
-                    Contacts
-                  </TabsTrigger>
-                </TabsList>
+      <div className="flex flex-grow">
+        <MainSidebar />
+        <main className="flex-1 pt-20 pb-16 md:pb-0 px-4 md:px-6 md:pl-72">
+          <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+              {/* Liste des conversations */}
+              <Card className={`p-4 h-full flex flex-col overflow-hidden ${
+                currentConversation && 'md:block hidden'
+              }`}>
+                <h2 className="text-xl font-semibold mb-4">Messages</h2>
                 
-                <TabsContent value="conversations" className="flex-1 overflow-auto">
-                  <ConversationsList
-                    conversations={conversations}
-                    loading={loading}
-                    currentConversation={currentConversation}
-                    onSelectConversation={handleSelectChat}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="contacts" className="flex-1 overflow-auto">
-                  <SearchFriends onSelect={handleSelectFriend} />
-                </TabsContent>
-              </Tabs>
-            </Card>
+                <Tabs defaultValue="conversations" value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="w-full mb-4">
+                    <TabsTrigger value="conversations" className="flex-1">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Conversations
+                      {unreadCount > 0 && (
+                        <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="contacts" className="flex-1">
+                      <Users className="h-4 w-4 mr-2" />
+                      Contacts
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="conversations" className="flex-1 overflow-auto">
+                    <ConversationsList
+                      conversations={conversations}
+                      loading={loading}
+                      currentConversation={currentConversation}
+                      onSelectConversation={handleSelectChat}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="contacts" className="flex-1 overflow-auto">
+                    <SearchFriends onSelect={handleSelectFriend} />
+                  </TabsContent>
+                </Tabs>
+              </Card>
 
-            {/* Zone de conversation */}
-            <Card className={`md:col-span-2 flex flex-col h-[calc(100vh-8rem)] ${
-              !currentConversation && 'md:flex hidden'
-            }`}>
-              {currentConversation && selectedPartner ? (
-                <PrivateChat
-                  partnerId={currentConversation}
-                  partnerProfile={{
-                    id: selectedPartner.id,
-                    username: selectedPartner.username,
-                    avatar_url: selectedPartner.avatar_url,
-                    is_online: false
-                  }}
-                  currentUserId={currentUserId || ''}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                    <p className="text-lg font-medium">Sélectionnez une conversation</p>
-                    <p className="text-sm">Choisissez un contact pour commencer à discuter</p>
+              {/* Zone de conversation */}
+              <Card className={`md:col-span-2 flex flex-col h-full ${
+                !currentConversation && 'md:flex hidden'
+              }`}>
+                {currentConversation && selectedPartner ? (
+                  <PrivateChat
+                    partnerId={currentConversation}
+                    partnerProfile={{
+                      id: selectedPartner.id,
+                      username: selectedPartner.username,
+                      avatar_url: selectedPartner.avatar_url,
+                      is_online: selectedPartner.is_online || false
+                    }}
+                    currentUserId={currentUserId || ''}
+                    onBack={handleBack}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="text-center">
+                      <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-lg font-medium">Sélectionnez une conversation</p>
+                      <p className="text-sm">Choisissez un contact pour commencer à discuter</p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </Card>
+                )}
+              </Card>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
       <BottomNav />
     </div>
   );
