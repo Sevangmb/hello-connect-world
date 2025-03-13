@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,27 +12,39 @@ import { Edit, Trash, MoreVertical, Archive, Eye } from "lucide-react";
 
 interface SuitcaseActionsProps {
   suitcaseId: string;
+  onDelete?: (id: string) => void;
+  onArchive?: (id: string) => void;
 }
 
-export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({ suitcaseId }) => {
+export const SuitcaseActions: React.FC<SuitcaseActionsProps> = ({ 
+  suitcaseId, 
+  onDelete, 
+  onArchive 
+}) => {
+  const navigate = useNavigate();
+
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Edit suitcase', suitcaseId);
+    navigate(`/valises/${suitcaseId}`);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Delete suitcase', suitcaseId);
+    if (onDelete) {
+      onDelete(suitcaseId);
+    }
   };
 
   const handleArchive = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('Archive suitcase', suitcaseId);
+    if (onArchive) {
+      onArchive(suitcaseId);
+    }
   };
 
   const handleView = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('View suitcase', suitcaseId);
+    navigate(`/valises/${suitcaseId}`);
   };
 
   return (

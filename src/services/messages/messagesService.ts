@@ -69,10 +69,10 @@ export const messagesService = {
       is_read: false
     };
     
-    // Use type assertion to break the recursive type checking
+    // Use a simplified type cast to object to avoid recursive type checking
     const { data, error } = await supabase
       .from('private_messages')
-      .insert(messageRequest as any)
+      .insert(messageRequest as Record<string, any>)
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -126,10 +126,10 @@ export const messagesService = {
     // Create a minimal update payload to avoid type recursion
     const updatePayload: MessageUpdatePayload = { is_read: true };
     
-    // Use type assertion to break recursive type checking - using 'unknown' first for safer type assertion chain
+    // Use a simplified type cast to object to avoid recursive type checking
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload as unknown as object)
+      .update(updatePayload as Record<string, any>)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

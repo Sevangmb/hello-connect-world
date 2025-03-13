@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar, Luggage, MapPin, Pencil, Trash } from 'lucide-react';
@@ -15,6 +16,8 @@ interface SuitcaseListProps {
 }
 
 export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, onDelete }) => {
+  const navigate = useNavigate();
+  
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return null;
     try {
@@ -22,6 +25,10 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, o
     } catch {
       return null;
     }
+  };
+
+  const handleCardClick = (id: string) => {
+    navigate(`/valises/${id}`);
   };
 
   if (suitcases.length === 0) {
@@ -40,7 +47,11 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, o
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {suitcases.map((suitcase) => (
-        <Card key={suitcase.id} className="overflow-hidden">
+        <Card 
+          key={suitcase.id} 
+          className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => handleCardClick(suitcase.id)}
+        >
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-lg font-semibold truncate">{suitcase.name}</h3>
@@ -87,7 +98,10 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, o
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => onEdit(suitcase.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(suitcase.id);
+              }}
             >
               <Pencil className="h-4 w-4 mr-1" />
               Modifier
@@ -95,7 +109,10 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, o
             <Button 
               variant="destructive" 
               size="sm" 
-              onClick={() => onDelete(suitcase.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(suitcase.id);
+              }}
             >
               <Trash className="h-4 w-4 mr-1" />
               Supprimer

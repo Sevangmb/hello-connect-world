@@ -10,8 +10,8 @@ import { fr } from 'date-fns/locale';
 
 interface SuitcaseCardProps {
   suitcase: Suitcase;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
@@ -19,6 +19,16 @@ export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
   onEdit,
   onDelete
 }) => {
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(suitcase.id);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(suitcase.id);
+  };
+
   return (
     <Card className="h-full flex flex-col hover:shadow-md transition-shadow">
       <CardHeader>
@@ -50,11 +60,11 @@ export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
         )}
       </CardContent>
       <CardFooter className="justify-between pt-2 border-t">
-        <Button variant="outline" size="sm" onClick={onEdit}>
+        <Button variant="outline" size="sm" onClick={handleEdit}>
           <Edit className="h-4 w-4 mr-1" />
           Modifier
         </Button>
-        <Button variant="ghost" size="sm" onClick={onDelete} className="text-destructive">
+        <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive">
           <Trash className="h-4 w-4 mr-1" />
           Supprimer
         </Button>
