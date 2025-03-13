@@ -56,7 +56,7 @@ export const messagesService = {
     }
     
     // Create message request with correct type
-    const messageRequest: MessageInsertPayload = {
+    const messageRequest: any = {
       sender_id: user.id,
       receiver_id: receiverId,
       content,
@@ -66,7 +66,7 @@ export const messagesService = {
     
     const { data, error } = await supabase
       .from('private_messages')
-      .insert(messageRequest as any) // Utiliser any pour contourner la vérification de type
+      .insert(messageRequest)
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -92,7 +92,6 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use type assertion for the RPC function name
     const { data, error } = await supabase.rpc(
       'get_user_conversations' as any, 
       { user_id: user.id }
