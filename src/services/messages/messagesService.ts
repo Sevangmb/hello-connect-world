@@ -108,19 +108,16 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Contourner le problème de typage RPC en utilisant any temporairement
-    // puis en appliquant le bon type au résultat
-    const { data, error } = await supabase.rpc(
-      'get_user_conversations' as any,
-      { user_id: user.id }
-    );
+    // Utiliser une approche simplifiée avec any pour éviter les problèmes de récursivité de types
+    const { data, error } = await supabase
+      .rpc('get_user_conversations', { user_id: user.id }) as any;
     
     if (error) {
       console.error('Error fetching conversations:', error);
       throw new Error('Failed to fetch conversations');
     }
     
-    return (data || []) as UserConversation[];
+    return data || [];
   },
   
   /**
@@ -133,11 +130,12 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Spécifier directement les colonnes de la table private_messages
-    // sans passer par un objet typé pour éviter les problèmes de type
+    // Utiliser un objet simple sans type spécifique
+    const updateObj = { is_read: true };
+    
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as any)
+      .update(updateObj)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

@@ -1,20 +1,26 @@
 
-import React from "react";
-import { Card } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import React from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface ModuleUnavailableProps {
   name: string;
 }
 
-export const ModuleUnavailable = ({ name }: ModuleUnavailableProps) => (
-  <Card className="p-6 bg-amber-50 border-amber-200">
-    <div className="flex items-center gap-2 text-amber-800 font-semibold mb-2">
-      <AlertTriangle className="h-5 w-5" />
-      <h2>Module {name} indisponible</h2>
+export const ModuleUnavailable: React.FC<ModuleUnavailableProps> = ({ name }) => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+      <ShieldAlert className="w-12 h-12 text-amber-500 mb-4" />
+      <h2 className="text-xl font-semibold mb-2">Module non disponible</h2>
+      <p className="text-muted-foreground mb-6">
+        Le module "{name}" n'est pas activé. Contactez votre administrateur pour activer cette fonctionnalité.
+      </p>
+      <Button onClick={() => navigate('/personal')}>
+        Retour à mon univers
+      </Button>
     </div>
-    <p className="text-amber-700">
-      Ce module est actuellement désactivé ou en cours de maintenance.
-    </p>
-  </Card>
-);
+  );
+};
