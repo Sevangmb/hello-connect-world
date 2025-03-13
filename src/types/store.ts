@@ -21,7 +21,7 @@ export interface Store {
   phone: string;  // Requis dans Store
   website: string; // Requis dans Store
   profiles: { username: string | null }; // Making profiles required
-  shop_items?: { id: string }[];
+  shop_items: { id: string }[]; // Ajouté comme requis pour la compatibilité
   distance?: number;
 }
 
@@ -37,7 +37,8 @@ export const convertToStore = (shop: NearbyShop): Store => {
     phone: shop.phone || '',
     website: shop.website || '',
     opening_hours: shop.opening_hours || {},
-    profiles: shop.profiles || { username: null }
+    profiles: shop.profiles || { username: null },
+    shop_items: shop.shop_items || [], // S'assurer que shop_items est toujours défini
   };
 };
 
@@ -46,5 +47,6 @@ export const convertToNearbyShop = (store: Store): NearbyShop => {
   return {
     ...store,
     status: store.status as ShopStatus,
+    shop_items: store.shop_items || [], // S'assurer que shop_items est toujours défini
   };
 };

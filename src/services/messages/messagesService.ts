@@ -7,8 +7,12 @@ interface CreateMessageRequest {
   sender_id: string;
   receiver_id: string;
   content: string;
-  is_read: boolean;
   created_at: string;
+}
+
+// Interface séparée pour le type attendu par l'API pour l'insertion
+interface MessageInsertPayload extends CreateMessageRequest {
+  is_read: boolean;
 }
 
 export const messagesService = {
@@ -52,17 +56,17 @@ export const messagesService = {
     }
     
     // Create message request with correct type
-    const messageRequest: CreateMessageRequest = {
+    const messageRequest: MessageInsertPayload = {
       sender_id: user.id,
       receiver_id: receiverId,
       content,
-      is_read: false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      is_read: false
     };
     
     const { data, error } = await supabase
       .from('private_messages')
-      .insert(messageRequest)
+      .insert(messageRequest as any) // Utiliser any pour contourner la vérification de type
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -88,7 +92,7 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use type casting for the RPC function name to avoid type error
+    // Use type assertion for the RPC function name
     const { data, error } = await supabase.rpc(
       'get_user_conversations' as any, 
       { user_id: user.id }
@@ -114,7 +118,7 @@ export const messagesService = {
     
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true })
+      .update({ is_read: true } as any)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

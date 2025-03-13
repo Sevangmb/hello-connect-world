@@ -27,7 +27,10 @@ const Boutiques = () => {
             const nearbyShop: NearbyShop = {
               ...shop,
               status: shop.status as ShopStatus,
-              shop_items: shop.shop_items || []
+              shop_items: shop.shop_items || [],
+              address: shop.address || '',
+              latitude: shop.latitude || 0,
+              longitude: shop.longitude || 0
             };
             return convertToStore(nearbyShop);
           });

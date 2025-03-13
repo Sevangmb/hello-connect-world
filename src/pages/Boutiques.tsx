@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Grid, List, MapPin, Plus, Search, ShoppingBag, SlidersHorizontal, Store, X as XIcon } from "lucide-react";
@@ -57,7 +56,6 @@ export default function Boutiques() {
     setFilters,
   } = useStores();
 
-  // Fetch shop categories from the database
   useEffect(() => {
     const fetchCategories = async () => {
       setLoadingCategories(true);
@@ -82,7 +80,6 @@ export default function Boutiques() {
     fetchCategories();
   }, []);
 
-  // Filter stores based on search query
   const filteredStores = searchQuery
     ? stores.filter(store => 
         store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -269,7 +266,6 @@ export default function Boutiques() {
               </div>
             </div>
 
-            {/* Active filters display */}
             <div className="mb-6 flex flex-wrap gap-2">
               {filters.category !== "all" && (
                 <Badge variant="secondary" className="flex items-center gap-1">
@@ -300,7 +296,6 @@ export default function Boutiques() {
               )}
             </div>
 
-            {/* Display modes */}
             {viewMode === "grid" && (
               <div>
                 {loading ? (
@@ -319,7 +314,11 @@ export default function Boutiques() {
                 ) : filteredStores.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredStores.map((store) => (
-                      <ShopCard key={store.id} shop={store} />
+                      <ShopCard key={store.id} shop={{
+                        ...store,
+                        status: store.status as ShopStatus,
+                        shop_items: store.shop_items || []
+                      }} />
                     ))}
                   </div>
                 ) : (

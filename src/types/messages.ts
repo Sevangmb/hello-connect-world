@@ -49,9 +49,9 @@ export interface NearbyShop {
   id: string;
   name: string;
   description: string;
-  address: string;  // Changed to required for compatibility
-  latitude: number;  // Changed to required for compatibility
-  longitude: number;  // Changed to required for compatibility
+  address: string;
+  latitude: number;
+  longitude: number;
   user_id: string;
   created_at: string;
   updated_at: string;

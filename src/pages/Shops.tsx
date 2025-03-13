@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -63,11 +62,14 @@ export default function Shops() {
 
       console.log("Shops fetched:", data);
       
-      // Assurez-vous que le statut est correctement typé en ShopStatus
+      // Assurez-vous que le statut est correctement typé en ShopStatus et que shop_items est défini
       return (data || []).map((shop: any) => ({
         ...shop,
         status: shop.status as ShopStatus,
-        shop_items: shop.shop_items || []
+        shop_items: shop.shop_items || [],
+        address: shop.address || '',
+        latitude: shop.latitude || 0,
+        longitude: shop.longitude || 0
       })) as NearbyShop[];
     },
   });
