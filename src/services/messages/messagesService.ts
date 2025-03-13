@@ -132,13 +132,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Define the update payload explicitly
-    const updatePayload: MessageUpdatePayload = { is_read: true };
-    
-    // Résolution du problème de type profond en utilisant une conversion explicite
+    // Définir explicitement les champs à mettre à jour 
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload)
+      .update({ is_read: true } as MessageUpdatePayload)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

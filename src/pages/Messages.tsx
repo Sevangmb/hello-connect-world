@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, Users, ArrowLeft, Hash, Settings, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 
 // Liste des canaux de discussion simulés pour mIRC
 const MOCK_CHANNELS = [
@@ -96,8 +96,8 @@ const Messages = () => {
       <Header />
       <div className="flex flex-grow min-h-screen">
         <MainSidebar />
-        <main className="flex-1 pt-16 pb-16 md:pb-0 px-4 md:px-6 md:pl-72">
-          <div className="max-w-6xl mx-auto h-[calc(100vh-8rem)] py-4">
+        <main className="flex-1 pt-16 pb-16 md:pb-0 px-2 md:px-4 md:pl-72">
+          <div className="max-w-7xl mx-auto h-[calc(100vh-8rem)] py-2">
             {/* Style mIRC avec une barre supérieure */}
             <div className="bg-gray-100 border rounded-md mb-2 p-2 text-sm flex items-center justify-between">
               <div className="flex items-center gap-2">

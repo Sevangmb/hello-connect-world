@@ -1,12 +1,9 @@
 
 import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Message } from '@/types/messages';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { User } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface MessageItemProps {
   message: Message;
@@ -16,7 +13,7 @@ interface MessageItemProps {
 export const MessageItem: React.FC<MessageItemProps> = ({ message, isCurrentUser }) => {
   const user = isCurrentUser ? message.sender : message.receiver;
   const timeFormatted = format(new Date(message.created_at), 'HH:mm', { locale: fr });
-  const username = user.username || 'Anonyme';
+  const username = user?.username || 'Anonyme';
   
   return (
     <div className={cn(

@@ -8,10 +8,9 @@ import { Send, Loader2, Users, Hash, Settings } from 'lucide-react';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface OnlineUser {
   id: string;
