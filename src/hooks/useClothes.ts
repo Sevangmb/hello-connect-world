@@ -14,7 +14,6 @@ export interface ClothesFilters {
   needsAlteration?: boolean;
   isForSale?: boolean;
   source?: string;
-  // Add any other properties used in filters
 }
 
 export const useClothes = (initialFilters: ClothesFilters = {}) => {
@@ -60,7 +59,7 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
   return { clothes, loading, error, filters, updateFilters };
 };
 
-// Update fetchClothes function to use proper query limiting and pagination
+// Update fetchClothes function to handle filters properly
 const fetchClothesData = async (filters: ClothesFilters = {}, userId: string) => {
   try {
     if (!userId) {
@@ -82,7 +81,7 @@ const fetchClothesData = async (filters: ClothesFilters = {}, userId: string) =>
       query = query.eq('subcategory', filters.subcategory);
     }
 
-    if (filters.search) {
+    if (filters.search && typeof filters.search === 'string') {
       query = query.ilike('name', `%${filters.search}%`);
     }
 

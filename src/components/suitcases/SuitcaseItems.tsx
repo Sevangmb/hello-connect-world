@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { useClothes } from '@/hooks/useClothes';
 import { Loader2 } from 'lucide-react';
 
 export const SuitcaseItems = () => {
   // Use the hook with properly defined filters
-  const { clothes, loading } = useClothes({});
+  const { clothes, loading } = useClothes({ showArchived: false });
 
   if (loading) {
     return (

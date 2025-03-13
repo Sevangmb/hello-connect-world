@@ -12,11 +12,14 @@ export async function markMessagesAsRead(senderId: string): Promise<void> {
     throw new Error('User not authenticated');
   }
   
-  const updateData: UpdateMessageRequest = { is_read: true };
+  // Create an update object with the correct type
+  const updateData: UpdateMessageRequest = {
+    is_read: true
+  };
   
   const { error } = await supabase
     .from('private_messages')
-    .update(updateData as any) // Using type assertion to bypass TypeScript error
+    .update(updateData)
     .eq('sender_id', senderId)
     .eq('receiver_id', user.id)
     .eq('is_read', false);
@@ -34,7 +37,7 @@ export async function countUnreadMessages(): Promise<number> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    return 0;
+    throw new Error('User not authenticated');
   }
   
   const { count, error } = await supabase
@@ -45,7 +48,7 @@ export async function countUnreadMessages(): Promise<number> {
   
   if (error) {
     console.error('Error counting unread messages:', error);
-    return 0;
+    throw new Error('Failed to count unread messages');
   }
   
   return count || 0;
