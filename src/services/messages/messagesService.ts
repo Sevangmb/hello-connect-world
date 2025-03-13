@@ -123,9 +123,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use a strictly typed update payload to break recursion
-    const updatePayload: MessageUpdatePayload = { is_read: true };
+    // Create a minimal update payload to avoid type recursion
+    const updatePayload = { is_read: true };
     
+    // Use type assertion to break recursive type checking
     const { error } = await supabase
       .from('private_messages')
       .update(updatePayload as any)
