@@ -8,21 +8,26 @@
 import ShopMap from '@/components/shop/ShopMap';
 import StoreMap from '@/components/stores/StoreMap';
 import { ShopCard } from '@/components/shop/ShopCard';
+import { StoreFilters } from '@/components/stores/StoreFilters';
 
 // Pages
 import ShopsMap from '@/pages/ShopsMap';
 import Boutiques from '@/pages/Boutiques';
 
 // Hooks
-export { useStores } from '@/hooks/useStores';
-export { useNearbyShops } from '@/hooks/shop/useNearbyShops';
+import { useStores } from '@/hooks/useStores';
+import { useNearbyShops } from '@/hooks/shop/useNearbyShops';
 
-// Composants
-export { StoreFilters } from '@/components/stores/StoreFilters';
+// Export components
+export { StoreFilters };
 export { ShopCard };
 export { ShopMap };
 export { StoreMap };
 
-// Pages
+// Export pages
 export { ShopsMap };
 export { Boutiques };
+
+// Export hooks
+export { useStores };
+export { useNearbyShops };

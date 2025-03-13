@@ -93,9 +93,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use a direct "any" type assertion to fix RPC call
+    // Fix for type issue with RPC call - use explicit 'any' type
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as any, 
+      'get_user_conversations' as unknown as any, 
       { user_id: user.id }
     );
     
@@ -117,7 +117,7 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use explicit any type to avoid recursion issues
+    // Fix the type issue with update method
     const { error } = await supabase
       .from('private_messages')
       .update({ is_read: true } as any)

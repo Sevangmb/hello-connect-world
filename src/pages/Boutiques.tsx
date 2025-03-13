@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Grid, List, MapPin, Plus, Search, ShoppingBag, SlidersHorizontal, Store, X as XIcon } from "lucide-react";
@@ -428,7 +429,7 @@ export default function Boutiques() {
             
             {viewMode === "calendar" && (
               <div className="h-[600px] border rounded-lg overflow-hidden">
-                <ShopMap 
+                <StoreMap 
                   shops={mapShops} 
                   isLoading={loading} 
                   onShopSelect={handleShopSelect}
