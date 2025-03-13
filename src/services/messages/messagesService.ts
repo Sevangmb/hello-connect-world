@@ -10,12 +10,7 @@ interface CreateMessageRequest {
   created_at: string;
 }
 
-// Interface séparée pour le type attendu par l'API pour l'insertion
-interface MessageInsertPayload extends CreateMessageRequest {
-  is_read: boolean;
-}
-
-// Define a simple update payload interface to break type recursion
+// Define a simple update payload interface to avoid deep type recursion
 interface MessageUpdatePayload {
   is_read: boolean;
 }
@@ -60,19 +55,18 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Create message request with correct type and explicit typing to avoid recursion
-    const messageRequest: MessageInsertPayload = {
+    // Create the message request with explicit required fields
+    const messageRequest: CreateMessageRequest = {
       sender_id: user.id,
       receiver_id: receiverId,
       content,
-      created_at: new Date().toISOString(),
-      is_read: false
+      created_at: new Date().toISOString()
     };
     
-    // Use a simplified type cast to object to avoid recursive type checking
+    // Pass the strongly typed messageRequest directly
     const { data, error } = await supabase
       .from('private_messages')
-      .insert(messageRequest as Record<string, any>)
+      .insert(messageRequest)
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -99,9 +93,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use explicit typing for RPC call to avoid type recursion
+    // Use explicit typing for RPC call
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as any, 
+      'get_user_conversations', 
       { user_id: user.id }
     );
     
@@ -123,13 +117,12 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Create a minimal update payload to avoid type recursion
+    // Create a simple update payload
     const updatePayload: MessageUpdatePayload = { is_read: true };
     
-    // Use a simplified type cast to object to avoid recursive type checking
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload as Record<string, any>)
+      .update(updatePayload)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);
