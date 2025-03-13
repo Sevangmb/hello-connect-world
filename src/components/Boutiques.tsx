@@ -26,7 +26,8 @@ const Boutiques = () => {
           const formattedShops = data.map((shop: any) => {
             const nearbyShop: NearbyShop = {
               ...shop,
-              status: shop.status as ShopStatus
+              status: shop.status as ShopStatus,
+              shop_items: shop.shop_items || []
             };
             return convertToStore(nearbyShop);
           });

@@ -43,8 +43,6 @@ export const SuitcaseHeader: React.FC<SuitcaseHeaderProps> = ({
     switch (status) {
       case 'active':
         return <Badge>Active</Badge>;
-      case 'completed':
-        return <Badge variant="success">Terminée</Badge>;
       case 'archived':
         return <Badge variant="secondary">Archivée</Badge>;
       default:

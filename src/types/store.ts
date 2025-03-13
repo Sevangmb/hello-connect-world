@@ -20,7 +20,7 @@ export interface Store {
   average_rating: number;
   phone: string;  // Requis dans Store
   website: string; // Requis dans Store
-  profiles?: { username: string | null };
+  profiles: { username: string | null }; // Making profiles required
   shop_items?: { id: string }[];
   distance?: number;
 }
@@ -36,6 +36,8 @@ export const convertToStore = (shop: NearbyShop): Store => {
     average_rating: shop.average_rating || 0,
     phone: shop.phone || '',
     website: shop.website || '',
+    opening_hours: shop.opening_hours || {},
+    profiles: shop.profiles || { username: null }
   };
 };
 

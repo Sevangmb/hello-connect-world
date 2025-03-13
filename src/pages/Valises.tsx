@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SuitcaseList } from '@/components/suitcases/components/SuitcaseList';
 import { CreateSuitcaseDialog } from '@/components/suitcases/components/CreateSuitcaseDialog';
@@ -116,7 +115,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: "active" // Utiliser uniquement "active" ou "archived" (pas "completed")
+        status: "active" as SuitcaseStatus // Seule valeur acceptée: 'active' ou 'archived'
       };
       
       const { data, error } = await supabase

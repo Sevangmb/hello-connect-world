@@ -2,6 +2,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Message, PrivateMessage } from '@/types/messages';
 
+// Define an interface for the create message request
+interface CreateMessageRequest {
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 export const messagesService = {
   /**
    * Récupère les messages d'une conversation privée
@@ -42,16 +51,18 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Message avec is_read défini explicitement pour correspondre à la table private_messages
+    // Create message request with correct type
+    const messageRequest: CreateMessageRequest = {
+      sender_id: user.id,
+      receiver_id: receiverId,
+      content,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('private_messages')
-      .insert({
-        sender_id: user.id,
-        receiver_id: receiverId,
-        content,
-        is_read: false,
-        created_at: new Date().toISOString()
-      })
+      .insert(messageRequest)
       .select(`
         *,
         sender:sender_id (id, username, avatar_url),
@@ -77,10 +88,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Utiliser la fonction SQL personnalisée
+    // Use type casting for the RPC function name to avoid type error
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as any, // Cast nécessaire car le type n'est pas inclus dans les définitions
-      { user_id: user.id } // Ajouter les paramètres requis
+      'get_user_conversations' as any, 
+      { user_id: user.id }
     );
     
     if (error) {

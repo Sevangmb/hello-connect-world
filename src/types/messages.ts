@@ -44,14 +44,14 @@ export enum ShopStatus {
   REJECTED = 'rejected'
 }
 
-// Define NearbyShop interface to replace Store type
+// Define NearbyShop interface to ensure compatibility with both usages
 export interface NearbyShop {
   id: string;
   name: string;
   description: string;
-  address?: string;  // Rendre address optionnel pour résoudre l'incompatibilité
-  latitude?: number;  // Optionnel pour compatibilité
-  longitude?: number;  // Optionnel pour compatibilité
+  address: string;  // Changed to required for compatibility
+  latitude: number;  // Changed to required for compatibility
+  longitude: number;  // Changed to required for compatibility
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -62,7 +62,7 @@ export interface NearbyShop {
   opening_hours?: any;
   average_rating?: number;
   profiles?: { username: string | null };
-  shop_items?: { id: string }[];  // Rendre optionnel pour compatibilité
+  shop_items: { id: string }[];  // Required for compatibility
   // Propriétés optionnelles
   phone?: string;
   website?: string;

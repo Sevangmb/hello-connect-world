@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Conversation, Message } from "@/types/messages";
 import { messagesService } from "@/services/messages/messagesService";
@@ -53,50 +52,6 @@ export const useMessages = () => {
     }
   }, [currentUserId, fetchConversations]);
 
-  // Récupérer les messages d'une conversation spécifique
-  const fetchMessages = useCallback(async (conversationId: string) => {
-    try {
-      setLoading(true);
-      const messagesData = await messagesService.fetchMessages(conversationId);
-      setMessages(messagesData);
-      
-      // Marquer les messages comme lus
-      await messagesService.markMessagesAsRead(conversationId);
-      
-      // Mettre à jour la conversation actuelle
-      setCurrentConversation(conversationId);
-    } catch (error: any) {
-      console.error("Erreur lors du chargement des messages:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de charger les messages",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
-
-  // Envoyer un nouveau message
-  const sendMessage = useCallback(async (receiverId: string, content: string) => {
-    if (!content.trim()) return;
-    
-    try {
-      setSendingMessage(true);
-      await messagesService.sendMessage(receiverId, content);
-      // Les messages seront mis à jour via la souscription en temps réel
-    } catch (error: any) {
-      console.error("Erreur lors de l'envoi du message:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible d'envoyer le message",
-      });
-    } finally {
-      setSendingMessage(false);
-    }
-  }, [toast]);
-
   // Gestionnaire pour les changements en temps réel des messages
   const handleRealtimeChanges = useCallback((payload: RealtimePostgresChangesPayload<any>) => {
     console.log("Changement en temps réel détecté:", payload);
@@ -147,8 +102,46 @@ export const useMessages = () => {
     sendingMessage,
     currentConversation,
     currentUserId,
-    fetchMessages,
-    sendMessage,
+    fetchMessages: useCallback(async (conversationId: string) => {
+      try {
+        setLoading(true);
+        const messagesData = await messagesService.fetchMessages(conversationId);
+        setMessages(messagesData);
+        
+        // Marquer les messages comme lus
+        await messagesService.markMessagesAsRead(conversationId);
+        
+        // Mettre à jour la conversation actuelle
+        setCurrentConversation(conversationId);
+      } catch (error: any) {
+        console.error("Erreur lors du chargement des messages:", error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible de charger les messages",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }, [toast]),
+    sendMessage: useCallback(async (receiverId: string, content: string) => {
+      if (!content.trim()) return;
+      
+      try {
+        setSendingMessage(true);
+        await messagesService.sendMessage(receiverId, content);
+        // Les messages seront mis à jour via la souscription en temps réel
+      } catch (error: any) {
+        console.error("Erreur lors de l'envoi du message:", error);
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Impossible d'envoyer le message",
+        });
+      } finally {
+        setSendingMessage(false);
+      }
+    }, [toast]),
     refreshConversations: fetchConversations
   };
 };

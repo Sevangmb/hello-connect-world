@@ -45,11 +45,9 @@ export const SuitcaseList: React.FC<SuitcaseListProps> = ({ suitcases, onEdit, o
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-lg font-semibold truncate">{suitcase.name}</h3>
               <Badge 
-                variant={suitcase.status === 'active' ? 'default' : 
-                        suitcase.status === 'completed' ? 'success' : 'secondary'}
+                variant={suitcase.status === 'active' ? 'default' : 'secondary'}
               >
-                {suitcase.status === 'active' ? 'Active' : 
-                 suitcase.status === 'completed' ? 'Terminée' : 'Archivée'}
+                {suitcase.status === 'active' ? 'Active' : 'Archivée'}
               </Badge>
             </div>
             

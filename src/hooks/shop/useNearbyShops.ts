@@ -2,31 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ShopStatus } from '@/types/messages';
-
-// Interface NearbyShop locale, compatible avec celle de messages.ts
-export interface NearbyShop {
-  id: string;
-  name: string;
-  description: string;
-  address?: string;
-  latitude?: number;
-  longitude?: number;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  logo_url?: string | null;
-  banner_url?: string | null;
-  status: ShopStatus;
-  categories?: string[];
-  opening_hours?: any;
-  average_rating?: number;
-  profiles?: { username: string | null };
-  shop_items: { id: string }[];
-  phone?: string;
-  website?: string;
-  distance?: number;
-}
+import { NearbyShop, ShopStatus } from '@/types/messages';
 
 interface UseNearbyShopsOptions {
   radius?: number; // en km
@@ -81,7 +57,10 @@ export function useNearbyShops(options: UseNearbyShopsOptions = {}) {
         const typedShops: NearbyShop[] = data.map(shop => ({
           ...shop,
           status: shop.status as ShopStatus,
-          shop_items: shop.shop_items || []
+          shop_items: shop.shop_items || [],
+          address: shop.address || '',
+          latitude: shop.latitude || 0,
+          longitude: shop.longitude || 0
         }));
         setShops(typedShops);
       }
@@ -138,7 +117,10 @@ export function useNearbyShops(options: UseNearbyShopsOptions = {}) {
                 ...shop,
                 status: shop.status as ShopStatus,
                 distance: nearbyData?.distance,
-                shop_items: shop.shop_items || []
+                shop_items: shop.shop_items || [],
+                address: shop.address || '',
+                latitude: shop.latitude || 0,
+                longitude: shop.longitude || 0
               } as NearbyShop;
             });
             

@@ -27,8 +27,6 @@ export const SuitcaseCard: React.FC<SuitcaseCardProps> = ({
           <span className={`px-2 py-0.5 text-xs rounded-full ${
             suitcase.status === 'active' 
               ? 'bg-green-100 text-green-800' 
-              : suitcase.status === 'completed'
-              ? 'bg-blue-100 text-blue-800'
               : 'bg-gray-100 text-gray-800'
           }`}>
             {SUITCASE_STATUSES[suitcase.status]}
