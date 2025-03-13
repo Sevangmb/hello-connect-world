@@ -40,7 +40,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Simuler des utilisateurs en ligne pour l'interface mIRC
+  // Simuler des utilisateurs en ligne
   useEffect(() => {
     const mockUsers: OnlineUser[] = [
       { id: partnerId, username: partnerProfile.username || 'Utilisateur', avatar_url: partnerProfile.avatar_url, is_online: true },
@@ -171,7 +171,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
               {sendingMessage ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <span className="text-xs">Envoyer</span>
+                <Send className="h-3.5 w-3.5" />
               )}
             </Button>
           </form>
