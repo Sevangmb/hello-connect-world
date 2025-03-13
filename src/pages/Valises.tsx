@@ -116,7 +116,7 @@ const Valises = () => {
         destination: values.destination || null,
         start_date: values.startDate || null,
         end_date: values.endDate || null,
-        status: "active" as SuitcaseStatus
+        status: "active" as SuitcaseStatus // Utiliser seulement 'active' ou 'archived' pour la création
       };
       
       const { data, error } = await supabase

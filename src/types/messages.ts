@@ -17,6 +17,11 @@ export interface Message {
   receiver: Profile;
 }
 
+export interface PrivateMessage extends Message {
+  // Champs spécifiques aux messages privés
+  is_read: boolean;
+}
+
 export interface Conversation {
   id: string;
   user: Profile;
@@ -58,4 +63,8 @@ export interface NearbyShop {
   average_rating: number;
   profiles?: { username: string | null };
   shop_items?: { id: string }[];
+  // Ajout des propriétés manquantes
+  phone?: string;
+  website?: string;
+  distance?: number;
 }

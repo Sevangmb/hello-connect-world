@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { NearbyShop } from "@/hooks/shop/useNearbyShops";
+import { NearbyShop } from "@/types/messages";
 
 interface ShopCardProps {
   shop: NearbyShop;

@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { RootLayout } from '@/components/RootLayout';
@@ -21,6 +22,7 @@ import ChallengeDetail from '@/pages/ChallengeDetail';
 import Notifications from '@/pages/Notifications';
 import Shops from '@/pages/Shops';
 import ShopsMap from '@/pages/ShopsMap';
+import ValiseDetail from '@/pages/ValiseDetail';
 
 // Pages de modules
 import CoreModule from '@/pages/modules/CoreModule';

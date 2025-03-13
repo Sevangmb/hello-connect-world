@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessagesList } from './MessagesList';
-import { Message, Profile, PrivateMessage } from '@/types/messages';
+import { Profile, PrivateMessage } from '@/types/messages';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2 } from 'lucide-react';
