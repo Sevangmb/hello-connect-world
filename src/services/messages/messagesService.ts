@@ -109,17 +109,17 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use explicit type annotations to avoid TypeScript errors
-    const response = await supabase.functions.invoke('get_user_conversations', {
+    // Utiliser invoke au lieu de rpc pour éviter les erreurs de type
+    const { data, error } = await supabase.functions.invoke('get_user_conversations', {
       body: { user_id: user.id }
     });
     
-    if (response.error) {
-      console.error('Error fetching conversations:', response.error);
+    if (error) {
+      console.error('Error fetching conversations:', error);
       throw new Error('Failed to fetch conversations');
     }
     
-    return response.data || [];
+    return data || [];
   },
   
   /**
@@ -135,6 +135,7 @@ export const messagesService = {
     // Define the update payload explicitly
     const updatePayload: MessageUpdatePayload = { is_read: true };
     
+    // Utiliser "as any" pour contourner les problèmes de typage
     const { error } = await supabase
       .from('private_messages')
       .update(updatePayload as any)

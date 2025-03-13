@@ -4,11 +4,10 @@ import { MessagesList } from './MessagesList';
 import { Profile, PrivateMessage } from '@/types/messages';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, ArrowLeft } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface PrivateChatProps {
   partnerId: string;
@@ -106,32 +105,8 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header avec les informations du partenaire */}
-      <div className="p-4 border-b flex items-center gap-3">
-        {onBack && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="mr-2 md:hidden" 
-            onClick={onBack}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        )}
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={partnerProfile.avatar_url || undefined} />
-          <AvatarFallback>{partnerProfile.username?.[0] || 'U'}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h3 className="font-semibold">{partnerProfile.username || 'Utilisateur'}</h3>
-          <p className="text-xs text-muted-foreground">
-            {partnerProfile.is_online ? 'En ligne' : 'Hors ligne'}
-          </p>
-        </div>
-      </div>
-
       {/* Liste des messages */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <div className="flex-1 overflow-y-auto bg-gray-50">
         <MessagesList 
           messages={messages} 
           currentUserId={currentUserId} 
@@ -141,7 +116,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
       </div>
 
       {/* Saisie de message */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t flex gap-2">
+      <form onSubmit={handleSendMessage} className="p-4 border-t flex gap-2 bg-white">
         <Input
           ref={inputRef}
           type="text"
@@ -151,7 +126,11 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
           className="flex-grow"
           disabled={sendingMessage}
         />
-        <Button type="submit" disabled={sendingMessage || !newMessage.trim()}>
+        <Button 
+          type="submit" 
+          disabled={sendingMessage || !newMessage.trim()}
+          className="bg-primary hover:bg-primary-700"
+        >
           {sendingMessage ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (

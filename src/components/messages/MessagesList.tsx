@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Message } from '@/types/messages';
 import { MessageItem } from './MessageItem';
+import { Loader2, MessageSquare } from 'lucide-react';
 
 interface MessagesListProps {
   messages: Message[];
@@ -23,11 +24,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse space-y-2">
-          <div className="h-10 w-64 bg-gray-200 rounded"></div>
-          <div className="h-10 w-48 bg-gray-200 rounded"></div>
-          <div className="h-10 w-56 bg-gray-200 rounded"></div>
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-sm text-gray-500">Chargement des messages...</p>
         </div>
       </div>
     );
@@ -35,17 +35,18 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-center text-gray-500">
-        <div>
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
           <p className="text-lg font-medium">Aucun message</p>
-          <p className="text-sm">Commencez la conversation en envoyant un message</p>
+          <p className="text-sm text-gray-500">Commencez la conversation en envoyant un message</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col space-y-2 p-4 overflow-y-auto">
+    <div className="flex flex-col space-y-2 py-4">
       {messages.map((message) => (
         <MessageItem
           key={message.id}
