@@ -10,8 +10,8 @@ interface CreateMessageRequest {
   created_at: string;
 }
 
-// Type spécifique pour les mises à jour de messages
-interface MessageUpdatePayload {
+// Type pour les mises à jour de messages
+interface UpdateMessage {
   is_read: boolean;
 }
 
@@ -132,10 +132,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Définir explicitement les champs à mettre à jour 
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as MessageUpdatePayload)
+      .update({ is_read: true } as UpdateMessage)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

@@ -49,7 +49,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   }
 
   return (
-    <div className={cn("flex flex-col space-y-1 py-2 overflow-y-auto", className)}>
+    <div className={cn("flex flex-col space-y-1 py-2", className)}>
       {messages.map((message) => (
         <MessageItem
           key={message.id}

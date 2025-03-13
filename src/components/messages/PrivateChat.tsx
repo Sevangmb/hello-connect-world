@@ -4,7 +4,7 @@ import { MessagesList } from './MessagesList';
 import { Profile, PrivateMessage } from '@/types/messages';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2, Users, Hash, Settings } from 'lucide-react';
+import { Send, Loader2, Users, Hash } from 'lucide-react';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +39,6 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Simuler des utilisateurs en ligne pour l'interface mIRC
   useEffect(() => {
@@ -123,27 +122,22 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full border rounded-md shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header de chat style mIRC */}
-      <div className="bg-gray-100 border-b px-3 py-2 flex items-center justify-between">
+      <div className="bg-gray-100 border-b px-3 py-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Hash className="h-4 w-4 text-gray-500" />
           <span className="font-medium text-sm">{partnerProfile.username || 'Discussion'}</span>
           <Badge variant="outline" className="text-xs">5 utilisateurs</Badge>
-        </div>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Settings className="h-3.5 w-3.5" />
-          </Button>
         </div>
       </div>
 
       {/* Main chat area with sidebar - mIRC style */}
       <div className="flex flex-1 overflow-hidden">
         {/* Messages area */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Topic area */}
-          <div className="bg-gray-50 px-3 py-1.5 border-b text-xs text-gray-600">
+          <div className="bg-gray-50 px-3 py-1.5 border-b text-xs text-gray-600 shrink-0">
             <p>Bienvenue dans le canal de discussion avec {partnerProfile.username || 'cet utilisateur'}. Soyez courtois.</p>
           </div>
           
@@ -158,7 +152,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
           </ScrollArea>
 
           {/* Input area */}
-          <form onSubmit={handleSendMessage} className="border-t p-2 flex gap-2 bg-gray-50">
+          <form onSubmit={handleSendMessage} className="border-t p-2 flex gap-2 bg-gray-50 shrink-0">
             <Input
               ref={inputRef}
               type="text"
@@ -184,7 +178,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
         </div>
 
         {/* Users sidebar - mIRC style */}
-        <div className="w-48 border-l bg-gray-50 flex flex-col overflow-hidden hidden md:block">
+        <div className="w-48 border-l bg-gray-50 flex flex-col overflow-hidden hidden md:block shrink-0">
           <div className="p-2 border-b bg-gray-100">
             <div className="flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5 text-gray-500" />
