@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface MessageItemProps {
   message: Message;
@@ -15,46 +16,29 @@ interface MessageItemProps {
 export const MessageItem: React.FC<MessageItemProps> = ({ message, isCurrentUser }) => {
   const user = isCurrentUser ? message.sender : message.receiver;
   const timeFormatted = format(new Date(message.created_at), 'HH:mm', { locale: fr });
+  const username = user.username || 'Anonyme';
   
   return (
     <div className={cn(
-      "flex gap-2 mb-4 px-4",
-      isCurrentUser ? "justify-end" : "justify-start"
+      "px-2 py-1 hover:bg-gray-100/50 transition-colors",
+      isCurrentUser ? "text-blue-700" : "text-gray-800"
     )}>
-      {!isCurrentUser && (
-        <Avatar className="h-8 w-8 mt-1">
-          <AvatarImage src={user.avatar_url || undefined} alt={user.username || 'Avatar'} />
-          <AvatarFallback className="bg-gray-200">
-            {user.username?.[0]?.toUpperCase() || <User className="h-4 w-4" />}
-          </AvatarFallback>
-        </Avatar>
-      )}
-
-      <div className="max-w-[70%]">
-        <div className={cn(
-          "rounded-2xl px-4 py-2",
-          isCurrentUser 
-            ? "bg-primary text-white rounded-tr-none" 
-            : "bg-gray-200 text-gray-800 rounded-tl-none"
+      <div className="flex items-start gap-1.5">
+        <span className="text-xs whitespace-nowrap font-semibold truncate" style={{ maxWidth: '80px' }}>
+          {`[${timeFormatted}] `}
+        </span>
+        
+        <span className={cn(
+          "font-semibold text-xs mr-1",
+          isCurrentUser ? "text-blue-600" : "text-green-600"
         )}>
-          <p className="text-sm break-words">{message.content}</p>
-        </div>
-        <div className={cn(
-          "text-xs mt-1 opacity-70",
-          isCurrentUser ? "text-right" : "text-left"
-        )}>
-          {timeFormatted}
-        </div>
+          {`<${username}>`}
+        </span>
+        
+        <span className="text-sm break-words flex-1">
+          {message.content}
+        </span>
       </div>
-
-      {isCurrentUser && (
-        <Avatar className="h-8 w-8 mt-1">
-          <AvatarImage src={user.avatar_url || undefined} alt={user.username || 'Avatar'} />
-          <AvatarFallback className="bg-primary-100 text-primary-700">
-            {user.username?.[0]?.toUpperCase() || <User className="h-4 w-4" />}
-          </AvatarFallback>
-        </Avatar>
-      )}
     </div>
   );
 };

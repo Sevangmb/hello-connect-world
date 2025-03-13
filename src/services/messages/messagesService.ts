@@ -135,10 +135,10 @@ export const messagesService = {
     // Define the update payload explicitly
     const updatePayload: MessageUpdatePayload = { is_read: true };
     
-    // Utiliser "as any" pour contourner les problèmes de typage
+    // Résolution du problème de type profond en utilisant une conversion explicite
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload as any)
+      .update(updatePayload)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

@@ -3,17 +3,20 @@ import React, { useEffect, useRef } from 'react';
 import { Message } from '@/types/messages';
 import { MessageItem } from './MessageItem';
 import { Loader2, MessageSquare } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MessagesListProps {
   messages: Message[];
   currentUserId: string | null;
   loading: boolean;
+  className?: string;
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({ 
   messages, 
   currentUserId,
-  loading
+  loading,
+  className
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -24,10 +27,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
+      <div className="flex items-center justify-center h-full p-4">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-sm text-gray-500">Chargement des messages...</p>
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
+          <p className="text-xs text-gray-500">Chargement des messages...</p>
         </div>
       </div>
     );
@@ -35,18 +38,18 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
+      <div className="flex items-center justify-center h-full p-4">
         <div className="text-center">
-          <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-          <p className="text-lg font-medium">Aucun message</p>
-          <p className="text-sm text-gray-500">Commencez la conversation en envoyant un message</p>
+          <MessageSquare className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+          <p className="text-sm font-medium">Aucun message</p>
+          <p className="text-xs text-gray-500">Commencez la conversation</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col space-y-2 py-4">
+    <div className={cn("flex flex-col space-y-1 py-2 overflow-y-auto", className)}>
       {messages.map((message) => (
         <MessageItem
           key={message.id}
