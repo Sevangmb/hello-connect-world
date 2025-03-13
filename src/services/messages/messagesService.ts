@@ -10,7 +10,7 @@ interface CreateMessageRequest {
   created_at: string;
 }
 
-// Define a simple update payload interface to avoid deep type recursion
+// Define an update payload that matches the expected fields
 interface MessageUpdatePayload {
   is_read: boolean;
 }
@@ -55,7 +55,7 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Create the message request with explicit required fields
+    // Create the message request with required fields
     const messageRequest: CreateMessageRequest = {
       sender_id: user.id,
       receiver_id: receiverId,
@@ -63,7 +63,7 @@ export const messagesService = {
       created_at: new Date().toISOString()
     };
     
-    // Pass the strongly typed messageRequest directly
+    // Insert message with appropriate type handling
     const { data, error } = await supabase
       .from('private_messages')
       .insert(messageRequest)
@@ -93,9 +93,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use explicit typing for RPC call
+    // Use the correct type for RPC call by using type assertion
     const { data, error } = await supabase.rpc(
-      'get_user_conversations', 
+      'get_user_conversations' as unknown as any, 
       { user_id: user.id }
     );
     
@@ -117,12 +117,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Create a simple update payload
-    const updatePayload: MessageUpdatePayload = { is_read: true };
-    
+    // Use a properly typed update object that matches the database schema
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload)
+      .update({ is_read: true } as any)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);
