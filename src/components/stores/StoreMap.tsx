@@ -2,32 +2,42 @@
 import React from 'react';
 import ShopMap from '@/components/shop/ShopMap';
 import { useNavigate } from 'react-router-dom';
-import { Store } from '@/hooks/useStores';
+
+// Interface pour les boutiques à afficher sur la carte
+interface ShopLocation {
+  id: string;
+  name: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+}
 
 interface StoreMapProps {
-  stores?: Store[];
+  stores?: ShopLocation[];
+  shops?: ShopLocation[]; // Pour la compatibilité avec l'ancien format
   isLoading?: boolean;
+  onShopSelect?: (shopId: string) => void;
 }
 
 const StoreMap: React.FC<StoreMapProps> = ({ 
   stores = [], 
-  isLoading = false 
+  shops = [],
+  isLoading = false,
+  onShopSelect
 }) => {
   const navigate = useNavigate();
+  
+  // Utiliser soit stores, soit shops (pour la compatibilité)
+  const mapStores = stores.length > 0 ? stores : shops;
 
-  // Convert stores to the format expected by ShopMap
-  const mapStores = stores.map(store => ({
-    id: store.id,
-    name: store.name,
-    description: store.description || '',
-    latitude: store.latitude || 0,
-    longitude: store.longitude || 0,
-    address: store.address || '',
-  })).filter(store => store.latitude && store.longitude);
-
-  // Handle shop selection
+  // Gérer la sélection de boutique
   const handleShopSelect = (shopId: string) => {
-    navigate(`/shops/${shopId}`);
+    if (onShopSelect) {
+      onShopSelect(shopId);
+    } else {
+      navigate(`/shops/${shopId}`);
+    }
   };
 
   return (

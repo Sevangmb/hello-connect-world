@@ -5,11 +5,13 @@
  */
 
 // Composants
-import StoreMap from '@/components/shop/ShopMap';
+import ShopMap from '@/components/shop/ShopMap';
+import StoreMap from '@/components/stores/StoreMap';
 import { ShopCard } from '@/components/shop/ShopCard';
 
-// Map components
+// Pages
 import ShopsMap from '@/pages/ShopsMap';
+import Boutiques from '@/pages/Boutiques';
 
 // Hooks
 export { useStores } from '@/hooks/useStores';
@@ -18,5 +20,9 @@ export { useNearbyShops } from '@/hooks/shop/useNearbyShops';
 // Composants
 export { StoreFilters } from '@/components/stores/StoreFilters';
 export { ShopCard };
+export { ShopMap };
 export { StoreMap };
+
+// Pages
 export { ShopsMap };
+export { Boutiques };
