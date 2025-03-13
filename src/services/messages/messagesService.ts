@@ -55,8 +55,8 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Create message request with correct type
-    const messageRequest: any = {
+    // Create message request with correct type and explicit typing to avoid recursion
+    const messageRequest: MessageInsertPayload = {
       sender_id: user.id,
       receiver_id: receiverId,
       content,
@@ -64,6 +64,7 @@ export const messagesService = {
       is_read: false
     };
     
+    // Use explicit type assertions to avoid the TypeScript recursion
     const { data, error } = await supabase
       .from('private_messages')
       .insert(messageRequest)
@@ -79,6 +80,7 @@ export const messagesService = {
       throw new Error('Failed to send message');
     }
     
+    // Use a type assertion to avoid deep nested type checking
     return data as unknown as PrivateMessage;
   },
   
@@ -92,8 +94,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
+    // Use explicit typing for RPC call to avoid type recursion
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as any, 
+      'get_user_conversations', 
       { user_id: user.id }
     );
     
@@ -115,9 +118,12 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
+    // Use a simple update payload object to avoid type recursion
+    const updatePayload = { is_read: true };
+    
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as any)
+      .update(updatePayload)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);
