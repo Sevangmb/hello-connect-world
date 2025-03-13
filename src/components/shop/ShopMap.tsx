@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ShopLocation {
   id: string;
@@ -35,65 +34,49 @@ const ShopMap: React.FC<ShopMapProps> = ({
   useEffect(() => {
     if (!mapContainer.current) return;
     
-    // Récupérer la clé Mapbox depuis Supabase Edge Function secrets
-    const fetchMapboxToken = async () => {
-      try {
-        mapboxgl.accessToken = 'pk.eyJ1IjoiZnJpbmciLCJhIjoiY2xnZndwYzdqMDk5YTNlcW13NWpjeTRsMyJ9.BMIXW_cQJu5_K6BPbNXTqQ';
-        
-        initializeMap();
-      } catch (error) {
-        console.error('Error fetching Mapbox token:', error);
-        setMapError('Une erreur est survenue lors du chargement de la carte');
-      }
-    };
-    
-    fetchMapboxToken();
-    
-    // Function to initialize map
-    const initializeMap = () => {
-      if (!mapContainer.current) return;
+    // Use mapbox token directly since we're in client code
+    try {
+      mapboxgl.accessToken = 'pk.eyJ1IjoiZnJpbmciLCJhIjoiY2xnZndwYzdqMDk5YTNlcW13NWpjeTRsMyJ9.BMIXW_cQJu5_K6BPbNXTqQ';
       
-      try {
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current,
-          style: 'mapbox://styles/mapbox/streets-v11',
-          center: [2.3522, 48.8566], // Paris (default center)
-          zoom: 11
-        });
-        
-        // Add navigation controls
-        map.current.addControl(
-          new mapboxgl.NavigationControl(), 'top-right'
-        );
-        
-        // Try to get user location
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            const { longitude, latitude } = position.coords;
-            setUserLocation([longitude, latitude]);
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v11',
+        center: [2.3522, 48.8566], // Paris (default center)
+        zoom: 11
+      });
+      
+      // Add navigation controls
+      map.current.addControl(
+        new mapboxgl.NavigationControl(), 'top-right'
+      );
+      
+      // Try to get user location
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const { longitude, latitude } = position.coords;
+          setUserLocation([longitude, latitude]);
+          
+          if (map.current) {
+            map.current.flyTo({
+              center: [longitude, latitude],
+              zoom: 13
+            });
             
-            if (map.current) {
-              map.current.flyTo({
-                center: [longitude, latitude],
-                zoom: 13
-              });
-              
-              // Add user marker
-              new mapboxgl.Marker({ color: '#0000FF' })
-                .setLngLat([longitude, latitude])
-                .setPopup(new mapboxgl.Popup().setHTML('<h3>Votre position</h3>'))
-                .addTo(map.current);
-            }
-          },
-          error => {
-            console.warn('Error getting user location:', error);
+            // Add user marker
+            new mapboxgl.Marker({ color: '#0000FF' })
+              .setLngLat([longitude, latitude])
+              .setPopup(new mapboxgl.Popup().setHTML('<h3>Votre position</h3>'))
+              .addTo(map.current);
           }
-        );
-      } catch (error) {
-        console.error('Error initializing map:', error);
-        setMapError('Une erreur est survenue lors de l\'initialisation de la carte');
-      }
-    };
+        },
+        error => {
+          console.warn('Error getting user location:', error);
+        }
+      );
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Une erreur est survenue lors de l\'initialisation de la carte');
+    }
     
     return () => {
       // Clean up markers
@@ -135,9 +118,9 @@ const ShopMap: React.FC<ShopMapProps> = ({
       markers.current.push(marker);
     });
     
-    // Add event listeners to popup buttons
-    map.current.on('click', '.view-shop', (e) => {
-      if (e.target instanceof HTMLElement && onShopSelect) {
+    // Add event listeners to popup buttons after they are added to the DOM
+    document.addEventListener('click', (e) => {
+      if (e.target instanceof HTMLElement && e.target.classList.contains('view-shop') && onShopSelect) {
         const shopId = e.target.getAttribute('data-shop-id');
         if (shopId) {
           onShopSelect(shopId);

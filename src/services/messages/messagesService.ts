@@ -10,7 +10,7 @@ interface CreateMessageRequest {
   created_at: string;
 }
 
-// Define an update payload that matches the expected fields
+// Define update payload to fix typing issues
 interface MessageUpdatePayload {
   is_read: boolean;
 }
@@ -93,9 +93,9 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use the correct type for RPC call by using type assertion
+    // Use a fully specified type assertion to fix RPC call
     const { data, error } = await supabase.rpc(
-      'get_user_conversations' as unknown as any, 
+      'get_user_conversations' as any, 
       { user_id: user.id }
     );
     
@@ -117,10 +117,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Use a properly typed update object that matches the database schema
+    // Use a direct object literal with a simple type assertion to avoid recursion
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as any)
+      .update({ is_read: true } as Record<string, boolean>)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

@@ -81,12 +81,29 @@ export default function Boutiques() {
     fetchCategories();
   }, []);
 
+  // Filtrer les boutiques en fonction de la recherche
   const filteredStores = searchQuery
     ? stores.filter(store => 
         store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        store.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        (store.description && store.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (store.address && store.address.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : stores;
+
+  // Préparer les données pour la carte
+  const mapStores = filteredStores.map(store => ({
+    id: store.id,
+    name: store.name,
+    description: store.description || '',
+    latitude: store.latitude || 0,
+    longitude: store.longitude || 0,
+    address: store.address || '',
+  })).filter(store => store.latitude && store.longitude);
+  
+  // Gérer le clic sur une boutique sur la carte
+  const handleShopSelect = (shopId: string) => {
+    navigate(`/shops/${shopId}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
@@ -414,7 +431,17 @@ export default function Boutiques() {
             
             {viewMode === "calendar" && (
               <div className="h-[600px] border rounded-lg overflow-hidden">
-                <StoreMap stores={filteredStores} isLoading={loading} />
+                <StoreMap 
+                  stores={mapStores} 
+                  isLoading={loading} 
+                  onShopSelect={handleShopSelect}
+                />
+                
+                {filteredStores.length > 0 && mapStores.length === 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4 mt-4">
+                    <p>Les boutiques trouvées n'ont pas de coordonnées géographiques et ne peuvent pas être affichées sur la carte.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

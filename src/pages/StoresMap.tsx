@@ -3,16 +3,33 @@ import { Header } from "@/components/Header";
 import MainSidebar from "@/components/MainSidebar";
 import { BottomNav } from "@/components/navigation/BottomNav";
 import { StoreFilters } from "@/components/stores/StoreFilters";
-import StoreMap from "@/components/stores/StoreMap";
+import StoreMap from "@/components/shop/ShopMap";
 import { useStores } from "@/hooks/useStores";
+import { useNavigate } from "react-router-dom";
 
 const StoresMap = () => {
+  const navigate = useNavigate();
   const {
     stores,
     loading,
     filters,
     setFilters,
   } = useStores();
+
+  // Préparer les données pour la carte
+  const mapStores = stores.map(store => ({
+    id: store.id,
+    name: store.name,
+    description: store.description || '',
+    latitude: store.latitude || 0,
+    longitude: store.longitude || 0,
+    address: store.address || '',
+  })).filter(store => store.latitude && store.longitude);
+
+  // Gérer le clic sur une boutique sur la carte
+  const handleShopSelect = (shopId: string) => {
+    navigate(`/shops/${shopId}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16 md:pb-0">
@@ -34,7 +51,19 @@ const StoresMap = () => {
               onFiltersChange={setFilters}
             />
             
-            <StoreMap />
+            <div className="mt-6">
+              <StoreMap 
+                shops={mapStores} 
+                isLoading={loading} 
+                onShopSelect={handleShopSelect}
+              />
+              
+              {stores.length > 0 && mapStores.length === 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-4 mt-4">
+                  <p>Les boutiques trouvées n'ont pas de coordonnées géographiques et ne peuvent pas être affichées sur la carte.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
