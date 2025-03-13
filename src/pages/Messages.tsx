@@ -9,7 +9,7 @@ import { ConversationsList } from '@/components/messages/ConversationsList';
 import { PrivateChat } from '@/components/messages/PrivateChat';
 import { SearchFriends } from '@/components/friends/SearchFriends';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessagesIcon, Users } from 'lucide-react';
+import { MessageSquare, Users } from 'lucide-react';
 
 const Messages = () => {
   const {
@@ -29,7 +29,7 @@ const Messages = () => {
   const [selectedPartner, setSelectedPartner] = useState<{
     id: string;
     username: string;
-    avatar_url?: string | null;
+    avatar_url: string | null;
   } | null>(null);
 
   // Trouver le profil de l'utilisateur partenaire actuel
@@ -37,7 +37,11 @@ const Messages = () => {
     if (currentConversation) {
       const partner = conversations.find(c => c.id === currentConversation)?.user;
       if (partner) {
-        setSelectedPartner(partner);
+        setSelectedPartner({
+          id: partner.id,
+          username: partner.username || '',
+          avatar_url: partner.avatar_url
+        });
       }
     }
   }, [currentConversation, conversations]);
@@ -46,9 +50,13 @@ const Messages = () => {
     fetchMessages(friendId);
   };
 
-  const handleSelectFriend = (friend: { id: string; username: string }) => {
+  const handleSelectFriend = (friend: { id: string; username: string; avatar_url?: string | null }) => {
     fetchMessages(friend.id);
-    setSelectedPartner(friend);
+    setSelectedPartner({
+      id: friend.id,
+      username: friend.username,
+      avatar_url: friend.avatar_url || null
+    });
     setActiveTab('conversations');
   };
 
@@ -73,7 +81,7 @@ const Messages = () => {
               <Tabs defaultValue="conversations" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="w-full mb-4">
                   <TabsTrigger value="conversations" className="flex-1">
-                    <MessagesIcon className="h-4 w-4 mr-2" />
+                    <MessageSquare className="h-4 w-4 mr-2" />
                     Conversations
                     {unreadCount > 0 && (
                       <span className="ml-2 bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
@@ -109,14 +117,18 @@ const Messages = () => {
               {currentConversation && selectedPartner ? (
                 <PrivateChat
                   partnerId={currentConversation}
-                  partnerProfile={selectedPartner}
-                  currentUserId={currentUserId}
-                  onBack={handleBack}
+                  partnerProfile={{
+                    id: selectedPartner.id,
+                    username: selectedPartner.username,
+                    avatar_url: selectedPartner.avatar_url,
+                    is_online: false
+                  }}
+                  currentUserId={currentUserId || ''}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   <div className="text-center">
-                    <MessagesIcon className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                    <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
                     <p className="text-lg font-medium">Sélectionnez une conversation</p>
                     <p className="text-sm">Choisissez un contact pour commencer à discuter</p>
                   </div>

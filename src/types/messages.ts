@@ -4,6 +4,7 @@ export interface Profile {
   username: string | null;
   avatar_url: string | null;
   full_name?: string | null;
+  is_online?: boolean;
 }
 
 export interface Message {

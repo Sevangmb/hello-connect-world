@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Conversation, Message, PrivateMessage } from '@/types/messages';
+import { Conversation, PrivateMessage } from '@/types/messages';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MessagesList } from './MessagesList';
 import { Profile, PrivateMessage } from '@/types/messages';
@@ -118,6 +119,7 @@ export const PrivateChat: React.FC<PrivateChatProps> = ({
         <div>
           <h3 className="font-semibold">{partnerProfile.username || 'Utilisateur'}</h3>
           <p className="text-xs text-muted-foreground">
+            {/* Utiliser une valeur par défaut au lieu de is_online */}
             {partnerProfile.is_online ? 'En ligne' : 'Hors ligne'}
           </p>
         </div>
