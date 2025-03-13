@@ -22,6 +22,7 @@ interface UserConversation {
     id: string;
     username: string | null;
     avatar_url: string | null;
+    is_online?: boolean;
   };
   lastMessage: {
     content: string;
@@ -108,7 +109,7 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Utiliser une approche simplifiée avec any pour éviter les problèmes de récursivité de types
+    // Utiliser une annotation de type any pour éviter le problème de typage
     const { data, error } = await supabase
       .rpc('get_user_conversations', { user_id: user.id }) as any;
     
@@ -130,12 +131,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Utiliser un objet simple sans type spécifique
-    const updateObj = { is_read: true };
-    
+    // Utiliser un type any pour l'opération de mise à jour
     const { error } = await supabase
       .from('private_messages')
-      .update(updateObj)
+      .update({ is_read: true } as any)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

@@ -4,12 +4,12 @@ import { Route, Routes } from 'react-router-dom';
 import { ModuleGuard } from '@/components/modules/ModuleGuard';
 import { ModuleUnavailable } from '@/components/personal/ModuleUnavailable';
 
-// Ajoutez les pages importées pour chaque section
-const Wardrobe = React.lazy(() => import('@/pages/personal/Wardrobe'));
-const Outfits = React.lazy(() => import('@/pages/personal/Outfits'));
-const Suitcases = React.lazy(() => import('@/pages/personal/Suitcases'));
-const Favorites = React.lazy(() => import('@/pages/personal/Favorites'));
-const Profile = React.lazy(() => import('@/pages/personal/Profile'));
+// Utiliser les pages existantes au lieu des imports incorrects
+const Wardrobe = React.lazy(() => import('@/pages/Wardrobe'));
+const Outfits = React.lazy(() => import('@/pages/Outfits'));
+const Suitcases = React.lazy(() => import('@/pages/Suitcases'));
+const Favorites = React.lazy(() => import('@/pages/Favorites'));
+const Profile = React.lazy(() => import('@/pages/Profile'));
 
 const PersonalRoutes = () => {
   return (
