@@ -108,11 +108,11 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Utiliser un type cast explicite pour l'appel RPC
+    // Utiliser un casting de type explicite pour éviter l'erreur de profondeur excessive
     const response = await supabase.rpc(
-      'get_user_conversations' as any, 
+      'get_user_conversations', 
       { user_id: user.id }
-    );
+    ) as unknown as { data: UserConversation[], error: any };
     
     if (response.error) {
       console.error('Error fetching conversations:', response.error);
@@ -132,10 +132,10 @@ export const messagesService = {
       throw new Error('User not authenticated');
     }
     
-    // Utiliser un cast explicite pour l'update
+    // Utiliser une mise à jour simple sans type complexe
     const { error } = await supabase
       .from('private_messages')
-      .update({ is_read: true } as any)
+      .update({ is_read: true })
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);
