@@ -137,7 +137,7 @@ export const messagesService = {
     
     const { error } = await supabase
       .from('private_messages')
-      .update(updatePayload)
+      .update(updatePayload as any)
       .eq('sender_id', senderId)
       .eq('receiver_id', user.id)
       .eq('is_read', false);

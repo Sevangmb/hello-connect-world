@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/modules/auth';
 
 // Update ClothesFilters interface to include all properties being used
 export interface ClothesFilters {
@@ -18,21 +19,33 @@ export interface ClothesFilters {
 
 export const useClothes = (initialFilters: ClothesFilters = {}) => {
   const [clothes, setClothes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ClothesFilters>(initialFilters);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) return;
+    
     fetchClothes();
-  }, [filters]);
+  }, [filters, user]);
 
   const fetchClothes = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchClothesData(filters);
+      console.log('Fetching clothes with filters:', filters);
+      console.log('User ID:', user?.id);
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const data = await fetchClothesData(filters, user.id);
+      console.log('Fetched clothes data:', data);
       setClothes(data);
     } catch (err: any) {
+      console.error('Error fetching clothes:', err);
       setError(err.message || 'Failed to fetch clothes');
       setClothes([]);
     } finally {
@@ -48,11 +61,17 @@ export const useClothes = (initialFilters: ClothesFilters = {}) => {
 };
 
 // Update fetchClothes function to use proper query limiting and pagination
-const fetchClothesData = async (filters: ClothesFilters = {}) => {
+const fetchClothesData = async (filters: ClothesFilters = {}, userId: string) => {
   try {
+    if (!userId) {
+      console.error('No user ID provided when fetching clothes');
+      return [];
+    }
+    
     let query = supabase
       .from('clothes')
-      .select('*');
+      .select('*')
+      .eq('user_id', userId);
 
     // Apply filters
     if (filters.category) {
@@ -91,7 +110,12 @@ const fetchClothesData = async (filters: ClothesFilters = {}) => {
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('Fetched clothes count:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error fetching clothes:', error);
