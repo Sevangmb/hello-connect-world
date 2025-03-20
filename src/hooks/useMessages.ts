@@ -16,7 +16,7 @@ export function useMessages() {
   const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  // Fonction pour mettre à jour les statuts en ligne
+  // Function to update online statuses
   const updateOnlineStatus = useCallback(async (userIds: string[]) => {
     try {
       const statuses = await messagesService.updateOnlineUsers(userIds);
@@ -26,7 +26,7 @@ export function useMessages() {
     }
   }, []);
 
-  // Charger les conversations et configurer les abonnements temps réel
+  // Load conversations and set up real-time subscriptions
   useEffect(() => {
     const fetchConversations = async () => {
       setLoading(true);
@@ -40,14 +40,20 @@ export function useMessages() {
         
         setCurrentUserId(user.id);
         
-        // Récupérer les conversations
+        // Update current user's last_seen_at in profiles
+        await supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', user.id);
+        
+        // Fetch conversations
         const data = await messagesService.fetchConversations();
         
-        // Mettre à jour les statuts en ligne
+        // Update online statuses
         const userIds = data.map(conv => conv.user.id);
         const statuses = await messagesService.updateOnlineUsers(userIds);
         
-        // Intégrer les statuts en ligne dans les conversations
+        // Integrate online statuses into conversations
         const conversationsWithStatus = data.map(conv => ({
           ...conv,
           user: {
@@ -58,7 +64,7 @@ export function useMessages() {
         
         setConversations(conversationsWithStatus as unknown as Conversation[]);
         
-        // Compter les messages non lus
+        // Count unread messages
         const count = await messagesService.countUnreadMessages();
         setUnreadCount(count);
       } catch (error) {
@@ -75,15 +81,27 @@ export function useMessages() {
     
     fetchConversations();
     
-    // Mettre en place un rafraîchissement périodique des statuts en ligne
+    // Set up periodic refresh of online statuses
     const onlineStatusInterval = setInterval(() => {
       if (conversations.length > 0) {
         const userIds = conversations.map(conv => conv.id);
         updateOnlineStatus(userIds);
+        
+        // Update current user's last_seen_at to maintain online status
+        const updateUserStatus = async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from('profiles')
+              .update({ last_seen_at: new Date().toISOString() })
+              .eq('id', user.id);
+          }
+        };
+        updateUserStatus();
       }
-    }, 30000); // Toutes les 30 secondes
+    }, 30000); // Every 30 seconds
     
-    // Configurer la souscription en temps réel pour les nouveaux messages
+    // Configure real-time subscription for new messages
     const channel = supabase
       .channel('private_messages_changes')
       .on('postgres_changes', {
@@ -104,7 +122,7 @@ export function useMessages() {
     };
   }, [toast, updateOnlineStatus]);
 
-  // Charger les messages pour une conversation spécifique
+  // Load messages for a specific conversation
   const fetchMessages = useCallback(async (partnerId: string) => {
     if (!partnerId) return;
     
@@ -115,14 +133,14 @@ export function useMessages() {
       const fetchedMessages = await messagesService.fetchMessages(partnerId);
       setMessages(fetchedMessages);
       
-      // Marquer les messages comme lus
+      // Mark messages as read
       await messagesService.markMessagesAsRead(partnerId);
       
-      // Mettre à jour le compteur de messages non lus
+      // Update unread message counter
       const count = await messagesService.countUnreadMessages();
       setUnreadCount(count);
       
-      // Vérifier si l'utilisateur est en ligne
+      // Check if the user is online
       const isOnline = await messagesService.checkUserOnlineStatus(partnerId);
       setOnlineUsers(prev => ({ ...prev, [partnerId]: isOnline }));
     } catch (error) {
@@ -137,7 +155,7 @@ export function useMessages() {
     }
   }, [toast]);
 
-  // Envoyer un message
+  // Send a message
   const sendMessage = useCallback(async (receiverId: string, content: string) => {
     if (!receiverId || !content.trim()) return;
     
@@ -145,6 +163,16 @@ export function useMessages() {
     try {
       const sentMessage = await messagesService.sendMessage(receiverId, content);
       setMessages(prev => [...prev, sentMessage]);
+      
+      // Update current user's last_seen_at
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', user.id);
+      }
+      
       return sentMessage;
     } catch (error) {
       console.error('Error sending message:', error);
@@ -159,7 +187,7 @@ export function useMessages() {
     }
   }, [toast]);
   
-  // Effacer la conversation actuelle
+  // Clear current conversation
   const clearCurrentConversation = useCallback(() => {
     setCurrentConversation(null);
     setMessages([]);

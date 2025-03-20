@@ -12,7 +12,7 @@ export async function markMessagesAsRead(senderId: string): Promise<void> {
     throw new Error('User not authenticated');
   }
   
-  // Créer un objet de mise à jour avec le type correct
+  // Create an update object with the correct type
   const updateData: UpdateMessageRequest = {
     is_read: true
   };
@@ -59,24 +59,30 @@ export async function countUnreadMessages(): Promise<number> {
  */
 export async function checkUserOnlineStatus(userId: string): Promise<boolean> {
   try {
-    // Cette requête est simulée car dans une application réelle, 
-    // on utiliserait un service de présence Supabase
+    // Check if the user has recent activity in profiles table
     const { data, error } = await supabase
-      .from('user_presence')
-      .select('is_online')
-      .eq('user_id', userId)
+      .from('profiles')
+      .select('last_seen_at')
+      .eq('id', userId)
       .single();
     
     if (error) {
-      // En cas d'erreur, retourner un statut aléatoire pour la démo
-      return Math.random() > 0.3;
+      console.error('Error checking online status:', error);
+      return Math.random() > 0.3; // Fallback: simulate a random status
     }
     
-    return data?.is_online || false;
+    // Consider user online if they've been active in the last 5 minutes
+    if (data?.last_seen_at) {
+      const lastSeen = new Date(data.last_seen_at);
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      return lastSeen > fiveMinutesAgo;
+    }
+    
+    // Fallback to random status for demo
+    return Math.random() > 0.3;
   } catch (error) {
     console.error('Error checking online status:', error);
-    // Simuler un statut en ligne pour la démo
-    return Math.random() > 0.3;
+    return Math.random() > 0.3; // Fallback: simulate a random status
   }
 }
 
@@ -86,13 +92,18 @@ export async function checkUserOnlineStatus(userId: string): Promise<boolean> {
 export async function updateOnlineUsers(userIds: string[]): Promise<Record<string, boolean>> {
   if (!userIds.length) return {};
   
-  // Simulation d'une requête pour obtenir les statuts en ligne
+  // Create a map to store status for each user
   const onlineStatuses: Record<string, boolean> = {};
   
-  // Pour chaque utilisateur, générer un statut aléatoire
-  userIds.forEach(id => {
-    onlineStatuses[id] = Math.random() > 0.3;
-  });
+  for (const userId of userIds) {
+    try {
+      const isOnline = await checkUserOnlineStatus(userId);
+      onlineStatuses[userId] = isOnline;
+    } catch {
+      // If error, set a random online status
+      onlineStatuses[userId] = Math.random() > 0.3;
+    }
+  }
   
   return onlineStatuses;
 }

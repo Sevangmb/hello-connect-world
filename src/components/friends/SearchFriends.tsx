@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -15,12 +16,20 @@ import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SearchFriendsProps {
-  onSelect: (friend: { id: string; username: string }) => void;
+  onSelect: (friend: { id: string; username: string; avatar_url?: string | null }) => void;
+  initialSearchTerm?: string;
 }
 
-export const SearchFriends = ({ onSelect }: SearchFriendsProps) => {
+export const SearchFriends = ({ onSelect, initialSearchTerm = "" }: SearchFriendsProps) => {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearchTerm);
+
+  // Update search when initialSearchTerm changes
+  useEffect(() => {
+    if (initialSearchTerm) {
+      setSearch(initialSearchTerm);
+    }
+  }, [initialSearchTerm]);
 
   const { data: friends } = useQuery({
     queryKey: ["friends-search", search],
