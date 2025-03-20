@@ -5,15 +5,22 @@ import { UserConversation } from './types/messageTypes';
 import { fetchMessages } from './services/fetchMessagesService';
 import { sendMessage } from './services/sendMessageService';
 import { fetchConversations } from './services/conversationsService';
-import { markMessagesAsRead, countUnreadMessages } from './services/messageStatusService';
+import { 
+  markMessagesAsRead, 
+  countUnreadMessages, 
+  checkUserOnlineStatus,
+  updateOnlineUsers
+} from './services/messageStatusService';
 
 /**
- * Implementation of the message service using Supabase
+ * Implémentation du service de messages utilisant Supabase
  */
 export const messagesService: IMessageService = {
   fetchMessages,
   sendMessage,
   fetchConversations,
   markMessagesAsRead,
-  countUnreadMessages
+  countUnreadMessages,
+  checkUserOnlineStatus,
+  updateOnlineUsers
 };

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Conversation, PrivateMessage } from '@/types/messages';
 import { messagesService } from '@/services/messages/messagesService';
@@ -13,8 +13,20 @@ export function useMessages() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [currentConversation, setCurrentConversation] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
+  // Fonction pour mettre à jour les statuts en ligne
+  const updateOnlineStatus = useCallback(async (userIds: string[]) => {
+    try {
+      const statuses = await messagesService.updateOnlineUsers(userIds);
+      setOnlineUsers(statuses);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des statuts en ligne:', error);
+    }
+  }, []);
+
+  // Charger les conversations et configurer les abonnements temps réel
   useEffect(() => {
     const fetchConversations = async () => {
       setLoading(true);
@@ -30,7 +42,21 @@ export function useMessages() {
         
         // Récupérer les conversations
         const data = await messagesService.fetchConversations();
-        setConversations(data as unknown as Conversation[]);
+        
+        // Mettre à jour les statuts en ligne
+        const userIds = data.map(conv => conv.user.id);
+        const statuses = await messagesService.updateOnlineUsers(userIds);
+        
+        // Intégrer les statuts en ligne dans les conversations
+        const conversationsWithStatus = data.map(conv => ({
+          ...conv,
+          user: {
+            ...conv.user,
+            is_online: statuses[conv.user.id] || false
+          }
+        }));
+        
+        setConversations(conversationsWithStatus as unknown as Conversation[]);
         
         // Compter les messages non lus
         const count = await messagesService.countUnreadMessages();
@@ -49,6 +75,14 @@ export function useMessages() {
     
     fetchConversations();
     
+    // Mettre en place un rafraîchissement périodique des statuts en ligne
+    const onlineStatusInterval = setInterval(() => {
+      if (conversations.length > 0) {
+        const userIds = conversations.map(conv => conv.id);
+        updateOnlineStatus(userIds);
+      }
+    }, 30000); // Toutes les 30 secondes
+    
     // Configurer la souscription en temps réel pour les nouveaux messages
     const channel = supabase
       .channel('private_messages_changes')
@@ -66,11 +100,12 @@ export function useMessages() {
       
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(onlineStatusInterval);
     };
-  }, [toast]);
+  }, [toast, updateOnlineStatus]);
 
   // Charger les messages pour une conversation spécifique
-  const fetchMessages = async (partnerId: string) => {
+  const fetchMessages = useCallback(async (partnerId: string) => {
     if (!partnerId) return;
     
     setLoading(true);
@@ -86,6 +121,10 @@ export function useMessages() {
       // Mettre à jour le compteur de messages non lus
       const count = await messagesService.countUnreadMessages();
       setUnreadCount(count);
+      
+      // Vérifier si l'utilisateur est en ligne
+      const isOnline = await messagesService.checkUserOnlineStatus(partnerId);
+      setOnlineUsers(prev => ({ ...prev, [partnerId]: isOnline }));
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -96,10 +135,10 @@ export function useMessages() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Envoyer un message
-  const sendMessage = async (receiverId: string, content: string) => {
+  const sendMessage = useCallback(async (receiverId: string, content: string) => {
     if (!receiverId || !content.trim()) return;
     
     setSendingMessage(true);
@@ -118,13 +157,13 @@ export function useMessages() {
     } finally {
       setSendingMessage(false);
     }
-  };
+  }, [toast]);
   
   // Effacer la conversation actuelle
-  const clearCurrentConversation = () => {
+  const clearCurrentConversation = useCallback(() => {
     setCurrentConversation(null);
     setMessages([]);
-  };
+  }, []);
   
   return {
     conversations,
@@ -134,8 +173,10 @@ export function useMessages() {
     sendingMessage,
     currentConversation,
     currentUserId,
+    onlineUsers,
     fetchMessages,
     sendMessage,
-    clearCurrentConversation
+    clearCurrentConversation,
+    updateOnlineStatus
   };
 }

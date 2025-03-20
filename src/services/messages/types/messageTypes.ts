@@ -14,7 +14,7 @@ export interface CreateMessageRequest extends BaseMessageRequest {
   // Additional fields can be added here if needed
 }
 
-// Type for updating message properties
+// Type for updating message properties - cette interface ne contient que les propriétés nécessaires
 export interface UpdateMessageRequest {
   is_read: boolean;
 }

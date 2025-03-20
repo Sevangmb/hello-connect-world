@@ -6,21 +6,24 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { User, Loader2 } from 'lucide-react';
+import { User, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface ConversationsListProps {
   conversations: Conversation[];
   loading: boolean;
   currentConversation: string | null;
   onSelectConversation: (userId: string) => void;
+  emptyMessage?: string;
 }
 
 export const ConversationsList: React.FC<ConversationsListProps> = ({
   conversations,
   loading,
   currentConversation,
-  onSelectConversation
+  onSelectConversation,
+  emptyMessage = "Aucune conversation"
 }) => {
   if (loading) {
     return (
@@ -35,11 +38,15 @@ export const ConversationsList: React.FC<ConversationsListProps> = ({
 
   if (conversations.length === 0) {
     return (
-      <div className="flex items-center justify-center p-8 h-full">
+      <div className="flex flex-col items-center justify-center p-8 h-full">
         <div className="text-center">
-          <User className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-          <p className="text-sm font-medium">Aucune conversation</p>
-          <p className="text-xs text-gray-500">Commencez à discuter avec vos amis</p>
+          <MessageSquare className="h-8 w-8 mx-auto text-gray-300 mb-2" />
+          <p className="text-sm font-medium">{emptyMessage}</p>
+          <p className="text-xs text-gray-500 mb-4">Vous pouvez démarrer une conversation avec vos amis</p>
+          <Button variant="outline" size="sm">
+            <User className="h-3.5 w-3.5 mr-1.5" />
+            Trouver des contacts
+          </Button>
         </div>
       </div>
     );
