@@ -47,3 +47,12 @@ export interface PrivateMessageResponse {
   sender: Profile;
   receiver: Profile;
 }
+
+// Interface utilisée pour les mises à jour de profil
+export interface ProfileUpdate {
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  updated_at?: string;
+}
+

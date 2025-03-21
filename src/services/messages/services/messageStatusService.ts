@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UpdateMessageRequest } from '../types/messageTypes';
+import { UpdateMessageRequest, ProfileUpdate } from '../types/messageTypes';
 
 /**
  * Marque les messages d'un expéditeur comme lus
@@ -55,14 +55,37 @@ export async function countUnreadMessages(): Promise<number> {
 }
 
 /**
+ * Met à jour l'activité de l'utilisateur
+ */
+export async function updateUserActivity(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  
+  const update: ProfileUpdate = {
+    updated_at: new Date().toISOString()
+  };
+  
+  const { error } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('id', user.id);
+    
+  if (error) {
+    console.error('Error updating user activity:', error);
+  }
+}
+
+/**
  * Vérifie le statut en ligne d'un utilisateur
+ * Un utilisateur est considéré en ligne s'il a eu une activité 
+ * dans les 5 dernières minutes
  */
 export async function checkUserOnlineStatus(userId: string): Promise<boolean> {
   try {
-    // Check if the user has recent activity in profiles table
+    // Check if the user has recent activity based on updated_at field
     const { data, error } = await supabase
       .from('profiles')
-      .select('last_seen_at')
+      .select('updated_at')
       .eq('id', userId)
       .single();
     
@@ -72,8 +95,8 @@ export async function checkUserOnlineStatus(userId: string): Promise<boolean> {
     }
     
     // Consider user online if they've been active in the last 5 minutes
-    if (data?.last_seen_at) {
-      const lastSeen = new Date(data.last_seen_at);
+    if (data?.updated_at) {
+      const lastSeen = new Date(data.updated_at);
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
       return lastSeen > fiveMinutesAgo;
     }

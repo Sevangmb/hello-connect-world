@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Conversation, PrivateMessage } from '@/types/messages';
 import { messagesService } from '@/services/messages/messagesService';
 import { useToast } from '@/hooks/use-toast';
+import { ProfileUpdate } from '@/services/messages/types/messageTypes';
 
 export function useMessages() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -40,10 +41,14 @@ export function useMessages() {
         
         setCurrentUserId(user.id);
         
-        // Update current user's last_seen_at in profiles
+        // Update current user's activity timestamp
+        const update: ProfileUpdate = {
+          updated_at: new Date().toISOString()
+        };
+        
         await supabase
           .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
+          .update(update)
           .eq('id', user.id);
         
         // Fetch conversations
@@ -87,13 +92,17 @@ export function useMessages() {
         const userIds = conversations.map(conv => conv.id);
         updateOnlineStatus(userIds);
         
-        // Update current user's last_seen_at to maintain online status
+        // Update current user's activity timestamp to maintain online status
         const updateUserStatus = async () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
+            const update: ProfileUpdate = {
+              updated_at: new Date().toISOString()
+            };
+            
             await supabase
               .from('profiles')
-              .update({ last_seen_at: new Date().toISOString() })
+              .update(update)
               .eq('id', user.id);
           }
         };
@@ -164,12 +173,16 @@ export function useMessages() {
       const sentMessage = await messagesService.sendMessage(receiverId, content);
       setMessages(prev => [...prev, sentMessage]);
       
-      // Update current user's last_seen_at
+      // Update current user's activity timestamp
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        const update: ProfileUpdate = {
+          updated_at: new Date().toISOString()
+        };
+        
         await supabase
           .from('profiles')
-          .update({ last_seen_at: new Date().toISOString() })
+          .update(update)
           .eq('id', user.id);
       }
       
