@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { UpdateMessageRequest, ProfileUpdate } from '../types/messageTypes';
+import { ProfileUpdate } from '../types/messageTypes';
 
 /**
  * Marque les messages d'un expéditeur comme lus
@@ -12,14 +12,10 @@ export async function markMessagesAsRead(senderId: string): Promise<void> {
     throw new Error('User not authenticated');
   }
   
-  // Create an update object with the correct type
-  const updateData: UpdateMessageRequest = {
-    is_read: true
-  };
-  
+  // Use a simple object literal that matches the database schema
   const { error } = await supabase
     .from('private_messages')
-    .update(updateData)
+    .update({ is_read: true })
     .eq('sender_id', senderId)
     .eq('receiver_id', user.id)
     .eq('is_read', false);
